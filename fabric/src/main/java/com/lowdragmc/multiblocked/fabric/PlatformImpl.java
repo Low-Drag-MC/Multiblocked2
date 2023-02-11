@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib.fabric;
+package com.lowdragmc.multiblocked.fabric;
 
 import net.fabricmc.loader.api.FabricLoader;
 

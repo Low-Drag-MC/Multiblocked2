@@ -1,7 +1,7 @@
 {
   "required": true,
   "minVersion": "0.8",
-  "package": "com.lowdragmc.lowdraglib.fabric.core",
+  "package": "com.lowdragmc.multiblocked.fabric.core.mixins",
   "compatibilityLevel": "JAVA_17",
   "client": [
   ],

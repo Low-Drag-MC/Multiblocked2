@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib.forge;
+package com.lowdragmc.multiblocked.forge;
 
 public class PlatformImpl {
 	public static String platformName() {

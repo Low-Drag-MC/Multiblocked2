@@ -2,18 +2,26 @@ plugins {
     id "com.github.johnrengelman.shadow" version "7.1.2"
 }
 
+def accessWidenerFile = project(":ldlib-common").file("src/main/resources/ldlib.accesswidener")
+
 architectury {
     platformSetupLoomIde()
     forge()
 }
 
+static def isJetBrainsRuntime() {
+    return System.getProperty('java.vm.vendor').contains('JetBrains')
+}
+
 loom {
-    accessWidenerPath = project(":common").loom.accessWidenerPath
+    accessWidenerPath = accessWidenerFile
 
     forge {
         mixinConfig(
-                "${mod_id}-common.mixins.json",
-                "${mod_id}.mixins.json"
+                "multiblocked-common.mixins.json",
+                "multiblocked.mixins.json",
+                "ldlib-common.mixins.json",
+                "ldlib.mixins.json",
         )
 
         convertAccessWideners = true
@@ -21,6 +29,15 @@ loom {
 
         dataGen{
             mod(mod_id)
+        }
+    }
+
+    if (isJetBrainsRuntime()) {
+        runs {
+            client {
+                vmArgs '-XX:+AllowEnhancedClassRedefinition'
+                vmArgs '-XX:HotswapAgent=fatjar'
+            }
         }
     }
 }
@@ -47,19 +64,28 @@ repositories {
 
 dependencies {
     forge("net.minecraftforge:forge:${minecraft_version}-${forge_version}")
-    common(project(path: ":common", configuration: "namedElements")) { transitive = false }
-    shadowCommon(project(path: ":common", configuration: "transformProductionForge")) { transitive = false }
+    common(project(path: ":${mod_id}-common", configuration: "namedElements")) { transitive = false }
+    shadowCommon(project(path: ":${mod_id}-common", configuration: "transformProductionForge")) { transitive = false }
+
+    // LDLib
+    common(project(path: ":ldlib-common", configuration: "namedElements"))
+    implementation(project(path: ":ldlib-forge", configuration: "namedElements"))
 
     // Create and its dependencies
     modImplementation("com.simibubi.create:create-${minecraft_version}:${create_forge_version}:slim") { transitive = false }
     modImplementation("com.tterrag.registrate:Registrate:${registrate_forge_version}")
     modImplementation("com.jozufozu.flywheel:flywheel-forge-${flywheel_forge_minecraft_version}:${flywheel_forge_version}")
 
-    // Development QOL
-    modLocalRuntime("mezz.jei:jei-${minecraft_version}-forge:${jei_version}") { transitive = false }
+    // JEI
+    modCompileOnly("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}")
+    modCompileOnly("mezz.jei:jei-${minecraft_version}-forge-api:${jei_version}")
+    modImplementation("mezz.jei:jei-${minecraft_version}-forge:${jei_version}")
 
-    // if you would like to add integration with JEI, uncomment this line.
-//    modCompileOnly("mezz.jei:jei-${minecraft_version}:${jei_version}:api")
+    // REI
+    modCompileOnly("me.shedaniel:RoughlyEnoughItems-default-plugin-forge:${rei_version}")
+    modCompileOnly("me.shedaniel:RoughlyEnoughItems-api-forge:${rei_version}")
+    modCompileOnly("me.shedaniel:RoughlyEnoughItems-forge:${rei_version}")
+
 }
 
 processResources {
@@ -100,7 +126,7 @@ jar {
 }
 
 sourcesJar {
-    def commonSources = project(":common").sourcesJar
+    def commonSources = project(":${mod_id}-common").sourcesJar
     dependsOn commonSources
     from commonSources.archiveFile.map { zipTree(it) }
 }

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "ldlib",
+  "id": "multiblocked",
   "version": "${version}",
   "name": "${mod_name}",
   "description": "${mod_description}",
@@ -16,12 +16,12 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "com.lowdragmc.lowdraglib.fabric.LDLibFabric"
+      "com.lowdragmc.multiblocked.fabric.MultiblockedFabric"
     ]
   },
   "mixins": [
-    "ldlib.mixins.json",
-    "ldlib-common.mixins.json"
+    "multiblocked.mixins.json",
+    "multiblocked-common.mixins.json"
   ],
   "depends": {
     "minecraft": "${minecraft_version}",

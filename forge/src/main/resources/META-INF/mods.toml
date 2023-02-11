@@ -4,7 +4,7 @@ loaderVersion = "[${forge_version},)"
 license = "${mod_license}"
 
 [[mods]]
-modId = "ldlib"
+modId = "multiblocked"
 version = "${version}"
 displayName = "${mod_name}"
 authors = "KilaBash, WarmthDawn"
@@ -12,21 +12,21 @@ description = "${mod_description}"
 logoFile = "icon.png"
 displayURL = "${mod_url}"
 
-[[dependencies.ldlib]]
+[[dependencies.multiblocked]]
 modId = "forge"
 mandatory = true
 versionRange = "[${forge_version},)"
 ordering = "NONE"
 side = "BOTH"
 
-[[dependencies.ldlib]]
+[[dependencies.multiblocked]]
 modId = "minecraft"
 mandatory = true
 versionRange = "${minecraft_version}"
 ordering = "NONE"
 side = "BOTH"
 
-[[dependencies.ldlib]]
+[[dependencies.multiblocked]]
 modId="create"
 mandatory=true
 versionRange="${create_version}"

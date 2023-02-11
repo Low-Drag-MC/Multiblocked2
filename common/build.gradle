@@ -3,7 +3,7 @@ architectury {
 }
 
 loom {
-    accessWidenerPath = file("src/main/resources/${mod_id}.accesswidener")
+    accessWidenerPath = file("../LDLib-Architectury/common/src/main/resources/ldlib.accesswidener")
 }
 
 repositories {
@@ -27,6 +27,7 @@ dependencies {
     // All dependencies except Flywheel and Registrate are NOT safe to use!
     // Flywheel and Registrate must also be used carefully due to differences.
     modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")
+    implementation(project(path: ":ldlib-common", configuration: "namedElements"))
 }
 
 publishing {

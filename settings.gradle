@@ -8,8 +8,20 @@ pluginManagement {
     }
 }
 
-include("common")
-include("fabric")
-include("forge")
+include("multiblocked-common")
+include("multiblocked-fabric")
+include("multiblocked-forge")
 
-rootProject.name = "create-multiloader-addon-tempate"
+project(':multiblocked-common').setProjectDir(new File("common"))
+project(':multiblocked-forge').setProjectDir(new File("forge"))
+project(':multiblocked-fabric').setProjectDir(new File("fabric"))
+
+include("ldlib-common")
+include("ldlib-fabric")
+include("ldlib-forge")
+
+project(':ldlib-common').setProjectDir(new File("LDLib-Architectury/common"))
+project(':ldlib-forge').setProjectDir(new File("LDLib-Architectury/forge"))
+project(':ldlib-fabric').setProjectDir(new File("LDLib-Architectury/fabric"))
+
+rootProject.name = "${mod_name}"

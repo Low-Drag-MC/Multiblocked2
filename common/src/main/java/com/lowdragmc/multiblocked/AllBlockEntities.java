@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib;
+package com.lowdragmc.multiblocked;
 
 /**
  * @author KilaBash
@@ -9,6 +9,6 @@ public class AllBlockEntities {
 
     public static void init() {
         // load the class and register everything
-        LDLib.LOGGER.info("Registering block entities for " + LDLib.NAME);
+        Multiblocked.LOGGER.info("Registering block entities for " + Multiblocked.NAME);
     }
 }

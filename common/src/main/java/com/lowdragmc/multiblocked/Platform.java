@@ -1,4 +1,4 @@
-package com.lowdragmc.lowdraglib;
+package com.lowdragmc.multiblocked;
 
 import dev.architectury.injectables.annotations.ExpectPlatform;
 
