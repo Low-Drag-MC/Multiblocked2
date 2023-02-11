@@ -69,7 +69,7 @@ dependencies {
 
     // LDLib
     common(project(path: ":ldlib-common", configuration: "namedElements"))
-    implementation(project(path: ":ldlib-forge", configuration: "namedElements"))
+    modImplementation(project(path: ":ldlib-forge", configuration: "namedElements"))
 
     // Create and its dependencies
     modImplementation("com.simibubi.create:create-${minecraft_version}:${create_forge_version}:slim") { transitive = false }
@@ -79,12 +79,12 @@ dependencies {
     // JEI
     modCompileOnly("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}")
     modCompileOnly("mezz.jei:jei-${minecraft_version}-forge-api:${jei_version}")
-    modImplementation("mezz.jei:jei-${minecraft_version}-forge:${jei_version}")
+    modCompileOnly("mezz.jei:jei-${minecraft_version}-forge:${jei_version}")
 
     // REI
     modCompileOnly("me.shedaniel:RoughlyEnoughItems-default-plugin-forge:${rei_version}")
     modCompileOnly("me.shedaniel:RoughlyEnoughItems-api-forge:${rei_version}")
-    modCompileOnly("me.shedaniel:RoughlyEnoughItems-forge:${rei_version}")
+    modImplementation("me.shedaniel:RoughlyEnoughItems-forge:${rei_version}")
 
 }
 
