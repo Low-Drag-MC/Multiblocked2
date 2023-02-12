@@ -99,6 +99,7 @@ processResources {
     // set up properties for filling into metadata
     Map<String, String> properties = Map.of(
             "version", version,
+            "mod_id", mod_id,
             "fabric_loader_version", fabric_loader_version,
             "fabric_api_version", fabric_api_version,
             "minecraft_version", minecraft_version,
