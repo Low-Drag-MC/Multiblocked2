@@ -8,20 +8,22 @@ pluginManagement {
     }
 }
 
-include("multiblocked-common")
-include("multiblocked-fabric")
-include("multiblocked-forge")
+include("${mod_id}-common")
+include("${mod_id}-fabric")
+include("${mod_id}-forge")
 
-project(':multiblocked-common').setProjectDir(new File("common"))
-project(':multiblocked-forge').setProjectDir(new File("forge"))
-project(':multiblocked-fabric').setProjectDir(new File("fabric"))
+project(":${mod_id}-common").setProjectDir(new File("common"))
+project(":${mod_id}-forge").setProjectDir(new File("forge"))
+project(":${mod_id}-fabric").setProjectDir(new File("fabric"))
 
-include("ldlib-common")
-include("ldlib-fabric")
-include("ldlib-forge")
+include("${ldlib_name}")
+include("${ldlib_name}:${ldlib_id}-common")
+include("${ldlib_name}:${ldlib_id}-fabric")
+include("${ldlib_name}:${ldlib_id}-forge")
 
-project(':ldlib-common').setProjectDir(new File("LDLib-Architectury/common"))
-project(':ldlib-forge').setProjectDir(new File("LDLib-Architectury/forge"))
-project(':ldlib-fabric').setProjectDir(new File("LDLib-Architectury/fabric"))
+project(":${ldlib_name}").setProjectDir(new File("LDLib-Architectury"))
+project(":${ldlib_name}:${ldlib_id}-common").setProjectDir(new File("LDLib-Architectury/common"))
+project(":${ldlib_name}:${ldlib_id}-forge").setProjectDir(new File("LDLib-Architectury/forge"))
+project(":${ldlib_name}:${ldlib_id}-fabric").setProjectDir(new File("LDLib-Architectury/fabric"))
 
 rootProject.name = "${mod_name}"

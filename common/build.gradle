@@ -2,8 +2,20 @@ architectury {
     common(rootProject.enabled_platforms.split(","))
 }
 
+String getConfig(String key) {
+    return project.getParent().properties.get(key)
+}
+
+def parent_path = project.getParent() == rootProject ? "" : project.getParent().getPath()
+def mod_id = getConfig("mod_id")
+def minecraft_version = getConfig("minecraft_version")
+def fabric_loader_version = getConfig("fabric_loader_version")
+def create_fabric_version = getConfig("create_fabric_version")
+def jei_version = getConfig("jei_version")
+def rei_version = getConfig("rei_version")
+
 loom {
-    accessWidenerPath = file("../LDLib-Architectury/common/src/main/resources/ldlib.accesswidener")
+    accessWidenerPath = file("src/main/resources/${mod_id}.accesswidener")
 }
 
 repositories {
@@ -27,7 +39,17 @@ dependencies {
     // All dependencies except Flywheel and Registrate are NOT safe to use!
     // Flywheel and Registrate must also be used carefully due to differences.
     modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")
-    implementation(project(path: ":ldlib-common", configuration: "namedElements"))
+    implementation(project(path: "${parent_path}:${ldlib_name}:${ldlib_id}-common", configuration: "namedElements"))
+
+    // JEI
+    modCompileOnly("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}")
+    modCompileOnly("mezz.jei:jei-${minecraft_version}-fabric-api:${jei_version}")
+    modCompileOnly("mezz.jei:jei-${minecraft_version}-fabric:${jei_version}")
+
+    // REI
+    modCompileOnly("me.shedaniel:RoughlyEnoughItems-default-plugin-fabric:${rei_version}")
+    modCompileOnly("me.shedaniel:RoughlyEnoughItems-api-fabric:${rei_version}")
+    modCompileOnly("me.shedaniel:RoughlyEnoughItems-fabric:${rei_version}")
 }
 
 publishing {

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "multiblocked",
+  "id": "${mod_id}",
   "version": "${version}",
   "name": "${mod_name}",
   "description": "${mod_description}",
@@ -20,13 +20,13 @@
     ]
   },
   "mixins": [
-    "multiblocked.mixins.json",
-    "multiblocked-common.mixins.json"
+    "${mod_id}.mixins.json",
+    "${mod_id}-common.mixins.json"
   ],
   "depends": {
     "minecraft": "${minecraft_version}",
     "fabricloader": ">=${fabric_loader_version}",
     "fabric-api": ">=${fabric_api_version}",
-    "create": "${create_version}"
+    "ldlib": "${ldlib_version}"
   }
 }
