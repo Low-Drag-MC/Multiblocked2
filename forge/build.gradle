@@ -120,7 +120,7 @@ processResources {
             "mod_name", mod_name,
             "mod_description", mod_description,
             "mod_url", mod_url,
-            "ldlib_version", ldlib_version.split("-")[0] // cut off build number
+            "ldlib_version", ldlib_version
     )
     properties.forEach((k, v) -> inputs.property(k, v))
 
