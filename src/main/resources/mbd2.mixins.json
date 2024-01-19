@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.lowdragmc.mbd2.core.mixins",
+  "compatibilityLevel": "JAVA_17",
+  "plugin": "com.lowdragmc.mbd2.core.mixins.MBDMixinPlugin",
+  "client": [
+  ],
+  "mixins": [
+  ],
+  "injectors": {
+    "defaultRequire": 1,
+    "maxShiftBy": 5
+  }
+}

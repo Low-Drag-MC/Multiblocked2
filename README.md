@@ -1,2 +1,3 @@
-# LDLib--Architectury
-A template based on Architectury for creating addons for LDLib on Forge, Fabric, and Quilt, simultaneously.
+# Multiblocked
+Multiblocked (mbd) is an extremely flexible yet vanilla-esque multiblock mod, that embraces aspects of MultiblockTweaker and Modular Machinery.
+

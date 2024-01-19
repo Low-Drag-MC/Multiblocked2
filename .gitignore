@@ -17,3 +17,4 @@ classes/
 .vscode
 .settings
 *.launch
+.DS_Store
