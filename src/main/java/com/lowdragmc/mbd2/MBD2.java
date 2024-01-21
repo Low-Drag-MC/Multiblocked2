@@ -9,14 +9,17 @@ import net.minecraftforge.fml.common.Mod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Mod(Multiblocked2.MOD_ID)
-public class Multiblocked2 {
+import java.util.Random;
+
+@Mod(MBD2.MOD_ID)
+public class MBD2 {
     public static final String MOD_ID = "mbd2";
     public static final String NAME = "Multiblocked2";
     public static final Logger LOGGER = LoggerFactory.getLogger(NAME);
+    public static final Random RND = new Random();
 
-    public Multiblocked2() {
-        Multiblocked2.init();
+    public MBD2() {
+        MBD2.init();
         DistExecutor.unsafeRunForDist(() -> ClientProxy::new, () -> CommonProxy::new);
     }
 

@@ -7,6 +7,9 @@
   "client": [
   ],
   "mixins": [
+    "ChunkMixin",
+    "LevelMixin",
+    "ServerChunkProviderMixin"
   ],
   "injectors": {
     "defaultRequire": 1,

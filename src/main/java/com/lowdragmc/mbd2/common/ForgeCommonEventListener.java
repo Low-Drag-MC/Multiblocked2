@@ -1,6 +1,6 @@
 package com.lowdragmc.mbd2.common;
 
-import com.lowdragmc.mbd2.Multiblocked2;
+import com.lowdragmc.mbd2.MBD2;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -18,7 +18,7 @@ import net.minecraftforge.fml.common.Mod;
  * @date 2022/8/27
  * @implNote ForgeCommonEventListener
  */
-@Mod.EventBusSubscriber(modid = Multiblocked2.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
+@Mod.EventBusSubscriber(modid = MBD2.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class ForgeCommonEventListener {
 
     @SubscribeEvent
