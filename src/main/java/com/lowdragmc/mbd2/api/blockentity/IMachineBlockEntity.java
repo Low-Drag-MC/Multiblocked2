@@ -1,9 +1,9 @@
-package com.lowdragmc.mbd2.api.machine;
+package com.lowdragmc.mbd2.api.blockentity;
 
 import com.lowdragmc.lowdraglib.syncdata.blockentity.IAsyncAutoSyncBlockEntity;
 import com.lowdragmc.lowdraglib.syncdata.blockentity.IAutoPersistBlockEntity;
 import com.lowdragmc.lowdraglib.syncdata.blockentity.IRPCBlockEntity;
-import com.lowdragmc.lowdraglib.syncdata.managed.MultiManagedStorage;
+import com.lowdragmc.mbd2.api.machine.IMachine;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.Level;
@@ -54,8 +54,6 @@ public interface IMachineBlockEntity extends IAsyncAutoSyncBlockEntity, IRPCBloc
     IMachine getMetaMachine();
 
     long getOffset();
-
-    MultiManagedStorage getRootStorage();
 
     @Override
     default void saveCustomPersistedData(CompoundTag tag, boolean forDrop) {

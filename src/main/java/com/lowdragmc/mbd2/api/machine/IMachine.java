@@ -8,6 +8,7 @@ import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -22,14 +23,9 @@ public interface IMachine extends IRecipeCapabilityHolder {
         return blockEntity == null ? Optional.empty() : blockEntity.getCapability(MBDCapabilities.CAPABILITY_MACHINE).resolve();
     }
 
-    static Optional<IMachine> ofMachine(@Nonnull Level level, @Nonnull BlockPos pos) {
+    static Optional<IMachine> ofMachine(@Nonnull BlockGetter level, @Nonnull BlockPos pos) {
         return ofMachine(level.getBlockEntity(pos));
     }
-
-    /**
-     * Get machine definition.
-     */
-    MachineDefinition getDefinition();
 
     /**
      * Get the block entity holder.
@@ -58,9 +54,17 @@ public interface IMachine extends IRecipeCapabilityHolder {
     }
 
     /**
+     * Get the random offset.
+     */
+    long getOffset();
+
+    /**
      * Get the offset timer.
      */
-    long getOffsetTimer();
+    default long getOffsetTimer() {
+        var level = getLevel();
+        return level == null ? getOffset() : (level.getGameTime() + getOffset());
+    }
 
     /**
      * Mark the machine as dirty.
@@ -81,13 +85,17 @@ public interface IMachine extends IRecipeCapabilityHolder {
      * @param tag the CompoundTag to load data from
      * @param forDrop if the save is done for dropping the machine as an item.
      */
-    void saveCustomPersistedData(CompoundTag tag, boolean forDrop);
+    default void saveCustomPersistedData(CompoundTag tag, boolean forDrop) {
+
+    }
 
     /**
      * Use for data not able to be saved with the SyncData system, like optional mod compatiblity in internal machines.
      * @param tag the CompoundTag to load data from
      */
-    void loadCustomPersistedData(CompoundTag tag);
+    default void loadCustomPersistedData(CompoundTag tag) {
+
+    }
 
     /**
      * Get the front facing of the machine.
@@ -113,6 +121,15 @@ public interface IMachine extends IRecipeCapabilityHolder {
     void setFrontFacing(Direction facing);
 
     /**
+     * Called when the machine is rotated.
+     * <br>
+     * It has to be called yourself.
+     */
+    default void onRotated(Direction oldFacing, Direction newFacing) {
+
+    }
+
+    /**
      * re-render the chunk.
      */
     default void scheduleRenderUpdate() {
@@ -124,6 +141,24 @@ public interface IMachine extends IRecipeCapabilityHolder {
                 level.sendBlockUpdated(pos, state, state, 1 << 3);
             }
         }
+    }
+
+    /**
+     * on machine invalid in the chunk.
+     * <br>
+     * You should call it in yourselves {@link BlockEntity#setRemoved()}.
+     */
+    default void onUnload() {
+
+    }
+
+    /**
+     * on machine valid in the chunk.
+     * <br>
+     * You should call it in yourselves {@link BlockEntity#clearRemoved()}.
+     */
+    default void onLoad() {
+        getRecipeLogic().inValid();
     }
 
     //////////////////////////////////////

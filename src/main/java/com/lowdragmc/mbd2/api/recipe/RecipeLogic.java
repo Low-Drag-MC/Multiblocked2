@@ -1,10 +1,10 @@
 package com.lowdragmc.mbd2.api.recipe;
 
-import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.Platform;
-import com.lowdragmc.lowdraglib.syncdata.IManaged;
+import com.lowdragmc.lowdraglib.syncdata.IEnhancedManaged;
 import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib.syncdata.annotation.UpdateListener;
 import com.lowdragmc.lowdraglib.syncdata.field.FieldManagedStorage;
 import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
@@ -14,6 +14,8 @@ import lombok.Getter;
 import net.minecraft.Util;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.crafting.RecipeManager;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import javax.annotation.Nullable;
@@ -21,7 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-public class RecipeLogic implements IManaged {
+public class RecipeLogic implements IEnhancedManaged {
     @Getter
     private final FieldManagedStorage syncStorage = new FieldManagedStorage(this);
     public static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(RecipeLogic.class);
@@ -35,6 +37,11 @@ public class RecipeLogic implements IManaged {
         machine.markDirty();
     }
 
+    @Override
+    public void scheduleRenderUpdate() {
+        machine.scheduleRenderUpdate();
+    }
+
     public enum Status {
         IDLE, WORKING, WAITING, SUSPEND
     }
@@ -42,7 +49,7 @@ public class RecipeLogic implements IManaged {
     public final IMachine machine;
     public List<MBDRecipe> lastFailedMatches;
 
-    @Getter @Persisted @DescSynced
+    @Getter @Persisted @DescSynced @UpdateListener(methodName = "onStatusSynced")
     private Status status = Status.IDLE;
 
     @Nullable
@@ -79,13 +86,11 @@ public class RecipeLogic implements IManaged {
 
     public RecipeLogic(IMachine machine) {
         this.machine = machine;
-        if (LDLib.isClient()) {
-            addSyncUpdateListener("status", this::onStatusSynced);
-        }
     }
 
     @SuppressWarnings("unused")
-    protected void onStatusSynced(String name, Status newValue, Status oldValue) {
+    @OnlyIn(Dist.CLIENT)
+    protected void onStatusSynced(Status newValue, Status oldValue) {
         getMachine().scheduleRenderUpdate();
     }
 

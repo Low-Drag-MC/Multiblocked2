@@ -1,17 +1,34 @@
 package com.lowdragmc.mbd2.api.machine;
 
+import com.lowdragmc.mbd2.api.capability.MBDCapabilities;
 import com.lowdragmc.mbd2.api.pattern.BlockPattern;
 import com.lowdragmc.mbd2.api.pattern.MultiblockState;
+import com.lowdragmc.mbd2.api.pattern.MultiblockWorldSavedData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 
 public interface IMultiController extends IMachine {
+
+    static Optional<IMultiController> ofController(@Nullable BlockEntity blockEntity) {
+        return blockEntity == null ? Optional.empty() : blockEntity.getCapability(MBDCapabilities.CAPABILITY_MACHINE).resolve()
+                .filter(IMultiController.class::isInstance)
+                .map(IMultiController.class::cast);
+    }
+
+    static Optional<IMultiController> ofController(@Nonnull BlockGetter level, @Nonnull BlockPos pos) {
+        return ofController(level.getBlockEntity(pos));
+    }
 
     /**
      * Check MultiBlock Pattern. Just checking pattern without any other logic.
@@ -55,9 +72,7 @@ public interface IMultiController extends IMachine {
      * Get structure pattern.
      * You can override it to create dynamic patterns.
      */
-    default BlockPattern getPattern() {
-        return getDefinition().getPatternFactory().get();
-    }
+    BlockPattern getPattern();
 
     /**
      * Whether Multiblock Formed.
@@ -77,9 +92,30 @@ public interface IMultiController extends IMachine {
     /**
      * Called in an async thread. It's unsafe, Don't modify anything of world but checking information.
      * It will be called per 5 tick.
+     * <br>
+     * to implement it, you should
+     * <br>
+     * - call {@link MultiblockWorldSavedData#addAsyncLogic(IMultiController)} in {@link IMultiController#onLoad()}
+     * <br>
+     * - call {@link MultiblockWorldSavedData#removeAsyncLogic(IMultiController)} in {@link IMultiController#onUnload()}
      * @param periodID period Tick
      */
-    void asyncCheckPattern(long periodID);
+    default void asyncCheckPattern(long periodID) {
+        if ((getMultiblockState().hasError() || !isFormed()) && (getOffset() + periodID) % 4 == 0 && checkPatternWithTryLock()) { // per second
+            if (getLevel() instanceof ServerLevel serverLevel) {
+                serverLevel.getServer().execute(() -> {
+                    getPatternLock().lock();
+                    if (checkPatternWithLock()) { // formed
+                        onStructureFormed();
+                        var mwsd = MultiblockWorldSavedData.getOrCreate(serverLevel);
+                        mwsd.addMapping(getMultiblockState());
+                        mwsd.removeAsyncLogic(this);
+                    }
+                    getPatternLock().unlock();
+                });
+            }
+        }
+    }
 
     /**
      * Called when structure is formed, have to be called after {@link #checkPattern()}. (server-side / fake scene only)
@@ -114,7 +150,7 @@ public interface IMultiController extends IMachine {
     void onPartUnload();
 
     /**
-     * Get lock for pattern checking.
+     * Get lock for async pattern checking.
      */
     Lock getPatternLock();
 
@@ -130,9 +166,6 @@ public interface IMultiController extends IMachine {
      */
     @Nullable
     default BlockState getPartAppearance(IMultiPart part, Direction side, BlockState sourceState, BlockPos sourcePos) {
-        if (isFormed()) {
-            return getDefinition().getPartAppearance().apply(this, part, side);
-        }
         return null;
     }
 }

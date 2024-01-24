@@ -1,14 +1,31 @@
 package com.lowdragmc.mbd2.api.machine;
 
+import com.lowdragmc.mbd2.api.capability.MBDCapabilities;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
+import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 
+import javax.annotation.Nonnull;
 import java.util.List;
+import java.util.Optional;
 
 public interface IMultiPart extends IMachine {
+
+    static Optional<IMultiPart> ofPart(@javax.annotation.Nullable BlockEntity blockEntity) {
+        return blockEntity == null ? Optional.empty() : blockEntity.getCapability(MBDCapabilities.CAPABILITY_MACHINE).resolve()
+                .filter(IMultiPart.class::isInstance)
+                .map(IMultiPart.class::cast);
+    }
+
+    static Optional<IMultiPart> ofPart(@Nonnull BlockGetter level, @Nonnull BlockPos pos) {
+        return ofPart(level.getBlockEntity(pos));
+    }
+
     /**
      * Can it be shared among multi multiblock.
      */
@@ -58,10 +75,6 @@ public interface IMultiPart extends IMachine {
      */
     @Nullable
     default BlockState getFormedAppearance(BlockState sourceState, BlockPos sourcePos, Direction side) {
-        for (IMultiController controller : getControllers()) {
-            var appearance = controller.getPartAppearance(this, side, sourceState, sourcePos);
-            if (appearance != null) return appearance;
-        }
         return null;
     }
 
