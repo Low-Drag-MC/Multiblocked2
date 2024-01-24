@@ -79,11 +79,15 @@ public abstract class RecipeCondition {
         if (isReverse) {
             jsonObject.addProperty("reverse", true);
         }
+        if (isRuntime) {
+            jsonObject.addProperty("runtime", true);
+        }
         return jsonObject;
     }
 
     public RecipeCondition deserialize(@NotNull JsonObject config) {
         isReverse = GsonHelper.getAsBoolean(config, "reverse", false);
+        isRuntime = GsonHelper.getAsBoolean(config, "runtime", false);
         return this;
     }
 

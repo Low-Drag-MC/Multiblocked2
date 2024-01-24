@@ -28,6 +28,7 @@ public class RainingCondition extends RecipeCondition {
     public RainingCondition(float minLevel, float maxLevel) {
         this.minLevel = minLevel;
         this.maxLevel = maxLevel;
+        this.isRuntime = true;
     }
 
     @Override
