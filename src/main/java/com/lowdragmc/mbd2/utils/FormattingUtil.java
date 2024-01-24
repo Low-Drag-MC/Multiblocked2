@@ -7,7 +7,6 @@ import net.minecraft.network.chat.MutableComponent;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.Arrays;
@@ -153,7 +152,7 @@ public class FormattingUtil {
         return NUMBER_FORMAT.format(number);
     }
 
-    @Nonnull
+    @NotNull
     public static String formatNumber2Places(float number) {
         return TWO_PLACES_FORMAT.format(number);
     }

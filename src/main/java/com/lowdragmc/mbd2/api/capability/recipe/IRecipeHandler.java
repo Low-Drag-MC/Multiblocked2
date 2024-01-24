@@ -1,8 +1,8 @@
 package com.lowdragmc.mbd2.api.capability.recipe;
 
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -47,7 +47,7 @@ public interface IRecipeHandler<K> {
 
     @SuppressWarnings("unchecked")
     default K copyContent(Object content) {
-        return getCapability().copyInner((K)content);
+        return getCapability().copyInner((K) content);
     }
 
     default List<K> handleRecipe(IO io, MBDRecipe recipe, List<?> left, @Nullable String slotName, boolean simulate) {

@@ -7,9 +7,8 @@ import com.lowdragmc.mbd2.MBD2;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.GsonHelper;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author KilaBash
@@ -22,13 +21,14 @@ public abstract class RecipeCondition {
     public static RecipeCondition create(Class<? extends RecipeCondition> clazz) {
         if (clazz == null) return null;
         try {
-            return clazz.newInstance();
+            return clazz.getDeclaredConstructor().newInstance();
         } catch (Exception ignored) {
             MBD2.LOGGER.error("condition {} has no NonArgsConstructor", clazz);
             return null;
         }
     }
 
+    protected boolean isRuntime;
     protected boolean isReverse;
 
     public abstract String getType();
@@ -53,18 +53,27 @@ public abstract class RecipeCondition {
         return true;
     }
 
+    public boolean isRuntime() {
+        return isRuntime;
+    }
+
     public RecipeCondition setReverse(boolean reverse) {
         isReverse = reverse;
         return this;
     }
 
+    public RecipeCondition setRuntime(boolean runtime) {
+        isRuntime = runtime;
+        return this;
+    }
+
     public abstract Component getTooltips();
 
-    public abstract boolean test(@Nonnull MBDRecipe recipe, @Nonnull RecipeLogic recipeLogic);
+    public abstract boolean test(@NotNull MBDRecipe recipe, @NotNull RecipeLogic recipeLogic);
 
     public abstract RecipeCondition createTemplate();
 
-    @Nonnull
+    @NotNull
     public JsonObject serialize() {
         JsonObject jsonObject = new JsonObject();
         if (isReverse) {
@@ -73,7 +82,7 @@ public abstract class RecipeCondition {
         return jsonObject;
     }
 
-    public RecipeCondition deserialize(@Nonnull JsonObject config) {
+    public RecipeCondition deserialize(@NotNull JsonObject config) {
         isReverse = GsonHelper.getAsBoolean(config, "reverse", false);
         return this;
     }

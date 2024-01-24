@@ -8,12 +8,11 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.BlockGetter;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.locks.Lock;
@@ -26,7 +25,7 @@ public interface IMultiController extends IMachine {
                 .map(IMultiController.class::cast);
     }
 
-    static Optional<IMultiController> ofController(@Nonnull BlockGetter level, @Nonnull BlockPos pos) {
+    static Optional<IMultiController> ofController(@NotNull BlockGetter level, @NotNull BlockPos pos) {
         return ofController(level.getBlockEntity(pos));
     }
 
@@ -86,7 +85,7 @@ public interface IMultiController extends IMachine {
     /**
      * Get MultiblockState. It records all structure-related information.
      */
-    @Nonnull
+    @NotNull
     MultiblockState getMultiblockState();
 
     /**

@@ -10,8 +10,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.saveddata.SavedData;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -61,9 +61,9 @@ public class MultiblockWorldSavedData extends SavedData {
         setDirty(true);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public CompoundTag save(@Nonnull CompoundTag compound) {
+    public CompoundTag save(@NotNull CompoundTag compound) {
         return compound;
     }
 

@@ -16,9 +16,9 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -27,6 +27,7 @@ public class RecipeLogic implements IEnhancedManaged {
     @Getter
     private final FieldManagedStorage syncStorage = new FieldManagedStorage(this);
     public static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(RecipeLogic.class);
+
     @Override
     public ManagedFieldHolder getFieldHolder() {
         return MANAGED_FIELD_HOLDER;
@@ -45,34 +46,46 @@ public class RecipeLogic implements IEnhancedManaged {
     public enum Status {
         IDLE, WORKING, WAITING, SUSPEND
     }
+
     @Getter
     public final IMachine machine;
     public List<MBDRecipe> lastFailedMatches;
 
-    @Getter @Persisted @DescSynced @UpdateListener(methodName = "onStatusSynced")
+    @Getter
+    @Persisted
+    @DescSynced
+    @UpdateListener(methodName = "onStatusSynced")
     private Status status = Status.IDLE;
 
     @Nullable
-    @Persisted @DescSynced
+    @Persisted
+    @DescSynced
     private Component waitingReason = null;
     /**
      * unsafe, it may not be found from {@link RecipeManager}. Do not index it.
      */
-    @Nullable @Getter @Persisted
+    @Nullable
+    @Getter
+    @Persisted
     protected MBDRecipe lastRecipe;
     /**
      * safe, it is the origin recipe before {@link IMachine#doModifyRecipe(MBDRecipe)}' which can be found from {@link RecipeManager}.
      */
-    @Nullable @Getter @Persisted
+    @Nullable
+    @Getter
+    @Persisted
     protected MBDRecipe lastOriginRecipe;
     @Persisted
     @Getter
     protected int progress;
-    @Getter @Persisted
+    @Getter
+    @Persisted
     protected int duration;
-    @Getter @Persisted
+    @Getter
+    @Persisted
     protected int fuelTime;
-    @Getter @Persisted
+    @Getter
+    @Persisted
     protected int fuelMaxTime;
     @Getter(onMethod_ = @VisibleForTesting)
     protected boolean recipeDirty;
@@ -113,7 +126,7 @@ public class RecipeLogic implements IEnhancedManaged {
     }
 
     public boolean needFuel() {
-        if (machine.getRecipeType().isFuelRecipeType()){
+        if (machine.getRecipeType().isFuelRecipeType()) {
             return true;
         }
         return false;
@@ -178,7 +191,7 @@ public class RecipeLogic implements IEnhancedManaged {
     public void handleRecipeWorking() {
         Status last = this.status;
         assert lastRecipe != null;
-        var result = lastRecipe.checkConditions(this);
+        var result = lastRecipe.checkConditions(this, true);
         if (result.isSuccess()) {
             if (handleFuelRecipe()) {
                 result = handleTickRecipe(lastRecipe);
@@ -282,7 +295,7 @@ public class RecipeLogic implements IEnhancedManaged {
     public boolean handleFuelRecipe() {
         if (!needFuel() || fuelTime > 0) return true;
         for (MBDRecipe recipe : machine.getRecipeType().searchFuelRecipe(getRecipeManager(), machine)) {
-            if (recipe.checkConditions(this).isSuccess() && recipe.handleRecipeIO(IO.IN, this.machine)) {
+            if (recipe.checkConditions(this, true).isSuccess() && recipe.handleRecipeIO(IO.IN, this.machine)) {
                 fuelMaxTime = recipe.duration;
                 fuelTime = fuelMaxTime;
             }
@@ -363,6 +376,7 @@ public class RecipeLogic implements IEnhancedManaged {
 
     /**
      * Toggle working enabled. If machine is not allowed to work, the working machine will be suspended.
+     *
      * @param isWorkingAllowed whether machine is allowed to work.
      */
     public void setWorkingEnabled(boolean isWorkingAllowed) {
@@ -427,7 +441,7 @@ public class RecipeLogic implements IEnhancedManaged {
     /**
      * Interrupt current recipe without io.
      */
-    public void interruptRecipe(){
+    public void interruptRecipe() {
         machine.afterWorking();
         if (lastRecipe != null) {
             lastRecipe.postWorking(this.machine);

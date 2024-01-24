@@ -2,12 +2,14 @@ package com.lowdragmc.mbd2.api.recipe;
 
 import com.google.common.collect.Table;
 import com.lowdragmc.mbd2.MBD2;
-import com.lowdragmc.mbd2.api.capability.recipe.*;
+import com.lowdragmc.mbd2.api.annotations.NotNullByDefault;
+import com.lowdragmc.mbd2.api.capability.recipe.IO;
+import com.lowdragmc.mbd2.api.capability.recipe.IRecipeCapabilityHolder;
+import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandler;
+import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
-import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import lombok.Getter;
-import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -21,9 +23,14 @@ import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nonnull;
-import javax.annotation.ParametersAreNonnullByDefault;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 
 /**
@@ -32,8 +39,7 @@ import java.util.function.Supplier;
  * @implNote MBDRecipe
  */
 @SuppressWarnings({"ConstantValue", "rawtypes", "unchecked"})
-@MethodsReturnNonnullByDefault
-@ParametersAreNonnullByDefault
+@NotNullByDefault
 public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Container> {
     public final MBDRecipeType recipeType;
     public final ResourceLocation id;
@@ -373,18 +379,22 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
         }));
     }
 
-    public ActionResult checkConditions(@Nonnull RecipeLogic recipeLogic) {
+    public ActionResult checkConditions(@NotNull RecipeLogic recipeLogic) {
+        return checkConditions(recipeLogic, false);
+    }
+
+    public ActionResult checkConditions(@NotNull RecipeLogic recipeLogic, boolean running) {
         if (conditions.isEmpty()) return ActionResult.SUCCESS;
         Map<String, List<RecipeCondition>> or = new HashMap<>();
         for (RecipeCondition condition : conditions) {
             if (condition.isOr()) {
                 or.computeIfAbsent(condition.getType(), type -> new ArrayList<>()).add(condition);
-            } else if (condition.test(this, recipeLogic) == condition.isReverse()) {
+            } else if ((running && !condition.isRuntime()) || condition.test(this, recipeLogic) == condition.isReverse()) {
                 return ActionResult.fail(() -> Component.translatable("mbd2.recipe_logic.condition_fails").append(": ").append(condition.getTooltips()));
             }
         }
         for (List<RecipeCondition> conditions : or.values()) {
-            if (conditions.stream().allMatch(condition -> condition.test(this, recipeLogic) == condition.isReverse())) {
+            if (conditions.stream().allMatch(condition -> (running && !condition.isRuntime()) && condition.test(this, recipeLogic) == condition.isReverse())) {
                 return ActionResult.fail(() -> Component.translatable("mbd2.recipe_logic.condition_fails"));
             }
         }
@@ -392,18 +402,17 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
     }
 
     /**
-     *
-     * @param isSuccess is action success
-     * @param reason if fail, fail reason
+     * @param isSuccess     is action success
+     * @param reason        if fail, fail reason
      * @param expectingRate if recipe matching fail, the expecting rate of one cap.
-     *                    <br>
-     *                    For example, recipe require 300eu and 10 apples, and left 100eu and 5 apples after recipe searching.
-     *                    <br>
-     *                    EU Missing Rate : 300 / (300 - 100) = 1.5
-     *                    <br>
-     *                    Item Missing Rate : 10 / (10 - 5) = 2
-     *                    <br>
-     *                    return max expecting rate --- 2
+     *                      <br>
+     *                      For example, recipe require 300eu and 10 apples, and left 100eu and 5 apples after recipe searching.
+     *                      <br>
+     *                      EU Missing Rate : 300 / (300 - 100) = 1.5
+     *                      <br>
+     *                      Item Missing Rate : 10 / (10 - 5) = 2
+     *                      <br>
+     *                      return max expecting rate --- 2
      */
     public static record ActionResult(boolean isSuccess, @Nullable Supplier<Component> reason, float expectingRate) {
 

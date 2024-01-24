@@ -1,8 +1,8 @@
 package com.lowdragmc.mbd2.api.capability.recipe;
 
 import com.google.common.collect.Table;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import java.util.List;
 
 
@@ -12,7 +12,7 @@ public interface IRecipeCapabilityHolder {
         return !getCapabilitiesProxy().isEmpty() && !getCapabilitiesProxy().isEmpty();
     }
 
-    @Nonnull
+    @NotNull
     Table<IO, RecipeCapability<?>, List<IRecipeHandler<?>>> getCapabilitiesProxy();
 
     /**

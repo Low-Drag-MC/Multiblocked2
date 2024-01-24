@@ -18,8 +18,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.state.BlockState;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -79,7 +79,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public MultiblockState getMultiblockState() {
         if (multiblockState == null) {
             multiblockState = new MultiblockState(getLevel(), getPos());

@@ -12,9 +12,9 @@ import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.Optional;
 
 public interface IMachine extends IRecipeCapabilityHolder {
@@ -23,7 +23,7 @@ public interface IMachine extends IRecipeCapabilityHolder {
         return blockEntity == null ? Optional.empty() : blockEntity.getCapability(MBDCapabilities.CAPABILITY_MACHINE).resolve();
     }
 
-    static Optional<IMachine> ofMachine(@Nonnull BlockGetter level, @Nonnull BlockPos pos) {
+    static Optional<IMachine> ofMachine(@NotNull BlockGetter level, @NotNull BlockPos pos) {
         return ofMachine(level.getBlockEntity(pos));
     }
 
@@ -165,7 +165,7 @@ public interface IMachine extends IRecipeCapabilityHolder {
     //********   RECIPE LOGIC  *********//
     //////////////////////////////////////
 
-    @Nonnull
+    @NotNull
     MBDRecipeType getRecipeType();
 
     /**
@@ -177,7 +177,7 @@ public interface IMachine extends IRecipeCapabilityHolder {
     /**
      * Recipe logic
      */
-    @Nonnull
+    @NotNull
     RecipeLogic getRecipeLogic();
 
     /**
