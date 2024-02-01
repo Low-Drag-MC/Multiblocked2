@@ -24,9 +24,9 @@ public class Predicates {
         for (BlockState state : allowedStates) {
             candidates.add(state);
             // TODO vaBlocks
-            if (state.getBlock() instanceof ActiveBlock block) {
-                candidates.add(block.changeActive(state, !block.isActive(state)));
-            }
+//            if (state.getBlock() instanceof ActiveBlock block) {
+//                candidates.add(block.changeActive(state, !block.isActive(state)));
+//            }
         }
         return new TraceabilityPredicate(new PredicateStates(candidates.toArray(BlockState[]::new)));
     }

@@ -1,6 +1,7 @@
 package com.lowdragmc.mbd2.api.machine;
 
 import com.lowdragmc.mbd2.api.capability.MBDCapabilities;
+import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -61,7 +62,7 @@ public interface IMultiPart extends IMachine {
     /**
      * Get all available traits for recipe logic.
      */
-    List<IRecipeHandlerTrait> getRecipeHandlers();
+    List<IRecipeHandlerTrait<?>> getRecipeHandlers();
 
     /**
      * whether its base model can be replaced by controller when it is formed.

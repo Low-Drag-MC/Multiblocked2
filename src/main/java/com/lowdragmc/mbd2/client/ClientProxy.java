@@ -1,8 +1,12 @@
 package com.lowdragmc.mbd2.client;
 
+import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.CommonProxy;
+import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.client.event.EntityRenderersEvent.RegisterRenderers;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 /**
  * @author KilaBash
@@ -13,9 +17,10 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 public class ClientProxy extends CommonProxy {
     public ClientProxy() {
         super();
-        init();
     }
 
-    public static void init() {
+    @SubscribeEvent
+    public void registerRenderers(RegisterRenderers e) {
+        MBDRegistries.MACHINE_DEFINITIONS.forEach(MBDMachineDefinition::initRenderer);
     }
 }

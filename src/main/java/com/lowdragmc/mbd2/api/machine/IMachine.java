@@ -144,6 +144,17 @@ public interface IMachine extends IRecipeCapabilityHolder {
     }
 
     /**
+     * Notify the block update.
+     */
+    default void notifyBlockUpdate() {
+        var pos = getPos();
+        var level = getLevel();
+        if (level != null) {
+            level.updateNeighborsAt(pos, level.getBlockState(pos).getBlock());
+        }
+    }
+
+    /**
      * on machine invalid in the chunk.
      * <br>
      * You should call it in yourselves {@link BlockEntity#setRemoved()}.

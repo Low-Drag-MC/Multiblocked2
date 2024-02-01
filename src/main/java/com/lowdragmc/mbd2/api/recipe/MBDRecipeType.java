@@ -5,7 +5,6 @@ import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeCapabilityHolder;
-import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.utils.FormattingUtil;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import lombok.Getter;
@@ -26,7 +25,6 @@ import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.crafting.SmeltingRecipe;
 import net.minecraft.world.level.ItemLike;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.DataInputStream;
@@ -45,8 +43,9 @@ import java.util.stream.Collectors;
  */
 @Accessors(chain = true)
 public class MBDRecipeType implements RecipeType<MBDRecipe> {
+    public static final MBDRecipeType DUMMY = new MBDRecipeType(MBD2.id("dummy"));
+
     public final ResourceLocation registryName;
-    public final String group;
     @Setter
     private MBDRecipeBuilder recipeBuilder;
     @Setter
@@ -71,9 +70,8 @@ public class MBDRecipeType implements RecipeType<MBDRecipe> {
     protected final Map<RecipeType<?>, List<MBDRecipe>> proxyRecipes;
     private CompoundTag customUICache;
 
-    public MBDRecipeType(ResourceLocation registryName, String group, RecipeType<?>... proxyRecipes) {
+    public MBDRecipeType(ResourceLocation registryName, RecipeType<?>... proxyRecipes) {
         this.registryName = registryName;
-        this.group = group;
         recipeBuilder = new MBDRecipeBuilder(registryName, this);
         // must be linked to stop json contents from shuffling
         Map<RecipeType<?>, List<MBDRecipe>> map = new Object2ObjectLinkedOpenHashMap<>();
@@ -205,10 +203,4 @@ public class MBDRecipeType implements RecipeType<MBDRecipe> {
         return MBDRecipeSerializer.SERIALIZER.fromJson(id, builder.build().serializeRecipe());
     }
 
-    public MBDRecipeType register() {
-        ForgeRegistries.RECIPE_TYPES.register(registryName, this);
-        ForgeRegistries.RECIPE_SERIALIZERS.register(registryName, new MBDRecipeSerializer());
-        MBDRegistries.RECIPE_TYPES.register(registryName, this);
-        return this;
-    }
 }

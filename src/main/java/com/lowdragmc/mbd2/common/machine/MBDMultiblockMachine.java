@@ -12,6 +12,7 @@ import com.lowdragmc.mbd2.api.machine.IMultiPart;
 import com.lowdragmc.mbd2.api.pattern.BlockPattern;
 import com.lowdragmc.mbd2.api.pattern.MultiblockState;
 import com.lowdragmc.mbd2.api.pattern.MultiblockWorldSavedData;
+import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
@@ -74,6 +75,18 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
     }
 
     @Override
+    public void notifyStatusChanged(RecipeLogic.Status oldStatus, RecipeLogic.Status newStatus) {
+        if (isFormed) {
+            switch (newStatus) {
+                case WORKING -> setMachineState("working");
+                case IDLE -> setMachineState("formed");
+                case WAITING -> setMachineState("waiting");
+                case SUSPEND -> setMachineState("suspend");
+            }
+        }
+    }
+
+    @Override
     public BlockPattern getPattern() {
         return getDefinition().getPattern();
     }
@@ -111,9 +124,14 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
         return this.parts;
     }
 
+    public void setFormed(boolean formed) {
+        this.isFormed = formed;
+        setMachineState(isFormed ? "formed" : getDefinition().stateMachine().getRootState().name());
+    }
+
     @Override
     public void onStructureFormed() {
-        isFormed = true;
+        setFormed(true);
         this.parts.clear();
         Set<IMultiPart> set = getMultiblockState().getMatchContext().getOrCreate("parts", Collections::emptySet);
         for (IMultiPart part : set) {
@@ -130,7 +148,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
 
     @Override
     public void onStructureInvalid() {
-        isFormed = false;
+        setFormed(false);
         for (IMultiPart part : parts) {
             part.removedFromController(this);
         }

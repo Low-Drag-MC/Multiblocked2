@@ -56,10 +56,6 @@ public abstract class MBDRegistry<K, V> implements Iterable<V> {
             throw new IllegalStateException("Registry is already frozen!");
         }
 
-        if (!checkActiveModContainerIsGregtech()) {
-            return;
-        }
-
         this.frozen = true;
     }
 
@@ -68,17 +64,7 @@ public abstract class MBDRegistry<K, V> implements Iterable<V> {
             throw new IllegalStateException("Registry is already unfrozen!");
         }
 
-        if (!checkActiveModContainerIsGregtech()) {
-            return;
-        }
-
         this.frozen = false;
-    }
-
-    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    private static boolean checkActiveModContainerIsGregtech() {
-        ModContainer container = ModLoadingContext.get().getActiveContainer();
-        return container != null && container.getModId().equals(MBD2.MOD_ID) || container.getModId().equals("minecraft"); // check for minecraft modid in case of datagen or a mishap
     }
 
     public void register(K key, V value) {

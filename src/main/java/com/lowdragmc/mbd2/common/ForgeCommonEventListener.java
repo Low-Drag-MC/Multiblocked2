@@ -12,7 +12,6 @@ import net.minecraftforge.event.level.LevelEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-
 /**
  * @author KilaBash
  * @date 2022/8/27

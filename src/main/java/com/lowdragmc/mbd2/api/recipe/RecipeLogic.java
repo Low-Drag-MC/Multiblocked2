@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.syncdata.IEnhancedManaged;
 import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib.syncdata.annotation.RequireRerender;
 import com.lowdragmc.lowdraglib.syncdata.annotation.UpdateListener;
 import com.lowdragmc.lowdraglib.syncdata.field.FieldManagedStorage;
 import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder;
@@ -49,7 +50,7 @@ public class RecipeLogic implements IEnhancedManaged {
     public final IMachine machine;
     public List<MBDRecipe> lastFailedMatches;
 
-    @Getter @Persisted @DescSynced @UpdateListener(methodName = "onStatusSynced")
+    @Getter @Persisted @DescSynced @RequireRerender
     private Status status = Status.IDLE;
 
     @Nullable
@@ -81,17 +82,9 @@ public class RecipeLogic implements IEnhancedManaged {
     protected long totalContinuousRunningTime;
     @Nullable
     protected CompletableFuture<List<MBDRecipe>> completableFuture = null;
-    // if storage is dirty while async searching recipe, it will be set to true.
-    protected boolean dirtySearching = false;
 
     public RecipeLogic(IMachine machine) {
         this.machine = machine;
-    }
-
-    @SuppressWarnings("unused")
-    @OnlyIn(Dist.CLIENT)
-    protected void onStatusSynced(Status newValue, Status oldValue) {
-        getMachine().scheduleRenderUpdate();
     }
 
     /**
@@ -105,7 +98,7 @@ public class RecipeLogic implements IEnhancedManaged {
         duration = 0;
         fuelTime = 0;
         lastFailedMatches = null;
-        status = Status.IDLE;
+        setStatus(Status.IDLE);
     }
 
     public double getProgressPercent() {
@@ -237,7 +230,6 @@ public class RecipeLogic implements IEnhancedManaged {
                 } else {
                     handleSearchingRecipes(searchRecipe());
                 }
-                dirtySearching = false;
             } else if (completableFuture.isDone()) {
                 var lastFuture = this.completableFuture;
                 completableFuture = null;
@@ -247,8 +239,6 @@ public class RecipeLogic implements IEnhancedManaged {
                         var matches = lastFuture.join().stream().filter(match -> match.matchRecipe(machine).isSuccess()).toList();
                         if (!matches.isEmpty()) {
                             handleSearchingRecipes(matches);
-                        } else if (dirtySearching) {
-                            completableFuture = supplyAsyncSearchingTask();
                         }
                     } catch (Throwable throwable) {
                         // if error occurred, schedule a new async task.
@@ -257,7 +247,6 @@ public class RecipeLogic implements IEnhancedManaged {
                 } else {
                     handleSearchingRecipes(searchRecipe());
                 }
-                dirtySearching = false;
             }
         }
         recipeDirty = false;
