@@ -84,6 +84,12 @@ public class MBDMachine implements IMachine, IEnhancedManaged {
         machineState = definition.stateMachine().getRootState().name();
     }
 
+    public void detach() {
+        if (machineHolder.getRootStorage() instanceof MultiManagedStorage multiManagedStorage) {
+            multiManagedStorage.detach(getSyncStorage());
+        }
+    }
+
     protected RecipeLogic createRecipeLogic(Object... args) {
         return new RecipeLogic(this);
     }
@@ -128,7 +134,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged {
     @NotNull
     @Override
     public MBDRecipeType getRecipeType() {
-        return definition.machineInfo().recipeType();
+        return definition.machineSettings().recipeType();
     }
 
     @Override

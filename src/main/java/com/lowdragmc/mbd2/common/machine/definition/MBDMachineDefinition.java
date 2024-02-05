@@ -1,6 +1,9 @@
 package com.lowdragmc.mbd2.common.machine.definition;
 
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
+import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
+import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.block.RotationState;
 import com.lowdragmc.mbd2.client.renderer.MBDBlockRenderer;
 import com.lowdragmc.mbd2.client.renderer.MBDItemRenderer;
@@ -19,6 +22,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -33,12 +37,16 @@ import java.util.List;
  */
 @Getter
 @Accessors(fluent = true)
-public class MBDMachineDefinition {
+public class MBDMachineDefinition implements IConfigurable {
+    @Configurable(tips = "config.definition.id.tooltip")
     protected final ResourceLocation id;
     protected final StateMachine stateMachine;
+    @Configurable(name = "config.definition.block_properties", subConfigurable = true, tips = "config.definition.block_properties.tooltip")
     protected final ConfigBlockProperties blockProperties;
+    @Configurable(name = "config.definition.item_properties", subConfigurable = true, tips = "config.definition.item_properties.tooltip")
     protected final ConfigItemProperties itemProperties;
-    protected final ConfigMachineInfo machineInfo;
+    @Configurable(name = "config.definition.machine_settings", subConfigurable = true, tips = "config.definition.machine_settings.tooltip")
+    protected final ConfigMachineSettings machineSettings;
 
     private MBDMachineBlock block;
     private MBDMachineItem item;
@@ -46,13 +54,27 @@ public class MBDMachineDefinition {
     private IRenderer blockRenderer;
     private IRenderer itemRenderer;
 
+    public static MBDMachineDefinition createRenderOnly(IRenderer renderer) {
+        return MBDMachineDefinition.builder()
+                .id(MBD2.id("render_only"))
+                .stateMachine(new StateMachine(MachineState.builder()
+                        .name("base")
+                        .renderer(renderer)
+                        .shape(Shapes.block())
+                        .lightLevel(0)
+                        .build()))
+                .blockProperties(ConfigBlockProperties.builder().build())
+                .itemProperties(ConfigItemProperties.builder().build())
+                .build();
+    }
+
     @Builder
-    protected MBDMachineDefinition(ResourceLocation id, StateMachine stateMachine, ConfigBlockProperties blockProperties, ConfigItemProperties itemProperties, ConfigMachineInfo machineInfo) {
+    protected MBDMachineDefinition(ResourceLocation id, StateMachine stateMachine, ConfigBlockProperties blockProperties, ConfigItemProperties itemProperties, ConfigMachineSettings machineSettings) {
         this.id = id;
         this.stateMachine = stateMachine;
         this.blockProperties = blockProperties;
         this.itemProperties = itemProperties;
-        this.machineInfo = machineInfo;
+        this.machineSettings = machineSettings;
     }
 
     public void onRegistry(RegisterEvent event) {
@@ -71,7 +93,7 @@ public class MBDMachineDefinition {
     @OnlyIn(Dist.CLIENT)
     public void initRenderer() {
         blockRenderer = new MBDBlockRenderer(blockProperties::useAO);
-        itemRenderer = new MBDItemRenderer(itemProperties::useBlockLight, itemProperties::isGui3d, itemProperties::renderer);
+        itemRenderer = new MBDItemRenderer(itemProperties::useBlockLight, itemProperties::isGui3d, () -> itemProperties.renderer().isEnable() ? itemProperties.renderer().getValue() : stateMachine.getRootState().getRenderer());
     }
 
     public MachineState getState(String name) {

@@ -1,6 +1,9 @@
 package com.lowdragmc.mbd2.common;
 
 import com.lowdragmc.lowdraglib.Platform;
+import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
+import com.lowdragmc.lowdraglib.client.renderer.impl.IModelRenderer;
+import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.capability.MBDCapabilities;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeSerializer;
 import com.lowdragmc.mbd2.api.recipe.ingredient.SizedIngredient;
@@ -8,9 +11,15 @@ import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.data.MBDRecipeCapabilities;
 import com.lowdragmc.mbd2.common.data.MBDRecipeConditions;
 import com.lowdragmc.mbd2.common.event.MBDRegistryEvent;
+import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
+import com.lowdragmc.mbd2.common.machine.definition.config.ConfigBlockProperties;
+import com.lowdragmc.mbd2.common.machine.definition.config.ConfigItemProperties;
+import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
+import com.lowdragmc.mbd2.common.machine.definition.config.StateMachine;
 import com.lowdragmc.mbd2.config.ConfigHolder;
 import com.lowdragmc.mbd2.test.MBDTest;
 import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraftforge.common.capabilities.RegisterCapabilitiesEvent;
 import net.minecraftforge.common.crafting.CraftingHelper;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
@@ -27,6 +36,7 @@ import net.minecraftforge.registries.RegisterEvent;
 public class CommonProxy {
 
     public CommonProxy() {
+        MBD2.getLocation();
         IEventBus eventBus = FMLJavaModLoadingContext.get().getModEventBus();
         eventBus.register(this);
         if (Platform.isDevEnv()) {
@@ -78,6 +88,7 @@ public class CommonProxy {
 
     @SubscribeEvent
     public void register(RegisterEvent event) {
+        MBDRegistries.getFAKE_MACHINE().onRegistry(event);
         MBDRegistries.MACHINE_DEFINITIONS.forEach((definition) -> definition.onRegistry(event));
     }
 

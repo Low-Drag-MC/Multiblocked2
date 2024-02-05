@@ -13,8 +13,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.LazyOptional;
 import org.jetbrains.annotations.NotNull;
@@ -35,7 +33,18 @@ public class MachineBlockEntity extends BlockEntity implements IMachineBlockEnti
 
     public MachineBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState blockState) {
         super(type, pos, blockState);
-        metaMachine = new MBDMachine(this, ((MBDMachineBlock)blockState.getBlock()).getDefinition());
+        this.setMachine(new MBDMachine(this, ((MBDMachineBlock)blockState.getBlock()).getDefinition()));
+    }
+
+    public void setMachine(IMachine newMachine) {
+        if (metaMachine == newMachine) return;
+        if (metaMachine != null && level != null && !level.isClientSide) {
+            metaMachine.onUnload();
+        }
+        if (metaMachine instanceof MBDMachine machine) {
+            machine.detach();
+        }
+        metaMachine = newMachine;
     }
 
     @Override

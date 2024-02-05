@@ -2,7 +2,6 @@ package com.lowdragmc.mbd2.common.machine.definition;
 
 import com.lowdragmc.mbd2.api.machine.IMultiPart;
 import com.lowdragmc.mbd2.api.pattern.BlockPattern;
-import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine;
 import com.lowdragmc.mbd2.common.machine.definition.config.*;
 import net.minecraft.resources.ResourceLocation;
@@ -16,7 +15,7 @@ import java.util.List;
  */
 public class MultiblockMachineDefinition extends MBDMachineDefinition {
 
-    protected MultiblockMachineDefinition(ResourceLocation id, StateMachine stateMachine, ConfigBlockProperties blockProperties, ConfigItemProperties itemProperties, ConfigMachineInfo machineInfo) {
+    protected MultiblockMachineDefinition(ResourceLocation id, StateMachine stateMachine, ConfigBlockProperties blockProperties, ConfigItemProperties itemProperties, ConfigMachineSettings machineInfo) {
         super(id, stateMachine, blockProperties, itemProperties, machineInfo);
     }
 
