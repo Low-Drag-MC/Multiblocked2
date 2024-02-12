@@ -201,7 +201,7 @@ public class RecipeLogic implements IEnhancedManaged {
 
     protected void doDamping() {
         if (progress > 0 && machine.dampingWhenWaiting()) {
-            this.progress = Math.max(0, progress - ConfigHolder.INSTANCE.recipeDampingValue);
+            this.progress = Math.max(0, progress - getMachine().getRecipeDampingValue());
         }
     }
 
@@ -225,7 +225,7 @@ public class RecipeLogic implements IEnhancedManaged {
             lastOriginRecipe = null;
             if (completableFuture == null) {
                 // try to search recipe in threads.
-                if (ConfigHolder.INSTANCE.asyncRecipeSearching) {
+                if (ConfigHolder.asyncRecipeSearching) {
                     completableFuture = supplyAsyncSearchingTask();
                 } else {
                     handleSearchingRecipes(searchRecipe());

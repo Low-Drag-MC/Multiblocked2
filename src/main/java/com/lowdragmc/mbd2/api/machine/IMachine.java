@@ -247,4 +247,11 @@ public interface IMachine extends IRecipeCapabilityHolder {
         return false;
     }
 
+    /**
+     * if the recipe handling is waiting, damping value is the decreased ticks of the current progress.
+     * @return damping value in tick.
+     */
+    default int getRecipeDampingValue() {
+        return 2;
+    }
 }
