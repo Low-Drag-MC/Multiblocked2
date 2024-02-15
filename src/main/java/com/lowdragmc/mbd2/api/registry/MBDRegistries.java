@@ -10,6 +10,9 @@ import com.lowdragmc.mbd2.common.machine.definition.config.ConfigBlockProperties
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigItemProperties;
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
 import com.lowdragmc.mbd2.common.machine.definition.config.StateMachine;
+import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleInteger;
+import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
+import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleShape;
 import lombok.Getter;
 import net.minecraft.world.phys.shapes.Shapes;
 
@@ -21,9 +24,9 @@ public class MBDRegistries {
                 .id(MBD2.id("fake_machine"))
                 .stateMachine(new StateMachine(MachineState.builder()
                         .name("base")
-                        .renderer(IRenderer.EMPTY)
-                        .shape(Shapes.block())
-                        .lightLevel(0)
+                        .renderer(new ToggleRenderer(IRenderer.EMPTY))
+                        .shape(new ToggleShape(Shapes.block()))
+                        .lightLevel(new ToggleInteger(0))
                         .build()))
                 .blockProperties(ConfigBlockProperties.builder().build())
                 .itemProperties(ConfigItemProperties.builder().build())

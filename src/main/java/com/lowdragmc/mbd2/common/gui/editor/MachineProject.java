@@ -8,16 +8,18 @@ import com.lowdragmc.lowdraglib.gui.editor.data.resource.ColorsResource;
 import com.lowdragmc.lowdraglib.gui.editor.data.resource.EntriesResource;
 import com.lowdragmc.lowdraglib.gui.editor.data.resource.IRendererResource;
 import com.lowdragmc.lowdraglib.gui.editor.data.resource.Resource;
-import com.lowdragmc.lowdraglib.gui.editor.ui.ConfigPanel;
 import com.lowdragmc.lowdraglib.gui.editor.ui.Editor;
 import com.lowdragmc.mbd2.MBD2;
-import com.lowdragmc.mbd2.common.gui.editor.tab.MachineConfigPanel;
-import com.lowdragmc.mbd2.common.gui.editor.tab.MachineStatePanel;
+import com.lowdragmc.mbd2.common.gui.editor.step.MachineConfigStepPanel;
+import com.lowdragmc.mbd2.common.gui.editor.step.MachineStatePanel;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigBlockProperties;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigItemProperties;
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
 import com.lowdragmc.mbd2.common.machine.definition.config.StateMachine;
+import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleInteger;
+import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
+import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleShape;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import net.minecraft.nbt.CompoundTag;
@@ -67,9 +69,18 @@ public class MachineProject implements IProject {
                 .id(MBD2.id("new_machine"))
                 .stateMachine(new StateMachine(MachineState.builder()
                         .name("base")
-                        .renderer(renderer)
-                        .shape(Shapes.block())
-                        .lightLevel(0)
+                        .renderer(new ToggleRenderer(renderer))
+                        .shape(new ToggleShape(Shapes.block()))
+                        .lightLevel(new ToggleInteger(0))
+                        .child(MachineState.builder()
+                                .name("working")
+                                .build())
+                        .child(MachineState.builder()
+                                .name("waiting")
+                                .build())
+                        .child(MachineState.builder()
+                                .name("suspend")
+                                .build())
                         .build()))
                 .blockProperties(ConfigBlockProperties.builder().build())
                 .itemProperties(ConfigItemProperties.builder().build())
@@ -117,8 +128,9 @@ public class MachineProject implements IProject {
         if (editor instanceof MachineEditor machineEditor) {
             IProject.super.onLoad(editor);
             var tabContainer = machineEditor.getTabPages();
-            tabContainer.addTab("editor.machine.basic_settings", new MachineConfigPanel(machineEditor), () -> editor.getConfigPanel().openConfigurator(ConfigPanel.Tab.WIDGET, definition));
-            tabContainer.addTab("editor.machine.machine_states", new MachineStatePanel(machineEditor), () -> editor.getConfigPanel().clearAllConfigurators(ConfigPanel.Tab.WIDGET));
+            var machineConfigPanel = new MachineConfigStepPanel(machineEditor);
+            tabContainer.addTab("editor.machine.basic_settings", machineConfigPanel, machineConfigPanel::onPanelSelected);
+            tabContainer.addTab("editor.machine.machine_states", new MachineStatePanel(machineEditor), () -> editor.getConfigPanel().clearAllConfigurators(MachineEditor.BASIC));
         }
     }
 }

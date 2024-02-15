@@ -5,9 +5,14 @@ import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib.gui.editor.configurator.WrapperConfigurator;
+import com.lowdragmc.lowdraglib.gui.editor.ui.Editor;
+import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
+import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
+import com.lowdragmc.mbd2.common.gui.editor.texture.IRendererSlotTexture;
+import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Rarity;
@@ -26,14 +31,10 @@ public class ConfigItemProperties implements IConfigurable {
     @Builder.Default
     private boolean isGui3d = true;
 
-    @Configurable(name = "config.item_properties.renderer", subConfigurable = true, tips = "config.item_properties.renderer.tooltip")
-    private final ToggleObject<IRenderer> renderer = new ToggleObject<>() {
-        @Setter
-        @Getter
-        @Configurable
-        @Accessors(fluent = false)
-        private IRenderer value = IRenderer.EMPTY;
-    };
+    @Configurable(name = "config.item_properties.renderer", subConfigurable = true, tips =
+            {"config.item_properties.renderer.tooltip.0", "config.item_properties.renderer.tooltip.1"})
+    @Builder.Default
+    private ToggleRenderer renderer = new ToggleRenderer();
 
     @Configurable(name = "config.item_properties.max_stack_size", tips = "config.item_properties.max_stack_size.tooltip")
     @NumberRange(range = {1, 64})
@@ -65,5 +66,19 @@ public class ConfigItemProperties implements IConfigurable {
     @Override
     public void buildConfigurator(ConfiguratorGroup father) {
         IConfigurable.super.buildConfigurator(father);
+        father.addConfigurators(new WrapperConfigurator("config.item_properties.slot_preview",
+                new ImageWidget(0, 0, 40, 40,
+                        new IRendererSlotTexture(() -> {
+                            if (renderer.isEnable()) {
+                                return renderer.getValue();
+                            }
+                            if (Editor.INSTANCE instanceof MachineEditor editor) {
+                                var project = editor.getCurrentProject();
+                                if (project != null) {
+                                    return project.getDefinition().getState("base").getRenderer();
+                                }
+                            }
+                            return IRenderer.EMPTY;
+                        }))));
     }
 }

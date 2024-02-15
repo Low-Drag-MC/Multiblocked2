@@ -12,6 +12,9 @@ import com.lowdragmc.mbd2.common.blockentity.MachineBlockEntity;
 import com.lowdragmc.mbd2.common.item.MBDMachineItem;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.machine.definition.config.*;
+import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleInteger;
+import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
+import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleShape;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.experimental.Accessors;
@@ -59,9 +62,9 @@ public class MBDMachineDefinition implements IConfigurable {
                 .id(MBD2.id("render_only"))
                 .stateMachine(new StateMachine(MachineState.builder()
                         .name("base")
-                        .renderer(renderer)
-                        .shape(Shapes.block())
-                        .lightLevel(0)
+                        .renderer(new ToggleRenderer(renderer))
+                        .shape(new ToggleShape(Shapes.block()))
+                        .lightLevel(new ToggleInteger(0))
                         .build()))
                 .blockProperties(ConfigBlockProperties.builder().build())
                 .itemProperties(ConfigItemProperties.builder().build())

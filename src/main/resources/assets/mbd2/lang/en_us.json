@@ -78,6 +78,19 @@
     "config.item_properties.renderer": "Item Renderer",
     "config.item_properties.renderer.tooltip.0": "Enable - set a separated renderer for item.",
     "config.item_properties.renderer.tooltip.1": "Disable - use the renderer of root state machine instead.",
+    "config.item_properties.slot_preview": "Slot preview",
+
+    "config.machine_state.renderer": "Block Renderer",
+    "config.machine_state.renderer.tooltip.0": "Enable - set a separated renderer for this machine state.",
+    "config.machine_state.renderer.tooltip.1": "Disable - use the renderer of root state machine instead.",
+    "config.machine_state.shape": "Shape",
+    "config.machine_state.shape.tooltip.0": "shape is consist of cubes, make sure the shape radius is no more than 2 blocks (minecraft rule).",
+    "config.machine_state.shape.tooltip.1": "Enable - set a separated shape for this machine state.",
+    "config.machine_state.shape.tooltip.2": "Disable - use the shape of root state machine instead.",
+    "config.machine_state.shape.tooltip.3": "§4Note:§r Setting a separated shape have to set the §cdynamic shape§r to true in the block properties as well.",
+    "config.machine_state.light": "Light",
+    "config.machine_state.light.tooltip.0": "Enable - set a separated emissive light for this machine state.",
+    "config.machine_state.light.tooltip.1": "Disable - use the light of root state machine instead.",
 
     "config.definition.id.tooltip": "The unique identifier of the definition.",
     "config.definition.block_properties": "Block Properties",
@@ -88,5 +101,9 @@
     "config.definition.machine_settings.tooltip": "The settings of the machine.",
 
     "editor.machine.basic_settings": "Basic Settings",
-    "editor.machine.machine_states": "Machine States"
+    "editor.machine.machine_states": "Machine States",
+
+    "editor.machine_state.add": "add state",
+    "editor.machine_state.remove": "remove state",
+    "editor.config_panel.machine_state": "machine state configurator"
 }

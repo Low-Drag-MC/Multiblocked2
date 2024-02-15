@@ -1,16 +1,23 @@
 package com.lowdragmc.mbd2.common.gui.editor;
 
+import com.lowdragmc.lowdraglib.gui.editor.Icons;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.editor.data.IProject;
 import com.lowdragmc.lowdraglib.gui.editor.ui.*;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.mbd2.MBD2;
+import net.minecraft.network.chat.Component;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+
+import java.util.List;
 
 @LDLRegister(name = "editor.machine", group = "editor")
 @OnlyIn(Dist.CLIENT)
 public class MachineEditor extends Editor {
+    public static final ConfigPanel.Tab BASIC = ConfigPanel.Tab.WIDGET;
+    public static final ConfigPanel.Tab MACHINE_STATE = ConfigPanel.Tab.createTab(Icons.FILE, Component.translatable("editor.config_panel.machine_state"));
+    public static final ConfigPanel.Tab RESOURCE = ConfigPanel.Tab.RESOURCE;
 
     public MachineEditor() {
         super(MBD2.getLocation());
@@ -23,7 +30,7 @@ public class MachineEditor extends Editor {
 
     public void initEditorViews() {
         this.toolPanel = new ToolPanel(this);
-        this.configPanel = new ConfigPanel(this);
+        this.configPanel = new ConfigPanel(this, List.of(BASIC, MACHINE_STATE, RESOURCE));
         this.tabPages = new StringTabContainer(this);
         this.resourcePanel = new ResourcePanel(this);
         this.menuPanel = new MenuPanel(this);

@@ -1,4 +1,4 @@
-package com.lowdragmc.mbd2.common.gui.editor.tab;
+package com.lowdragmc.mbd2.common.gui.editor.step;
 
 import com.lowdragmc.lowdraglib.gui.editor.ui.ConfigPanel;
 import com.lowdragmc.lowdraglib.gui.editor.ui.MenuPanel;
