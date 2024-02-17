@@ -3,6 +3,7 @@ package com.lowdragmc.mbd2.common.machine;
 import com.google.common.collect.Table;
 import com.google.common.collect.Tables;
 import com.lowdragmc.lowdraglib.syncdata.IEnhancedManaged;
+import com.lowdragmc.lowdraglib.syncdata.IManaged;
 import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib.syncdata.annotation.RequireRerender;
@@ -12,10 +13,13 @@ import com.lowdragmc.lowdraglib.syncdata.managed.MultiManagedStorage;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandler;
+import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
+import com.lowdragmc.mbd2.api.trait.ICapabilityProviderTrait;
+import com.lowdragmc.mbd2.api.trait.ITrait;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
 import lombok.Getter;
@@ -33,16 +37,17 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.capabilities.ICapabilityProvider;
+import net.minecraftforge.common.util.LazyOptional;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Getter
-public class MBDMachine implements IMachine, IEnhancedManaged {
+public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvider {
     protected static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(MBDMachine.class);
 
     @Override
@@ -68,6 +73,8 @@ public class MBDMachine implements IMachine, IEnhancedManaged {
     @DescSynced
     @RequireRerender
     private String machineState;
+    @Getter
+    private final List<ITrait> additionalTraits = new ArrayList<>();
 
     public MBDMachine(IMachineBlockEntity machineHolder, MBDMachineDefinition definition, Object... args) {
         this.machineHolder = machineHolder;
@@ -78,15 +85,29 @@ public class MBDMachine implements IMachine, IEnhancedManaged {
         } else {
             throw new RuntimeException("Root storage of MBDMachine's holder must be MultiManagedStorage");
         }
-        // trait initialization
-        recipeLogic = createRecipeLogic(args);
         capabilitiesProxy = Tables.newCustomTable(new EnumMap<>(IO.class), HashMap::new);;
         machineState = definition.stateMachine().getRootState().name();
+        // trait initialization
+        recipeLogic = createRecipeLogic(args);
+        // additional traits initialization
+        definition.machineSettings().traitDefinitions().stream().sorted((a, b) -> b.getPriority() - a.getPriority()).forEach(traitDefinition -> {
+            var trait = traitDefinition.createTrait(this);
+            additionalTraits.add(trait);
+            if (trait instanceof IManaged managed) {
+                multiManagedStorage.attach(managed.getSyncStorage());
+            }
+        });
+        initCapabilitiesProxy();
     }
 
     public void detach() {
         if (machineHolder.getRootStorage() instanceof MultiManagedStorage multiManagedStorage) {
             multiManagedStorage.detach(getSyncStorage());
+            for (ITrait trait : additionalTraits) {
+                if (trait instanceof IManaged managed) {
+                    multiManagedStorage.detach(managed.getSyncStorage());
+                }
+            }
         }
     }
 
@@ -99,6 +120,18 @@ public class MBDMachine implements IMachine, IEnhancedManaged {
         if (definition.stateMachine().hasState(newState)) {
             machineState = newState;
             notifyBlockUpdate();
+        }
+    }
+
+    public void initCapabilitiesProxy(){
+        capabilitiesProxy.clear();
+        for (var trait : additionalTraits) {
+            if (trait instanceof IRecipeHandlerTrait<?> recipeHandlerTrait) {
+                if (!capabilitiesProxy.contains(recipeHandlerTrait.getHandlerIO(), recipeHandlerTrait.getRecipeCapability())) {
+                    capabilitiesProxy.put(recipeHandlerTrait.getHandlerIO(), recipeHandlerTrait.getRecipeCapability(), new ArrayList<>());
+                }
+                capabilitiesProxy.get(recipeHandlerTrait.getHandlerIO(), recipeHandlerTrait.getRecipeCapability()).add(recipeHandlerTrait);
+            }
         }
     }
 
@@ -156,6 +189,27 @@ public class MBDMachine implements IMachine, IEnhancedManaged {
         return definition.getState(machineState);
     }
 
+    @Override
+    @NotNull
+    public <T> LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable Direction side) {
+        List<T> results = new ArrayList<>();
+        for (var trait : additionalTraits) {
+            if (trait instanceof ICapabilityProviderTrait<?> capabilityProviderTrait && capabilityProviderTrait.getCapability() == cap) {
+                results.add((T) capabilityProviderTrait.getCapContent(side));
+            }
+        }
+        if (results.isEmpty()) {
+            return LazyOptional.empty();
+        } else {
+            for (var trait : additionalTraits) {
+                if (trait instanceof ICapabilityProviderTrait capabilityProviderTrait && capabilityProviderTrait.getCapability() == cap) {
+                    return cap.orEmpty(cap, LazyOptional.of(() -> (T) capabilityProviderTrait.mergeContents(results)));
+                }
+            }
+        }
+        return cap.orEmpty(cap, LazyOptional.of(() -> results.get(0)));
+    }
+
     //////////////////////////////////////
     //********       MISC      *********//
     //////////////////////////////////////
@@ -164,6 +218,9 @@ public class MBDMachine implements IMachine, IEnhancedManaged {
      * Server tick.
      */
     public void serverTick() {
+        if (recipeLogic != null) {
+            recipeLogic.serverTick();
+        }
     }
 
     /**

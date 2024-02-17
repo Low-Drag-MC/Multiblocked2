@@ -115,8 +115,8 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
     }
 
     @Override
-    public IItemHandler mergeContents(IItemHandler[] contents) {
-        return new ItemHandlerList(contents);
+    public IItemHandler mergeContents(List<IItemHandler> contents) {
+        return new ItemHandlerList(contents.toArray(new IItemHandler[0]));
     }
 
 }

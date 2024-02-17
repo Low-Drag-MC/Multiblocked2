@@ -6,6 +6,7 @@ import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
 public interface ICapabilityProviderTrait<T> extends ITrait {
 
@@ -30,7 +31,7 @@ public interface ICapabilityProviderTrait<T> extends ITrait {
      * Merge the content of the capability.
      * for example, when you create multiple item handlers, you can merge them into one.
      */
-    default T mergeContents(T[] contents) {
-        return contents.length > 0 ? contents[0] : getCapContent(null);
+    default T mergeContents(List<T> contents) {
+        return !contents.isEmpty() ? contents.get(0) : getCapContent(null);
     }
 }
