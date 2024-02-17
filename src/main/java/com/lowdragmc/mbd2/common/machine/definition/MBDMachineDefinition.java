@@ -3,7 +3,7 @@ package com.lowdragmc.mbd2.common.machine.definition;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
-import com.lowdragmc.mbd2.MBD2;
+import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
 import com.lowdragmc.mbd2.api.block.RotationState;
 import com.lowdragmc.mbd2.client.renderer.MBDBlockRenderer;
 import com.lowdragmc.mbd2.client.renderer.MBDItemRenderer;
@@ -12,12 +12,10 @@ import com.lowdragmc.mbd2.common.blockentity.MachineBlockEntity;
 import com.lowdragmc.mbd2.common.item.MBDMachineItem;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.machine.definition.config.*;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleInteger;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleShape;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.experimental.Accessors;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
@@ -25,12 +23,12 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
-import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegisterEvent;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 /**
@@ -40,15 +38,15 @@ import java.util.List;
  */
 @Getter
 @Accessors(fluent = true)
-public class MBDMachineDefinition implements IConfigurable {
+public class MBDMachineDefinition implements IConfigurable, IPersistedSerializable {
     @Configurable(tips = "config.definition.id.tooltip")
     protected final ResourceLocation id;
     protected final StateMachine stateMachine;
-    @Configurable(name = "config.definition.block_properties", subConfigurable = true, tips = "config.definition.block_properties.tooltip")
+    @Configurable(name = "config.definition.block_properties", subConfigurable = true, tips = "config.definition.block_properties.tooltip", canCollapse = false)
     protected final ConfigBlockProperties blockProperties;
-    @Configurable(name = "config.definition.item_properties", subConfigurable = true, tips = "config.definition.item_properties.tooltip")
+    @Configurable(name = "config.definition.item_properties", subConfigurable = true, tips = "config.definition.item_properties.tooltip", canCollapse = false)
     protected final ConfigItemProperties itemProperties;
-    @Configurable(name = "config.definition.machine_settings", subConfigurable = true, tips = "config.definition.machine_settings.tooltip")
+    @Configurable(name = "config.definition.machine_settings", subConfigurable = true, tips = "config.definition.machine_settings.tooltip", canCollapse = false)
     protected final ConfigMachineSettings machineSettings;
 
     private MBDMachineBlock block;
@@ -57,27 +55,49 @@ public class MBDMachineDefinition implements IConfigurable {
     private IRenderer blockRenderer;
     private IRenderer itemRenderer;
 
-    public static MBDMachineDefinition createRenderOnly(IRenderer renderer) {
-        return MBDMachineDefinition.builder()
-                .id(MBD2.id("render_only"))
-                .stateMachine(new StateMachine(MachineState.builder()
-                        .name("base")
-                        .renderer(new ToggleRenderer(renderer))
-                        .shape(new ToggleShape(Shapes.block()))
-                        .lightLevel(new ToggleInteger(0))
-                        .build()))
-                .blockProperties(ConfigBlockProperties.builder().build())
-                .itemProperties(ConfigItemProperties.builder().build())
-                .build();
+    @Builder
+    protected MBDMachineDefinition(ResourceLocation id,
+                                   StateMachine stateMachine,
+                                   ConfigBlockProperties blockProperties,
+                                   ConfigItemProperties itemProperties,
+                                   ConfigMachineSettings machineSettings) {
+        this.id = id == null ? new ResourceLocation("mbd2", "undefined") : id;
+        this.stateMachine = stateMachine == null ? StateMachine.createDefault() : stateMachine;
+        this.blockProperties = blockProperties == null ? ConfigBlockProperties.builder().build() : blockProperties;
+        this.itemProperties = itemProperties == null ? ConfigItemProperties.builder().build() : itemProperties;
+        this.machineSettings = machineSettings == null ? ConfigMachineSettings.builder().build() : machineSettings;
     }
 
-    @Builder
-    protected MBDMachineDefinition(ResourceLocation id, StateMachine stateMachine, ConfigBlockProperties blockProperties, ConfigItemProperties itemProperties, ConfigMachineSettings machineSettings) {
-        this.id = id;
-        this.stateMachine = stateMachine;
-        this.blockProperties = blockProperties;
-        this.itemProperties = itemProperties;
-        this.machineSettings = machineSettings;
+    /**
+     * return null if the machine definition is invalid.
+     */
+    @Nullable
+    public static MBDMachineDefinition fromTag(CompoundTag tag) {
+        try {
+            var definition = new MBDMachineDefinition(
+                    new ResourceLocation(tag.getString("id")),
+                    StateMachine.createDefault(),
+                    ConfigBlockProperties.builder().build(),
+                    ConfigItemProperties.builder().build(),
+                    ConfigMachineSettings.builder().build());
+            definition.deserializeNBT(tag);
+            return definition;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @Override
+    public CompoundTag serializeNBT() {
+        var tag = IPersistedSerializable.super.serializeNBT();
+        tag.put("stateMachine", stateMachine.serializeNBT());
+        return tag;
+    }
+
+    @Override
+    public void deserializeNBT(CompoundTag tag) {
+        IPersistedSerializable.super.deserializeNBT(tag);
+        stateMachine.deserializeNBT(tag.getCompound("stateMachine"));
     }
 
     public void onRegistry(RegisterEvent event) {

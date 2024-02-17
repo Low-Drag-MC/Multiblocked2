@@ -12,11 +12,14 @@ public interface IRecipeCapabilityHolder {
         return !getCapabilitiesProxy().isEmpty() && !getCapabilitiesProxy().isEmpty();
     }
 
+    /**
+     * Get the recipe capability proxies.
+     */
     @Nonnull
     Table<IO, RecipeCapability<?>, List<IRecipeHandler<?>>> getCapabilitiesProxy();
 
     /**
-     * get Tier for chance boost.
+     * Get Tier for chance boost.
      * if -1, all chanced outputs are voided.
      */
     default int getChanceTier() {

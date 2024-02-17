@@ -15,8 +15,12 @@ import java.util.List;
  */
 public class MultiblockMachineDefinition extends MBDMachineDefinition {
 
-    protected MultiblockMachineDefinition(ResourceLocation id, StateMachine stateMachine, ConfigBlockProperties blockProperties, ConfigItemProperties itemProperties, ConfigMachineSettings machineInfo) {
-        super(id, stateMachine, blockProperties, itemProperties, machineInfo);
+    protected MultiblockMachineDefinition(ResourceLocation id,
+                                   StateMachine stateMachine,
+                                   ConfigBlockProperties blockProperties,
+                                   ConfigItemProperties itemProperties,
+                                   ConfigMachineSettings machineSettings) {
+        super(id, stateMachine, blockProperties, itemProperties, machineSettings);
     }
 
     public BlockPattern getPattern() {

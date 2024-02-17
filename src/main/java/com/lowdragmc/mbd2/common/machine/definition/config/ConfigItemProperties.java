@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.WrapperConfigurator;
 import com.lowdragmc.lowdraglib.gui.editor.ui.Editor;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
+import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
 import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
 import com.lowdragmc.mbd2.common.gui.editor.texture.IRendererSlotTexture;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
@@ -20,7 +21,7 @@ import net.minecraft.world.item.Rarity;
 @Getter
 @Builder
 @Accessors(fluent = true)
-public class ConfigItemProperties implements IConfigurable {
+public class ConfigItemProperties implements IConfigurable, IPersistedSerializable {
 
     @Configurable(name = "config.item_properties.use_block_light",
             tips = {"config.item_properties.use_block_light.tooltip.0", "config.item_properties.use_block_light.tooltip.1", "config.item_properties.use_block_light.tooltip.2"})
@@ -48,20 +49,6 @@ public class ConfigItemProperties implements IConfigurable {
     public Item.Properties apply(Item.Properties itemProp) {
         return itemProp.stacksTo(maxStackSize).rarity(rarity);
     }
-
-//    @Builder
-//    protected ConfigItemProperties(boolean useBlockLight, boolean isGui3d, int maxStackSize, Rarity rarity, IRenderer renderer) {
-//        this.useBlockLight = useBlockLight;
-//        this.isGui3d = isGui3d;
-//        this.maxStackSize = maxStackSize;
-//        this.rarity = rarity;
-//        if (renderer == null) {
-//            this.renderer.setEnable(false);
-//        } else {
-//            this.renderer.setValue(renderer);
-//            this.renderer.setEnable(true);
-//        }
-//    }
 
     @Override
     public void buildConfigurator(ConfiguratorGroup father) {

@@ -3,6 +3,7 @@ package com.lowdragmc.mbd2.common.machine.definition.config;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib.utils.ShapeUtils;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleInteger;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
@@ -10,6 +11,8 @@ import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleShape;
 import lombok.*;
 import lombok.experimental.Accessors;
 import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
@@ -18,7 +21,7 @@ import java.util.*;
 
 @Accessors(fluent = true)
 @Builder
-public class MachineState implements IConfigurable {
+public class MachineState implements IConfigurable, IPersistedSerializable {
     @Getter
     private final String name;
     @Singular
@@ -52,6 +55,39 @@ public class MachineState implements IConfigurable {
 
 
     private final Map<Direction, VoxelShape> cache = new EnumMap<>(Direction.class);
+
+    public static MachineState fromTag(CompoundTag tag) {
+        var name = tag.getString("name");
+        var state = MachineState.builder().name(name).build();
+        state.deserializeNBT(tag);
+        return state;
+    }
+
+    @Override
+    public CompoundTag serializeNBT() {
+        var tag = IPersistedSerializable.super.serializeNBT();
+        tag.putString("name", name);
+        var childrenList = new ListTag();
+        for (var child : children) {
+            childrenList.add(child.serializeNBT());
+        }
+        tag.put("children", childrenList);
+        return tag;
+    }
+
+    @Override
+    public void deserializeNBT(CompoundTag tag) {
+        IPersistedSerializable.super.deserializeNBT(tag);
+        var childrenList = tag.getList("children", 10);
+        children = new ArrayList<>();
+        for (int i = 0; i < childrenList.size(); i++) {
+            var child = childrenList.getCompound(i);
+            children.add(MachineState.fromTag(child));
+        }
+        if (this.stateMachine != null) {
+            this.stateMachine.initStateMachine();
+        }
+    }
 
     public boolean isRoot() {
         return parent == null;

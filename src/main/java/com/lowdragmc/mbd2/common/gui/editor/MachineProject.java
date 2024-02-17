@@ -11,11 +11,10 @@ import com.lowdragmc.lowdraglib.gui.editor.data.resource.Resource;
 import com.lowdragmc.lowdraglib.gui.editor.ui.Editor;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.common.gui.editor.step.MachineConfigStepPanel;
-import com.lowdragmc.mbd2.common.gui.editor.step.MachineStatePanel;
+import com.lowdragmc.mbd2.common.gui.editor.step.MachineTraitPanel;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigBlockProperties;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigItemProperties;
-import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
 import com.lowdragmc.mbd2.common.machine.definition.config.StateMachine;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleInteger;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
@@ -67,21 +66,10 @@ public class MachineProject implements IProject {
         var renderer = new IModelRenderer(new ResourceLocation("block/furnace"));
         return MBDMachineDefinition.builder()
                 .id(MBD2.id("new_machine"))
-                .stateMachine(new StateMachine(MachineState.builder()
-                        .name("base")
+                .stateMachine(StateMachine.create(builder -> builder
                         .renderer(new ToggleRenderer(renderer))
                         .shape(new ToggleShape(Shapes.block()))
-                        .lightLevel(new ToggleInteger(0))
-                        .child(MachineState.builder()
-                                .name("working")
-                                .build())
-                        .child(MachineState.builder()
-                                .name("waiting")
-                                .build())
-                        .child(MachineState.builder()
-                                .name("suspend")
-                                .build())
-                        .build()))
+                        .lightLevel(new ToggleInteger(0))))
                 .blockProperties(ConfigBlockProperties.builder().build())
                 .itemProperties(ConfigItemProperties.builder().build())
                 .build();
@@ -129,8 +117,9 @@ public class MachineProject implements IProject {
             IProject.super.onLoad(editor);
             var tabContainer = machineEditor.getTabPages();
             var machineConfigPanel = new MachineConfigStepPanel(machineEditor);
+            var machineTraitPanel = new MachineTraitPanel(machineEditor);
             tabContainer.addTab("editor.machine.basic_settings", machineConfigPanel, machineConfigPanel::onPanelSelected);
-            tabContainer.addTab("editor.machine.machine_states", new MachineStatePanel(machineEditor), () -> editor.getConfigPanel().clearAllConfigurators(MachineEditor.BASIC));
+            tabContainer.addTab("editor.machine.machine_traits", machineTraitPanel, machineTraitPanel::onPanelSelected, machineTraitPanel::onPanelDeselected);
         }
     }
 }

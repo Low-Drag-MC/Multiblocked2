@@ -274,10 +274,11 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
             // handle distinct first
             for (IRecipeHandler<?> handler : handlers) {
                 if (!handler.isDistinct()) continue;
+                var slotNames = handler.getSlotNames();
                 var result = handler.handleRecipe(io, this, contentSearch, null, true);
                 if (result == null) {
-                    // check distint slot handler
-                    if (handler.getSlotNames() != null && handler.getSlotNames().containsAll(contentSlotSearch.keySet())) {
+                    // check distinct slot handler
+                    if (slotNames.containsAll(contentSlotSearch.keySet())) {
                         boolean success = true;
                         for (var entry : contentSlotSearch.entrySet()) {
                             List<?> left = handler.handleRecipe(io, this, entry.getValue(), entry.getKey(), true);
@@ -314,11 +315,12 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
                     if (content != null) {
                         content = proxy.handleRecipe(io, this, content, null, simulate);
                     }
-                    if (proxy.getSlotNames() != null) {
+                    var slotNames = proxy.getSlotNames();
+                    if (!slotNames.isEmpty()) {
                         Iterator<String> iterator = contentSlot.keySet().iterator();
                         while (iterator.hasNext()) {
                             String key = iterator.next();
-                            if (proxy.getSlotNames().contains(key)) {
+                            if (slotNames.contains(key)) {
                                 List<?> left = proxy.handleRecipe(io, this, contentSlot.get(key), key, simulate);
                                 if (left == null) iterator.remove();
                             }

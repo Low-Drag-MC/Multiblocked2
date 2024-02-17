@@ -2,9 +2,9 @@ package com.lowdragmc.mbd2.common.machine.definition.config;
 
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
 import com.lowdragmc.mbd2.api.block.RotationState;
 import lombok.Builder;
-import lombok.Data;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import net.minecraft.world.level.block.SoundType;
@@ -13,7 +13,7 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 @Getter
 @Accessors(fluent = true)
 @Builder
-public class ConfigBlockProperties {
+public class ConfigBlockProperties implements IPersistedSerializable {
     @Configurable(name = "config.block_properties.use_ao", tips = "config.block_properties.use_ao.tooltip")
     @Builder.Default
     private boolean useAO = true;
