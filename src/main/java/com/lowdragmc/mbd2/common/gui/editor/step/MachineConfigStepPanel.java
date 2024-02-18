@@ -2,26 +2,19 @@ package com.lowdragmc.mbd2.common.gui.editor.step;
 
 import com.lowdragmc.lowdraglib.gui.animation.Transform;
 import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
-import com.lowdragmc.lowdraglib.gui.editor.ui.ConfigPanel;
-import com.lowdragmc.lowdraglib.gui.editor.ui.MenuPanel;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib.gui.widget.DraggableScrollableWidgetGroup;
 import com.lowdragmc.lowdraglib.gui.widget.SceneWidget;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
-import com.lowdragmc.lowdraglib.utils.*;
-import com.lowdragmc.mbd2.api.registry.MBDRegistries;
-import com.lowdragmc.mbd2.common.blockentity.MachineBlockEntity;
+import com.lowdragmc.lowdraglib.utils.Position;
+import com.lowdragmc.lowdraglib.utils.Size;
 import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
 import com.lowdragmc.mbd2.common.gui.editor.widget.MachineStatePreview;
-import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
-import lombok.Getter;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
 import net.minecraftforge.api.distmarker.Dist;
@@ -30,35 +23,16 @@ import org.jetbrains.annotations.NotNull;
 import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL11;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 @OnlyIn(Dist.CLIENT)
-public class MachineConfigStepPanel extends WidgetGroup {
-    @Getter
-    protected final MachineEditor editor;
-    @Getter
-    protected final TrackedDummyWorld level;
-    protected final SceneWidget scene;
+public class MachineConfigStepPanel extends MachineScenePanel {
     protected final FloatView floatView;
-    @Nullable
-    protected MBDMachine previewMachine;
 
     public MachineConfigStepPanel(MachineEditor editor) {
-        super(0, MenuPanel.HEIGHT, editor.getSize().getWidth() - ConfigPanel.WIDTH, editor.getSize().height - MenuPanel.HEIGHT - 16);
-        this.editor = editor;
-        addWidget(scene = new SceneWidget(0, 0, this.getSize().width, this.getSize().height, null));
-        scene.setRenderFacing(false);
-        scene.setRenderSelect(false);
-        scene.createScene(level = new TrackedDummyWorld());
-        scene.getRenderer().setOnLookingAt(null); // better performance
-        scene.setRenderedCore(Collections.singleton(BlockPos.ZERO), null);
+        super(editor);
         scene.setAfterWorldRender(this::renderAfterWorld);
-        resetScene();
-
         addWidget(floatView = new FloatView());
         floatView.setDraggable(true);
         loadMachineState();
@@ -69,20 +43,6 @@ public class MachineConfigStepPanel extends WidgetGroup {
      */
     public void onPanelSelected() {
         editor.getConfigPanel().openConfigurator(MachineEditor.BASIC, editor.getCurrentProject().getDefinition());
-    }
-
-    /**
-     * Reset the scene, it will reset everything to the default state, in general, you don't need to call this method.
-     * to change renderer, using {@link MachineConfigStepPanel#previewMachine} instead.
-     */
-    public void resetScene() {
-        this.level.clear();
-        this.level.addBlock(BlockPos.ZERO, BlockInfo.fromBlock(MBDRegistries.getFAKE_MACHINE().block()));
-        Optional.ofNullable(this.level.getBlockEntity(BlockPos.ZERO)).ifPresent(blockEntity -> {
-            if (blockEntity instanceof MachineBlockEntity holder) {
-                holder.setMachine(this.previewMachine = new MBDMachine(holder, editor.getCurrentProject().getDefinition()));
-            }
-        });
     }
 
     /**

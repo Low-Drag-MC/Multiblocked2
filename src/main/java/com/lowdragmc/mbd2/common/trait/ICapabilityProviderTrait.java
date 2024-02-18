@@ -1,4 +1,4 @@
-package com.lowdragmc.mbd2.api.trait;
+package com.lowdragmc.mbd2.common.trait;
 
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import net.minecraft.core.Direction;

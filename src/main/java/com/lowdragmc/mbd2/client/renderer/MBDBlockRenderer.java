@@ -4,10 +4,9 @@ import com.lowdragmc.lowdraglib.client.model.forge.LDLRendererModel;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
+import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 import com.mojang.blaze3d.vertex.PoseStack;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.experimental.Accessors;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -84,12 +83,22 @@ public class MBDBlockRenderer implements IRenderer {
 
     @Override
     public boolean hasTESR(BlockEntity blockEntity) {
-        return getMachine(blockEntity).map(machine -> machine.getMachineState().getRenderer().hasTESR(blockEntity)).orElse(false);
+        return getMachine(blockEntity).map(machine ->
+                machine.getMachineState().getRenderer().hasTESR(blockEntity) ||
+                        machine.getDefinition().machineSettings().traitDefinitions().stream()
+                                .map(TraitDefinition::getBESRenderer)
+                                .anyMatch(renderer -> renderer.hasTESR(blockEntity))
+        ).orElse(false);
     }
 
     @Override
     public boolean isGlobalRenderer(BlockEntity blockEntity) {
-        return getMachine(blockEntity).map(machine -> machine.getMachineState().getRenderer().isGlobalRenderer(blockEntity)).orElse(false);
+        return getMachine(blockEntity).map(machine ->
+                machine.getMachineState().getRenderer().isGlobalRenderer(blockEntity) ||
+                        machine.getDefinition().machineSettings().traitDefinitions().stream()
+                                .map(TraitDefinition::getBESRenderer)
+                                .anyMatch(renderer -> renderer.isGlobalRenderer(blockEntity))
+        ).orElse(false);
     }
 
     @Override
@@ -99,6 +108,14 @@ public class MBDBlockRenderer implements IRenderer {
 
     @Override
     public void render(BlockEntity blockEntity, float partialTicks, PoseStack stack, MultiBufferSource buffer, int combinedLight, int combinedOverlay) {
-        getMachine(blockEntity).ifPresent(machine -> machine.getMachineState().getRenderer().render(blockEntity, partialTicks, stack, buffer, combinedLight, combinedOverlay));
+        getMachine(blockEntity).ifPresent(machine -> {
+            machine.getMachineState().getRenderer().render(blockEntity, partialTicks, stack, buffer, combinedLight, combinedOverlay);
+            for (var traitDefinition : machine.getDefinition().machineSettings().traitDefinitions()) {
+                var renderer = traitDefinition.getBESRenderer();
+                if (renderer.hasTESR(blockEntity)) {
+                    renderer.render(blockEntity, partialTicks, stack, buffer, combinedLight, combinedOverlay);
+                }
+            }
+        });
     }
 }

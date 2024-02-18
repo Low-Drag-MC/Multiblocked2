@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
 import com.lowdragmc.mbd2.api.block.RotationState;
+import com.lowdragmc.mbd2.client.renderer.MBDBESRenderer;
 import com.lowdragmc.mbd2.client.renderer.MBDBlockRenderer;
 import com.lowdragmc.mbd2.client.renderer.MBDItemRenderer;
 import com.lowdragmc.mbd2.common.block.MBDMachineBlock;
@@ -25,6 +26,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegisterEvent;
 
@@ -42,11 +44,11 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
     @Configurable(tips = "config.definition.id.tooltip")
     protected final ResourceLocation id;
     protected final StateMachine stateMachine;
-    @Configurable(name = "config.definition.block_properties", subConfigurable = true, tips = "config.definition.block_properties.tooltip", canCollapse = false)
+    @Configurable(name = "config.definition.block_properties", subConfigurable = true, tips = "config.definition.block_properties.tooltip", collapse = false)
     protected final ConfigBlockProperties blockProperties;
-    @Configurable(name = "config.definition.item_properties", subConfigurable = true, tips = "config.definition.item_properties.tooltip", canCollapse = false)
+    @Configurable(name = "config.definition.item_properties", subConfigurable = true, tips = "config.definition.item_properties.tooltip", collapse = false)
     protected final ConfigItemProperties itemProperties;
-    @Configurable(name = "config.definition.machine_settings", subConfigurable = true, tips = "config.definition.machine_settings.tooltip", canCollapse = false)
+    @Configurable(name = "config.definition.machine_settings", subConfigurable = true, tips = "config.definition.machine_settings.tooltip", collapse = false)
     protected final ConfigMachineSettings machineSettings;
 
     private MBDMachineBlock block;
@@ -114,9 +116,10 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
     }
 
     @OnlyIn(Dist.CLIENT)
-    public void initRenderer() {
+    public void initRenderer(EntityRenderersEvent.RegisterRenderers event) {
         blockRenderer = new MBDBlockRenderer(blockProperties::useAO);
         itemRenderer = new MBDItemRenderer(itemProperties::useBlockLight, itemProperties::isGui3d, () -> itemProperties.renderer().isEnable() ? itemProperties.renderer().getValue() : stateMachine.getRootState().getRenderer());
+        event.registerBlockEntityRenderer(blockEntityType, MBDBESRenderer::getOrCreate);
     }
 
     public MachineState getState(String name) {

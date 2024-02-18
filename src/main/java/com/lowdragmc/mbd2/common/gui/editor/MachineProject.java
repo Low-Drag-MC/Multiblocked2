@@ -83,11 +83,13 @@ public class MachineProject implements IProject {
     public CompoundTag serializeNBT() {
         var tag = new CompoundTag();
         tag.put("resources", resources.serializeNBT());
+        tag.put("definition", definition.serializeNBT());
         return tag;
     }
 
     public void deserializeNBT(CompoundTag tag) {
         this.resources = loadResources(tag.getCompound("resources"));
+        this.definition = MBDMachineDefinition.fromTag(tag.getCompound("definition"));
     }
 
     @Override

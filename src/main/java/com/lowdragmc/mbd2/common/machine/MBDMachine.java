@@ -18,10 +18,11 @@ import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
-import com.lowdragmc.mbd2.api.trait.ICapabilityProviderTrait;
-import com.lowdragmc.mbd2.api.trait.ITrait;
+import com.lowdragmc.mbd2.common.trait.ICapabilityProviderTrait;
+import com.lowdragmc.mbd2.common.trait.ITrait;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
+import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -90,14 +91,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
         // trait initialization
         recipeLogic = createRecipeLogic(args);
         // additional traits initialization
-        definition.machineSettings().traitDefinitions().stream().sorted((a, b) -> b.getPriority() - a.getPriority()).forEach(traitDefinition -> {
-            var trait = traitDefinition.createTrait(this);
-            additionalTraits.add(trait);
-            if (trait instanceof IManaged managed) {
-                multiManagedStorage.attach(managed.getSyncStorage());
-            }
-        });
-        initCapabilitiesProxy();
+        loadAdditionalTraits();
     }
 
     public void detach() {
@@ -123,7 +117,26 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
         }
     }
 
-    public void initCapabilitiesProxy(){
+    public void loadAdditionalTraits() {
+        if (machineHolder.getRootStorage() instanceof MultiManagedStorage multiManagedStorage) {
+            for (ITrait trait : additionalTraits) {
+                if (trait instanceof IManaged managed) {
+                    multiManagedStorage.detach(managed.getSyncStorage());
+                }
+            }
+            additionalTraits.clear();
+            definition.machineSettings().traitDefinitions().stream().sorted((a, b) -> b.getPriority() - a.getPriority()).forEach(traitDefinition -> {
+                var trait = traitDefinition.createTrait(this);
+                additionalTraits.add(trait);
+                if (trait instanceof IManaged managed) {
+                    multiManagedStorage.attach(managed.getSyncStorage());
+                }
+            });
+            initCapabilitiesProxy();
+        }
+    }
+
+    public void initCapabilitiesProxy() {
         capabilitiesProxy.clear();
         for (var trait : additionalTraits) {
             if (trait instanceof IRecipeHandlerTrait<?> recipeHandlerTrait) {
@@ -133,6 +146,16 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
                 capabilitiesProxy.get(recipeHandlerTrait.getHandlerIO(), recipeHandlerTrait.getRecipeCapability()).add(recipeHandlerTrait);
             }
         }
+    }
+
+    @Nullable
+    public ITrait getTraitByDefinition(TraitDefinition traitDefinition) {
+        for (var trait : additionalTraits) {
+            if (traitDefinition == trait.getDefinition()) {
+                return trait;
+            }
+        }
+        return null;
     }
 
     @Override
@@ -201,9 +224,13 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
         if (results.isEmpty()) {
             return LazyOptional.empty();
         } else {
-            for (var trait : additionalTraits) {
-                if (trait instanceof ICapabilityProviderTrait capabilityProviderTrait && capabilityProviderTrait.getCapability() == cap) {
-                    return cap.orEmpty(cap, LazyOptional.of(() -> (T) capabilityProviderTrait.mergeContents(results)));
+            if (results.size() == 1) {
+                return LazyOptional.of(() -> results.get(0));
+            } else {
+                for (var trait : additionalTraits) {
+                    if (trait instanceof ICapabilityProviderTrait capabilityProviderTrait && capabilityProviderTrait.getCapability() == cap) {
+                        return cap.orEmpty(cap, LazyOptional.of(() -> (T) capabilityProviderTrait.mergeContents(results)));
+                    }
                 }
             }
         }

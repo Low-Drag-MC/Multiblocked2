@@ -10,6 +10,7 @@ import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraftforge.items.IItemHandler;
 import org.jetbrains.annotations.Nullable;
@@ -38,8 +39,20 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
         return (ItemSlotCapabilityTraitDefinition) super.getDefinition();
     }
 
+    @Override
+    public void onLoadingTraitInPreview() {
+        if (storage.getSlots() > 0) {
+            this.storage.setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 32));
+        }
+    }
+
     protected ItemStackTransfer createStorage() {
-        return new ItemStackTransfer(getDefinition().getSlotSize());
+        return new ItemStackTransfer(getDefinition().getSlotSize()) {
+            @Override
+            public int getSlotLimit(int slot) {
+                return getDefinition().getSlotLimit();
+            }
+        };
     }
 
     public void onContentsChanged() {

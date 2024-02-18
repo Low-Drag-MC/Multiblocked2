@@ -2,8 +2,6 @@ package com.lowdragmc.mbd2.client;
 
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.CommonProxy;
-import com.lowdragmc.mbd2.common.gui.editor.MachineProject;
-import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.EntityRenderersEvent.RegisterRenderers;
@@ -22,7 +20,7 @@ public class ClientProxy extends CommonProxy {
 
     @SubscribeEvent
     public void registerRenderers(RegisterRenderers e) {
-        MBDRegistries.getFAKE_MACHINE().initRenderer();
-        MBDRegistries.MACHINE_DEFINITIONS.forEach(MBDMachineDefinition::initRenderer);
+        MBDRegistries.getFAKE_MACHINE().initRenderer(e);
+        MBDRegistries.MACHINE_DEFINITIONS.forEach(definition -> definition.initRenderer(e));
     }
 }

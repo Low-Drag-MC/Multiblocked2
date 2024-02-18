@@ -5,10 +5,9 @@ import com.lowdragmc.lowdraglib.gui.editor.Icons;
 import com.lowdragmc.lowdraglib.gui.editor.ui.ToolPanel;
 import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib.gui.util.TreeBuilder;
-import com.lowdragmc.lowdraglib.gui.widget.DraggableScrollableWidgetGroup;
-import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
-import com.lowdragmc.lowdraglib.gui.widget.SelectableWidgetGroup;
+import com.lowdragmc.lowdraglib.gui.widget.*;
 import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
+import com.lowdragmc.mbd2.common.gui.editor.step.MachineScenePanel;
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 import com.lowdragmc.mbd2.integration.ldlib.MBDLDLibPlugin;
 import net.minecraftforge.api.distmarker.Dist;
@@ -59,6 +58,14 @@ public class TraitList extends DraggableScrollableWidgetGroup {
         }
     }
 
+    public void updateScenePreviewMachine() {
+        for (var panel : this.editor.getTabPages().tabs.values()) {
+            if (panel instanceof MachineScenePanel scenePanel) {
+                scenePanel.reloadAdditionalTraits();
+            }
+        }
+    }
+
     @Override
     @OnlyIn(Dist.CLIENT)
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
@@ -68,6 +75,14 @@ public class TraitList extends DraggableScrollableWidgetGroup {
                         for (var wrapper : MBDLDLibPlugin.REGISTER_TRAIT_DEFINITIONS.values()) {
                             m.leaf(wrapper.annotation().name(), () -> {
                                 var traitDefinition = wrapper.creator().get();
+                                if (!traitDefinition.allowMultiple()) {
+                                    for (var existed : editor.getCurrentProject().getDefinition().machineSettings().traitDefinitions()) {
+                                        if (existed.getClass() == traitDefinition.getClass()) {
+                                            DialogWidget.showNotification(editor, "editor.machine.machine_traits.add_trait.error", "editor.machine.machine_traits.add_trait.error.allow_multiple");
+                                            return;
+                                        }
+                                    }
+                                }
                                 var name = traitDefinition.getName();
                                 var index = 0;
                                 while (editor.getCurrentProject().getDefinition().machineSettings().traitDefinitions().stream().anyMatch(e -> e.getName().equals(traitDefinition.getName()))) {
@@ -76,6 +91,7 @@ public class TraitList extends DraggableScrollableWidgetGroup {
                                 }
                                 editor.getCurrentProject().getDefinition().machineSettings().addTraitDefinition(traitDefinition);
                                 addDefinition(traitDefinition);
+                                updateScenePreviewMachine();
                             });
                         }
                     });
@@ -89,6 +105,7 @@ public class TraitList extends DraggableScrollableWidgetGroup {
                         definition.setName(name + " copied");
                         editor.getCurrentProject().getDefinition().machineSettings().addTraitDefinition(definition);
                         addDefinition(definition);
+                        updateScenePreviewMachine();
                     }
                 });
                 menu.leaf(Icons.REMOVE_FILE, "editor.machine.machine_traits.remove_trait", () -> removeDefinition(selected));

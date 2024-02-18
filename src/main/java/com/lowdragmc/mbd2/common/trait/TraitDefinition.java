@@ -1,11 +1,11 @@
 package com.lowdragmc.mbd2.common.trait;
 
+import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.syncdata.IAutoPersistedSerializable;
-import com.lowdragmc.mbd2.api.trait.ITrait;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.integration.ldlib.MBDLDLibPlugin;
 import lombok.Getter;
@@ -55,6 +55,13 @@ public abstract class TraitDefinition implements IConfigurable, IAutoPersistedSe
      */
     public boolean allowMultiple() {
         return true;
+    }
+
+    /**
+     * Get a fancy renderer for block entity.
+     */
+    public IRenderer getBESRenderer() {
+        return IRenderer.EMPTY;
     }
 
     @Override

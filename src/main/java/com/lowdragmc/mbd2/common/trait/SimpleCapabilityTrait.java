@@ -5,8 +5,6 @@ import com.lowdragmc.lowdraglib.syncdata.ISubscription;
 import com.lowdragmc.lowdraglib.syncdata.field.FieldManagedStorage;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
-import com.lowdragmc.mbd2.api.trait.ICapabilityProviderTrait;
-import com.lowdragmc.mbd2.api.trait.IRecipeCapabilityTrait;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import lombok.Getter;
 import net.minecraft.core.Direction;

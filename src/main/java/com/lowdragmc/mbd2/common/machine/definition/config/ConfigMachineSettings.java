@@ -57,6 +57,5 @@ public class ConfigMachineSettings implements IPersistedSerializable {
 
     public void removeTraitDefinition(TraitDefinition definition) {
         traitDefinitions = this.traitDefinitions.stream().filter(s -> s != definition).toList();
-
     }
 }
