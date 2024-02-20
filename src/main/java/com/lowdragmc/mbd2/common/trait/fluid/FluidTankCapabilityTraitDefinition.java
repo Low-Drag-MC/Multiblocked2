@@ -19,7 +19,7 @@ import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 
-@LDLRegister(name = "fluid_tank", group = "trait")
+@LDLRegister(name = "fluid_tank", group = "trait", priority = -100)
 public class FluidTankCapabilityTraitDefinition extends SimpleCapabilityTraitDefinition<IFluidHandler, FluidIngredient> {
 
     @Getter
@@ -36,7 +36,8 @@ public class FluidTankCapabilityTraitDefinition extends SimpleCapabilityTraitDef
     @Setter
     @Configurable(name = "config.definition.trait.fluid_tank.allow_same_fluids", tips = "config.definition.trait.fluid_tank.allow_same_fluids.tooltip")
     private boolean allowSameFluids = true;
-    @Configurable(name = "config.definition.trait.fluid_tank.fancy_renderer", subConfigurable = true, tips = "config.definition.trait.fluid_tank.fancy_renderer.tooltip")
+    @Configurable(name = "config.definition.trait.fluid_tank.fancy_renderer", subConfigurable = true,
+            tips = {"config.definition.trait.fluid_tank.fancy_renderer.tooltip.0", "config.definition.trait.fluid_tank.fancy_renderer.tooltip.1"})
     private final FluidFancyRendererSettings fancyRendererSettings = new FluidFancyRendererSettings(this);
 
     @Override

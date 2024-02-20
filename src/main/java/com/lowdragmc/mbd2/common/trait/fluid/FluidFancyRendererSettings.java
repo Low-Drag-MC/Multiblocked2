@@ -32,7 +32,7 @@ public class FluidFancyRendererSettings implements IToggleConfigurable {
     @Getter
     @Setter
     @Persisted
-    protected boolean enable;
+    private boolean enable;
 
     @Getter
     @Setter
@@ -53,6 +53,10 @@ public class FluidFancyRendererSettings implements IToggleConfigurable {
     @Setter
     @Configurable(name = "config.definition.trait.fancy_renderer.rotate_orientation", tips = "config.definition.trait.fancy_renderer.rotate_orientation.tooltip")
     private boolean rotateOrientation = true;
+    @Getter
+    @Setter
+    @Configurable(name = "config.definition.trait.fancy_renderer.percent_height", tips = "config.definition.trait.fancy_renderer.percent_height.tooltip")
+    private boolean percentHeight = false;
 
     // run-time;
     private IRenderer renderer;
@@ -106,7 +110,9 @@ public class FluidFancyRendererSettings implements IToggleConfigurable {
                     poseStack.translate(-0.5D, -0.5d, -0.5D);
 
                     VertexConsumer builder = buffer.getBuffer(Sheets.translucentCullBlockSheet());
-                    RenderBufferUtils.renderCubeFace(poseStack, builder, 0, 0, 0, 1, 1, 1, FluidHelper.getColor(fluid) | 0xff000000, combinedLight, fluidTexture);
+                    RenderBufferUtils.renderCubeFace(poseStack, builder, 0, 0, 0, 1,
+                            percentHeight ? fluid.getAmount() * 1f / trait.storages[0].getCapacity() : 1,
+                            1, FluidHelper.getColor(fluid) | 0xff000000, combinedLight, fluidTexture);
                     poseStack.popPose();
                 }
             }

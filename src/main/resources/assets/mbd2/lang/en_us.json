@@ -122,6 +122,14 @@
     "config.definition.trait.slot_names": "Slot Names",
     "config.definition.trait.slot_names.tooltip": "The trait slot names, if the recipe's ingredient specifies a slot name, then the ingredient can only be processed at the trait that has that slot name.",
 
+    "config.definition.trait.filter.whitelist": "Whitelist Mode",
+    "config.definition.trait.filter.match_nbt": "Match NBT",
+    "config.definition.trait.filter.items": "Items",
+    "config.definition.trait.filter.fluids": "Fluids",
+    "config.definition.trait.filter.item_tags": "Item Tags",
+    "config.definition.trait.filter.fluid_tags": "Fluid Tags",
+
+
     "config.definition.trait.item_slot.name": "Item Slot",
     "config.definition.trait.item_slot.slot_size": "Slot Size",
     "config.definition.trait.item_slot.slot_size.tooltip": "The size of the slot.",
@@ -129,6 +137,8 @@
     "config.definition.trait.item_slot.slot_limit.tooltip": "The max stored amount of the slot.",
     "config.definition.trait.item_slot.fancy_renderer": "Fancy Item Renderer",
     "config.definition.trait.item_slot.fancy_renderer.tooltip": "Allow you render stored item in the world. (e.g. drawer, pedestal.)",
+    "config.definition.trait.item_slot.filter": "Filter",
+    "config.definition.trait.item_slot.filter.tooltip": "The filter of the slot.",
 
     "config.definition.trait.fluid_tank.name": "Fluid Tank",
     "config.definition.trait.fluid_tank.tank_size": "Tank Size",
@@ -137,7 +147,8 @@
     "config.definition.trait.fluid_tank.allow_same_fluids": "Allow Same Fluids",
     "config.definition.trait.fluid_tank.allow_same_fluids.tooltip": "Can different tanks be filled with the same fluid.",
     "config.definition.trait.fluid_tank.fancy_renderer": "Fancy Fluid Renderer",
-    "config.definition.trait.fluid_tank.fancy_renderer.tooltip": "Allow you render stored fluid in the world. (e.g. fluid drawer, tank.)",
+    "config.definition.trait.fluid_tank.fancy_renderer.tooltip.0": "Allow you render stored fluid in the world. (e.g. fluid drawer, tank).",
+    "config.definition.trait.fluid_tank.fancy_renderer.tooltip.1": "(it can only show the fluid in the first tank)",
 
     "config.definition.trait.fancy_renderer.position": "Position",
     "config.definition.trait.fancy_renderer.position.tooltip": "The position offset of the fancy renderer.",
@@ -151,6 +162,8 @@
     "config.definition.trait.fancy_renderer.rotate_orientation.tooltip": "Rotate according to machine orientation.",
     "config.definition.trait.fancy_renderer.render_stack": "Render Stack",
     "config.definition.trait.fancy_renderer.render_stack.tooltip": "Whether render the stacked model if the number of stacks is greater than 1.",
+    "config.definition.trait.fancy_renderer.percent_height": "Percent Height",
+    "config.definition.trait.fancy_renderer.percent_height.tooltip": "The height of the fancy renderer in percent of the stored fluid.",
 
     "editor.machine.basic_settings": "Basic Settings",
     "editor.machine.machine_traits": "Machine Traits",

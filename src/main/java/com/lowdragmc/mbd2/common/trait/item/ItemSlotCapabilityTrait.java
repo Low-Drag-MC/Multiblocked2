@@ -47,12 +47,16 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
     }
 
     protected ItemStackTransfer createStorage() {
-        return new ItemStackTransfer(getDefinition().getSlotSize()) {
+        var transfer = new ItemStackTransfer(getDefinition().getSlotSize()) {
             @Override
             public int getSlotLimit(int slot) {
                 return getDefinition().getSlotLimit();
             }
         };
+        if (getDefinition().getItemFilterSettings().isEnable()) {
+            transfer.setFilter(getDefinition().getItemFilterSettings()::test);
+        }
+        return transfer;
     }
 
     public void onContentsChanged() {

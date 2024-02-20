@@ -30,7 +30,7 @@ public class ItemFancyRendererSettings implements IToggleConfigurable {
     @Getter
     @Setter
     @Persisted
-    protected boolean enable;
+    private boolean enable;
 
     @Getter
     @Setter

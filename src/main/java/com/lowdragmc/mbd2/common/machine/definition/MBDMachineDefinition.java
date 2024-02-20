@@ -41,7 +41,7 @@ import java.util.List;
 @Getter
 @Accessors(fluent = true)
 public class MBDMachineDefinition implements IConfigurable, IPersistedSerializable {
-    @Configurable(tips = "config.definition.id.tooltip")
+    @Configurable(tips = "config.definition.id.tooltip", forceUpdate = false)
     protected final ResourceLocation id;
     protected final StateMachine stateMachine;
     @Configurable(name = "config.definition.block_properties", subConfigurable = true, tips = "config.definition.block_properties.tooltip", collapse = false)

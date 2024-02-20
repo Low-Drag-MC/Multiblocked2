@@ -18,7 +18,7 @@ import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.items.IItemHandler;
 
-@LDLRegister(name = "item_slot", group = "trait")
+@LDLRegister(name = "item_slot", group = "trait", priority = -100)
 public class ItemSlotCapabilityTraitDefinition extends SimpleCapabilityTraitDefinition<IItemHandler, Ingredient> {
 
     @Getter @Setter
@@ -29,7 +29,10 @@ public class ItemSlotCapabilityTraitDefinition extends SimpleCapabilityTraitDefi
     @Configurable(name = "config.definition.trait.item_slot.slot_limit", tips = "config.definition.trait.item_slot.slot_limit.tooltip")
     @NumberRange(range = {1, 64})
     private int slotLimit = 64;
-
+    @Getter
+    @Configurable(name = "config.definition.trait.item_slot.filter", subConfigurable = true, tips = "config.definition.trait.item_slot.filter.tooltip")
+    private final ItemFilterSettings itemFilterSettings = new ItemFilterSettings();
+    @Getter
     @Configurable(name = "config.definition.trait.item_slot.fancy_renderer", subConfigurable = true, tips = "config.definition.trait.item_slot.fancy_renderer.tooltip")
     private final ItemFancyRendererSettings itemRendererSettings = new ItemFancyRendererSettings(this);
 
