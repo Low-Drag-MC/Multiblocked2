@@ -6,10 +6,20 @@ import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ItemStackTexture;
+import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
+import com.lowdragmc.lowdraglib.gui.widget.TankWidget;
+import com.lowdragmc.lowdraglib.gui.widget.Widget;
+import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
+import com.lowdragmc.lowdraglib.jei.IngredientIO;
+import com.lowdragmc.lowdraglib.utils.Position;
+import com.lowdragmc.lowdraglib.utils.Size;
+import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.ingredient.FluidIngredient;
 import com.lowdragmc.mbd2.common.capability.recipe.FluidRecipeCapability;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
+import com.lowdragmc.mbd2.common.trait.ITrait;
+import com.lowdragmc.mbd2.common.trait.ITraitUIProvider;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTraitDefinition;
 import lombok.Getter;
@@ -63,5 +73,42 @@ public class FluidTankCapabilityTraitDefinition extends SimpleCapabilityTraitDef
     @Override
     public IRenderer getBESRenderer() {
         return fancyRendererSettings.createRenderer();
+    }
+
+    @Override
+    public Widget createTraitUITemplate() {
+        var group = new WidgetGroup(3, 3, 20 * this.tankSize + 6, 58 + 6);
+        var prefix = uiPrefixName();
+        group.setId(prefix);
+        for (var i = 0; i < this.tankSize; i++) {
+            var tankWidget = new TankWidget();
+            tankWidget.initTemplate();
+            tankWidget.setSelfPosition(new Position(3 + i * 20, 3));
+            tankWidget.setSize(new Size(20, 58));
+            tankWidget.setOverlay(new ResourceTexture("mbd2:textures/gui/fluid_tank_overlay.png"));
+            tankWidget.setId(prefix + "_" + i);
+            group.addWidget(tankWidget);
+        }
+        return group;
+    }
+
+    @Override
+    public void initTraitUI(ITrait trait, WidgetGroup group) {
+        if (trait instanceof FluidTankCapabilityTrait fluidTankTrait) {
+            var prefix = uiPrefixName();
+            var guiIO = getGuiIO();
+            var ingredientIO = guiIO == IO.IN ? IngredientIO.INPUT : guiIO == IO.OUT ? IngredientIO.OUTPUT : guiIO == IO.BOTH ? IngredientIO.BOTH : IngredientIO.RENDER_ONLY;
+            var allowClickDrained = guiIO == IO.BOTH || guiIO == IO.OUT;
+            var allowClickFilled = guiIO == IO.BOTH || guiIO == IO.IN;
+            ITraitUIProvider.widgetByIdForEach(group, "^%s_[0-9]+$".formatted(prefix), TankWidget.class, tankWidget -> {
+                var index = ITraitUIProvider.widgetIdIndex(tankWidget);
+                if (index >= 0 && index < fluidTankTrait.storages.length) {
+                    tankWidget.setFluidTank(fluidTankTrait.storages[index]);
+                    tankWidget.setIngredientIO(ingredientIO);
+                    tankWidget.setAllowClickDrained(allowClickDrained);
+                    tankWidget.setAllowClickFilled(allowClickFilled);
+                }
+            });
+        }
     }
 }

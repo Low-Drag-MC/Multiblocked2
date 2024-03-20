@@ -2,9 +2,10 @@ package com.lowdragmc.mbd2.api.recipe;
 
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.Platform;
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
+import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeCapabilityHolder;
+import com.lowdragmc.mbd2.core.mixins.RecipeManagerAccessor;
 import com.lowdragmc.mbd2.utils.FormattingUtil;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import lombok.Getter;
@@ -32,7 +33,6 @@ import java.io.InputStream;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -45,30 +45,27 @@ import java.util.stream.Collectors;
 public class MBDRecipeType implements RecipeType<MBDRecipe> {
     public static final MBDRecipeType DUMMY = new MBDRecipeType(MBD2.id("dummy"));
 
+    @Configurable(name = "recipe_type.registry_name", tips = "recipe_type.registry_name.tooltip")
     public final ResourceLocation registryName;
     @Setter
     private MBDRecipeBuilder recipeBuilder;
     @Setter
     @Getter
-    private MBDRecipeType smallRecipeMap;
-    @Setter
-    @Getter
     @Nullable
     private Supplier<ItemStack> iconSupplier;
-    @Getter
-    protected List<Function<CompoundTag, String>> dataInfos = new ArrayList<>();
     @Setter
     @Getter
-    protected int maxTooltips = 3;
-    @Setter
-    @Nullable
-    protected BiConsumer<MBDRecipe, WidgetGroup> uiBuilder;
-    @Setter
-    @Getter
-    protected boolean isFuelRecipeType;
+    @Configurable(name = "recipe_type.requireFuelForWorking", tips = "recipe_type.requireFuelForWorking.tooltip")
+    protected boolean requireFuelForWorking;
     @Getter
     protected final Map<RecipeType<?>, List<MBDRecipe>> proxyRecipes;
     private CompoundTag customUICache;
+    @Getter
+    protected final List<MBDRecipe> builtinRecipes = new ArrayList<>();
+
+    // run-time
+    @Getter
+    private boolean isProxyRecipesLoaded = false;
 
     public MBDRecipeType(ResourceLocation registryName, RecipeType<?>... proxyRecipes) {
         this.registryName = registryName;
@@ -86,8 +83,21 @@ public class MBDRecipeType implements RecipeType<MBDRecipe> {
         return registryName.toString();
     }
 
+    private void loadProxyRecipes(RecipeManager recipeManager) {
+        isProxyRecipesLoaded = true;
+        for (Map.Entry<RecipeType<?>, List<MBDRecipe>> entry : proxyRecipes.entrySet()) {
+            var type = entry.getKey();
+            var recipes = entry.getValue();
+            recipes.clear();
+            for (var recipe : ((RecipeManagerAccessor)recipeManager).getRawRecipes().get(type).entrySet()) {
+                recipes.add(toMBDrecipe(recipe.getKey(), recipe.getValue()));
+            }
+        }
+    }
+
     public List<MBDRecipe> searchFuelRecipe(RecipeManager recipeManager, IRecipeCapabilityHolder holder) {
-        if (!holder.hasProxies() || !isFuelRecipeType()) return Collections.emptyList();
+        if (!isProxyRecipesLoaded) loadProxyRecipes(recipeManager);
+        if (!holder.hasProxies() || !isRequireFuelForWorking()) return Collections.emptyList();
         List<MBDRecipe> matches = new ArrayList<>();
         for (MBDRecipe recipe : recipeManager.getAllRecipesFor(this)) {
             if (recipe.isFuel && recipe.matchRecipe(holder).isSuccess() && recipe.matchTickRecipe(holder).isSuccess()) {
@@ -98,6 +108,7 @@ public class MBDRecipeType implements RecipeType<MBDRecipe> {
     }
 
     public List<MBDRecipe> searchRecipe(RecipeManager recipeManager, IRecipeCapabilityHolder holder) {
+        if (!isProxyRecipesLoaded) loadProxyRecipes(recipeManager);
         if (!holder.hasProxies()) return Collections.emptyList();
         List<MBDRecipe> matches = recipeManager.getAllRecipesFor(this).parallelStream()
                 .filter(recipe -> !recipe.isFuel && recipe.matchRecipe(holder).isSuccess() && recipe.matchTickRecipe(holder).isSuccess())

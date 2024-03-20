@@ -10,7 +10,7 @@ import lombok.Setter;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 
-public abstract class SimpleCapabilityTraitDefinition<T, CONTENT> extends TraitDefinition {
+public abstract class SimpleCapabilityTraitDefinition<T, CONTENT> extends TraitDefinition implements ITraitUIProvider {
     public static class CapabilityIO {
         @Getter @Setter
         @Configurable(name = "config.definition.trait.capability_io.internal", tips = "config.definition.trait.capability_io.internal.tooltip")
@@ -44,6 +44,10 @@ public abstract class SimpleCapabilityTraitDefinition<T, CONTENT> extends TraitD
     @Configurable(name = "config.definition.trait.recipe_handler", tips = "config.definition.trait.recipe_handler.tooltip")
     @ConfigSelector(candidate = {"IN", "OUT", "NONE"})
     private IO recipeHandlerIO = IO.IN;
+
+    @Getter @Setter
+    @Configurable(name = "config.definition.trait.gui_io", tips = "config.definition.trait.gui_io.tooltip")
+    private IO guiIO = IO.BOTH;
 
     @Getter @Setter
     @Configurable(name = "config.definition.trait.distinct", tips = {"config.definition.trait.distinct.tooltip.0", "config.definition.trait.distinct.tooltip.1"})

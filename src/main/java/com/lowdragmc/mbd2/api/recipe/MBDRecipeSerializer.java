@@ -3,6 +3,7 @@ package com.lowdragmc.mbd2.api.recipe;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.lowdragmc.lowdraglib.utils.NBTToJsonConverter;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
@@ -73,6 +74,45 @@ public class MBDRecipeSerializer implements RecipeSerializer<MBDRecipe> {
         }
         boolean isFuel = GsonHelper.getAsBoolean(json, "isFuel", false);
         return new MBDRecipe((MBDRecipeType) BuiltInRegistries.RECIPE_TYPE.get(new ResourceLocation(recipeType)), id, inputs, outputs, tickInputs, tickOutputs, conditions, data, duration, isFuel);
+    }
+
+    public JsonObject capabilitiesToJson(Map<RecipeCapability<?>, List<Content>> contents) {
+        JsonObject jsonObject = new JsonObject();
+        contents.forEach((cap, list) -> {
+            JsonArray contentsJson = new JsonArray();
+            for (Content content : list) {
+                contentsJson.add(cap.serializer.toJsonContent(content));
+            }
+            jsonObject.add(MBDRegistries.RECIPE_CAPABILITIES.getKey(cap), contentsJson);
+        });
+        return jsonObject;
+    }
+
+    public JsonObject toJson(@NotNull MBDRecipe recipe) {
+        JsonObject json = new JsonObject();
+        json.addProperty("type", recipe.recipeType.registryName.toString());
+        json.addProperty("duration", Math.abs(recipe.duration));
+        if (recipe.data != null && !recipe.data.isEmpty()) {
+            json.add("data", NBTToJsonConverter.getObject(recipe.data));
+        }
+        json.add("inputs", capabilitiesToJson(recipe.inputs));
+        json.add("outputs", capabilitiesToJson(recipe.outputs));
+        json.add("tickInputs", capabilitiesToJson(recipe.tickInputs));
+        json.add("tickOutputs", capabilitiesToJson(recipe.tickOutputs));
+        if (!recipe.conditions.isEmpty()) {
+            JsonArray array = new JsonArray();
+            for (RecipeCondition condition : recipe.conditions) {
+                JsonObject cond = new JsonObject();
+                cond.addProperty("type", MBDRegistries.RECIPE_CONDITIONS.getKey(condition.getClass()));
+                cond.add("data", condition.serialize());
+                array.add(cond);
+            }
+            json.add("recipeConditions", array);
+        }
+        if (recipe.isFuel) {
+            json.addProperty("isFuel", true);
+        }
+        return json;
     }
 
     public static Tuple<RecipeCapability<?>, List<Content>> entryReader(FriendlyByteBuf buf) {

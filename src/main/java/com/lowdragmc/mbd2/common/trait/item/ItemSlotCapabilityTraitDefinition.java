@@ -6,9 +6,17 @@ import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ItemStackTexture;
+import com.lowdragmc.lowdraglib.gui.widget.SlotWidget;
+import com.lowdragmc.lowdraglib.gui.widget.Widget;
+import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
+import com.lowdragmc.lowdraglib.jei.IngredientIO;
+import com.lowdragmc.lowdraglib.utils.Position;
+import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.common.capability.recipe.ItemRecipeCapability;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
+import com.lowdragmc.mbd2.common.trait.ITrait;
+import com.lowdragmc.mbd2.common.trait.ITraitUIProvider;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTraitDefinition;
 import lombok.Getter;
 import lombok.Setter;
@@ -36,10 +44,6 @@ public class ItemSlotCapabilityTraitDefinition extends SimpleCapabilityTraitDefi
     @Configurable(name = "config.definition.trait.item_slot.fancy_renderer", subConfigurable = true, tips = "config.definition.trait.item_slot.fancy_renderer.tooltip")
     private final ItemFancyRendererSettings itemRendererSettings = new ItemFancyRendererSettings(this);
 
-    public ItemSlotCapabilityTraitDefinition() {
-        this.setName("item trait");
-    }
-
     @Override
     public ItemSlotCapabilityTrait createTrait(MBDMachine machine) {
         return new ItemSlotCapabilityTrait(machine, this);
@@ -65,4 +69,39 @@ public class ItemSlotCapabilityTraitDefinition extends SimpleCapabilityTraitDefi
         return itemRendererSettings.createRenderer();
     }
 
+    @Override
+    public Widget createTraitUITemplate() {
+        if (slotSize <= 0) return new WidgetGroup();
+        var row = Math.ceil(Math.sqrt(slotSize));
+        var group = new WidgetGroup(3, 3, (int) row * 18 + 6, (int) Math.ceil(slotSize / (float) row) * 18 + 6);
+        var prefix = uiPrefixName();
+        for (var i = 0; i < this.slotSize; i++) {
+            var slotWidget = new SlotWidget();
+            slotWidget.setSelfPosition(new Position(3 + i % (int) row * 18, 3 + i / (int) row * 18));
+            slotWidget.initTemplate();
+            slotWidget.setId(prefix + "_" + i);
+            group.addWidget(slotWidget);
+        }
+        return group;
+    }
+
+    @Override
+    public void initTraitUI(ITrait trait, WidgetGroup group) {
+        if (trait instanceof ItemSlotCapabilityTrait itemSlotTrait) {
+            var prefix = uiPrefixName();
+            var guiIO = getGuiIO();
+            var ingredientIO = guiIO == IO.IN ? IngredientIO.INPUT : guiIO == IO.OUT ? IngredientIO.OUTPUT : guiIO == IO.BOTH ? IngredientIO.BOTH : IngredientIO.RENDER_ONLY;
+            var canTakeItems = guiIO == IO.BOTH || guiIO == IO.OUT;
+            var canPutItems = guiIO == IO.BOTH || guiIO == IO.IN;
+            ITraitUIProvider.widgetByIdForEach(group, "^%s_[0-9]+$".formatted(prefix), SlotWidget.class, slotWidget -> {
+                var index = ITraitUIProvider.widgetIdIndex(slotWidget);
+                if (index >= 0 && index < itemSlotTrait.storage.getSlots()) {
+                    slotWidget.setHandlerSlot(itemSlotTrait.storage, index);
+                    slotWidget.setIngredientIO(ingredientIO);
+                    slotWidget.setCanTakeItems(canTakeItems);
+                    slotWidget.setCanPutItems(canPutItems);
+                }
+            });
+        }
+    }
 }

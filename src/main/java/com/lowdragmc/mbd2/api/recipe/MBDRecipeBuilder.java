@@ -375,49 +375,11 @@ public class MBDRecipeBuilder {
         return posY(min, max, false);
     }
 
-
-    public void toJson(JsonObject json) {
-        json.addProperty("type", recipeType.registryName.toString());
-        json.addProperty("duration", Math.abs(duration));
-        if (data != null && !data.isEmpty()) {
-            json.add("data", NBTToJsonConverter.getObject(data));
-        }
-        json.add("inputs", capabilitiesToJson(input));
-        json.add("outputs", capabilitiesToJson(output));
-        json.add("tickInputs", capabilitiesToJson(tickInput));
-        json.add("tickOutputs", capabilitiesToJson(tickOutput));
-        if (!conditions.isEmpty()) {
-            JsonArray array = new JsonArray();
-            for (RecipeCondition condition : conditions) {
-                JsonObject cond = new JsonObject();
-                cond.addProperty("type", MBDRegistries.RECIPE_CONDITIONS.getKey(condition.getClass()));
-                cond.add("data", condition.serialize());
-                array.add(cond);
-            }
-            json.add("recipeConditions", array);
-        }
-        if (isFuel) {
-            json.addProperty("isFuel", true);
-        }
-    }
-
-    public JsonObject capabilitiesToJson(Map<RecipeCapability<?>, List<Content>> contents) {
-        JsonObject jsonObject = new JsonObject();
-        contents.forEach((cap, list) -> {
-            JsonArray contentsJson = new JsonArray();
-            for (Content content : list) {
-                contentsJson.add(cap.serializer.toJsonContent(content));
-            }
-            jsonObject.add(MBDRegistries.RECIPE_CAPABILITIES.getKey(cap), contentsJson);
-        });
-        return jsonObject;
-    }
-
     public FinishedRecipe build() {
         return new FinishedRecipe() {
             @Override
             public void serializeRecipeData(JsonObject pJson) {
-                toJson(pJson);
+                MBDRecipeSerializer.SERIALIZER.toJson(buildRawRecipe());
             }
 
             @Override
@@ -449,6 +411,10 @@ public class MBDRecipeBuilder {
             onSave.accept(this, consumer);
         }
         consumer.accept(build());
+    }
+
+    public void saveAsBuiltinRecipe() {
+        recipeType.builtinRecipes.add(buildRawRecipe());
     }
 
     public MBDRecipe buildRawRecipe() {

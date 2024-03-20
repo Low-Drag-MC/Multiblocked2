@@ -12,7 +12,8 @@ import com.lowdragmc.lowdraglib.utils.Size;
 import com.lowdragmc.lowdraglib.utils.TrackedDummyWorld;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.blockentity.MachineBlockEntity;
-import com.lowdragmc.mbd2.common.gui.editor.step.MachineConfigStepPanel;
+import com.lowdragmc.mbd2.common.gui.editor.MachineProject;
+import com.lowdragmc.mbd2.common.gui.editor.step.MachineConfigPanel;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
 import lombok.Getter;
@@ -23,7 +24,7 @@ import java.util.Optional;
 
 public class MachineStatePreview extends DraggableWidgetGroup {
     @Getter
-    private final MachineConfigStepPanel panel;
+    private final MachineConfigPanel panel;
     @Getter
     private final MachineState state;
     private final WidgetGroup title;
@@ -32,7 +33,7 @@ public class MachineStatePreview extends DraggableWidgetGroup {
     private boolean isCollapse;
     protected MBDMachine previewMachine;
 
-    public MachineStatePreview(MachineConfigStepPanel panel, MachineState state) {
+    public MachineStatePreview(MachineConfigPanel panel, MachineState state) {
         super(0, 0, 100, 100 + 15);
         this.panel = panel;
         this.state = state;
@@ -57,8 +58,8 @@ public class MachineStatePreview extends DraggableWidgetGroup {
         scene.setRenderedCore(Collections.singleton(BlockPos.ZERO), null);
         level.addBlock(BlockPos.ZERO, BlockInfo.fromBlock(MBDRegistries.getFAKE_MACHINE().block()));
         Optional.ofNullable(level.getBlockEntity(BlockPos.ZERO)).ifPresent(blockEntity -> {
-            if (blockEntity instanceof MachineBlockEntity holder) {
-                holder.setMachine(previewMachine = new MBDMachine(holder, panel.getEditor().getCurrentProject().getDefinition()));
+            if (blockEntity instanceof MachineBlockEntity holder && panel.getEditor().getCurrentProject() instanceof MachineProject project) {
+                holder.setMachine(previewMachine = new MBDMachine(holder, project.getDefinition()));
                 previewMachine.setMachineState(state.name());
             }
         });

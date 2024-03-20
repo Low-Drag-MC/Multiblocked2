@@ -4,35 +4,25 @@ import com.lowdragmc.lowdraglib.gui.animation.Transform;
 import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib.gui.widget.DraggableScrollableWidgetGroup;
-import com.lowdragmc.lowdraglib.gui.widget.SceneWidget;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.lowdraglib.utils.Size;
 import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
+import com.lowdragmc.mbd2.common.gui.editor.MachineProject;
 import com.lowdragmc.mbd2.common.gui.editor.widget.MachineStatePreview;
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.*;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.core.Direction;
-import net.minecraft.util.Mth;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
-import org.joml.Matrix4f;
-import org.lwjgl.opengl.GL11;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@OnlyIn(Dist.CLIENT)
-public class MachineConfigStepPanel extends MachineScenePanel {
+public class MachineConfigPanel extends MachineScenePanel {
     protected final FloatView floatView;
 
-    public MachineConfigStepPanel(MachineEditor editor) {
+    public MachineConfigPanel(MachineEditor editor) {
         super(editor);
-        scene.setAfterWorldRender(this::renderAfterWorld);
+        setDrawFrameLines(true);
         addWidget(floatView = new FloatView());
         floatView.setDraggable(true);
         loadMachineState();
@@ -42,15 +32,19 @@ public class MachineConfigStepPanel extends MachineScenePanel {
      * Called when the panel is selected/switched to.
      */
     public void onPanelSelected() {
-        editor.getConfigPanel().openConfigurator(MachineEditor.BASIC, editor.getCurrentProject().getDefinition());
+        if (editor.getCurrentProject() instanceof MachineProject project) {
+            editor.getConfigPanel().openConfigurator(MachineEditor.BASIC, project.getDefinition());
+        }
     }
 
     /**
      * Load the machine state.
      */
     public void loadMachineState() {
-        var definition = editor.getCurrentProject().getDefinition();
-        loadMachineStateRecursive(definition.stateMachine().getRootState(), new ArrayList<>(), 0);
+        if (editor.getCurrentProject() instanceof MachineProject project) {
+            var definition = project.getDefinition();
+            loadMachineStateRecursive(definition.stateMachine().getRootState(), new ArrayList<>(), 0);
+        }
     }
 
     private void loadMachineStateRecursive(MachineState state, List<Integer> depthCount, int depth) {
@@ -103,51 +97,13 @@ public class MachineConfigStepPanel extends MachineScenePanel {
     }
 
     /**
-     * render the scene after the world is rendered.
-     * <br/> e.g. <br/>
-     * shape frame lines.
-     */
-    private void renderAfterWorld(SceneWidget sceneWidget) {
-        if (previewMachine == null) return;
-        PoseStack PoseStack = new PoseStack();
-
-        RenderSystem.enableBlend();
-        RenderSystem.disableDepthTest();
-        RenderSystem.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-
-        PoseStack.pushPose();
-        var tessellator = Tesselator.getInstance();
-        RenderSystem.disableCull();
-        BufferBuilder buffer = tessellator.getBuilder();
-        RenderSystem.setShader(GameRenderer::getRendertypeLinesShader);
-        buffer.begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
-        RenderSystem.lineWidth(10);
-        Matrix4f matrix4f = PoseStack.last().pose();
-
-        previewMachine.getMachineState().getShape(previewMachine.getFrontFacing().orElse(Direction.NORTH)).forAllEdges((x0, y0, z0, x1, y1, z1) -> {
-            float f = (float)(x1 - x0);
-            float f1 = (float)(y1 - y0);
-            float f2 = (float)(z1 - z0);
-            float f3 = Mth.sqrt(f * f + f1 * f1 + f2 * f2);
-            f /= f3;
-            f1 /= f3;
-            f2 /= f3;
-            buffer.vertex(matrix4f, (float)(x0), (float)(y0), (float)(z0)).color(-1).normal(PoseStack.last().normal(), f, f1, f2).endVertex();
-            buffer.vertex(matrix4f, (float)(x1), (float)(y1), (float)(z1)).color(-1).normal(PoseStack.last().normal(), f, f1, f2).endVertex();
-        });
-
-        tessellator.end();
-
-        PoseStack.popPose();
-        RenderSystem.enableDepthTest();
-        RenderSystem.enableCull();
-    }
-
-    /**
      * Making scene to be intractable even the float view is hovered.
      */
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (buttonGroup.isMouseOverElement(mouseX, mouseY)) {
+            buttonGroup.mouseClicked(mouseX, mouseY, button);
+        }
         if (getHoverElement(mouseX, mouseY) == floatView) {
             scene.mouseClicked(mouseX, mouseY, button);
         }
@@ -185,7 +141,7 @@ public class MachineConfigStepPanel extends MachineScenePanel {
 
     public class FloatView extends DraggableScrollableWidgetGroup {
         private FloatView() {
-            super(0, 0, MachineConfigStepPanel.super.getSize().width, MachineConfigStepPanel.super.getSize().height);
+            super(0, 0, MachineConfigPanel.super.getSize().width, MachineConfigPanel.super.getSize().height);
         }
 
         @Override

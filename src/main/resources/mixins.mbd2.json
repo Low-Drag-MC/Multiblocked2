@@ -9,6 +9,8 @@
   "mixins": [
     "ChunkMixin",
     "LevelMixin",
+    "RecipeManagerAccessor",
+    "RecipeManagerMixin",
     "ServerChunkProviderMixin"
   ],
   "injectors": {

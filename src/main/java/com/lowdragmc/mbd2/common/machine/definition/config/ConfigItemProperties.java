@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib.gui.editor.ui.Editor;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
 import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
 import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
+import com.lowdragmc.mbd2.common.gui.editor.MachineProject;
 import com.lowdragmc.mbd2.common.gui.editor.texture.IRendererSlotTexture;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
 import lombok.Builder;
@@ -60,8 +61,7 @@ public class ConfigItemProperties implements IConfigurable, IPersistedSerializab
                                 return renderer.getValue();
                             }
                             if (Editor.INSTANCE instanceof MachineEditor editor) {
-                                var project = editor.getCurrentProject();
-                                if (project != null) {
+                                if (editor.getCurrentProject() instanceof MachineProject project) {
                                     return project.getDefinition().getState("base").getRenderer();
                                 }
                             }

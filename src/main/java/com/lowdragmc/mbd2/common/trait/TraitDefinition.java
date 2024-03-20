@@ -33,7 +33,7 @@ public abstract class TraitDefinition implements IConfigurable, IAutoPersistedSe
 
     @Getter @Setter
     @Configurable(name = "config.definition.trait.name")
-    private String name = "trait";
+    private String name = name();
 
     @Getter @Setter
     @Configurable(name = "config.definition.trait.priority", tips = "config.definition.trait.priority.tooltip")

@@ -101,6 +101,7 @@
     "config.definition.machine_settings.tooltip": "The settings of the machine.",
 
     "config.definition.trait.name": "Name",
+    "config.definition.trait.name.tooltip": "Name has to be unique.",
     "config.definition.trait.priority": "Priority",
     "config.definition.trait.priority.tooltip": "The priority of the capability, higher priority will be processed / presented first.",
     "config.definition.trait.capability_io": "Capability IO",
@@ -116,6 +117,8 @@
     "config.definition.trait.capability_io.bottom": "bottom",
     "config.definition.trait.recipe_handler": "Recipe Handler IO",
     "config.definition.trait.recipe_handler.tooltip": "Whether this trait is considered an input or an output in recipe handling",
+    "config.definition.trait.gui_io": "GUI IO",
+    "config.definition.trait.gui_io.tooltip": "Whether this trait io directions for GUI handling",
     "config.definition.trait.distinct": "Distinct",
     "config.definition.trait.distinct.tooltip.0": "Enabled - This trait is availabe during recipe processing if and only if all ingredient of the same type are consumed or produced only in this trait.",
     "config.definition.trait.distinct.tooltip.1": "Disabled - Recipe processing when any combination of non-distinct traits satisfies the recipe.",
@@ -130,7 +133,12 @@
     "config.definition.trait.filter.fluid_tags": "Fluid Tags",
 
 
+    "ldlib.gui.editor.register.editor.machine.trait_ui_view": "Trait UI View",
+    "config.definition.trait.ui.generate": "add template",
+    "config.definition.trait.ui.generate.tooltip": "§egenerate a template for the trait UI.§r",
+
     "config.definition.trait.item_slot.name": "Item Slot",
+    "config.definition.trait.item_slot.ui.tooltip": "You can use §cItem Slot§r to customize slots. Item Slots you add yourself need to set their ids as §e[definition name]_[index of slot]§r. For example, if your definition's name is §emy_slot§r, if you want to bind the slot to the slot index of 1, its id should be set to §emy_slot_1§r.",
     "config.definition.trait.item_slot.slot_size": "Slot Size",
     "config.definition.trait.item_slot.slot_size.tooltip": "The size of the slot.",
     "config.definition.trait.item_slot.slot_limit": "Slot Limit",
@@ -141,6 +149,7 @@
     "config.definition.trait.item_slot.filter.tooltip": "The filter of the slot.",
 
     "config.definition.trait.fluid_tank.name": "Fluid Tank",
+    "config.definition.trait.fluid_tank.ui.tooltip": "You can use §cFluid Slot§r to customize fluid tanks. Fluid Slots you add yourself need to set their ids as §e[definition name]_[index of tank]§r. For example, if your definition's name is §emy_tank§r, if you want to bind the slot to the tank index of 1, its id should be set to §emy_tank_1§r.",
     "config.definition.trait.fluid_tank.tank_size": "Tank Size",
     "config.definition.trait.fluid_tank.tank_size.tooltip": "The size of the tank.",
     "config.definition.trait.fluid_tank.capacity": "Capacity",
@@ -167,6 +176,11 @@
 
     "editor.machine.basic_settings": "Basic Settings",
     "editor.machine.machine_traits": "Machine Traits",
+    "editor.machine.machine_ui": "Machine UI",
+    "editor.machine.recipe_type": "Recipe Type",
+    "editor.machine.recipe_type.recipes": "Recipes",
+    "editor.machine.recipe_type.recipes.common": "Common Recipes",
+
     "editor.machine.machine_traits.list": "traits",
     "editor.machine.machine_traits.add_trait": "add trait",
     "editor.machine.machine_traits.remove_trait": "remove trait",
@@ -175,5 +189,14 @@
 
     "editor.machine_state.add": "add state",
     "editor.machine_state.remove": "remove state",
-    "editor.config_panel.machine_state": "machine state configurator"
+    "editor.config_panel.machine_state": "machine state configurator",
+    "editor.machine_scene.draw_frame_lines": "draw frame lines of shape",
+
+    "recipe_type.registry_name": "Registry Name",
+    "recipe_type.registry_name.tooltip": "Registry name has to be unique.",
+    "recipe_type.requireFuelForWorking": "Require Fuel",
+    "recipe_type.requireFuelForWorking.tooltip": "Whether the recipe type requires fuel to work. if true, you should add fuel recipes as well.",
+
+    "ldlib.gui.editor.register.editor.machine.mproj": "Machine Project",
+    "ldlib.gui.editor.register.editor.machine.rproj": "Recipe Type Project"
 }

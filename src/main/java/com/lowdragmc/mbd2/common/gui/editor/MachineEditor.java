@@ -23,13 +23,9 @@ public class MachineEditor extends Editor {
         super(MBD2.getLocation());
     }
 
-    @Override
-    public MachineProject getCurrentProject() {
-        return (MachineProject)super.getCurrentProject();
-    }
-
     public void initEditorViews() {
         this.toolPanel = new ToolPanel(this);
+        this.toolPanel.setSizeWidth(150);
         this.configPanel = new ConfigPanel(this, List.of(BASIC, MACHINE_STATE, RESOURCE));
         this.tabPages = new StringTabContainer(this);
         this.resourcePanel = new ResourcePanel(this);
@@ -46,7 +42,7 @@ public class MachineEditor extends Editor {
 
     @Override
     public void loadProject(IProject project) {
-        if (project == null || project instanceof MachineProject) {
+        if (project == null || project instanceof MachineProject || project instanceof RecipeTypeProject) {
             super.loadProject(project);
         } else {
             throw new IllegalArgumentException("Invalid project type");
