@@ -6,6 +6,8 @@ import com.google.gson.JsonNull;
 import com.lowdragmc.mbd2.MBD2;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -59,6 +61,19 @@ public class SerializerBlockState implements IContentSerializer<BlockState> {
             }
         }
         return blockState;
+    }
+
+    @Override
+    public Tag toNBT(BlockState content) {
+        return NbtUtils.writeBlockState(content);
+    }
+
+    @Override
+    public BlockState fromNBT(Tag nbt) {
+        if (nbt instanceof net.minecraft.nbt.CompoundTag compoundTag) {
+            return NbtUtils.readBlockState(BuiltInRegistries.BLOCK.asLookup(), compoundTag);
+        }
+        return Blocks.AIR.defaultBlockState();
     }
 
     @Override

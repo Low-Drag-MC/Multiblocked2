@@ -1,7 +1,8 @@
 package com.lowdragmc.mbd2.common.gui.editor;
 
+import com.lowdragmc.lowdraglib.gui.editor.ILDLRegisterClient;
 import com.lowdragmc.lowdraglib.gui.editor.Icons;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.gui.editor.data.IProject;
 import com.lowdragmc.lowdraglib.gui.editor.ui.*;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
@@ -12,11 +13,11 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 
 import java.util.List;
 
-@LDLRegister(name = "editor.machine", group = "editor")
+@LDLRegisterClient(name = "editor.machine", group = "editor")
 @OnlyIn(Dist.CLIENT)
-public class MachineEditor extends Editor {
+public class MachineEditor extends Editor implements ILDLRegisterClient {
     public static final ConfigPanel.Tab BASIC = ConfigPanel.Tab.WIDGET;
-    public static final ConfigPanel.Tab MACHINE_STATE = ConfigPanel.Tab.createTab(Icons.FILE, Component.translatable("editor.config_panel.machine_state"));
+    public static final ConfigPanel.Tab SECOND = ConfigPanel.Tab.createTab(Icons.FILE, Component.translatable("editor.config_panel.other_configurator"));
     public static final ConfigPanel.Tab RESOURCE = ConfigPanel.Tab.RESOURCE;
 
     public MachineEditor() {
@@ -26,7 +27,7 @@ public class MachineEditor extends Editor {
     public void initEditorViews() {
         this.toolPanel = new ToolPanel(this);
         this.toolPanel.setSizeWidth(150);
-        this.configPanel = new ConfigPanel(this, List.of(BASIC, MACHINE_STATE, RESOURCE));
+        this.configPanel = new ConfigPanel(this, List.of(BASIC, SECOND, RESOURCE));
         this.tabPages = new StringTabContainer(this);
         this.resourcePanel = new ResourcePanel(this);
         this.menuPanel = new MenuPanel(this);

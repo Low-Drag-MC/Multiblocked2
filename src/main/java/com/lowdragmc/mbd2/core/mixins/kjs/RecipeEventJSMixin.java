@@ -2,7 +2,7 @@
 //
 //import com.google.gson.JsonObject;
 //import com.gregtechceu.gtceu.api.recipe.GTRecipe;
-//import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
+//import com.gregtechceu.gtceu.api.recipe.MBDRecipeType;
 //import com.gregtechceu.gtceu.core.mixins.RecipeManagerAccessor;
 //import dev.latvian.mods.kubejs.recipe.RecipesEventJS;
 //import net.minecraft.core.registries.BuiltInRegistries;
@@ -30,14 +30,14 @@
 //    @Inject(method = "post", at = @At(value = "RETURN"), remap = false)
 //    public void injectPost(RecipeManager recipeManager, Map<ResourceLocation, JsonObject> jsonMap, CallbackInfo ci) {
 //        for (RecipeType<?> recipeType : BuiltInRegistries.RECIPE_TYPE) {
-//            if (recipeType instanceof GTRecipeType gtRecipeType) {
-//                var proxyRecipes = gtRecipeType.getProxyRecipes();
+//            if (recipeType instanceof MBDRecipeType MBDRecipeType) {
+//                var proxyRecipes = MBDRecipeType.getProxyRecipes();
 //                for (Map.Entry<RecipeType<?>, List<GTRecipe>> entry : proxyRecipes.entrySet()) {
 //                    var type = entry.getKey();
 //                    var recipes = entry.getValue();
 //                    recipes.clear();
 //                    for (var recipe : ((RecipeManagerAccessor)recipeManager).getRawRecipes().get(type).entrySet()) {
-//                        recipes.add(gtRecipeType.toGTrecipe(recipe.getKey(), recipe.getValue()));
+//                        recipes.add(MBDRecipeType.toGTrecipe(recipe.getKey(), recipe.getValue()));
 //                    }
 //                }
 //            }

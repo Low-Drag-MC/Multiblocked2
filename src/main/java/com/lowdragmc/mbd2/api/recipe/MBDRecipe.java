@@ -35,25 +35,22 @@ import java.util.function.Supplier;
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
 public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Container> {
-    public final MBDRecipeType recipeType;
+    public MBDRecipeType recipeType;
     public final ResourceLocation id;
     public final Map<RecipeCapability<?>, List<Content>> inputs;
     public final Map<RecipeCapability<?>, List<Content>> outputs;
-    public final Map<RecipeCapability<?>, List<Content>> tickInputs;
-    public final Map<RecipeCapability<?>, List<Content>> tickOutputs;
     public final List<RecipeCondition> conditions;
     public CompoundTag data;
     public int duration;
     @Getter
     public boolean isFuel;
+    private Boolean hasTick;
 
-    public MBDRecipe(MBDRecipeType recipeType, ResourceLocation id, Map<RecipeCapability<?>, List<Content>> inputs, Map<RecipeCapability<?>, List<Content>> outputs, Map<RecipeCapability<?>, List<Content>> tickInputs, Map<RecipeCapability<?>, List<Content>> tickOutputs, List<RecipeCondition> conditions, CompoundTag data, int duration, boolean isFuel) {
+    public MBDRecipe(MBDRecipeType recipeType, ResourceLocation id, Map<RecipeCapability<?>, List<Content>> inputs, Map<RecipeCapability<?>, List<Content>> outputs, List<RecipeCondition> conditions, CompoundTag data, int duration, boolean isFuel) {
         this.recipeType = recipeType;
         this.id = id;
         this.inputs = inputs;
         this.outputs = outputs;
-        this.tickInputs = tickInputs;
-        this.tickOutputs = tickOutputs;
         this.conditions = conditions;
         this.data = data;
         this.duration = duration;
@@ -76,8 +73,12 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
         return copyContents;
     }
 
+    public MBDRecipe copy(ResourceLocation id) {
+        return new MBDRecipe(recipeType, id, copyContents(inputs, null), copyContents(outputs, null), conditions, data, duration, isFuel);
+    }
+
     public MBDRecipe copy() {
-        return new MBDRecipe(recipeType, id, copyContents(inputs, null), copyContents(outputs, null), copyContents(tickInputs, null), copyContents(tickOutputs, null), conditions, data, duration, isFuel);
+        return copy(id);
     }
 
     public MBDRecipe copy(ContentModifier modifier) {
@@ -85,7 +86,7 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
     }
 
     public MBDRecipe copy(ContentModifier modifier, boolean modifyDuration) {
-        var copied = new MBDRecipe(recipeType, id, copyContents(inputs, modifier), copyContents(outputs, modifier), copyContents(tickInputs, modifier), copyContents(tickOutputs, modifier), conditions, data, duration, isFuel);
+        var copied = new MBDRecipe(recipeType, id, copyContents(inputs, modifier), copyContents(outputs, modifier), conditions, data, duration, isFuel);
         if (modifyDuration) {
             copied.duration = modifier.apply(this.duration).intValue();
         }
@@ -139,19 +140,11 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
         return outputs.getOrDefault(capability, Collections.emptyList());
     }
 
-    public List<Content> getTickInputContents(RecipeCapability<?> capability) {
-        return tickInputs.getOrDefault(capability, Collections.emptyList());
-    }
-
-    public List<Content> getTickOutputContents(RecipeCapability<?> capability) {
-        return tickOutputs.getOrDefault(capability, Collections.emptyList());
-    }
-
     public ActionResult matchRecipe(IRecipeCapabilityHolder holder) {
         if (!holder.hasProxies()) return ActionResult.FAIL_NO_REASON;
-        var result = matchRecipe(IO.IN, holder, inputs, false);
+        var result = matchRecipe(false, IO.IN, holder, inputs, false);
         if (!result.isSuccess()) return result;
-        result = matchRecipe(IO.OUT, holder, outputs, false);
+        result = matchRecipe(false, IO.OUT, holder, outputs, false);
         if (!result.isSuccess()) return result;
         return ActionResult.SUCCESS;
     }
@@ -159,22 +152,23 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
     public ActionResult matchTickRecipe(IRecipeCapabilityHolder holder) {
         if (hasTick()) {
             if (!holder.hasProxies()) return ActionResult.FAIL_NO_REASON;
-            var result = matchRecipe(IO.IN, holder, tickInputs, false);
+            var result = matchRecipe(true, IO.IN, holder, inputs, false);
             if (!result.isSuccess()) return result;
-            result = matchRecipe(IO.OUT, holder, tickOutputs, false);
+            result = matchRecipe(true, IO.OUT, holder, outputs, false);
             if (!result.isSuccess()) return result;
         }
         return ActionResult.SUCCESS;
     }
 
-    public ActionResult matchRecipe(IO io, IRecipeCapabilityHolder holder, Map<RecipeCapability<?>, List<Content>> contents, boolean calculateExpectingRate) {
+    public ActionResult matchRecipe(boolean perTick, IO io, IRecipeCapabilityHolder holder, Map<RecipeCapability<?>, List<Content>> contents, boolean calculateExpectingRate) {
         Table<IO, RecipeCapability<?>, List<IRecipeHandler<?>>> capabilityProxies = holder.getCapabilitiesProxy();
         for (Map.Entry<RecipeCapability<?>, List<Content>> entry : contents.entrySet()) {
             Set<IRecipeHandler<?>> used = new HashSet<>();
             List content = new ArrayList<>();
             Map<String, List> contentSlot = new HashMap<>();
             for (Content cont : entry.getValue()) {
-                if (cont.slotName == null) {
+                if (cont.perTick != perTick) continue;
+                if (cont.slotName.isEmpty()) {
                     content.add(cont.content);
                 } else {
                     contentSlot.computeIfAbsent(cont.slotName, s -> new ArrayList<>()).add(cont.content);
@@ -216,15 +210,15 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
 
     public boolean handleTickRecipeIO(IO io, IRecipeCapabilityHolder holder) {
         if (!holder.hasProxies() || io == IO.BOTH) return false;
-        return handleRecipe(io, holder, io == IO.IN ? tickInputs : tickOutputs);
+        return handleRecipe(true, io, holder, io == IO.IN ? inputs : outputs);
     }
 
     public boolean handleRecipeIO(IO io, IRecipeCapabilityHolder holder) {
         if (!holder.hasProxies() || io == IO.BOTH) return false;
-        return handleRecipe(io, holder, io == IO.IN ? inputs : outputs);
+        return handleRecipe(false, io, holder, io == IO.IN ? inputs : outputs);
     }
 
-    public boolean handleRecipe(IO io, IRecipeCapabilityHolder holder, Map<RecipeCapability<?>, List<Content>> contents) {
+    public boolean handleRecipe(boolean perTick, IO io, IRecipeCapabilityHolder holder, Map<RecipeCapability<?>, List<Content>> contents) {
         Table<IO, RecipeCapability<?>, List<IRecipeHandler<?>>> capabilityProxies = holder.getCapabilitiesProxy();
         for (Map.Entry<RecipeCapability<?>, List<Content>> entry : contents.entrySet()) {
             Set<IRecipeHandler<?>> used = new HashSet<>();
@@ -233,13 +227,14 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
             List contentSearch = new ArrayList<>();
             Map<String, List> contentSlotSearch = new HashMap<>();
             for (Content cont : entry.getValue()) {
-                if (cont.slotName == null) {
+                if (cont.perTick != perTick) continue;
+                if (cont.slotName.isEmpty()) {
                     contentSearch.add(cont.content);
                 } else {
                     contentSlotSearch.computeIfAbsent(cont.slotName, s -> new ArrayList<>()).add(cont.content);
                 }
                 if (cont.chance >= 1 || MBD2.RND.nextFloat() < (cont.chance + holder.getChanceTier() * cont.tierChanceBoost)) { // chance input
-                    if (cont.slotName == null) {
+                    if (cont.slotName.isEmpty()) {
                         content.add(cont.content);
                     } else {
                         contentSlot.computeIfAbsent(cont.slotName, s -> new ArrayList<>()).add(cont.content);
@@ -334,7 +329,26 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
     }
 
     public boolean hasTick() {
-        return !tickInputs.isEmpty() || !tickOutputs.isEmpty();
+        if (hasTick == null) {
+            for (List<Content> contents : inputs.values()) {
+                for (Content content : contents) {
+                    if (content.perTick) {
+                        hasTick = true;
+                        return true;
+                    }
+                }
+            }
+            for (List<Content> contents : outputs.values()) {
+                for (Content content : contents) {
+                    if (content.perTick) {
+                        hasTick = true;
+                        return true;
+                    }
+                }
+            }
+            hasTick = false;
+        }
+        return hasTick;
     }
 
     public void preWorking(IRecipeCapabilityHolder holder) {

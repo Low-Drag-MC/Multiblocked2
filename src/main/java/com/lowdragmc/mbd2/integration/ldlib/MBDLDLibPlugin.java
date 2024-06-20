@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.editor.runtime.AnnotationDetector;
 import com.lowdragmc.lowdraglib.plugin.ILDLibPlugin;
 import com.lowdragmc.lowdraglib.plugin.LDLibPlugin;
+import com.lowdragmc.mbd2.api.pattern.predicates.SimplePredicate;
 import com.lowdragmc.mbd2.common.data.MBDSyncedFieldAccessors;
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 
@@ -13,7 +14,8 @@ import java.util.stream.Collectors;
 
 @LDLibPlugin
 public class MBDLDLibPlugin implements ILDLibPlugin {
-    public static Map<String, AnnotationDetector.Wrapper<LDLRegister, ? extends TraitDefinition>> REGISTER_TRAIT_DEFINITIONS = new HashMap<>();
+    public static final Map<String, AnnotationDetector.Wrapper<LDLRegister, ? extends TraitDefinition>> REGISTER_TRAIT_DEFINITIONS = new HashMap<>();
+    public static final Map<String, AnnotationDetector.Wrapper<LDLRegister, ? extends SimplePredicate>> REGISTER_PREDICATES = new HashMap<>();
 
     @Override
     public void onLoad() {
@@ -21,5 +23,8 @@ public class MBDLDLibPlugin implements ILDLibPlugin {
         AnnotationDetector.scanClasses(LDLRegister.class, TraitDefinition.class,
                 AnnotationDetector::checkNoArgsConstructor, AnnotationDetector::toUINoArgsBuilder, AnnotationDetector::UIWrapperSorter,
                 l -> REGISTER_TRAIT_DEFINITIONS.putAll(l.stream().collect(Collectors.toMap(w -> w.annotation().name(), w -> w))));
+        AnnotationDetector.scanClasses(LDLRegister.class, SimplePredicate.class,
+                AnnotationDetector::checkNoArgsConstructor, AnnotationDetector::toUINoArgsBuilder, AnnotationDetector::UIWrapperSorter,
+                l -> REGISTER_PREDICATES.putAll(l.stream().collect(Collectors.toMap(w -> w.annotation().name(), w -> w))));
     }
 }

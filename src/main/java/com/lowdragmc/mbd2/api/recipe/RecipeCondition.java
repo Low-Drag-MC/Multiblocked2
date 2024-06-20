@@ -1,9 +1,15 @@
 package com.lowdragmc.mbd2.api.recipe;
 
 import com.google.gson.JsonObject;
+import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
 import com.lowdragmc.mbd2.MBD2;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.Accessors;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.GsonHelper;
@@ -16,7 +22,8 @@ import javax.annotation.Nullable;
  * @date 2022/05/27
  * @implNote RecipeCondition, global conditions
  */
-public abstract class RecipeCondition {
+@Accessors(chain = true)
+public abstract class RecipeCondition implements IConfigurable {
 
     @Nullable
     public static RecipeCondition create(Class<? extends RecipeCondition> clazz) {
@@ -29,40 +36,32 @@ public abstract class RecipeCondition {
         }
     }
 
+    @Configurable(name = "config.recipe.condition.reverse", tips = "config.recipe.condition.reverse.tooltip")
+    @Setter
+    @Getter
     protected boolean isReverse;
 
     public abstract String getType();
 
     public String getTranslationKey() {
-        return "MBD2.recipe.condition." + getType();
-    }
-
-    public IGuiTexture getInValidTexture() {
-        return new ResourceTexture("MBD2:textures/gui/condition/" + getType() + ".png").getSubTexture(0, 0, 1, 0.5f);
-    }
-
-    public IGuiTexture getValidTexture() {
-        return new ResourceTexture("MBD2:textures/gui/condition/" + getType() + ".png").getSubTexture(0, 0.5f, 1, 0.5f);
-    }
-
-    public boolean isReverse() {
-        return isReverse;
+        return "recipe.condition." + getType();
     }
 
     public boolean isOr() {
         return true;
     }
 
-    public RecipeCondition setReverse(boolean reverse) {
-        isReverse = reverse;
-        return this;
-    }
-
     public abstract Component getTooltips();
 
     public abstract boolean test(@Nonnull MBDRecipe recipe, @Nonnull RecipeLogic recipeLogic);
 
-    public abstract RecipeCondition createTemplate();
+    public IGuiTexture getIcon() {
+        return new ResourceTexture("mbd2:textures/gui/condition/" + getType() + ".png");
+    }
+
+    public RecipeCondition copy() {
+        return create(getClass()).deserialize(serialize());
+    }
 
     @Nonnull
     public JsonObject serialize() {
@@ -87,4 +86,14 @@ public abstract class RecipeCondition {
         return this;
     }
 
+    public CompoundTag toNBT() {
+        CompoundTag tag = new CompoundTag();
+        tag.putBoolean("reverse", isReverse);
+        return tag;
+    }
+
+    public RecipeCondition fromNBT(CompoundTag tag) {
+        isReverse = tag.getBoolean("reverse");
+        return this;
+    }
 }

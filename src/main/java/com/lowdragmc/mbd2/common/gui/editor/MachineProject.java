@@ -12,9 +12,9 @@ import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.lowdraglib.gui.widget.custom.PlayerInventoryWidget;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.mbd2.MBD2;
-import com.lowdragmc.mbd2.common.gui.editor.step.MachineConfigPanel;
-import com.lowdragmc.mbd2.common.gui.editor.step.MachineTraitPanel;
-import com.lowdragmc.mbd2.common.gui.editor.step.MachineUIPanel;
+import com.lowdragmc.mbd2.common.gui.editor.machine.MachineConfigPanel;
+import com.lowdragmc.mbd2.common.gui.editor.machine.MachineTraitPanel;
+import com.lowdragmc.mbd2.common.gui.editor.machine.MachineUIPanel;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigBlockProperties;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigItemProperties;
@@ -36,8 +36,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Getter
-@LDLRegister(name = "mproj", group = "editor.machine")
-@NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
+@LDLRegister(name = "sm", group = "editor.machine")
+@NoArgsConstructor
 public class MachineProject implements IProject {
     protected Resources resources;
     protected MBDMachineDefinition definition;
@@ -57,7 +57,6 @@ public class MachineProject implements IProject {
         resources.put(EntriesResource.RESOURCE_NAME, entries);
         // renderer
         var renderer = new IRendererResource();
-        renderer.buildDefault();
         resources.put(IRendererResource.RESOURCE_NAME, renderer);
         // texture
         var texture = new TexturesResource();
@@ -98,12 +97,24 @@ public class MachineProject implements IProject {
         return new MachineProject(new Resources(createResources()), createDefinition(), createDefaultUI());
     }
 
+    @Override
+    public File getProjectWorkSpace(Editor editor) {
+        return new File(editor.getWorkSpace(), "machine");
+    }
+
     public CompoundTag serializeNBT() {
         var tag = new CompoundTag();
         tag.put("resources", resources.serializeNBT());
         tag.put("definition", definition.serializeNBT());
         tag.put("ui", IConfigurableWidget.serializeNBT(this.ui, resources, true));
         return tag;
+    }
+
+    @Override
+    public Resources loadResources(CompoundTag tag) {
+        var resources = new Resources(createResources());
+        resources.deserializeNBT(tag);
+        return resources;
     }
 
     public void deserializeNBT(CompoundTag tag) {
@@ -134,19 +145,14 @@ public class MachineProject implements IProject {
         return null;
     }
 
-    // run-time
-    private MachineConfigPanel machineConfigPanel;
-    private MachineTraitPanel machineTraitPanel;
-    private MachineUIPanel machineUIPanel;
-
     @Override
     public void onLoad(Editor editor) {
         if (editor instanceof MachineEditor machineEditor) {
             IProject.super.onLoad(editor);
             var tabContainer = machineEditor.getTabPages();
-            machineConfigPanel = new MachineConfigPanel(machineEditor);
-            machineTraitPanel = new MachineTraitPanel(machineEditor);
-            machineUIPanel = new MachineUIPanel(machineEditor);
+            var machineConfigPanel = new MachineConfigPanel(machineEditor);
+            var machineTraitPanel = new MachineTraitPanel(machineEditor);
+            var machineUIPanel = new MachineUIPanel(machineEditor);
             tabContainer.addTab("editor.machine.basic_settings", machineConfigPanel, machineConfigPanel::onPanelSelected);
             tabContainer.addTab("editor.machine.machine_traits", machineTraitPanel, machineTraitPanel::onPanelSelected, machineTraitPanel::onPanelDeselected);
             tabContainer.addTab("editor.machine.machine_ui", machineUIPanel, machineUIPanel::onPanelSelected, machineUIPanel::onPanelDeselected);
@@ -155,8 +161,7 @@ public class MachineProject implements IProject {
 
     @Override
     public void onClosed(Editor editor) {
-        if (machineUIPanel != null && editor instanceof MachineEditor machineEditor) {
-            machineEditor.getFloatView().removeWidget(machineUIPanel.getFloatView());
-        }
+
+        editor.getFloatView().clearAllWidgets();
     }
 }

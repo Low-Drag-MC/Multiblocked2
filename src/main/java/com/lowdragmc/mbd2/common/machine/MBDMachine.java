@@ -2,6 +2,9 @@ package com.lowdragmc.mbd2.common.machine;
 
 import com.google.common.collect.Table;
 import com.google.common.collect.Tables;
+import com.lowdragmc.lowdraglib.LDLib;
+import com.lowdragmc.lowdraglib.gui.modular.IUIHolder;
+import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
 import com.lowdragmc.lowdraglib.syncdata.IEnhancedManaged;
 import com.lowdragmc.lowdraglib.syncdata.IManaged;
 import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced;
@@ -18,6 +21,7 @@ import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
+import com.lowdragmc.mbd2.common.gui.factory.MachineUIFactory;
 import com.lowdragmc.mbd2.common.trait.ICapabilityProviderTrait;
 import com.lowdragmc.mbd2.common.trait.ITrait;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
@@ -26,14 +30,19 @@ import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.api.distmarker.Dist;
@@ -48,7 +57,7 @@ import javax.annotation.Nonnull;
 import java.util.*;
 
 @Getter
-public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvider {
+public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvider, IUIHolder {
     protected static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(MBDMachine.class);
 
     @Override
@@ -190,7 +199,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
     @NotNull
     @Override
     public MBDRecipeType getRecipeType() {
-        return definition.machineSettings().recipeType();
+        return definition.machineSettings().getRecipeType();
     }
 
     @Override
@@ -302,5 +311,46 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
      */
     public void onDrops(Entity entity, List<ItemStack> drops) {
 
+    }
+
+    /**
+     * Should open UI.
+     */
+    public boolean shouldOpenUI(InteractionHand hand, BlockHitResult hit) {
+        return getDefinition().machineSettings().hasUI();
+    }
+
+    /**
+     * Try to open UI.
+     */
+    public InteractionResult openUI(Player player) {
+        if (player instanceof ServerPlayer serverPlayer) {
+            MachineUIFactory.INSTANCE.openUI(this, serverPlayer);
+        }
+        return InteractionResult.sidedSuccess(player.level().isClientSide);
+    }
+
+    /**
+     * Create Modular UI.
+     */
+    public ModularUI createUI(Player entityPlayer) {
+        var ui = getDefinition().uiCreator().apply(this);
+        return new ModularUI(ui, this, entityPlayer);
+    }
+
+    @Override
+    public boolean isInvalid() {
+        return isInValid();
+    }
+
+    @Override
+    public boolean isRemote() {
+        var level = getLevel();
+        return level == null ? LDLib.isRemote() : level.isClientSide;
+    }
+
+    @Override
+    public void markAsDirty() {
+        this.markDirty();
     }
 }

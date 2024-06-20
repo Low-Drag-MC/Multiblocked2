@@ -1,7 +1,7 @@
 package com.lowdragmc.mbd2.common.trait;
 
 
-import com.lowdragmc.mbd2.common.gui.editor.step.MachineTraitPanel;
+import com.lowdragmc.mbd2.common.gui.editor.machine.MachineTraitPanel;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 
 /**

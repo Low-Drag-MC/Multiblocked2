@@ -102,6 +102,10 @@ public class RecipeLogic implements IEnhancedManaged {
         return duration == 0 ? 0.0 : progress / (duration * 1.0);
     }
 
+    public double getFuelProgressPercent() {
+        return fuelMaxTime == 0 ? 0.0 : fuelTime / (fuelMaxTime * 1.0);
+    }
+
     public boolean needFuel() {
         if (machine.getRecipeType().isRequireFuelForWorking()){
             return true;

@@ -3,16 +3,23 @@ package com.lowdragmc.mbd2.common.machine.definition;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurableWidget;
+import com.lowdragmc.lowdraglib.gui.widget.ProgressWidget;
+import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
+import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.block.RotationState;
 import com.lowdragmc.mbd2.client.renderer.MBDBESRenderer;
 import com.lowdragmc.mbd2.client.renderer.MBDBlockRenderer;
 import com.lowdragmc.mbd2.client.renderer.MBDItemRenderer;
 import com.lowdragmc.mbd2.common.block.MBDMachineBlock;
 import com.lowdragmc.mbd2.common.blockentity.MachineBlockEntity;
+import com.lowdragmc.mbd2.common.gui.editor.MachineProject;
 import com.lowdragmc.mbd2.common.item.MBDMachineItem;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.machine.definition.config.*;
+import com.lowdragmc.mbd2.common.trait.ITraitUIProvider;
+import com.lowdragmc.mbd2.utils.WidgetUtils;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.experimental.Accessors;
@@ -30,8 +37,8 @@ import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegisterEvent;
 
-import javax.annotation.Nullable;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * Machine definition.
@@ -51,11 +58,13 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
     @Configurable(name = "config.definition.machine_settings", subConfigurable = true, tips = "config.definition.machine_settings.tooltip", collapse = false)
     protected final ConfigMachineSettings machineSettings;
 
+    // runtime
     private MBDMachineBlock block;
     private MBDMachineItem item;
     private BlockEntityType<MachineBlockEntity> blockEntityType;
     private IRenderer blockRenderer;
     private IRenderer itemRenderer;
+    private Function<MBDMachine, WidgetGroup> uiCreator;
 
     @Builder
     protected MBDMachineDefinition(ResourceLocation id,
@@ -70,23 +79,22 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
         this.machineSettings = machineSettings == null ? ConfigMachineSettings.builder().build() : machineSettings;
     }
 
+    public static MBDMachineDefinition createDefault() {
+        return new MBDMachineDefinition(
+                MBD2.id("dummy"),
+                StateMachine.createDefault(),
+                ConfigBlockProperties.builder().build(),
+                ConfigItemProperties.builder().build(),
+                ConfigMachineSettings.builder().build());
+    }
+
     /**
      * return null if the machine definition is invalid.
      */
-    @Nullable
     public static MBDMachineDefinition fromTag(CompoundTag tag) {
-        try {
-            var definition = new MBDMachineDefinition(
-                    new ResourceLocation(tag.getString("id")),
-                    StateMachine.createDefault(),
-                    ConfigBlockProperties.builder().build(),
-                    ConfigItemProperties.builder().build(),
-                    ConfigMachineSettings.builder().build());
-            definition.deserializeNBT(tag);
-            return definition;
-        } catch (Exception e) {
-            return null;
-        }
+        var definition = createDefault();
+        definition.deserializeNBT(tag);
+        return definition;
     }
 
     @Override
@@ -100,6 +108,39 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
     public void deserializeNBT(CompoundTag tag) {
         IPersistedSerializable.super.deserializeNBT(tag);
         stateMachine.deserializeNBT(tag.getCompound("stateMachine"));
+    }
+
+    /**
+     * Called when the mod is loaded completed. To make sure all resources are available.
+     * <br/>
+     * e.g. items, blocks and other registries are ready.
+     */
+    public void postLoading(CompoundTag tag) {
+        if (machineSettings.hasUI()) {
+            var proj = new MachineProject();
+            var resources = proj.loadResources(tag.getCompound("resources"));
+            var uiTag = tag.getCompound("ui");
+            uiCreator = machine -> {
+                var machineUI = new WidgetGroup();
+                IConfigurableWidget.deserializeNBT(machineUI, uiTag, resources, false);
+                bindMachineUI(machine, machineUI);
+                return machineUI;
+            };
+        }
+    }
+
+    protected void bindMachineUI(MBDMachine machine, WidgetGroup ui) {
+        WidgetUtils.widgetByIdForEach(ui, "ui:progress_bar", ProgressWidget.class,
+                progressWidget -> progressWidget.setProgressSupplier(() -> machine.getRecipeLogic().getProgressPercent()));
+        WidgetUtils.widgetByIdForEach(ui, "ui:fuel_bar", ProgressWidget.class,
+                progressWidget -> progressWidget.setProgressSupplier(() -> machine.getRecipeLogic().getFuelProgressPercent()));
+        for (var traitDefinition : machineSettings.traitDefinitions()) {
+            if (traitDefinition instanceof ITraitUIProvider provider) {
+                var trait = machine.getTraitByDefinition(traitDefinition);
+                if (trait != null)
+                    provider.initTraitUI(trait, ui);
+            }
+        }
     }
 
     public void onRegistry(RegisterEvent event) {
@@ -137,6 +178,4 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
      */
     public void appendHoverText(ItemStack stack, List<Component> tooltip) {
     }
-
-
 }

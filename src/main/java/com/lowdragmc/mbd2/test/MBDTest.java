@@ -12,9 +12,11 @@ import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleInteger;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleShape;
 import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 public class MBDTest {
+
     @SubscribeEvent
     public void onRegisterMachine(MBDRegistryEvent.Machine event) {
 //        var renderer = new IModelRenderer(MBD2.id("block/pedestal"));
@@ -33,6 +35,7 @@ public class MBDTest {
 
     @SubscribeEvent
     public void onRegisterRecipeType(MBDRegistryEvent.MBDRecipeType event) {
+        System.out.println("Registering recipe type");
     }
 
 }

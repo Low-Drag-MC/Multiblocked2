@@ -1,8 +1,8 @@
-package com.lowdragmc.mbd2.common.gui.editor.step;
+package com.lowdragmc.mbd2.common.gui.editor.machine;
 
 import com.lowdragmc.lowdraglib.gui.editor.Icons;
 import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
-import com.lowdragmc.mbd2.common.gui.editor.widget.TraitList;
+import com.lowdragmc.mbd2.common.gui.editor.machine.widget.TraitList;
 
 public class MachineTraitPanel extends MachineScenePanel {
 
@@ -14,7 +14,7 @@ public class MachineTraitPanel extends MachineScenePanel {
      * Called when the panel is selected/switched to.
      */
     public void onPanelSelected() {
-        editor.getConfigPanel().clearAllConfigurators(MachineEditor.BASIC);
+        editor.getConfigPanel().clearAllConfigurators();
         editor.getToolPanel().clearAllWidgets();
         editor.getToolPanel().setTitle("editor.machine.machine_traits");
         editor.getToolPanel().addNewToolBox("editor.machine.machine_traits.list", Icons.WIDGET_CUSTOM, size -> new TraitList(editor, size));
@@ -32,6 +32,6 @@ public class MachineTraitPanel extends MachineScenePanel {
         editor.getToolPanel().setTitle("ldlib.gui.editor.group.tool_box");
         editor.getToolPanel().hide();
         editor.getToolPanel().clearAllWidgets();
-        editor.getConfigPanel().clearAllConfigurators(MachineEditor.BASIC);
+        editor.getConfigPanel().clearAllConfigurators();
     }
 }

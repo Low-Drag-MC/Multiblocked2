@@ -4,6 +4,7 @@ import com.lowdragmc.mbd2.api.machine.IMultiPart;
 import com.lowdragmc.mbd2.api.pattern.BlockPattern;
 import com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine;
 import com.lowdragmc.mbd2.common.machine.definition.config.*;
+import lombok.experimental.SuperBuilder;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.List;
@@ -13,6 +14,7 @@ import java.util.List;
  * <br>
  * This is used to define a mbd machine's {@link MBDMultiblockMachine#getDefinition()} behaviours.
  */
+@SuperBuilder
 public class MultiblockMachineDefinition extends MBDMachineDefinition {
 
     protected MultiblockMachineDefinition(ResourceLocation id,

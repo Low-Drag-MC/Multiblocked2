@@ -3,6 +3,7 @@ package com.lowdragmc.mbd2.api.pattern;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.pattern.predicates.SimplePredicate;
 import com.lowdragmc.lowdraglib.utils.BlockInfo;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
@@ -59,16 +60,10 @@ public class TraceabilityPredicate {
             List<Component> tooltips = Arrays.stream(tips).toList();
             common.forEach(predicate -> {
                 if (predicate.candidates == null) return;
-                if (predicate.toolTips == null) {
-                    predicate.toolTips = new ArrayList<>();
-                }
                 predicate.toolTips.addAll(tooltips);
             });
             limited.forEach(predicate -> {
                 if (predicate.candidates == null) return;
-                if (predicate.toolTips == null) {
-                    predicate.toolTips = new ArrayList<>();
-                }
                 predicate.toolTips.addAll(tooltips);
             });
         }
@@ -174,9 +169,9 @@ public class TraceabilityPredicate {
         return this;
     }
 
-    public TraceabilityPredicate setNBTParser(String nbtParser) {
-        common.forEach(predicate -> predicate.nbtParser = nbtParser);
-        limited.forEach(predicate -> predicate.nbtParser = nbtParser);
+    public TraceabilityPredicate setNBT(CompoundTag nbt) {
+        common.forEach(predicate -> predicate.nbt = nbt);
+        limited.forEach(predicate -> predicate.nbt = nbt);
         return this;
     }
 

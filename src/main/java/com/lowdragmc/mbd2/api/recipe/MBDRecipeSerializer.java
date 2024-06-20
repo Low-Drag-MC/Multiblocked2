@@ -9,6 +9,8 @@ import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.GsonHelper;
@@ -55,9 +57,7 @@ public class MBDRecipeSerializer implements RecipeSerializer<MBDRecipe> {
         if (json.has("data"))
             data = CraftingHelper.getNBT(json.get("data"));
         Map<RecipeCapability<?>, List<Content>> inputs = capabilitiesFromJson(json.has("inputs") ? json.getAsJsonObject("inputs") : new JsonObject());
-        Map<RecipeCapability<?>, List<Content>> tickInputs = capabilitiesFromJson(json.has("tickInputs") ? json.getAsJsonObject("tickInputs") : new JsonObject());
         Map<RecipeCapability<?>, List<Content>> outputs = capabilitiesFromJson(json.has("outputs") ? json.getAsJsonObject("outputs") : new JsonObject());
-        Map<RecipeCapability<?>, List<Content>> tickOutputs = capabilitiesFromJson(json.has("tickOutputs") ? json.getAsJsonObject("tickOutputs") : new JsonObject());
         List<RecipeCondition> conditions = new ArrayList<>();
         JsonArray conditionsJson = json.has("recipeConditions") ? json.getAsJsonArray("recipeConditions") : new JsonArray();
         for (JsonElement jsonElement : conditionsJson) {
@@ -73,7 +73,7 @@ public class MBDRecipeSerializer implements RecipeSerializer<MBDRecipe> {
             }
         }
         boolean isFuel = GsonHelper.getAsBoolean(json, "isFuel", false);
-        return new MBDRecipe((MBDRecipeType) BuiltInRegistries.RECIPE_TYPE.get(new ResourceLocation(recipeType)), id, inputs, outputs, tickInputs, tickOutputs, conditions, data, duration, isFuel);
+        return new MBDRecipe((MBDRecipeType) BuiltInRegistries.RECIPE_TYPE.get(new ResourceLocation(recipeType)), id, inputs, outputs, conditions, data, duration, isFuel);
     }
 
     public JsonObject capabilitiesToJson(Map<RecipeCapability<?>, List<Content>> contents) {
@@ -97,8 +97,6 @@ public class MBDRecipeSerializer implements RecipeSerializer<MBDRecipe> {
         }
         json.add("inputs", capabilitiesToJson(recipe.inputs));
         json.add("outputs", capabilitiesToJson(recipe.outputs));
-        json.add("tickInputs", capabilitiesToJson(recipe.tickInputs));
-        json.add("tickOutputs", capabilitiesToJson(recipe.tickOutputs));
         if (!recipe.conditions.isEmpty()) {
             JsonArray array = new JsonArray();
             for (RecipeCondition condition : recipe.conditions) {
@@ -150,13 +148,11 @@ public class MBDRecipeSerializer implements RecipeSerializer<MBDRecipe> {
         String recipeType = buf.readUtf();
         int duration = buf.readVarInt();
         Map<RecipeCapability<?>, List<Content>> inputs = tuplesToMap(buf.readCollection(c -> new ArrayList<>(), MBDRecipeSerializer::entryReader));
-        Map<RecipeCapability<?>, List<Content>> tickInputs = tuplesToMap(buf.readCollection(c -> new ArrayList<>(), MBDRecipeSerializer::entryReader));
         Map<RecipeCapability<?>, List<Content>> outputs = tuplesToMap(buf.readCollection(c -> new ArrayList<>(), MBDRecipeSerializer::entryReader));
-        Map<RecipeCapability<?>, List<Content>> tickOutputs = tuplesToMap(buf.readCollection(c -> new ArrayList<>(), MBDRecipeSerializer::entryReader));
         List<RecipeCondition> conditions = buf.readCollection(c -> new ArrayList<>(), MBDRecipeSerializer::conditionReader);
         CompoundTag data = buf.readNbt();
         boolean isFuel = buf.readBoolean();
-        return new MBDRecipe((MBDRecipeType) BuiltInRegistries.RECIPE_TYPE.get(new ResourceLocation(recipeType)), id, inputs, outputs, tickInputs, tickOutputs, conditions, data, duration, isFuel);
+        return new MBDRecipe((MBDRecipeType) BuiltInRegistries.RECIPE_TYPE.get(new ResourceLocation(recipeType)), id, inputs, outputs, conditions, data, duration, isFuel);
     }
 
     @Override
@@ -164,12 +160,73 @@ public class MBDRecipeSerializer implements RecipeSerializer<MBDRecipe> {
         buf.writeUtf(recipe.recipeType == null ? "dummy" : recipe.recipeType.toString());
         buf.writeVarInt(recipe.duration);
         buf.writeCollection(recipe.inputs.entrySet(), MBDRecipeSerializer::entryWriter);
-        buf.writeCollection(recipe.tickInputs.entrySet(), MBDRecipeSerializer::entryWriter);
         buf.writeCollection(recipe.outputs.entrySet(), MBDRecipeSerializer::entryWriter);
-        buf.writeCollection(recipe.tickOutputs.entrySet(), MBDRecipeSerializer::entryWriter);
         buf.writeCollection(recipe.conditions, MBDRecipeSerializer::conditionWriter);
         buf.writeNbt(recipe.data);
         buf.writeBoolean(recipe.isFuel);
     }
 
+    public Map<RecipeCapability<?>, List<Content>> capabilitiesFromNBT(CompoundTag nbt) {
+        Map<RecipeCapability<?>, List<Content>> capabilities = new HashMap<>();
+        for (String key : nbt.getAllKeys()) {
+            List<Content> contents = new ArrayList<>();
+            RecipeCapability<?> capability = MBDRegistries.RECIPE_CAPABILITIES.get(key);
+            if (capability != null) {
+                for (var tag : nbt.getList(key, Tag.TAG_COMPOUND)) {
+                    contents.add(capability.serializer.fromNBT((CompoundTag) tag));
+                }
+                capabilities.put(capability, contents);
+            }
+        }
+        return capabilities;
+    }
+
+    public MBDRecipe fromNBT(@NotNull ResourceLocation id, @NotNull CompoundTag nbt) {
+        String recipeType = nbt.getString("type");
+        int duration = nbt.getInt("duration");
+        Map<RecipeCapability<?>, List<Content>> inputs = capabilitiesFromNBT(nbt.getCompound("inputs"));
+        Map<RecipeCapability<?>, List<Content>> outputs = capabilitiesFromNBT(nbt.getCompound("outputs"));
+        List<RecipeCondition> conditions = new ArrayList<>();
+        for (var tag : nbt.getList("recipeConditions", Tag.TAG_COMPOUND)) {
+            CompoundTag conditionTag = (CompoundTag) tag;
+            RecipeCondition condition = RecipeCondition.create(MBDRegistries.RECIPE_CONDITIONS.get(conditionTag.getString("type")));
+            if (condition != null) {
+                conditions.add(condition.fromNBT(conditionTag.getCompound("data")));
+            }
+        }
+        CompoundTag data = nbt.getCompound("data");
+        boolean isFuel = nbt.getBoolean("isFuel");
+        return new MBDRecipe((MBDRecipeType) BuiltInRegistries.RECIPE_TYPE.get(new ResourceLocation(recipeType)), id, inputs, outputs, conditions, data, duration, isFuel);
+    }
+
+    public CompoundTag capabilitiesToNBT(Map<RecipeCapability<?>, List<Content>> contents) {
+        CompoundTag tag = new CompoundTag();
+        contents.forEach((cap, list) -> {
+            ListTag contentsTag = new ListTag();
+            for (Content content : list) {
+                contentsTag.add(cap.serializer.toNBT(content));
+            }
+            tag.put(cap.name, contentsTag);
+        });
+        return tag;
+    }
+
+    public CompoundTag toNBT(@NotNull MBDRecipe recipe) {
+        CompoundTag nbt = new CompoundTag();
+        nbt.putString("type", recipe.recipeType.toString());
+        nbt.putInt("duration", recipe.duration);
+        nbt.put("inputs", capabilitiesToNBT(recipe.inputs));
+        nbt.put("outputs", capabilitiesToNBT(recipe.outputs));
+        ListTag conditions = new ListTag();
+        for (RecipeCondition condition : recipe.conditions) {
+            CompoundTag conditionTag = new CompoundTag();
+            conditionTag.putString("type", MBDRegistries.RECIPE_CONDITIONS.getKey(condition.getClass()));
+            conditionTag.put("data", condition.toNBT());
+            conditions.add(conditionTag);
+        }
+        nbt.put("recipeConditions", conditions);
+        nbt.put("data", recipe.data);
+        nbt.putBoolean("isFuel", recipe.isFuel);
+        return nbt;
+    }
 }

@@ -1,5 +1,9 @@
 package com.lowdragmc.mbd2.api.pattern.predicates;
 
+import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib.syncdata.IAutoPersistedSerializable;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.pattern.MultiblockState;
 import com.lowdragmc.mbd2.api.pattern.TraceabilityPredicate;
@@ -7,6 +11,7 @@ import com.lowdragmc.mbd2.api.pattern.error.PatternStringError;
 import com.lowdragmc.mbd2.api.pattern.error.SinglePredicateError;
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.utils.BlockInfo;
+import com.lowdragmc.mbd2.integration.ldlib.MBDLDLibPlugin;
 import it.unimi.dsi.fastutil.longs.Long2ObjectArrayMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.client.Minecraft;
@@ -23,46 +28,80 @@ import javax.annotation.Nullable;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class SimplePredicate {
-    public static SimplePredicate ANY = new SimplePredicate("any", x -> true, null);
-    public static SimplePredicate AIR = new SimplePredicate("air", blockWorldState -> blockWorldState.getWorld().isEmptyBlock(blockWorldState.getPos()), null);
+public class SimplePredicate implements IAutoPersistedSerializable, IConfigurable {
+    public static SimplePredicate ANY = new SimplePredicate(x -> true, null);
+    public static SimplePredicate AIR = new SimplePredicate(blockWorldState -> blockWorldState.getWorld().isEmptyBlock(blockWorldState.getPos()), null);
     @Nullable
     public Supplier<BlockInfo[]> candidates;
     public Predicate<MultiblockState> predicate;
-    public List<Component> toolTips;
+    @Configurable(name = "config.block_pattern.predicate.tooltips", tips = "config.block_pattern.predicate.tooltips.tooltip")
+    public final List<Component> toolTips = new ArrayList<>();
+    @Configurable(name = "config.block_pattern.predicate.minCount", tips = { "config.block_pattern.predicate.minCount.tooltip.0", "config.block_pattern.predicate.minCount.tooltip.1" })
+    @NumberRange(range = {-1, Integer.MAX_VALUE})
     public int minCount = -1;
+    @Configurable(name = "config.block_pattern.predicate.maxCount", tips = { "config.block_pattern.predicate.maxCount.tooltip.0", "config.block_pattern.predicate.maxCount.tooltip.1" })
+    @NumberRange(range = {-1, Integer.MAX_VALUE})
     public int maxCount = -1;
+    @Configurable(name = "config.block_pattern.predicate.minLayerCount", tips = { "config.block_pattern.predicate.minLayerCount.tooltip.0", "config.block_pattern.predicate.minLayerCount.tooltip.1" })
+    @NumberRange(range = {-1, Integer.MAX_VALUE})
     public int minLayerCount = -1;
+    @Configurable(name = "config.block_pattern.predicate.maxLayerCount", tips = { "config.block_pattern.predicate.maxLayerCount.tooltip.0", "config.block_pattern.predicate.maxLayerCount.tooltip.1" })
+    @NumberRange(range = {-1, Integer.MAX_VALUE})
     public int maxLayerCount = -1;
+    @Configurable(name = "config.block_pattern.predicate.previewCount", tips = { "config.block_pattern.predicate.previewCount.tooltip.0", "config.block_pattern.predicate.previewCount.tooltip.1" })
+    @NumberRange(range = {-1, Integer.MAX_VALUE})
     public int previewCount = -1;
+    @Configurable(name = "config.block_pattern.predicate.disableRenderFormed", tips = "config.block_pattern.predicate.disableRenderFormed.tooltip")
     public boolean disableRenderFormed = false;
+    @Configurable(name = "config.block_pattern.io", tips = "config.block_pattern.predicate.io.tooltip")
     public IO io = IO.BOTH;
+    @Configurable(name = "config.block_pattern.slotName", tips = "config.block_pattern.predicate.slotName.tooltip")
     public String slotName;
-    public String nbtParser;
+    @Configurable(name = "config.block_pattern.nbt", tips = "config.block_pattern.predicate.nbt.tooltip")
+    public CompoundTag nbt = new CompoundTag();
 
-    public final String type;
-
-    public SimplePredicate() {
-        this("unknown");
-    }
-    
-    public SimplePredicate(String type) {
-        this.type = type;
+    protected SimplePredicate() {
+        this(x -> true, null);
     }
 
     public SimplePredicate(Predicate<MultiblockState> predicate, @Nullable Supplier<BlockInfo[]> candidates) {
-        this();
         this.predicate = predicate;
         this.candidates = candidates;
     }
 
-    public SimplePredicate(String type, Predicate<MultiblockState> predicate, @Nullable Supplier<BlockInfo[]> candidates) {
-        this(type);
-        this.predicate = predicate;
-        this.candidates = candidates;
+
+    public static CompoundTag serializeWrapper(SimplePredicate predicate) {
+        if (predicate == AIR) {
+            var tag = new CompoundTag();
+            tag.putString("_type", "air");
+            return tag;
+        }
+        if (predicate == ANY) {
+            var tag = new CompoundTag();
+            tag.putString("_type", "any");
+            return tag;
+        }
+        return predicate.serializeNBT();
+    }
+
+    public static SimplePredicate deserializeWrapper(CompoundTag tag) {
+        var type = tag.getString("_type");
+        if (type.equals("air")) {
+            return AIR;
+        }
+        if (type.equals("any")) {
+            return ANY;
+        }
+        var wrapper = MBDLDLibPlugin.REGISTER_PREDICATES.get(type);
+        if (wrapper != null) {
+            var renderer = wrapper.creator().get();
+            renderer.deserializeNBT(tag);
+            renderer.buildPredicate();
+            return renderer;
+        }
+        return null;
     }
 
     public SimplePredicate buildPredicate() {
@@ -72,7 +111,7 @@ public class SimplePredicate {
     @OnlyIn(Dist.CLIENT)
     public List<Component> getToolTips(TraceabilityPredicate predicates) {
         List<Component> result = new ArrayList<>();
-        if (toolTips != null) {
+        if (toolTips != null && !toolTips.isEmpty()) {
             result.addAll(toolTips);
         }
         if (minCount == maxCount && maxCount != -1) {
@@ -122,18 +161,19 @@ public class SimplePredicate {
                 blockWorldState.io = null;
             }
         }
-        if (nbtParser != null && !blockWorldState.world.isClientSide) {
+        if (!nbt.isEmpty() && !blockWorldState.world.isClientSide) {
             BlockEntity te = blockWorldState.getTileEntity();
             if (te != null) {
-                CompoundTag nbt = te.saveWithFullMetadata();
-                if (Pattern.compile(nbtParser).matcher(nbt.toString()).find()) {
+                var tag = te.saveWithFullMetadata();
+                var merged = tag.copy().merge(nbt);
+                if (tag.equals(merged)) {
                     return true;
                 }
             }
             blockWorldState.setError(new PatternStringError("The NBT fails to match"));
             return false;
         }
-        if (slotName != null) {
+        if (slotName != null && !slotName.isEmpty()) {
             Map<Long, Set<String>> slots = blockWorldState.getMatchContext().getOrCreate("slots", Long2ObjectArrayMap::new);
             slots.computeIfAbsent(blockWorldState.getPos().asLong(), s->new HashSet<>()).add(slotName);
             return true;

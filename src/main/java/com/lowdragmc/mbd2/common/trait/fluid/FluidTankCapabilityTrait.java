@@ -2,6 +2,7 @@ package com.lowdragmc.mbd2.common.trait.fluid;
 
 import com.lowdragmc.lowdraglib.misc.FluidStorage;
 import com.lowdragmc.lowdraglib.side.fluid.FluidStack;
+import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
@@ -25,6 +26,7 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait<IFluidHandle
     public ManagedFieldHolder getFieldHolder() { return MANAGED_FIELD_HOLDER; }
 
     @Persisted
+    @DescSynced
     public final FluidStorage[] storages;
     @Setter
     protected boolean allowSameFluids; // Can different tanks be filled with the same fluid. It should be determined while creating tanks.

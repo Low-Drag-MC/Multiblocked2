@@ -8,10 +8,14 @@
   ],
   "mixins": [
     "ChunkMixin",
+    "IngredientAccessor",
+    "ItemValueAccessor",
     "LevelMixin",
     "RecipeManagerAccessor",
     "RecipeManagerMixin",
-    "ServerChunkProviderMixin"
+    "ServerChunkProviderMixin",
+    "StrictNBTIngredientAccessor",
+    "TagValueAccessor"
   ],
   "injectors": {
     "defaultRequire": 1,

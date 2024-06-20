@@ -26,7 +26,7 @@ public class SizedIngredient extends Ingredient {
     @Getter
     protected final int amount;
     @Getter
-    protected final Ingredient inner;
+    protected Ingredient inner;
     protected ItemStack[] itemStacks = null;
 
     protected SizedIngredient(Ingredient inner, int amount) {
@@ -68,6 +68,11 @@ public class SizedIngredient extends Ingredient {
             return copied;
         }
         return SizedIngredient.create(ingredient);
+    }
+
+    public void updateInnerIngredient(@Nonnull Ingredient inner) {
+        this.inner = inner;
+        this.itemStacks = null;
     }
 
     @Override

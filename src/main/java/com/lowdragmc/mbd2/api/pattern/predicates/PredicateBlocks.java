@@ -11,12 +11,7 @@ import java.util.Objects;
 public class PredicateBlocks extends SimplePredicate {
     public Block[] blocks = new Block[0];
     
-    public PredicateBlocks() {
-        super("blocks");
-    }
-    
     public PredicateBlocks(Block... blocks) {
-        this();
         this.blocks = blocks;
         buildPredicate();
     }

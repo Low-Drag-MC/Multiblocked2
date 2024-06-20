@@ -1,11 +1,14 @@
 package com.lowdragmc.mbd2.common.recipe;
 
 import com.google.gson.JsonObject;
+import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.GsonHelper;
@@ -23,7 +26,12 @@ import javax.annotation.Nonnull;
 public class RainingCondition extends RecipeCondition {
 
     public final static RainingCondition INSTANCE = new RainingCondition();
-    private float minLevel, maxLevel;
+    @Configurable(name = "config.recipe.condition.weather.min")
+    @NumberRange(range = {0f, 1f})
+    private float minLevel;
+    @Configurable(name = "config.recipe.condition.weather.max")
+    @NumberRange(range = {0f, 1f})
+    private float maxLevel;
 
     public RainingCondition(float minLevel, float maxLevel) {
         this.minLevel = minLevel;
@@ -44,11 +52,6 @@ public class RainingCondition extends RecipeCondition {
     public boolean test(@Nonnull MBDRecipe recipe, @Nonnull RecipeLogic recipeLogic) {
         Level level = recipeLogic.machine.getLevel();
         return level != null && level.getRainLevel(1) >= this.minLevel && level.getRainLevel(1) <= this.maxLevel;
-    }
-
-    @Override
-    public RecipeCondition createTemplate() {
-        return new RainingCondition();
     }
 
     @Nonnull
@@ -81,6 +84,22 @@ public class RainingCondition extends RecipeCondition {
         super.toNetwork(buf);
         buf.writeFloat(minLevel);
         buf.writeFloat(maxLevel);
+    }
+
+    @Override
+    public CompoundTag toNBT() {
+        var tag = super.toNBT();
+        tag.putFloat("minLevel", minLevel);
+        tag.putFloat("maxLevel", maxLevel);
+        return tag;
+    }
+
+    @Override
+    public RecipeCondition fromNBT(CompoundTag tag) {
+        super.fromNBT(tag);
+        minLevel = tag.getFloat("minLevel");
+        maxLevel = tag.getFloat("maxLevel");
+        return this;
     }
 
 }

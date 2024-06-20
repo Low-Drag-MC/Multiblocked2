@@ -1,4 +1,4 @@
-package com.lowdragmc.mbd2.common.gui.editor.step;
+package com.lowdragmc.mbd2.common.gui.editor.machine;
 
 import com.lowdragmc.lowdraglib.gui.animation.Transform;
 import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
@@ -9,7 +9,7 @@ import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.lowdraglib.utils.Size;
 import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
 import com.lowdragmc.mbd2.common.gui.editor.MachineProject;
-import com.lowdragmc.mbd2.common.gui.editor.widget.MachineStatePreview;
+import com.lowdragmc.mbd2.common.gui.editor.machine.widget.MachineStatePreview;
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
 import net.minecraft.client.gui.GuiGraphics;
 import org.jetbrains.annotations.NotNull;
@@ -52,7 +52,7 @@ public class MachineConfigPanel extends MachineScenePanel {
         var count = depthCount.get(depth);
         depthCount.set(depth, count + 1);
         var preview = new MachineStatePreview(this, state);
-        preview.setSelfPosition(new Position(50 + count * 200, 50 + depth * 200));
+        preview.setSelfPosition(new Position(50 + count * 200, 50 + depth * 120));
         preview.collapse();
         floatView.addWidget(preview);
         for (var child : state.children()) {
@@ -80,7 +80,7 @@ public class MachineConfigPanel extends MachineScenePanel {
             }
         }
         state.children().forEach(this::onStateRemoved);
-        editor.getConfigPanel().clearAllConfigurators(MachineEditor.MACHINE_STATE);
+        editor.getConfigPanel().clearAllConfigurators(MachineEditor.SECOND);
         if (previewMachine != null) {
             previewMachine.setMachineState("base");
         }
@@ -90,7 +90,7 @@ public class MachineConfigPanel extends MachineScenePanel {
      * Called when a state is selected.
      */
     public void onStateSelected(MachineState state) {
-        editor.getConfigPanel().openConfigurator(MachineEditor.MACHINE_STATE, state);
+        editor.getConfigPanel().openConfigurator(MachineEditor.SECOND, state);
         if (previewMachine != null) {
             previewMachine.setMachineState(state.name());
         }

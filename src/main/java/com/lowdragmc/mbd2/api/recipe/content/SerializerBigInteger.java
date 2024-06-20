@@ -2,6 +2,8 @@ package com.lowdragmc.mbd2.api.recipe.content;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.FriendlyByteBuf;
 
 import java.math.BigInteger;
@@ -25,6 +27,16 @@ public class SerializerBigInteger implements IContentSerializer<BigInteger>{
     @Override
     public BigInteger fromNetwork(FriendlyByteBuf buf) {
         return new BigInteger(buf.readUtf());
+    }
+
+    @Override
+    public Tag toNBT(BigInteger content) {
+        return StringTag.valueOf(content.toString());
+    }
+
+    @Override
+    public BigInteger fromNBT(Tag nbt) {
+        return new BigInteger(nbt.getAsString());
     }
 
     @Override

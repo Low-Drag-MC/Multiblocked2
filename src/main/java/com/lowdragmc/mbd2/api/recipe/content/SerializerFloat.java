@@ -2,6 +2,8 @@ package com.lowdragmc.mbd2.api.recipe.content;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
+import net.minecraft.nbt.FloatTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.FriendlyByteBuf;
 import org.apache.commons.lang3.math.NumberUtils;
 
@@ -19,6 +21,19 @@ public class SerializerFloat implements IContentSerializer<Float> {
     @Override
     public Float fromNetwork(FriendlyByteBuf buf) {
         return buf.readFloat();
+    }
+
+    @Override
+    public Tag toNBT(Float content) {
+        return FloatTag.valueOf(content);
+    }
+
+    @Override
+    public Float fromNBT(Tag nbt) {
+        if (nbt instanceof FloatTag floatTag) {
+            return floatTag.getAsFloat();
+        }
+        return 0f;
     }
 
     @Override

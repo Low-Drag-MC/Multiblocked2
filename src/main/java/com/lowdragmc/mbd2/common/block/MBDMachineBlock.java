@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.common.block;
 
+import com.lowdragmc.lowdraglib.client.model.ModelFactory;
 import com.lowdragmc.lowdraglib.client.renderer.IBlockRendererProvider;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.mbd2.api.block.RotationState;
@@ -9,6 +10,7 @@ import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.client.resources.model.ModelState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
@@ -40,6 +42,8 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -93,6 +97,12 @@ public class MBDMachineBlock extends Block implements EntityBlock, IBlockRendere
     @Override
     public IRenderer getRenderer(BlockState state) {
         return definition.blockRenderer();
+    }
+
+    @Override
+    @OnlyIn(Dist.CLIENT)
+    public ModelState getModelState(BlockAndTintGetter world, BlockPos pos, BlockState state) {
+        return ModelFactory.getRotation(getRotationState().property.map(state::getValue).orElse(Direction.NORTH));
     }
 
     public Optional<MBDMachine> getMachine(BlockGetter level, BlockPos pos) {
@@ -201,7 +211,8 @@ public class MBDMachineBlock extends Block implements EntityBlock, IBlockRendere
 
     @Override
     public InteractionResult use(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-        var machine = getMachine(world, pos);
+        var machine = getMachine(world, pos).orElse(null);
+        if (machine == null) return InteractionResult.PASS;
         ItemStack itemStack = player.getItemInHand(hand);
 
         // TODO use
@@ -222,9 +233,9 @@ public class MBDMachineBlock extends Block implements EntityBlock, IBlockRendere
 //            var result = interactedMachine.onUse(state, world, pos, player, hand, hit);
 //            if (result != InteractionResult.PASS) return result;
 //        }
-//        if (machine instanceof IUIMachine uiMachine) {
-//            return uiMachine.tryToOpenUI(player, hand, hit);
-//        }
+        if (machine.shouldOpenUI(hand, hit)) {
+            return machine.openUI(player);
+        }
         return InteractionResult.PASS;
     }
 

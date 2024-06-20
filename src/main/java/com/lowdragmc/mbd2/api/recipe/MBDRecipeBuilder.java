@@ -1,17 +1,14 @@
 package com.lowdragmc.mbd2.api.recipe;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.side.fluid.FluidStack;
-import com.lowdragmc.lowdraglib.utils.NBTToJsonConverter;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.api.recipe.ingredient.FluidIngredient;
 import com.lowdragmc.mbd2.api.recipe.ingredient.SizedIngredient;
-import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.capability.recipe.FluidRecipeCapability;
 import com.lowdragmc.mbd2.common.capability.recipe.ItemRecipeCapability;
 import com.lowdragmc.mbd2.common.recipe.*;
@@ -45,9 +42,7 @@ import java.util.function.Supplier;
 @Accessors(chain = true, fluent = true)
 public class MBDRecipeBuilder {
     public final Map<RecipeCapability<?>, List<Content>> input = new HashMap<>();
-    public final Map<RecipeCapability<?>, List<Content>> tickInput = new HashMap<>();
     public final Map<RecipeCapability<?>, List<Content>> output = new HashMap<>();
-    public final Map<RecipeCapability<?>, List<Content>> tickOutput = new HashMap<>();
     public CompoundTag data = new CompoundTag();
     public final List<RecipeCondition> conditions = new ArrayList<>();
     @Setter
@@ -81,8 +76,6 @@ public class MBDRecipeBuilder {
         this.recipeType = recipeType;
         toCopy.inputs.forEach((k, v) -> this.input.put(k, new ArrayList<>(v)));
         toCopy.outputs.forEach((k, v) -> this.output.put(k, new ArrayList<>(v)));
-        toCopy.tickInputs.forEach((k, v) -> this.tickInput.put(k, new ArrayList<>(v)));
-        toCopy.tickOutputs.forEach((k, v) -> this.tickOutput.put(k, new ArrayList<>(v)));
         this.conditions.addAll(toCopy.conditions);
         this.data = toCopy.data.copy();
         this.duration = toCopy.duration;
@@ -105,8 +98,6 @@ public class MBDRecipeBuilder {
         MBDRecipeBuilder copy = new MBDRecipeBuilder(id, this.recipeType);
         this.input.forEach((k, v) -> copy.input.put(k, new ArrayList<>(v)));
         this.output.forEach((k, v) -> copy.output.put(k, new ArrayList<>(v)));
-        this.tickInput.forEach((k, v) -> copy.tickInput.put(k, new ArrayList<>(v)));
-        this.tickOutput.forEach((k, v) -> copy.tickOutput.put(k, new ArrayList<>(v)));
         copy.conditions.addAll(this.conditions);
         copy.data = this.data.copy();
         copy.duration = this.duration;
@@ -124,30 +115,30 @@ public class MBDRecipeBuilder {
     }
 
     public <T> MBDRecipeBuilder input(RecipeCapability<T> capability, T... obj) {
-        (perTick ? tickInput : input).computeIfAbsent(capability, c -> new ArrayList<>()).addAll(Arrays.stream(obj)
+        input.computeIfAbsent(capability, c -> new ArrayList<>()).addAll(Arrays.stream(obj)
                 .map(capability::of)
-                .map(o -> new Content(o, chance, tierChanceBoost, slotName, uiName)).toList());
+                .map(o -> new Content(o, perTick, chance, tierChanceBoost, slotName, uiName)).toList());
         return this;
     }
 
     public <T> MBDRecipeBuilder output(RecipeCapability<T> capability, T... obj) {
-        (perTick ? tickOutput : output).computeIfAbsent(capability, c -> new ArrayList<>()).addAll(Arrays.stream(obj)
+        output.computeIfAbsent(capability, c -> new ArrayList<>()).addAll(Arrays.stream(obj)
                 .map(capability::of)
-                .map(o -> new Content(o, chance, tierChanceBoost, slotName, uiName)).toList());
+                .map(o -> new Content(o, perTick, chance, tierChanceBoost, slotName, uiName)).toList());
         return this;
     }
 
     public <T> MBDRecipeBuilder inputs(RecipeCapability<T> capability, Object... obj) {
-        (perTick ? tickInput : input).computeIfAbsent(capability, c -> new ArrayList<>()).addAll(Arrays.stream(obj)
+        input.computeIfAbsent(capability, c -> new ArrayList<>()).addAll(Arrays.stream(obj)
                 .map(capability::of)
-                .map(o -> new Content(o, chance, tierChanceBoost, slotName, uiName)).toList());
+                .map(o -> new Content(o, perTick, chance, tierChanceBoost, slotName, uiName)).toList());
         return this;
     }
 
     public <T> MBDRecipeBuilder outputs(RecipeCapability<T> capability, Object... obj) {
-        (perTick ? tickOutput : output).computeIfAbsent(capability, c -> new ArrayList<>()).addAll(Arrays.stream(obj)
+        output.computeIfAbsent(capability, c -> new ArrayList<>()).addAll(Arrays.stream(obj)
                 .map(capability::of)
-                .map(o -> new Content(o, chance, tierChanceBoost, slotName, uiName)).toList());
+                .map(o -> new Content(o, perTick, chance, tierChanceBoost, slotName, uiName)).toList());
         return this;
     }
 
@@ -413,12 +404,14 @@ public class MBDRecipeBuilder {
         consumer.accept(build());
     }
 
-    public void saveAsBuiltinRecipe() {
-        recipeType.builtinRecipes.add(buildRawRecipe());
+    public MBDRecipe saveAsBuiltinRecipe() {
+        MBDRecipe recipe = buildRawRecipe();
+        recipeType.builtinRecipes.put(id, recipe);
+        return recipe;
     }
 
     public MBDRecipe buildRawRecipe() {
-        return new MBDRecipe(recipeType, id, input, output, tickInput, tickOutput, conditions, data, duration, isFuel);
+        return new MBDRecipe(recipeType, id, input, output, conditions, data, duration, isFuel);
     }
 
 }

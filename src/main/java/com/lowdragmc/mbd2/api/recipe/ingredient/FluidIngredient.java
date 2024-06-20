@@ -5,6 +5,7 @@ import com.google.gson.*;
 import com.lowdragmc.lowdraglib.side.fluid.FluidHelper;
 import com.lowdragmc.lowdraglib.side.fluid.FluidStack;
 import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -34,6 +35,7 @@ public class FluidIngredient implements Predicate<FluidStack> {
     @Getter
     private long amount;
     @Getter
+    @Nullable
     private CompoundTag nbt;
     private boolean changed = true;
 
@@ -73,6 +75,10 @@ public class FluidIngredient implements Predicate<FluidStack> {
 
     public FluidIngredient copy() {
         return new FluidIngredient(Arrays.stream(this.values).map(Value::copy), this.amount, this.nbt == null ? null : this.nbt.copy());
+    }
+
+    public FluidIngredient copy(long amount) {
+        return new FluidIngredient(Arrays.stream(this.values).map(Value::copy), amount, this.nbt == null ? null : this.nbt.copy());
     }
     
     @Override
@@ -199,7 +205,8 @@ public class FluidIngredient implements Predicate<FluidStack> {
 
     public static class TagValue
             implements Value {
-        private final TagKey<Fluid> tag;
+        @Getter @Setter
+        private TagKey<Fluid> tag;
 
         public TagValue(TagKey<Fluid> tag) {
             this.tag = tag;
@@ -227,9 +234,9 @@ public class FluidIngredient implements Predicate<FluidStack> {
         }
     }
 
-    public static class FluidValue
-            implements Value {
-        private final Fluid fluid;
+    public static class FluidValue implements Value {
+        @Getter @Setter
+        private Fluid fluid;
 
         public FluidValue(Fluid item) {
             this.fluid = item;

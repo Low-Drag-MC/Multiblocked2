@@ -11,12 +11,8 @@ import java.util.Objects;
 public class PredicateFluids extends SimplePredicate {
 
     public Fluid[] fluids = new Fluid[0];
-    public PredicateFluids() {
-        super("fluids");
-    }
 
     public PredicateFluids(Fluid... fluids) {
-        this();
         this.fluids = fluids;
         buildPredicate();
     }

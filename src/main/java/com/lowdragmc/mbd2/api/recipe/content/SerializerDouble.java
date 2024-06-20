@@ -2,6 +2,8 @@ package com.lowdragmc.mbd2.api.recipe.content;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
+import net.minecraft.nbt.DoubleTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.FriendlyByteBuf;
 import org.apache.commons.lang3.math.NumberUtils;
 
@@ -19,6 +21,19 @@ public class SerializerDouble implements IContentSerializer<Double> {
     @Override
     public Double fromNetwork(FriendlyByteBuf buf) {
         return buf.readDouble();
+    }
+
+    @Override
+    public Tag toNBT(Double content) {
+        return DoubleTag.valueOf(content);
+    }
+
+    @Override
+    public Double fromNBT(Tag nbt) {
+        if (nbt instanceof DoubleTag doubleTag) {
+            return doubleTag.getAsDouble();
+        }
+        return 0d;
     }
 
     @Override

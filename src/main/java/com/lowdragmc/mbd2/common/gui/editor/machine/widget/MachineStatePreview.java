@@ -1,4 +1,4 @@
-package com.lowdragmc.mbd2.common.gui.editor.widget;
+package com.lowdragmc.mbd2.common.gui.editor.machine.widget;
 
 import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.editor.Icons;
@@ -13,7 +13,7 @@ import com.lowdragmc.lowdraglib.utils.TrackedDummyWorld;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.blockentity.MachineBlockEntity;
 import com.lowdragmc.mbd2.common.gui.editor.MachineProject;
-import com.lowdragmc.mbd2.common.gui.editor.step.MachineConfigPanel;
+import com.lowdragmc.mbd2.common.gui.editor.machine.MachineConfigPanel;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
 import lombok.Getter;

@@ -1,4 +1,4 @@
-package com.lowdragmc.mbd2.common.gui.editor.step;
+package com.lowdragmc.mbd2.common.gui.editor.machine;
 
 import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.editor.Icons;

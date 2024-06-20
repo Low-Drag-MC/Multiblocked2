@@ -11,12 +11,7 @@ import java.util.Objects;
 public class PredicateStates extends SimplePredicate {
     public BlockState[] states = new BlockState[0];
 
-    public PredicateStates() {
-        super("states");
-    }
-    
     public PredicateStates(BlockState... states) {
-        this();
         this.states = states;
         buildPredicate();
     }

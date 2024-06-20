@@ -7,7 +7,6 @@ import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ItemStackTexture;
 import com.lowdragmc.lowdraglib.gui.widget.SlotWidget;
-import com.lowdragmc.lowdraglib.gui.widget.Widget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.lowdraglib.jei.IngredientIO;
 import com.lowdragmc.lowdraglib.utils.Position;
@@ -16,8 +15,8 @@ import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.common.capability.recipe.ItemRecipeCapability;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.ITrait;
-import com.lowdragmc.mbd2.common.trait.ITraitUIProvider;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTraitDefinition;
+import com.lowdragmc.mbd2.utils.WidgetUtils;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.world.item.Items;
@@ -70,19 +69,16 @@ public class ItemSlotCapabilityTraitDefinition extends SimpleCapabilityTraitDefi
     }
 
     @Override
-    public Widget createTraitUITemplate() {
-        if (slotSize <= 0) return new WidgetGroup();
+    public void createTraitUITemplate(WidgetGroup ui) {
         var row = Math.ceil(Math.sqrt(slotSize));
-        var group = new WidgetGroup(3, 3, (int) row * 18 + 6, (int) Math.ceil(slotSize / (float) row) * 18 + 6);
         var prefix = uiPrefixName();
         for (var i = 0; i < this.slotSize; i++) {
             var slotWidget = new SlotWidget();
-            slotWidget.setSelfPosition(new Position(3 + i % (int) row * 18, 3 + i / (int) row * 18));
+            slotWidget.setSelfPosition(new Position(10 + i % (int) row * 18, 10 + i / (int) row * 18));
             slotWidget.initTemplate();
             slotWidget.setId(prefix + "_" + i);
-            group.addWidget(slotWidget);
+            ui.addWidget(slotWidget);
         }
-        return group;
     }
 
     @Override
@@ -93,8 +89,8 @@ public class ItemSlotCapabilityTraitDefinition extends SimpleCapabilityTraitDefi
             var ingredientIO = guiIO == IO.IN ? IngredientIO.INPUT : guiIO == IO.OUT ? IngredientIO.OUTPUT : guiIO == IO.BOTH ? IngredientIO.BOTH : IngredientIO.RENDER_ONLY;
             var canTakeItems = guiIO == IO.BOTH || guiIO == IO.OUT;
             var canPutItems = guiIO == IO.BOTH || guiIO == IO.IN;
-            ITraitUIProvider.widgetByIdForEach(group, "^%s_[0-9]+$".formatted(prefix), SlotWidget.class, slotWidget -> {
-                var index = ITraitUIProvider.widgetIdIndex(slotWidget);
+            WidgetUtils.widgetByIdForEach(group, "^%s_[0-9]+$".formatted(prefix), SlotWidget.class, slotWidget -> {
+                var index = WidgetUtils.widgetIdIndex(slotWidget);
                 if (index >= 0 && index < itemSlotTrait.storage.getSlots()) {
                     slotWidget.setHandlerSlot(itemSlotTrait.storage, index);
                     slotWidget.setIngredientIO(ingredientIO);

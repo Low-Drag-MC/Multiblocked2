@@ -22,10 +22,10 @@ public class MBDRegistryEvent extends Event implements IModBusEvent {
         /**
          * Register a recipe type.
          */
-        public void register(ResourceLocation id, com.lowdragmc.mbd2.api.recipe.MBDRecipeType recipeType) {
-            ForgeRegistries.RECIPE_TYPES.register(id, recipeType);
-            ForgeRegistries.RECIPE_SERIALIZERS.register(id, new MBDRecipeSerializer());
-            MBDRegistries.RECIPE_TYPES.register(id, recipeType);
+        public void register(com.lowdragmc.mbd2.api.recipe.MBDRecipeType recipeType) {
+            ForgeRegistries.RECIPE_TYPES.register(recipeType.registryName, recipeType);
+            ForgeRegistries.RECIPE_SERIALIZERS.register(recipeType.registryName, new MBDRecipeSerializer());
+            MBDRegistries.RECIPE_TYPES.register(recipeType.registryName, recipeType);
         }
     }
 

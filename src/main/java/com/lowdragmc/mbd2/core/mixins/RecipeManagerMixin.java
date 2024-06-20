@@ -3,6 +3,7 @@ package com.lowdragmc.mbd2.core.mixins;
 import com.google.gson.JsonElement;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
+import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -16,6 +17,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -27,14 +29,9 @@ public abstract class RecipeManagerMixin {
     @Inject(method = "apply(Ljava/util/Map;Lnet/minecraft/server/packs/resources/ResourceManager;Lnet/minecraft/util/profiling/ProfilerFiller;)V",
             at = @At(value = "TAIL"))
     private void mbd2$cloneVanillaRecipes(Map<ResourceLocation, JsonElement> map, ResourceManager resourceManager, ProfilerFiller profiler, CallbackInfo ci) {
-        for (RecipeType<?> recipeType : BuiltInRegistries.RECIPE_TYPE) {
-            if (recipeType instanceof MBDRecipeType mbdRecipeType) {
-                for (MBDRecipe builtinRecipe : mbdRecipeType.getBuiltinRecipes()) {
-                    Optional.ofNullable(recipes.get(recipeType)).ifPresent(recipes -> {
-                        recipes.put(builtinRecipe.getId(), builtinRecipe);
-                    });
-                }
-            }
+        recipes = new HashMap<>(recipes);
+        for (var recipeType : MBDRegistries.RECIPE_TYPES) {
+            recipeType.getBuiltinRecipes().forEach((id, recipe) -> recipes.computeIfAbsent(recipeType, type -> new HashMap<>()).put(id, recipe));
         }
     }
 }
