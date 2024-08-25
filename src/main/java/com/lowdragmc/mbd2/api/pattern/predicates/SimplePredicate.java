@@ -1,9 +1,21 @@
 package com.lowdragmc.mbd2.api.pattern.predicates;
 
+import com.google.common.base.Suppliers;
+import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib.gui.editor.configurator.WrapperConfigurator;
+import com.lowdragmc.lowdraglib.gui.editor.ui.Editor;
+import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib.gui.texture.ItemStackTexture;
+import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
+import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
+import com.lowdragmc.lowdraglib.gui.widget.SceneWidget;
+import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.lowdraglib.syncdata.IAutoPersistedSerializable;
+import com.lowdragmc.lowdraglib.utils.TrackedDummyWorld;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.pattern.MultiblockState;
 import com.lowdragmc.mbd2.api.pattern.TraceabilityPredicate;
@@ -11,6 +23,8 @@ import com.lowdragmc.mbd2.api.pattern.error.PatternStringError;
 import com.lowdragmc.mbd2.api.pattern.error.SinglePredicateError;
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.utils.BlockInfo;
+import com.lowdragmc.mbd2.common.gui.editor.MultiblockMachineProject;
+import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleDirection;
 import com.lowdragmc.mbd2.integration.ldlib.MBDLDLibPlugin;
 import it.unimi.dsi.fastutil.longs.Long2ObjectArrayMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
@@ -20,7 +34,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
@@ -36,8 +49,7 @@ public class SimplePredicate implements IAutoPersistedSerializable, IConfigurabl
     @Nullable
     public Supplier<BlockInfo[]> candidates;
     public Predicate<MultiblockState> predicate;
-    @Configurable(name = "config.block_pattern.predicate.tooltips", tips = "config.block_pattern.predicate.tooltips.tooltip")
-    public final List<Component> toolTips = new ArrayList<>();
+    public Supplier<IGuiTexture> previewTexture = () -> IGuiTexture.EMPTY;
     @Configurable(name = "config.block_pattern.predicate.minCount", tips = { "config.block_pattern.predicate.minCount.tooltip.0", "config.block_pattern.predicate.minCount.tooltip.1" })
     @NumberRange(range = {-1, Integer.MAX_VALUE})
     public int minCount = -1;
@@ -55,12 +67,18 @@ public class SimplePredicate implements IAutoPersistedSerializable, IConfigurabl
     public int previewCount = -1;
     @Configurable(name = "config.block_pattern.predicate.disableRenderFormed", tips = "config.block_pattern.predicate.disableRenderFormed.tooltip")
     public boolean disableRenderFormed = false;
-    @Configurable(name = "config.block_pattern.io", tips = "config.block_pattern.predicate.io.tooltip")
+    @Configurable(name = "config.block_pattern.predicate.io", tips = "config.block_pattern.predicate.io.tooltip")
     public IO io = IO.BOTH;
-    @Configurable(name = "config.block_pattern.slotName", tips = "config.block_pattern.predicate.slotName.tooltip")
+    @Configurable(name = "config.block_pattern.predicate.slotName", tips = "config.block_pattern.predicate.slotName.tooltip")
     public String slotName;
-    @Configurable(name = "config.block_pattern.nbt", tips = "config.block_pattern.predicate.nbt.tooltip")
+    @Configurable(name = "config.block_pattern.predicate.nbt", tips = "config.block_pattern.predicate.nbt.tooltip")
     public CompoundTag nbt = new CompoundTag();
+    @Configurable(name = "config.block_pattern.predicate.controller_nbt", tips = "config.block_pattern.predicate.controller_nbt.tooltip")
+    public CompoundTag controllerNbt = new CompoundTag();
+    @Configurable(name = "config.block_pattern.predicate.controllerFront", tips = "config.block_pattern.predicate.controllerFront.tooltip", subConfigurable = true)
+    public ToggleDirection controllerFront = new ToggleDirection();
+    @Configurable(name = "config.block_pattern.predicate.tooltips", tips = "config.block_pattern.predicate.tooltips.tooltip", collapse = false)
+    public final List<Component> toolTips = new ArrayList<>();
 
     protected SimplePredicate() {
         this(x -> true, null);
@@ -71,18 +89,18 @@ public class SimplePredicate implements IAutoPersistedSerializable, IConfigurabl
         this.candidates = candidates;
     }
 
+    @Override
+    public String name() {
+        if (this == AIR) {
+            return "air";
+        }
+        if (this == ANY) {
+            return "any";
+        }
+        return IConfigurable.super.name();
+    }
 
     public static CompoundTag serializeWrapper(SimplePredicate predicate) {
-        if (predicate == AIR) {
-            var tag = new CompoundTag();
-            tag.putString("_type", "air");
-            return tag;
-        }
-        if (predicate == ANY) {
-            var tag = new CompoundTag();
-            tag.putString("_type", "any");
-            return tag;
-        }
         return predicate.serializeNBT();
     }
 
@@ -105,7 +123,15 @@ public class SimplePredicate implements IAutoPersistedSerializable, IConfigurabl
     }
 
     public SimplePredicate buildPredicate() {
+        previewTexture = Suppliers.memoize(() -> candidates == null ? new TextTexture(name()) : new ItemStackTexture(Arrays.stream(candidates.get()).map(BlockInfo::getItemStackForm).toArray(ItemStack[]::new)));
+        notifySceneUpdate();
         return this;
+    }
+
+    protected void notifySceneUpdate() {
+        if (LDLib.isClient() && Editor.INSTANCE != null && Editor.INSTANCE.getCurrentProject() instanceof MultiblockMachineProject project) {
+            project.getMultiblockPatternPanel().reloadScene();
+        }
     }
 
     @OnlyIn(Dist.CLIENT)
@@ -162,7 +188,7 @@ public class SimplePredicate implements IAutoPersistedSerializable, IConfigurabl
             }
         }
         if (!nbt.isEmpty() && !blockWorldState.world.isClientSide) {
-            BlockEntity te = blockWorldState.getTileEntity();
+            var te = blockWorldState.getTileEntity();
             if (te != null) {
                 var tag = te.saveWithFullMetadata();
                 var merged = tag.copy().merge(nbt);
@@ -172,6 +198,28 @@ public class SimplePredicate implements IAutoPersistedSerializable, IConfigurabl
             }
             blockWorldState.setError(new PatternStringError("The NBT fails to match"));
             return false;
+        }
+        if (!controllerNbt.isEmpty() && !blockWorldState.world.isClientSide) {
+            var te = blockWorldState.getController().getHolder();
+            if (te != null) {
+                var tag = te.saveWithFullMetadata();
+                var merged = tag.copy().merge(controllerNbt);
+                if (tag.equals(merged)) {
+                    return true;
+                }
+            }
+            blockWorldState.setError(new PatternStringError("The Controller NBT fails to match"));
+            return false;
+        }
+        if (controllerFront.isEnable()) {
+            var controller = blockWorldState.getController();
+            if (controller != null) {
+                var front = controller.getFrontFacing();
+                if (front.isPresent() && front.get() != controllerFront.getValue()) {
+                    blockWorldState.setError(new PatternStringError("The Controller Front side fails to match"));
+                    return false;
+                }
+            }
         }
         if (slotName != null && !slotName.isEmpty()) {
             Map<Long, Set<String>> slots = blockWorldState.getMatchContext().getOrCreate("slots", Long2ObjectArrayMap::new);
@@ -211,4 +259,52 @@ public class SimplePredicate implements IAutoPersistedSerializable, IConfigurabl
         return candidates == null ? Collections.emptyList() : Arrays.stream(this.candidates.get()).filter(info -> info.getBlockState().getBlock() != Blocks.AIR).map(BlockInfo::getItemStackForm).collect(Collectors.toList());
     }
 
+    public IGuiTexture getPreviewTexture() {
+        return previewTexture.get();
+    }
+
+    @Override
+    public String getTranslateKey() {
+        return "config.%s.%s".formatted(group(), name());
+    }
+
+    @Override
+    public void buildConfigurator(ConfiguratorGroup father) {
+        father.addConfigurators(new WrapperConfigurator("config.block_pattern.predicate.preview",
+                new WidgetGroup(0, 0, 100, 100)
+                        .addWidget(new ImageWidget(0, 0, 100, 100, IGuiTexture.EMPTY)
+                                .setBorder(2, ColorPattern.T_WHITE.color))
+                        .addWidget(createPreview())));
+        IConfigurable.super.buildConfigurator(father);
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    protected SceneWidget createPreview() {
+        var level = new TrackedDummyWorld();
+        var blockInfo = Optional.ofNullable(candidates).map(Supplier::get).filter(x -> x.length > 0).map(x -> x[0]).orElse(BlockInfo.EMPTY);
+        level.addBlock(BlockPos.ZERO, blockInfo);
+        var sceneWidget = new SceneWidget(0, 0, 100, 100, null) {
+            @Override
+            @OnlyIn(Dist.CLIENT)
+            public void updateScreen() {
+                super.updateScreen();
+                if (gui.getTickCount() % 20 == 0) {
+                    var blockInfo = Optional.ofNullable(candidates).map(Supplier::get)
+                            .filter(x -> x.length > 0)
+                            .map(x -> x[(int) ((gui.getTickCount() / 20L) % x.length)])
+                            .orElse(BlockInfo.EMPTY);
+                    level.addBlock(BlockPos.ZERO, blockInfo);
+                }
+            }
+        };
+        sceneWidget.setRenderFacing(false);
+        sceneWidget.setRenderSelect(false);
+        sceneWidget.setScalable(false);
+        sceneWidget.setDraggable(false);
+        sceneWidget.setIntractable(false);
+        sceneWidget.createScene(level);
+        sceneWidget.getRenderer().setOnLookingAt(null); // better performance
+        sceneWidget.setRenderedCore(Collections.singleton(BlockPos.ZERO), null);
+        return sceneWidget;
+    }
 }

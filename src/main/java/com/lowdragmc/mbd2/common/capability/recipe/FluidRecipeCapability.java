@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
  */
 public class FluidRecipeCapability extends RecipeCapability<FluidIngredient> {
 
-    public static final String FLUID_TYPE = "recipe.capability.fluid.ingredient.values.item";
+    public static final String FLUID_TYPE = "recipe.capability.fluid.ingredient.values.fluid";
     public static final String TAG_TYPE = "recipe.capability.fluid.ingredient.values.tag";
 
     public final static FluidRecipeCapability CAP = new FluidRecipeCapability();

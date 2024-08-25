@@ -2,7 +2,6 @@ package com.lowdragmc.mbd2.integration.emi;
 
 import com.lowdragmc.lowdraglib.emi.IGui2Renderable;
 import com.lowdragmc.lowdraglib.emi.ModularEmiRecipe;
-import com.lowdragmc.lowdraglib.emi.ModularUIEmiRecipeCategory;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
@@ -18,7 +17,7 @@ import net.minecraft.resources.ResourceLocation;
 import javax.annotation.Nullable;
 import java.util.function.Function;
 
-public class MBDRecipeTypeEmiCategory extends ModularUIEmiRecipeCategory {
+public class MBDRecipeTypeEmiCategory extends EmiRecipeCategory {
     public static class MBDEmiRecipe extends ModularEmiRecipe<Widget> {
         final MBDRecipeTypeEmiCategory category;
         final MBDRecipe recipe;

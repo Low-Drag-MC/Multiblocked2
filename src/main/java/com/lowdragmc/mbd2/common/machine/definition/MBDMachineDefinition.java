@@ -20,8 +20,8 @@ import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.machine.definition.config.*;
 import com.lowdragmc.mbd2.common.trait.ITraitUIProvider;
 import com.lowdragmc.mbd2.utils.WidgetUtils;
-import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -66,7 +66,6 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
     private IRenderer itemRenderer;
     private Function<MBDMachine, WidgetGroup> uiCreator;
 
-    @Builder
     protected MBDMachineDefinition(ResourceLocation id,
                                    StateMachine stateMachine,
                                    ConfigBlockProperties blockProperties,
@@ -77,6 +76,10 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
         this.blockProperties = blockProperties == null ? ConfigBlockProperties.builder().build() : blockProperties;
         this.itemProperties = itemProperties == null ? ConfigItemProperties.builder().build() : itemProperties;
         this.machineSettings = machineSettings == null ? ConfigMachineSettings.builder().build() : machineSettings;
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     public static MBDMachineDefinition createDefault() {
@@ -177,5 +180,22 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
      * Append the machine's tooltip.
      */
     public void appendHoverText(ItemStack stack, List<Component> tooltip) {
+    }
+
+    @Setter
+    @Accessors(chain = true, fluent = true)
+    public static class Builder {
+        protected ResourceLocation id;
+        protected StateMachine stateMachine;
+        protected ConfigBlockProperties blockProperties;
+        protected ConfigItemProperties itemProperties;
+        protected ConfigMachineSettings machineSettings;
+
+        protected Builder() {
+        }
+
+        public MBDMachineDefinition build() {
+            return new MBDMachineDefinition(id, stateMachine, blockProperties, itemProperties, machineSettings);
+        }
     }
 }

@@ -123,7 +123,7 @@ public interface IMachine extends IRecipeCapabilityHolder {
     /**
      * Called when the machine is rotated.
      * <br>
-     * It has to be called yourself.
+     * It has to be triggered somewhere yourself.
      */
     default void onRotated(Direction oldFacing, Direction newFacing) {
 

@@ -1,10 +1,7 @@
 package com.lowdragmc.mbd2.common.gui.editor;
 
-import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
-import com.lowdragmc.lowdraglib.client.renderer.ISerializableRenderer;
 import com.lowdragmc.lowdraglib.gui.editor.data.resource.Resource;
 import com.lowdragmc.lowdraglib.gui.editor.ui.ResourcePanel;
-import com.lowdragmc.lowdraglib.gui.editor.ui.resource.IRendererResourceContainer;
 import com.lowdragmc.lowdraglib.gui.editor.ui.resource.ResourceContainer;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
 import com.lowdragmc.mbd2.api.pattern.predicates.SimplePredicate;
@@ -21,34 +18,27 @@ public class PredicateResource extends Resource<SimplePredicate> {
     }
 
     @Override
-    public void buildDefault() {
-    }
-
-    @Override
     public String name() {
         return RESOURCE_NAME;
     }
 
     @Override
     public ResourceContainer<SimplePredicate, ? extends Widget> createContainer(ResourcePanel resourcePanel) {
-        return new IRendererResourceContainer(this, resourcePanel);
+        return new PredicateResourceContainer(this, resourcePanel);
     }
 
     @Nullable
     @Override
-    public Tag serialize(SimplePredicate renderer) {
-        if (renderer instanceof ISerializableRenderer serializableRenderer) {
-            return ISerializableRenderer.serializeWrapper(serializableRenderer);
-        }
-        return null;
+    public Tag serialize(SimplePredicate predicate) {
+        return SimplePredicate.serializeWrapper(predicate);
     }
 
     @Override
     public SimplePredicate deserialize(Tag tag) {
         if (tag instanceof CompoundTag compoundTag) {
-            return ISerializableRenderer.deserializeWrapper(compoundTag);
+            return SimplePredicate.deserializeWrapper(compoundTag);
         }
-        return IRenderer.EMPTY;
+        return SimplePredicate.ANY;
     }
 
     @Override

@@ -161,7 +161,6 @@ public class MachineProject implements IProject {
 
     @Override
     public void onClosed(Editor editor) {
-
         editor.getFloatView().clearAllWidgets();
     }
 }
