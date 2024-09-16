@@ -178,7 +178,10 @@ public class RecipeLogic implements IEnhancedManaged {
                 result = handleTickRecipe(lastRecipe);
                 if (result.isSuccess()) {
                     setStatus(Status.WORKING);
-                    machine.onWorking();
+                    if (machine.onWorking()) {
+                        this.interruptRecipe();
+                        return;
+                    }
                     progress++;
                     totalContinuousRunningTime++;
                 } else {
@@ -296,7 +299,12 @@ public class RecipeLogic implements IEnhancedManaged {
 
     public void setupRecipe(MBDRecipe recipe) {
         if (handleFuelRecipe()) {
-            machine.beforeWorking();
+            if (machine.beforeWorking(recipe)) {
+                setStatus(Status.IDLE);
+                progress = 0;
+                duration = 0;
+                return;
+            }
             recipe.preWorking(this.machine);
             if (recipe.handleRecipeIO(IO.IN, this.machine)) {
                 recipeDirty = false;
@@ -313,7 +321,7 @@ public class RecipeLogic implements IEnhancedManaged {
             if (this.status == Status.WORKING) {
                 this.totalContinuousRunningTime = 0;
             }
-            machine.notifyStatusChanged(this.status, status);
+            machine.notifyRecipeStatusChanged(this.status, status);
             this.status = status;
             if (this.status != Status.WAITING) {
                 waitingReason = null;

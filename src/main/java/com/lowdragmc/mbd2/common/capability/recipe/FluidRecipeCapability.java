@@ -9,15 +9,20 @@ import com.lowdragmc.lowdraglib.jei.IngredientIO;
 import com.lowdragmc.lowdraglib.side.fluid.FluidStack;
 import com.lowdragmc.lowdraglib.utils.CycleFluidStorage;
 import com.lowdragmc.lowdraglib.utils.Size;
+import com.lowdragmc.lowdraglib.utils.TagOrCycleFluidTransfer;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.api.recipe.content.SerializerFluidIngredient;
 import com.lowdragmc.mbd2.api.recipe.ingredient.FluidIngredient;
 import com.lowdragmc.mbd2.utils.TagUtil;
+import com.mojang.datafixers.util.Either;
+import com.mojang.datafixers.util.Pair;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.FluidTags;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 
 import java.util.Arrays;
@@ -41,7 +46,7 @@ public class FluidRecipeCapability extends RecipeCapability<FluidIngredient> {
     public final static FluidRecipeCapability CAP = new FluidRecipeCapability();
 
     protected FluidRecipeCapability() {
-        super("fluid", 0xFF3C70EE, SerializerFluidIngredient.INSTANCE);
+        super("fluid", SerializerFluidIngredient.INSTANCE);
     }
 
     @Override
@@ -82,18 +87,29 @@ public class FluidRecipeCapability extends RecipeCapability<FluidIngredient> {
     public void bindXEIWidget(Widget widget, Content content, IngredientIO ingredientIO) {
         if (widget instanceof TankWidget tankWidget) {
             var fluidIngredient = of(content.content);
-            var storage = new CycleFluidStorage(fluidIngredient.getAmount(), Arrays.stream(fluidIngredient.getStacks()).toList());
-            tankWidget.setFluidTank(storage);
+            Either<List<Pair<TagKey<Fluid>, Long>>, List<FluidStack>> either = null;
+            // if all fluid tags
+            if (Arrays.stream(fluidIngredient.values).allMatch(FluidIngredient.TagValue.class::isInstance)) {
+                either = Either.left(Arrays.stream(fluidIngredient.values)
+                        .map(FluidIngredient.TagValue.class::cast)
+                        .map(FluidIngredient.TagValue::getTag)
+                        .map(tagValue -> new Pair<>(tagValue, fluidIngredient.getAmount())).toList());
+            }
+            if (either == null) {
+                either = Either.right(List.of(fluidIngredient.getStacks()));
+            }
+            tankWidget.setFluidTank(new TagOrCycleFluidTransfer(List.of(either)), 0);
             tankWidget.setIngredientIO(ingredientIO);
             tankWidget.setAllowClickDrained(false);
             tankWidget.setAllowClickFilled(false);
+            tankWidget.setXEIChance(content.chance);
         }
     }
 
     @Override
     public void createContentConfigurator(ConfiguratorGroup father, Supplier<FluidIngredient> supplier, Consumer<FluidIngredient> onUpdate) {
         // sized ingredient amount
-        father.addConfigurators(new NumberConfigurator("amount",
+        father.addConfigurators(new NumberConfigurator("recipe.capability.fluid.ingredient.amount",
                 () -> supplier.get().getAmount(),
                 number -> {
                     var amount = number.intValue();

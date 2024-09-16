@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.common.gui.editor.machine.widget;
 
+import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.editor.Icons;
 import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
@@ -32,6 +33,8 @@ public class MachineStatePreview extends DraggableWidgetGroup {
     @Getter
     private boolean isCollapse;
     protected MBDMachine previewMachine;
+    // runtime
+    private long lastClickTick;
 
     public MachineStatePreview(MachineConfigPanel panel, MachineState state) {
         super(0, 0, 100, 100 + 15);
@@ -51,6 +54,7 @@ public class MachineStatePreview extends DraggableWidgetGroup {
         var scene = new SceneWidget(4, 4, content.getSize().width - 8, content.getSize().height - 8, null);
         var level = new TrackedDummyWorld();
         content.addWidget(scene);
+        scene.setIntractable(false);
         scene.setRenderFacing(false);
         scene.setRenderSelect(false);
         scene.createScene(level);
@@ -59,12 +63,28 @@ public class MachineStatePreview extends DraggableWidgetGroup {
         level.addBlock(BlockPos.ZERO, BlockInfo.fromBlock(MBDRegistries.getFAKE_MACHINE().block()));
         Optional.ofNullable(level.getBlockEntity(BlockPos.ZERO)).ifPresent(blockEntity -> {
             if (blockEntity instanceof MachineBlockEntity holder && panel.getEditor().getCurrentProject() instanceof MachineProject project) {
-                holder.setMachine(previewMachine = new MBDMachine(holder, project.getDefinition()));
+                holder.setMachine(this.previewMachine = project.getDefinition().createMachine(holder));
                 previewMachine.setMachineState(state.name());
             }
         });
 
         setSelectedTexture(ColorPattern.GREEN.borderTexture(1).setRadius(5.0F));
+        // accept dragging renderer
+        var draggingBorder = new ImageWidget(0, 0, this.getSize().width, this.getSize().height,
+                ColorPattern.YELLOW.borderTexture(2).setRadius(5.0F));
+        draggingBorder.setVisible(false);
+        this.addWidget(draggingBorder);
+        this.setDraggingConsumer(IRenderer.class::isInstance, o -> {
+                    draggingBorder.setVisible(true);
+                    draggingBorder.setSize(this.getSize().width, this.getSize().height);
+                },
+                o -> draggingBorder.setVisible(false), o -> {
+                    draggingBorder.setVisible(false);
+                    if (o instanceof IRenderer renderer) {
+                        state.renderer().setEnable(true);
+                        state.renderer().setValue(renderer);
+                    }
+                });
     }
 
     public void collapse() {
@@ -141,26 +161,15 @@ public class MachineStatePreview extends DraggableWidgetGroup {
                 return true;
             }
         }
-        return super.mouseClicked(mouseX, mouseY, button);
-    }
-
-    private double deltaX = 0;
-    private double deltaY = 0;
-
-    public boolean dragging(double mouseX, double mouseY, double deltaX, double deltaY) {
-        this.deltaX += deltaX;
-        this.deltaY += deltaY;
-        return super.dragging(mouseX, mouseY, deltaX, deltaY);
-    }
-
-    public void endDrag(double mouseX, double mouseY) {
-        super.endDrag(mouseX, mouseY);
-        if ((deltaX * deltaX + deltaY * deltaY) < 20 && title.isMouseOverElement(mouseX, mouseY)) {
-            playButtonClickSound();
-            collapse();
+        if (title.isMouseOverElement(mouseX, mouseY) && button == 0) {
+            if (lastClickTick != 0 && gui.getTickCount() - lastClickTick < 10) {
+                playButtonClickSound();
+                collapse();
+            } else {
+                lastClickTick = gui.getTickCount();
+            }
         }
-        this.deltaX = 0;
-        this.deltaY = 0;
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
 }

@@ -16,8 +16,12 @@ import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer
 import lombok.Builder;
 import lombok.Getter;
 import lombok.experimental.Accessors;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Rarity;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Builder
@@ -47,6 +51,10 @@ public class ConfigItemProperties implements IConfigurable, IPersistedSerializab
     @Builder.Default
     private Rarity rarity = Rarity.COMMON;
 
+    @Configurable(name = "config.item_properties.item_tooltips", tips = "config.item_properties.item_tooltips.tooltip")
+    @Builder.Default
+    private List<Component> itemTooltips = new ArrayList<>();
+
     public Item.Properties apply(Item.Properties itemProp) {
         return itemProp.stacksTo(maxStackSize).rarity(rarity);
     }
@@ -55,7 +63,7 @@ public class ConfigItemProperties implements IConfigurable, IPersistedSerializab
     public void buildConfigurator(ConfiguratorGroup father) {
         IConfigurable.super.buildConfigurator(father);
         father.addConfigurators(new WrapperConfigurator("config.item_properties.slot_preview",
-                new ImageWidget(0, 0, 40, 40,
+                new ImageWidget(0, 0, 18, 18,
                         new IRendererSlotTexture(() -> {
                             if (renderer.isEnable()) {
                                 return renderer.getValue();

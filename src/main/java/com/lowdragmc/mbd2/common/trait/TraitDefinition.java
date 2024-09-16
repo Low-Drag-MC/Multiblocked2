@@ -24,9 +24,9 @@ public abstract class TraitDefinition implements IConfigurable, IAutoPersistedSe
         var type = tag.getString("_type");
         var wrapper = MBDLDLibPlugin.REGISTER_TRAIT_DEFINITIONS.get(type);
         if (wrapper != null) {
-            var shape = wrapper.creator().get();
-            shape.deserializeNBT(tag);
-            return shape;
+            var definition = wrapper.creator().get();
+            definition.deserializeNBT(tag);
+            return definition;
         }
         return null;
     }

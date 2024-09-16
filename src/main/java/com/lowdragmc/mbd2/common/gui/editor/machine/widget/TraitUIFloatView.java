@@ -91,7 +91,7 @@ public class TraitUIFloatView extends FloatViewWidget {
                     }
                 },
                 "config.definition.trait.ui.generate.tooltip",
-                "config.definition.trait.%s.ui.tooltip".formatted(provider.getDefinition().name()));
+                "config.definition.trait.%s.ui.tooltip".formatted(provider.getDefinition().getTranslateKey()));
     }
 
     public void addButton(Widget icon, Supplier<String > value, Runnable onClick, String... hoverTooltips) {

@@ -1,8 +1,10 @@
 package com.lowdragmc.mbd2.api.pattern;
 
+import com.lowdragmc.mbd2.api.block.ProxyPartBlock;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.pattern.predicates.SimplePredicate;
 import com.lowdragmc.lowdraglib.utils.BlockInfo;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 
@@ -182,6 +184,10 @@ public class TraceabilityPredicate {
     }
 
     public boolean test(MultiblockState blockWorldState) {
+        if (blockWorldState.getBlockState().getBlock() == ProxyPartBlock.BLOCK) {
+            blockWorldState.getMatchContext().getOrCreate("renderMask", LongOpenHashSet::new).add(blockWorldState.getPos().asLong());
+            return true;
+        }
         blockWorldState.io = IO.BOTH;
         boolean flag = false;
         for (SimplePredicate predicate : limited) {

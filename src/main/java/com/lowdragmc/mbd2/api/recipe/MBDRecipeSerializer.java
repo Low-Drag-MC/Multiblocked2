@@ -73,7 +73,8 @@ public class MBDRecipeSerializer implements RecipeSerializer<MBDRecipe> {
             }
         }
         boolean isFuel = GsonHelper.getAsBoolean(json, "isFuel", false);
-        return new MBDRecipe((MBDRecipeType) BuiltInRegistries.RECIPE_TYPE.get(new ResourceLocation(recipeType)), id, inputs, outputs, conditions, data, duration, isFuel);
+        int priority = GsonHelper.getAsInt(json, "priority", 0);
+        return new MBDRecipe((MBDRecipeType) BuiltInRegistries.RECIPE_TYPE.get(new ResourceLocation(recipeType)), id, inputs, outputs, conditions, data, duration, isFuel, priority);
     }
 
     public JsonObject capabilitiesToJson(Map<RecipeCapability<?>, List<Content>> contents) {
@@ -109,6 +110,9 @@ public class MBDRecipeSerializer implements RecipeSerializer<MBDRecipe> {
         }
         if (recipe.isFuel) {
             json.addProperty("isFuel", true);
+        }
+        if (recipe.priority != 0) {
+            json.addProperty("priority", recipe.priority);
         }
         return json;
     }
@@ -152,7 +156,8 @@ public class MBDRecipeSerializer implements RecipeSerializer<MBDRecipe> {
         List<RecipeCondition> conditions = buf.readCollection(c -> new ArrayList<>(), MBDRecipeSerializer::conditionReader);
         CompoundTag data = buf.readNbt();
         boolean isFuel = buf.readBoolean();
-        return new MBDRecipe((MBDRecipeType) BuiltInRegistries.RECIPE_TYPE.get(new ResourceLocation(recipeType)), id, inputs, outputs, conditions, data, duration, isFuel);
+        int priority = buf.readVarInt();
+        return new MBDRecipe((MBDRecipeType) BuiltInRegistries.RECIPE_TYPE.get(new ResourceLocation(recipeType)), id, inputs, outputs, conditions, data, duration, isFuel, priority);
     }
 
     @Override
@@ -164,6 +169,7 @@ public class MBDRecipeSerializer implements RecipeSerializer<MBDRecipe> {
         buf.writeCollection(recipe.conditions, MBDRecipeSerializer::conditionWriter);
         buf.writeNbt(recipe.data);
         buf.writeBoolean(recipe.isFuel);
+        buf.writeVarInt(recipe.priority);
     }
 
     public Map<RecipeCapability<?>, List<Content>> capabilitiesFromNBT(CompoundTag nbt) {
@@ -196,7 +202,8 @@ public class MBDRecipeSerializer implements RecipeSerializer<MBDRecipe> {
         }
         CompoundTag data = nbt.getCompound("data");
         boolean isFuel = nbt.getBoolean("isFuel");
-        return new MBDRecipe((MBDRecipeType) BuiltInRegistries.RECIPE_TYPE.get(new ResourceLocation(recipeType)), id, inputs, outputs, conditions, data, duration, isFuel);
+        int priority = nbt.getInt("priority");
+        return new MBDRecipe((MBDRecipeType) BuiltInRegistries.RECIPE_TYPE.get(new ResourceLocation(recipeType)), id, inputs, outputs, conditions, data, duration, isFuel, priority);
     }
 
     public CompoundTag capabilitiesToNBT(Map<RecipeCapability<?>, List<Content>> contents) {
@@ -227,6 +234,7 @@ public class MBDRecipeSerializer implements RecipeSerializer<MBDRecipe> {
         nbt.put("recipeConditions", conditions);
         nbt.put("data", recipe.data);
         nbt.putBoolean("isFuel", recipe.isFuel);
+        nbt.putInt("priority", recipe.priority);
         return nbt;
     }
 }

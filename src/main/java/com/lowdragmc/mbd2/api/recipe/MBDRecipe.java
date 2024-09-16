@@ -42,11 +42,12 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
     public final List<RecipeCondition> conditions;
     public CompoundTag data;
     public int duration;
+    public int priority;
     @Getter
     public boolean isFuel;
     private Boolean hasTick;
 
-    public MBDRecipe(MBDRecipeType recipeType, ResourceLocation id, Map<RecipeCapability<?>, List<Content>> inputs, Map<RecipeCapability<?>, List<Content>> outputs, List<RecipeCondition> conditions, CompoundTag data, int duration, boolean isFuel) {
+    public MBDRecipe(MBDRecipeType recipeType, ResourceLocation id, Map<RecipeCapability<?>, List<Content>> inputs, Map<RecipeCapability<?>, List<Content>> outputs, List<RecipeCondition> conditions, CompoundTag data, int duration, boolean isFuel, int priority) {
         this.recipeType = recipeType;
         this.id = id;
         this.inputs = inputs;
@@ -55,6 +56,7 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
         this.data = data;
         this.duration = duration;
         this.isFuel = isFuel;
+        this.priority = priority;
     }
 
     public Map<RecipeCapability<?>, List<Content>> copyContents(Map<RecipeCapability<?>, List<Content>> contents, @Nullable ContentModifier modifier) {
@@ -74,7 +76,7 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
     }
 
     public MBDRecipe copy(ResourceLocation id) {
-        return new MBDRecipe(recipeType, id, copyContents(inputs, null), copyContents(outputs, null), conditions, data, duration, isFuel);
+        return new MBDRecipe(recipeType, id, copyContents(inputs, null), copyContents(outputs, null), conditions, data, duration, isFuel, priority);
     }
 
     public MBDRecipe copy() {
@@ -86,7 +88,7 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
     }
 
     public MBDRecipe copy(ContentModifier modifier, boolean modifyDuration) {
-        var copied = new MBDRecipe(recipeType, id, copyContents(inputs, modifier), copyContents(outputs, modifier), conditions, data, duration, isFuel);
+        var copied = new MBDRecipe(recipeType, id, copyContents(inputs, modifier), copyContents(outputs, modifier), conditions, data, duration, isFuel, priority);
         if (modifyDuration) {
             copied.duration = modifier.apply(this.duration).intValue();
         }

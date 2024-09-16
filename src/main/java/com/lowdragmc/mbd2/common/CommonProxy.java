@@ -1,24 +1,31 @@
 package com.lowdragmc.mbd2.common;
 
 import com.lowdragmc.lowdraglib.Platform;
-import com.lowdragmc.lowdraglib.gui.factory.HeldItemUIFactory;
+import com.lowdragmc.lowdraglib.client.renderer.block.RendererBlock;
+import com.lowdragmc.lowdraglib.client.renderer.block.RendererBlockEntity;
+import com.lowdragmc.lowdraglib.client.renderer.block.forge.RendererBlockEntityImpl;
 import com.lowdragmc.lowdraglib.gui.factory.UIFactory;
 import com.lowdragmc.mbd2.MBD2;
+import com.lowdragmc.mbd2.api.block.ProxyPartBlock;
+import com.lowdragmc.mbd2.api.blockentity.ProxyPartBlockEntity;
 import com.lowdragmc.mbd2.api.capability.MBDCapabilities;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeSerializer;
-import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.recipe.ingredient.SizedIngredient;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.data.MBDRecipeCapabilities;
 import com.lowdragmc.mbd2.common.data.MBDRecipeConditions;
 import com.lowdragmc.mbd2.common.event.MBDRegistryEvent;
+import com.lowdragmc.mbd2.common.gui.editor.RecipeTypeProject;
 import com.lowdragmc.mbd2.common.gui.factory.MachineUIFactory;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
+import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
 import com.lowdragmc.mbd2.config.ConfigHolder;
 import com.lowdragmc.mbd2.test.MBDTest;
 import com.lowdragmc.mbd2.utils.FileUtils;
-import net.minecraft.resources.ResourceLocation;
+import lombok.Getter;
 import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraftforge.common.capabilities.RegisterCapabilitiesEvent;
 import net.minecraftforge.common.crafting.CraftingHelper;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
@@ -31,6 +38,7 @@ import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLConstructModEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegisterEvent;
 
@@ -38,8 +46,12 @@ import java.io.File;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 public class CommonProxy {
+    private static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, MBD2.MOD_ID);
+    private static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITY_TYPES = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, MBD2.MOD_ID);
 
-    private final ConcurrentLinkedDeque<Runnable> postTask = new ConcurrentLinkedDeque<>();
+
+    @Getter
+    private static final ConcurrentLinkedDeque<Runnable> postTask = new ConcurrentLinkedDeque<>();
 
 
     public CommonProxy() {
@@ -54,6 +66,11 @@ public class CommonProxy {
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, ConfigHolder.SPEC);
         // Register UI Factory
         UIFactory.register(MachineUIFactory.INSTANCE);
+        // Register blocks
+        BLOCKS.register("proxy_part_block", () -> ProxyPartBlock.BLOCK);
+        ProxyPartBlockEntity.TYPE = BLOCK_ENTITY_TYPES.register("proxy_part_block", () -> BlockEntityType.Builder.of(ProxyPartBlockEntity::new, ProxyPartBlock.BLOCK).build(null));
+        BLOCKS.register(eventBus);
+        BLOCK_ENTITY_TYPES.register(eventBus);
     }
 
     public void registerRecipeType() {
@@ -61,14 +78,8 @@ public class CommonProxy {
         var event = new MBDRegistryEvent.MBDRecipeType();
         MBD2.LOGGER.info("Loading recipe types");
         var path = new File(MBD2.getLocation(), "recipe_type");
-        FileUtils.loadNBTFiles(path, ".rt", (file, tag) -> {
-            var registryName = tag.getCompound("recipe_type").getString("registryName");
-            if (!registryName.isEmpty() && ResourceLocation.isValidResourceLocation(registryName)) {
-                var recipeType = new MBDRecipeType(new ResourceLocation(registryName));
-                event.register(recipeType);
-                postTask.add(() -> recipeType.postLoading(tag));
-            }
-        });
+        //load recipe type
+        FileUtils.loadNBTFiles(path, ".rt", (file, tag) -> event.register(RecipeTypeProject.createProductFromProject(tag, postTask)));
         ModLoader.get().postEvent(event);
         MBDRegistries.RECIPE_TYPES.freeze();
     }
@@ -78,13 +89,11 @@ public class CommonProxy {
         var event = new MBDRegistryEvent.Machine();
         MBD2.LOGGER.info("Loading machines");
         var path = new File(MBD2.getLocation(), "machine");
-        FileUtils.loadNBTFiles(path, ".sm", (file, tag) -> {
-            if (tag.contains("definition")) {
-                var definition = MBDMachineDefinition.fromTag(tag.getCompound("definition"));
-                event.register(definition);
-                postTask.add(() -> definition.postLoading(tag));
-            }
-        });
+        // load single machine
+        FileUtils.loadNBTFiles(path, ".sm", (file, tag) -> event.register(MBDMachineDefinition.createDefault().loadProductiveTag(file, tag, postTask)));
+        // load multiblock machine
+        path = new File(MBD2.getLocation(), "multiblock");
+        FileUtils.loadNBTFiles(path, ".mb", (file, tag) -> event.register(MultiblockMachineDefinition.createDefault().loadProductiveTag(file, tag, postTask)));
         ModLoader.get().postEvent(event);
         MBDRegistries.MACHINE_DEFINITIONS.freeze();
     }
@@ -110,6 +119,7 @@ public class CommonProxy {
     public void loadComplete(FMLLoadCompleteEvent e) {
         e.enqueueWork(() -> {
             postTask.forEach(Runnable::run);
+            postTask.clear();
         });
     }
 

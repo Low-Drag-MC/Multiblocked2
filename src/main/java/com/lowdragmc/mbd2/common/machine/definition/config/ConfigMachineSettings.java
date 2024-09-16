@@ -30,8 +30,19 @@ import java.util.List;
 public class ConfigMachineSettings implements IPersistedSerializable, IConfigurable {
     @Getter
     @Builder.Default
+    @Configurable(name = "config.machine_settings.machine_level", tips = "config.machine_settings.machine_level.tooltip")
+    private int machineLevel = 0;
+    @Getter
+    @Builder.Default
     @Configurable(name = "config.machine_settings.has_ui", tips = "config.machine_settings.has_ui.tooltip")
     private boolean hasUI = true;
+    @Getter
+    @Builder.Default
+    @Configurable(name = "config.machine_settings.has_recipe_logic", tips = {
+            "config.machine_settings.has_recipe_logic.tooltip.0",
+            "config.machine_settings.has_recipe_logic.tooltip.1"
+    })
+    private boolean hasRecipeLogic = true;
     @Builder.Default
     @Persisted
     private ResourceLocation recipeType = MBDRecipeType.DUMMY.registryName;

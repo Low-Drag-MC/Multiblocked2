@@ -16,7 +16,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 public class MBDREIPlugin implements REIClientPlugin {
     @Override
     public void registerCategories(CategoryRegistry registry) {
-//        registry.add(new MultiblockInfoDisplayCategory());
+        registry.add(new MultiblockInfoDisplayCategory());
         MBD2.LOGGER.info("REI register categories");
         for (var recipeType : MBDRegistries.RECIPE_TYPES) {
             if (recipeType.isXEIVisible()) {
@@ -24,13 +24,14 @@ public class MBDREIPlugin implements REIClientPlugin {
             }
         }
         MBDRecipeTypeDisplayCategory.registerWorkStations(registry);
+        MultiblockInfoDisplayCategory.registerWorkStations(registry);
     }
 
     @Override
     public void registerDisplays(DisplayRegistry registry) {
         MBD2.LOGGER.info("REI register displays");
         MBDRecipeTypeDisplayCategory.registerDisplays(registry);
-//        MultiblockInfoDisplayCategory.registerDisplays(registry);
+        MultiblockInfoDisplayCategory.registerDisplays(registry);
     }
 
 }

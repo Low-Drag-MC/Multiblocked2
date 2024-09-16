@@ -22,5 +22,6 @@ public class ClientProxy extends CommonProxy {
     public void registerRenderers(RegisterRenderers e) {
         MBDRegistries.getFAKE_MACHINE().initRenderer(e);
         MBDRegistries.MACHINE_DEFINITIONS.forEach(definition -> definition.initRenderer(e));
+        MBDRegistries.getFAKE_MACHINE().initRenderer(e);
     }
 }

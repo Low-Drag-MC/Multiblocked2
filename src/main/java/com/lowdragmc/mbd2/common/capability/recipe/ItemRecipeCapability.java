@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib.gui.widget.Widget;
 import com.lowdragmc.lowdraglib.jei.IngredientIO;
 import com.lowdragmc.lowdraglib.misc.ItemStackTransfer;
 import com.lowdragmc.lowdraglib.utils.CycleItemStackHandler;
+import com.lowdragmc.lowdraglib.utils.TagOrCycleItemStackTransfer;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
@@ -17,9 +18,13 @@ import com.lowdragmc.mbd2.core.mixins.ItemValueAccessor;
 import com.lowdragmc.mbd2.core.mixins.StrictNBTIngredientAccessor;
 import com.lowdragmc.mbd2.core.mixins.TagValueAccessor;
 import com.lowdragmc.mbd2.utils.TagUtil;
+import com.mojang.datafixers.util.Either;
+import com.mojang.datafixers.util.Pair;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.ItemTags;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.alchemy.PotionUtils;
@@ -48,7 +53,7 @@ public class ItemRecipeCapability extends RecipeCapability<Ingredient> {
     public final static ItemRecipeCapability CAP = new ItemRecipeCapability();
 
     protected ItemRecipeCapability() {
-        super("item", 0xFFD96106, SerializerIngredient.INSTANCE);
+        super("item", SerializerIngredient.INSTANCE);
     }
 
     @Override
@@ -82,18 +87,41 @@ public class ItemRecipeCapability extends RecipeCapability<Ingredient> {
     @Override
     public void bindXEIWidget(Widget widget, Content content, IngredientIO ingredientIO) {
         if (widget instanceof SlotWidget slotWidget) {
-            var handler = new CycleItemStackHandler(List.of(List.of(of(content.content).getItems())));
-            slotWidget.setHandlerSlot(handler, 0);
+            var ingredient = of(content.content);
+            final int amount;
+            var innerIngredient = ingredient;
+            if (ingredient instanceof SizedIngredient sizedIngredient) {
+                amount = sizedIngredient.getAmount();
+                innerIngredient = sizedIngredient.getInner();
+            } else {
+                amount = 1;
+            }
+            Either<List<Pair<TagKey<Item>, Integer>>, List<ItemStack>> either = null;
+            if (innerIngredient.isVanilla() && innerIngredient instanceof IngredientAccessor vanillaIngredient) {
+                // if all item tags
+                if (Arrays.stream(vanillaIngredient.getValues()).allMatch(Ingredient.TagValue.class::isInstance)) {
+                    either = Either.left(Arrays.stream(vanillaIngredient.getValues())
+                            .map(Ingredient.TagValue.class::cast)
+                            .map(TagValueAccessor.class::cast)
+                            .map(TagValueAccessor::getTag)
+                            .map(tagValue -> new Pair<>(tagValue, amount)).toList());
+                }
+            }
+            if (either == null) {
+                either = Either.right(List.of(ingredient.getItems()));
+            }
+            slotWidget.setHandlerSlot(new TagOrCycleItemStackTransfer(List.of(either)), 0);
             slotWidget.setIngredientIO(ingredientIO);
             slotWidget.setCanTakeItems(false);
             slotWidget.setCanPutItems(false);
+            slotWidget.setXEIChance(content.chance);
         }
     }
 
     @Override
     public void createContentConfigurator(ConfiguratorGroup father, Supplier<Ingredient> supplier, Consumer<Ingredient> onUpdate) {
         // sized ingredient amount
-        father.addConfigurators(new NumberConfigurator("amount",
+        father.addConfigurators(new NumberConfigurator("recipe.capability.item.ingredient.count",
                 () -> supplier.get() instanceof SizedIngredient sizedIngredient ? sizedIngredient.getAmount() : 1,
                 number -> {
                     var amount = number.intValue();

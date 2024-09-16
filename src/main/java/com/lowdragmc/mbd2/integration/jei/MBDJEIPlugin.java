@@ -2,7 +2,6 @@ package com.lowdragmc.mbd2.integration.jei;
 
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.mbd2.MBD2;
-import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
@@ -10,7 +9,6 @@ import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -29,7 +27,7 @@ public class MBDJEIPlugin implements IModPlugin {
         if (LDLib.isReiLoaded() || LDLib.isEmiLoaded()) return;
         MBD2.LOGGER.info("JEI register categories");
         var jeiHelpers = registry.getJeiHelpers();
-//        registry.addRecipeCategories(new MultiblockInfoCategory(jeiHelpers));
+        registry.addRecipeCategories(new MultiblockInfoCategory(jeiHelpers));
         for (var recipeType : MBDRegistries.RECIPE_TYPES) {
             if (recipeType.isXEIVisible()) {
                 registry.addRecipeCategories(new MBDRecipeTypeCategory(jeiHelpers, recipeType));
@@ -41,7 +39,7 @@ public class MBDJEIPlugin implements IModPlugin {
     public void registerRecipeCatalysts(IRecipeCatalystRegistration registration) {
         if (LDLib.isReiLoaded() || LDLib.isEmiLoaded()) return;
         MBD2.LOGGER.info("JEI register catalysts");
-//        MultiblockInfoCategory.registerRecipeCatalysts(registration);
+        MultiblockInfoCategory.registerRecipeCatalysts(registration);
         MBDRecipeTypeCategory.registerRecipeCatalysts(registration);
     }
 
@@ -49,7 +47,7 @@ public class MBDJEIPlugin implements IModPlugin {
     public void registerRecipes(IRecipeRegistration registration) {
         if (LDLib.isReiLoaded() || LDLib.isEmiLoaded()) return;
         MBD2.LOGGER.info("JEI register recipes");
-//        MultiblockInfoCategory.registerRecipes(registration);
+        MultiblockInfoCategory.registerRecipes(registration);
         MBDRecipeTypeCategory.registerRecipes(registration);
 //        GTOreProcessingInfoCategory.registerRecipes(registration);
 //        GTOreVeinInfoCategory.registerRecipes(registration);

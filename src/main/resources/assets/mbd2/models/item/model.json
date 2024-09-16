@@ -1,0 +1,24 @@
+{
+	"display": {
+		"gui": {
+			"rotation": [ 30, 135, 0 ],
+			"translation": [ 0, 0, 0],
+			"scale":[ 0.625, 0.625, 0.625 ]
+		},
+		"fixed": {
+			"rotation": [ 0, 90, 0 ],
+			"translation": [ 0, 0, 0],
+			"scale":[ 0.625, 0.625, 0.625 ]
+		},
+		"ground": {
+			"translation": [ 0, 2, 0],
+			"scale": [ 0.625, 0.625, 0.625 ]
+		},
+		"thirdperson_lefthand": {
+			"scale": [ 0.625, 0.625, 0.625 ]
+		},
+		"thirdperson_righthand": {
+			"scale": [ 0.625, 0.625, 0.625 ]
+		}
+	}
+}

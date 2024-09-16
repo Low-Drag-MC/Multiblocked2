@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.api.pattern;
 
+import com.lowdragmc.mbd2.api.block.ProxyPartBlock;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
@@ -8,8 +9,6 @@ import com.lowdragmc.mbd2.api.pattern.error.PatternStringError;
 import com.lowdragmc.mbd2.api.pattern.predicates.SimplePredicate;
 import com.lowdragmc.mbd2.api.pattern.util.PatternMatchContext;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-import it.unimi.dsi.fastutil.longs.LongSet;
-import it.unimi.dsi.fastutil.longs.LongSets;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -45,6 +44,10 @@ public class MultiblockState {
     public final Level world;
     public final BlockPos controllerPos;
     public IMultiController lastController;
+    @Getter
+    private boolean isInternalStructureForming;
+    @Getter
+    private boolean isInternalStructureInvaliding;
 
     // persist
     public LongOpenHashSet cache;
@@ -159,7 +162,13 @@ public class MultiblockState {
                         mwsd.removeMapping(this);
                     }
                 }
+            } else if (state.getBlock() == ProxyPartBlock.BLOCK) {
+                // ignore if it's a proxy part block
             } else {
+                if (isInternalStructureForming || isInternalStructureInvaliding) {
+                    // ignore if it's internal structure forming or invaliding
+                    return;
+                }
                 IMultiController controller = getController();
                 if (controller != null) {
                     // TODO vaBlocks
@@ -173,10 +182,14 @@ public class MultiblockState {
 //                    }
                     if (controller.checkPatternWithLock()) {
                         // refresh structure
+                        isInternalStructureForming = true;
                         controller.onStructureFormed();
+                        isInternalStructureForming = false;
                     } else {
+                        isInternalStructureInvaliding = true;
                         // invalid structure
                         controller.onStructureInvalid();
+                        isInternalStructureInvaliding = false;
                         var mwsd = MultiblockWorldSavedData.getOrCreate(serverLevel);
                         mwsd.removeMapping(this);
                         mwsd.addAsyncLogic(controller);

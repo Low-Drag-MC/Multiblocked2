@@ -10,6 +10,7 @@ import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.resources.model.ModelState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -26,6 +27,7 @@ import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.Rotation;
@@ -61,7 +63,7 @@ public class MBDMachineBlock extends Block implements EntityBlock, IBlockRendere
     public MBDMachineBlock(Properties properties, MBDMachineDefinition definition) {
         super(properties);
         this.definition = definition;
-        this.rotationState = RotationState.get();
+        this.rotationState = definition.blockProperties().rotationState();
         rotationState.property.ifPresent(property -> registerDefaultState(defaultBlockState().setValue(property, rotationState.defaultDirection)));
     }
 
@@ -89,7 +91,7 @@ public class MBDMachineBlock extends Block implements EntityBlock, IBlockRendere
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        RotationState rotationState = RotationState.get();
+        var rotationState = MBDMachineDefinition.get().blockProperties().rotationState();
         rotationState.property.ifPresent(builder::add);
     }
 
@@ -213,8 +215,6 @@ public class MBDMachineBlock extends Block implements EntityBlock, IBlockRendere
     public InteractionResult use(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
         var machine = getMachine(world, pos).orElse(null);
         if (machine == null) return InteractionResult.PASS;
-        ItemStack itemStack = player.getItemInHand(hand);
-
         // TODO use
 //        Set<GTToolType> types = ToolHelper.getToolTypes(itemStack);
 //        if (machine != null && !types.isEmpty() && ToolHelper.canUse(itemStack)) {
@@ -233,6 +233,8 @@ public class MBDMachineBlock extends Block implements EntityBlock, IBlockRendere
 //            var result = interactedMachine.onUse(state, world, pos, player, hand, hit);
 //            if (result != InteractionResult.PASS) return result;
 //        }
+        var result = machine.onUse(state, world, pos, player, hand, hit);
+        if (result != InteractionResult.PASS) return result;
         if (machine.shouldOpenUI(hand, hit)) {
             return machine.openUI(player);
         }
@@ -266,4 +268,18 @@ public class MBDMachineBlock extends Block implements EntityBlock, IBlockRendere
         return getMachine(level, pos).map(machine -> machine.getAppearance(state, side, queryState, queryPos)).orElse(state);
     }
 
+    @Override
+    public int getLightMap(BlockAndTintGetter world, BlockState state, BlockPos pos) {
+        if (state.emissiveRendering(world, pos)) {
+            return LightTexture.FULL_BRIGHT;
+        } else {
+            int i = world.getBrightness(LightLayer.SKY, pos);
+            int j = world.getBrightness(LightLayer.BLOCK, pos);
+            int k = state.getLightEmission(world, pos);
+            if (j < k) {
+                j = k;
+            }
+            return i << 20 | j << 4;
+        }
+    }
 }

@@ -63,6 +63,7 @@ public class MBDBlockRenderer implements IRenderer {
     @Override
     public List<BakedQuad> renderModel(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand) {
         return getMachine(level, pos)
+                .filter(machine -> !machine.isDisableRendering())
                 .map(machine -> machine.getMachineState().getRenderer().renderModel(level, pos, state, side, rand))
                 .orElseGet(Collections::emptyList);
     }
@@ -72,8 +73,8 @@ public class MBDBlockRenderer implements IRenderer {
     public TextureAtlasSprite getParticleTexture() {
         var modelData = LDLRendererModel.RendererBakedModel.CURRENT_MODEL_DATA.get();
         if (modelData != null) {
-            BlockAndTintGetter world = modelData.get(WORLD);
-            BlockPos pos = modelData.get(POS);
+            var world = modelData.get(WORLD);
+            var pos = modelData.get(POS);
             return getMachine(world, pos)
                     .map(machine -> machine.getMachineState().getRenderer().getParticleTexture())
                     .orElseGet(IRenderer.super::getParticleTexture);
@@ -103,7 +104,9 @@ public class MBDBlockRenderer implements IRenderer {
 
     @Override
     public boolean shouldRender(BlockEntity blockEntity, Vec3 cameraPos) {
-        return getMachine(blockEntity).map(machine -> machine.getMachineState().getRenderer().shouldRender(blockEntity, cameraPos)).orElseGet(() -> IRenderer.super.shouldRender(blockEntity, cameraPos));
+        return getMachine(blockEntity).filter(machine -> !machine.isDisableRendering())
+                .map(machine -> machine.getMachineState().getRenderer().shouldRender(blockEntity, cameraPos))
+                .orElseGet(() -> IRenderer.super.shouldRender(blockEntity, cameraPos));
     }
 
     @Override

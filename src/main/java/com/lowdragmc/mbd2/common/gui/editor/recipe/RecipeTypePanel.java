@@ -40,6 +40,7 @@ public class RecipeTypePanel extends WidgetGroup {
         editor.getConfigPanel().clearAllConfigurators();
         editor.getToolPanel().clearAllWidgets();
         editor.getToolPanel().setTitle("editor.machine.recipe_type.recipes");
+        contentGroup.clearAllWidgets();
         var common = new AtomicReference<RecipeList>();
         var fuel = new AtomicReference<RecipeList>();
         editor.getToolPanel().addNewToolBox("editor.machine.recipe_type.recipes.common", Icons.WIDGET_CUSTOM, size -> {

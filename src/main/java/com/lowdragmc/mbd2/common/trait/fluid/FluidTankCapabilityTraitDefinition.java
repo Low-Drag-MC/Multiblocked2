@@ -45,6 +45,9 @@ public class FluidTankCapabilityTraitDefinition extends SimpleCapabilityTraitDef
     @Setter
     @Configurable(name = "config.definition.trait.fluid_tank.allow_same_fluids", tips = "config.definition.trait.fluid_tank.allow_same_fluids.tooltip")
     private boolean allowSameFluids = true;
+    @Getter
+    @Configurable(name = "config.definition.trait.fluid_tank.filter", subConfigurable = true, tips = "config.definition.trait.fluid_tank.filter.tooltip")
+    private final FluidFilterSettings fluidFilterSettings = new FluidFilterSettings();
     @Configurable(name = "config.definition.trait.fluid_tank.fancy_renderer", subConfigurable = true,
             tips = {"config.definition.trait.fluid_tank.fancy_renderer.tooltip.0", "config.definition.trait.fluid_tank.fancy_renderer.tooltip.1"})
     private final FluidFancyRendererSettings fancyRendererSettings = new FluidFancyRendererSettings(this);

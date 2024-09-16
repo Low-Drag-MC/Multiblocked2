@@ -13,10 +13,13 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.LazyOptional;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.function.Function;
 
 /**
  * A simple compound Interface for a BlockEntity which is holding a Machine feature.
@@ -31,9 +34,9 @@ public class MachineBlockEntity extends BlockEntity implements IMachineBlockEnti
     @Getter
     private IMachine metaMachine;
 
-    public MachineBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState blockState) {
+    public MachineBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState blockState, Function<IMachineBlockEntity, IMachine> machineFactory) {
         super(type, pos, blockState);
-        this.setMachine(new MBDMachine(this, ((MBDMachineBlock)blockState.getBlock()).getDefinition()));
+        this.setMachine(machineFactory.apply(this));
     }
 
     public void setMachine(IMachine newMachine) {
@@ -70,4 +73,14 @@ public class MachineBlockEntity extends BlockEntity implements IMachineBlockEnti
         return super.getCapability(cap, side);
     }
 
+    @Override
+    public AABB getRenderBoundingBox() {
+        if (metaMachine instanceof MBDMachine machine) {
+            var value = machine.getRenderBoundingBox();
+            if (value != null) {
+                return value;
+            }
+        }
+        return super.getRenderBoundingBox();
+    }
 }

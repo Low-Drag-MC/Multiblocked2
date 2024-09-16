@@ -14,17 +14,22 @@ import com.lowdragmc.lowdraglib.gui.editor.ui.MenuPanel;
 import com.lowdragmc.lowdraglib.gui.editor.ui.sceneeditor.SceneEditorWidget;
 import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
 import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
-import com.lowdragmc.lowdraglib.gui.widget.ButtonWidget;
-import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
-import com.lowdragmc.lowdraglib.gui.widget.SceneWidget;
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
+import com.lowdragmc.lowdraglib.gui.widget.*;
+import com.lowdragmc.lowdraglib.utils.BlockInfo;
 import com.lowdragmc.lowdraglib.utils.ColorUtils;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.lowdraglib.utils.Size;
+import com.lowdragmc.mbd2.api.pattern.MultiblockShapeInfo;
 import com.lowdragmc.mbd2.api.pattern.predicates.PredicateBlocks;
 import com.lowdragmc.mbd2.api.pattern.predicates.PredicateFluids;
+import com.lowdragmc.mbd2.api.registry.MBDRegistries;
+import com.lowdragmc.mbd2.common.blockentity.MachineBlockEntity;
 import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
 import com.lowdragmc.mbd2.common.gui.editor.MultiblockMachineProject;
+import com.lowdragmc.mbd2.common.machine.MBDMachine;
+import com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine;
+import com.lowdragmc.mbd2.common.trait.ITrait;
+import com.lowdragmc.mbd2.utils.ControllerBlockInfo;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import lombok.Getter;
@@ -47,6 +52,8 @@ public class MultiblockAreaPanel extends WidgetGroup {
     protected final MultiblockMachineProject project;
     @Getter
     protected final SceneWidget scene;
+    @Getter
+    protected final MultiblockPatternPanel patternPanel;
     protected final WidgetGroup buttonGroup;
 
     // runtime
@@ -72,8 +79,9 @@ public class MultiblockAreaPanel extends WidgetGroup {
             @Override
             public void buildConfigurator(ConfiguratorGroup father) {
                 IConfigurable.super.buildConfigurator(father);
-                father.addConfigurators(new WrapperConfigurator("", new ImageWidget(0, 0, 150, 10,
-                        new TextTexture("editor.machine.multiblock.area_panel.area.tips"))));
+                father.addConfigurators(new WrapperConfigurator("", new WidgetGroup(0, 0, 150, 5)
+                        .addWidget(new ImageWidget(0, -10, 150, 10,
+                                new TextTexture("editor.machine.multiblock.area_panel.area.tips")))));
             }
         }
 
@@ -121,23 +129,44 @@ public class MultiblockAreaPanel extends WidgetGroup {
         @Override
         public void buildConfigurator(ConfiguratorGroup father) {
             IConfigurable.super.buildConfigurator(father);
-            var wrapper = new WrapperConfigurator("editor.machine.multiblock.area_panel.generatePattern", new ButtonWidget(0, 0, 100, 10,
+            var buttonGroup = new WidgetGroup(0, 0, 100, 22);
+            buttonGroup.addWidget(new ButtonWidget(0, 0, 100, 10,
                     new GuiTextureGroup(
                             ColorPattern.T_GRAY.rectTexture().setRadius(5),
-                            new TextTexture("editor.machine.multiblock.area_panel.generatePattern.button")),
-                    cd -> generatePattern())
+                            new TextTexture("editor.machine.multiblock.area_panel.generatePattern.button.0")),
+                    cd -> {
+                        DialogWidget.showNotification(Editor.INSTANCE,
+                                "editor.machine.multiblock.area_panel.generatePattern.button.0.title",
+                                "editor.machine.multiblock.area_panel.generatePattern.button.0.info");
+                        generatePattern();
+                    })
                     .setHoverTexture(
                             ColorPattern.WHITE.borderTexture(1).setRadius(5),
-                            new TextTexture("editor.machine.multiblock.area_panel.generatePattern.button")));
+                            new TextTexture("editor.machine.multiblock.area_panel.generatePattern.button.0")));
+            buttonGroup.addWidget(new ButtonWidget(0, 12, 100, 10,
+                    new GuiTextureGroup(
+                            ColorPattern.T_GRAY.rectTexture().setRadius(5),
+                            new TextTexture("editor.machine.multiblock.area_panel.generatePattern.button.1")),
+                    cd -> {
+                        DialogWidget.showNotification(Editor.INSTANCE,
+                                "editor.machine.multiblock.area_panel.generatePattern.button.1.title",
+                                "editor.machine.multiblock.area_panel.generatePattern.button.1.info");
+                        generateShapeInfo();
+                    })
+                    .setHoverTexture(
+                            ColorPattern.WHITE.borderTexture(1).setRadius(5),
+                            new TextTexture("editor.machine.multiblock.area_panel.generatePattern.button.1")));
+            var wrapper = new WrapperConfigurator("editor.machine.multiblock.area_panel.generatePattern", buttonGroup);
             wrapper.setTips("editor.machine.multiblock.area_panel.generatePattern.tips");
             father.addConfigurators(wrapper);
         }
 
     }
 
-    public MultiblockAreaPanel(MultiblockMachineProject project) {
+    public MultiblockAreaPanel(MultiblockMachineProject project, MultiblockPatternPanel patternPanel) {
         super(0, MenuPanel.HEIGHT, Editor.INSTANCE.getSize().getWidth() - ConfigPanel.WIDTH, Editor.INSTANCE.getSize().height - MenuPanel.HEIGHT - 16);
         this.project = project;
+        this.patternPanel = patternPanel;
         addWidget(scene = new SceneEditorWidget(0, 0, this.getSize().width, this.getSize().height, null));
         addWidget(buttonGroup = new WidgetGroup(0, 0, this.getSize().width, this.getSize().height));
         scene.setRenderFacing(false);
@@ -172,6 +201,36 @@ public class MultiblockAreaPanel extends WidgetGroup {
         scene.setRenderedCore(blocks);
     }
 
+    public void generateShapeInfo() {
+        var minX = Math.min(runtime.area.from.getX(), runtime.area.to.getX());
+        var minY = Math.min(runtime.area.from.getY(), runtime.area.to.getY());
+        var minZ = Math.min(runtime.area.from.getZ(), runtime.area.to.getZ());
+        var maxX = Math.max(runtime.area.from.getX(), runtime.area.to.getX());
+        var maxY = Math.max(runtime.area.from.getY(), runtime.area.to.getY());
+        var maxZ = Math.max(runtime.area.from.getZ(), runtime.area.to.getZ());
+        var controllerPos = new BlockPos(
+                runtime.controllerOffset.x + minX,
+                runtime.controllerOffset.y + minY,
+                runtime.controllerOffset.z + minZ);
+        var controllerFace = runtime.controllerFace;
+        var blockInfos = new BlockInfo[maxX - minX + 1][maxY - minY + 1][maxZ - minZ + 1];
+        var level = Minecraft.getInstance().level;
+        assert level != null;
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    var pos = new BlockPos(x, y, z);
+                    var blockInfo = BlockInfo.fromBlockState(level.getBlockState(pos));
+                    if (pos.equals(controllerPos)) {
+                        blockInfo = new ControllerBlockInfo(controllerFace);
+                    }
+                    blockInfos[x - minX][y - minY][z - minZ] = blockInfo;
+                }
+            }
+        }
+        project.getMultiblockShapeInfos().add(new MultiblockShapeInfo(blockInfos));
+    }
+
     /**
      * generate the pattern based on selected area.
      */
@@ -190,6 +249,7 @@ public class MultiblockAreaPanel extends WidgetGroup {
 
         var blockPlaceholders = new BlockPlaceholder[maxX - minX + 1][maxY - minY + 1][maxZ - minZ + 1];
         var addNewResource = false;
+        var level = Minecraft.getInstance().level;
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
                 for (int z = minZ; z <= maxZ; z++) {
@@ -199,7 +259,6 @@ public class MultiblockAreaPanel extends WidgetGroup {
                     if (blockPos.equals(controllerPos)) {
                         holder = BlockPlaceholder.controller(predicateResource).setFacing(controllerFace);
                     } else {
-                        var level = Minecraft.getInstance().level;
                         var block = level.getBlockState(blockPos).getBlock();
                         String id;
                         if (block instanceof LiquidBlock liquidBlock) {
@@ -226,7 +285,8 @@ public class MultiblockAreaPanel extends WidgetGroup {
         if (addNewResource) {
             Editor.INSTANCE.getResourcePanel().rebuildResource(project.getPredicateResource().name());
         }
-        project.updateBlockPlaceholders(blockPlaceholders);
+        project.setBlockPlaceholders(blockPlaceholders);
+        patternPanel.onBlockPlaceholdersChanged();
     }
 
     /**
@@ -252,6 +312,7 @@ public class MultiblockAreaPanel extends WidgetGroup {
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         if (isMouseOverElement(mouseX, mouseY)) {
+            // select area by click
             var hoverPosFace = scene.getHoverPosFace();
             var clickPosFace = scene.getClickPosFace();
             if (isShiftDown() && hoverPosFace != null && hoverPosFace.equals(clickPosFace)) {

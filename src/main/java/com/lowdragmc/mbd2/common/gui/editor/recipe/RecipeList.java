@@ -91,9 +91,15 @@ public class RecipeList extends DraggableScrollableWidgetGroup {
             var durationWidget = new NumberConfigurator("recipe.duration", () -> recipe.duration, v -> recipe.duration = v.intValue(), 100, true);
             durationWidget.setRange(1, Integer.MAX_VALUE);
             durationWidget.setTips(isFuel ? "recipe.duration.fuel.tooltip" : "recipe.duration.common.tooltip");
-            durationWidget.init(200);
+            durationWidget.init(100);
             durationWidget.setSelfPosition((w - 200) / 2, h / 2 - 7);
             container.addWidget(durationWidget);
+            var priorityWidget = new NumberConfigurator("recipe.priority", () -> recipe.priority, v -> recipe.priority = v.intValue(), 0, true);
+            priorityWidget.setRange(Integer.MIN_VALUE, Integer.MAX_VALUE);
+            priorityWidget.setTips( "recipe.priority.tooltip");
+            priorityWidget.init(100);
+            priorityWidget.setSelfPosition((w - 200) / 2 + 100, h / 2 - 7);
+            container.addWidget(priorityWidget);
             if (!isFuel) {
                 container.addWidget(new ImageWidget(0, h / 2 + 8, w, 10, new TextTexture(IO.OUT.getTooltip()).setWidth(w)))
                         .addWidget(outputsContainer = new ContentContainer(0, h / 2 + 18, w, h / 2 - 18, recipe.outputs, () -> {

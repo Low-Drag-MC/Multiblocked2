@@ -20,12 +20,10 @@ import java.util.function.Supplier;
 public abstract class RecipeCapability<T> {
 
     public final String name;
-    public final int color;
     public final IContentSerializer<T> serializer;
 
-    protected RecipeCapability(String name, int color, IContentSerializer<T> serializer) {
+    protected RecipeCapability(String name, IContentSerializer<T> serializer) {
         this.name = name;
-        this.color = color;
         this.serializer = serializer;
     }
 

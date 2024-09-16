@@ -3,6 +3,7 @@ package com.lowdragmc.mbd2.api.pattern;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
+import com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
@@ -89,6 +90,10 @@ public class MultiblockWorldSavedData extends SavedData {
      * @param controller controller
      */
     public void addAsyncLogic(IMultiController controller) {
+        if (controller instanceof MBDMultiblockMachine machine) {
+            // if it requires catalyst, don't add it to async logic.
+            if (machine.getDefinition().multiblockSettings().catalyst().isEnable()) return;
+        }
         controllers.add(controller);
         createExecutorService();
     }

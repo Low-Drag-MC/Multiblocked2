@@ -19,6 +19,7 @@ import java.util.*;
 @EqualsAndHashCode
 public class BlockPlaceholder implements IConfigurable, ITagSerializable<CompoundTag> {
     @EqualsAndHashCode.Exclude
+    @Getter
     protected final PredicateResource predicateResource;
     @Getter
     protected Set<String> predicates = new HashSet<>();
@@ -61,7 +62,7 @@ public class BlockPlaceholder implements IConfigurable, ITagSerializable<Compoun
         tag.put("predicates", predicatesTag);
         tag.putBoolean("isController", isController);
         tag.putInt("facing", facing.get3DDataValue());
-        return null;
+        return tag;
     }
 
     @Override

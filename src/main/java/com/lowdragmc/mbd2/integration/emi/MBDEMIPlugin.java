@@ -10,7 +10,7 @@ import dev.emi.emi.api.EmiRegistry;
 public class MBDEMIPlugin implements EmiPlugin {
     @Override
     public void register(EmiRegistry registry) {
-//        registry.addCategory(MultiblockInfoEmiCategory.CATEGORY);
+        registry.addCategory(MultiblockInfoEmiCategory.CATEGORY);
         MBD2.LOGGER.info("EMI register");
         for (var recipeType : MBDRegistries.RECIPE_TYPES) {
             if (recipeType.isXEIVisible()) {
@@ -18,13 +18,13 @@ public class MBDEMIPlugin implements EmiPlugin {
             }
         }
         // recipes
-//        try {
-//            MultiblockInfoEmiCategory.registerDisplays(registry);
-//        } catch (NullPointerException ignored){
-//        }
+        try {
+            MultiblockInfoEmiCategory.registerDisplays(registry);
+        } catch (NullPointerException ignored){
+        }
         MBDRecipeTypeEmiCategory.registerDisplays(registry);
         // workstations
-//        MultiblockInfoEmiCategory.registerWorkStations(registry);
+        MultiblockInfoEmiCategory.registerWorkStations(registry);
         MBDRecipeTypeEmiCategory.registerWorkStations(registry);
     }
 }

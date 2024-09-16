@@ -1,13 +1,12 @@
 package com.lowdragmc.mbd2.api.machine;
 
 import com.lowdragmc.mbd2.api.capability.MBDCapabilities;
+import com.lowdragmc.mbd2.api.capability.recipe.IRecipeCapabilityHolder;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 
@@ -17,7 +16,7 @@ import java.util.Optional;
 
 public interface IMultiPart extends IMachine {
 
-    static Optional<IMultiPart> ofPart(@javax.annotation.Nullable BlockEntity blockEntity) {
+    static Optional<IMultiPart> ofPart(@Nullable BlockEntity blockEntity) {
         return blockEntity == null ? Optional.empty() : blockEntity.getCapability(MBDCapabilities.CAPABILITY_MACHINE).resolve()
                 .filter(IMultiPart.class::isInstance)
                 .map(IMultiPart.class::cast);
@@ -35,7 +34,7 @@ public interface IMultiPart extends IMachine {
     }
 
     /**
-     * Whether it belongs to...
+     * Whether it belongs to the specified controller.
      */
     boolean hasController(BlockPos controllerPos);
 
@@ -60,60 +59,56 @@ public interface IMultiPart extends IMachine {
     void addedToController(IMultiController controller);
 
     /**
-     * Get all available traits for recipe logic.
+     * Get all available traits for recipe logic. It is only used for controller recipe logic.
+     * <br>
+     * For self recipe logic, use {@link IRecipeCapabilityHolder#getCapabilitiesProxy()} to get recipe handlers.
      */
-    List<IRecipeHandlerTrait<?>> getRecipeHandlers();
+    List<IRecipeHandlerTrait> getRecipeHandlers();
 
     /**
-     * whether its base model can be replaced by controller when it is formed.
+     * Called when controller recipe logic status changed
      */
-    default boolean replacePartModelWhenFormed() {
-        return true;
+    default void notifyControllerRecipeStatusChanged(IMultiController controller, RecipeLogic.Status oldStatus, RecipeLogic.Status newStatus) {
     }
 
     /**
-     * get part's Appearance. same as IForgeBlock.getAppearance() / IFabricBlock.getAppearance()
+     * Called per tick in {@link RecipeLogic#handleRecipeWorking()}
+     * @return whether it should keep working
      */
-    @Nullable
-    default BlockState getFormedAppearance(BlockState sourceState, BlockPos sourcePos, Direction side) {
-        return null;
+    default boolean onControllerWorking(IMultiController controller) {
+        return false;
     }
 
     /**
      * Called per tick in {@link RecipeLogic#handleRecipeWorking()}
      */
-    default void onWorking(IMultiController controller) {
-
-    }
-
-    /**
-     * Called per tick in {@link RecipeLogic#handleRecipeWorking()}
-     */
-    default void onWaiting(IMultiController controller) {
+    default void onControllerWaiting(IMultiController controller) {
 
     }
 
     /**
      * Called in {@link RecipeLogic#onRecipeFinish()} before outputs are produced
      */
-    default void afterWorking(IMultiController controller) {
+    default void afterControllerWorking(IMultiController controller) {
 
     }
 
     /**
      * Called in {@link RecipeLogic#setupRecipe(MBDRecipe)} ()}
+     * @return whether interrupt the recipe setup.
      */
-    default void beforeWorking(IMultiController controller) {
-
+    default boolean beforeControllerWorking(IMultiController controller) {
+        return false;
     }
 
     /**
-     * Override it to modify recipe on the fly e.g. applying overclock, change chance, etc
+     * Override it to modify controller recipe on the fly e.g. applying overclock, change chance, etc
      * @param recipe recipe from detected from MBDRecipeType
+     * @param controllerRecipeLogic controller recipe logic
      * @return modified recipe.
      *         null -- this recipe is unavailable
      */
-    default MBDRecipe modifyRecipe(MBDRecipe recipe) {
+    default MBDRecipe modifyControllerRecipe(MBDRecipe recipe, RecipeLogic controllerRecipeLogic) {
         return recipe;
     }
 

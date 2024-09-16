@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.common.gui.editor.machine;
 
+import com.lowdragmc.lowdraglib.client.utils.RenderBufferUtils;
 import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.editor.Icons;
 import com.lowdragmc.lowdraglib.gui.editor.ui.ConfigPanel;
@@ -7,10 +8,7 @@ import com.lowdragmc.lowdraglib.gui.editor.ui.MenuPanel;
 import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.widget.*;
-import com.lowdragmc.lowdraglib.utils.BlockInfo;
-import com.lowdragmc.lowdraglib.utils.Position;
-import com.lowdragmc.lowdraglib.utils.Size;
-import com.lowdragmc.lowdraglib.utils.TrackedDummyWorld;
+import com.lowdragmc.lowdraglib.utils.*;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.blockentity.MachineBlockEntity;
@@ -25,9 +23,7 @@ import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
-import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL11;
 
 import javax.annotation.Nullable;
@@ -47,7 +43,9 @@ public class MachineScenePanel extends WidgetGroup {
     @Getter
     protected MBDMachine previewMachine;
     @Setter @Getter
-    protected boolean drawFrameLines = false;
+    protected boolean drawShapeFrameLines = false;
+    @Setter @Getter
+    protected boolean drawRenderingBoxFrameLines = false;
 
 
     public MachineScenePanel(MachineEditor editor) {
@@ -61,6 +59,7 @@ public class MachineScenePanel extends WidgetGroup {
         scene.getRenderer().setOnLookingAt(null); // better performance
         scene.setRenderedCore(Collections.singleton(BlockPos.ZERO), null);
         scene.setAfterWorldRender(this::renderAfterWorld);
+        scene.getRenderer().setEndBatchLast(false);
         resetScene();
         prepareButtonGroup();
         buttonGroup.setSize(new Size(Math.max(0, buttonGroup.widgets.size() * 25 - 5), 20));
@@ -76,7 +75,7 @@ public class MachineScenePanel extends WidgetGroup {
         this.level.addBlock(BlockPos.ZERO, BlockInfo.fromBlock(MBDRegistries.getFAKE_MACHINE().block()));
         Optional.ofNullable(this.level.getBlockEntity(BlockPos.ZERO)).ifPresent(blockEntity -> {
             if (blockEntity instanceof MachineBlockEntity holder && editor.getCurrentProject() instanceof MachineProject project) {
-                holder.setMachine(this.previewMachine = new MBDMachine(holder, project.getDefinition()));
+                holder.setMachine(this.previewMachine = project.getDefinition().createMachine(holder));
             }
         });
         reloadAdditionalTraits();
@@ -93,7 +92,8 @@ public class MachineScenePanel extends WidgetGroup {
      * prepare the button group, you can add buttons / switches here.
      */
     protected void prepareButtonGroup() {
-        addSwitch(Icons.icon(MBD2.MOD_ID, "cube_outline"), null, "editor.machine_scene.draw_frame_lines", this::isDrawFrameLines, this::setDrawFrameLines);
+        addSwitch(Icons.icon(MBD2.MOD_ID, "cube_outline"), null, "editor.machine_scene.draw_shape_frame_lines", this::isDrawShapeFrameLines, this::setDrawShapeFrameLines);
+        addSwitch(Icons.icon(MBD2.MOD_ID, "cube_outline").copy().setColor(0xffeedd00), null, "editor.machine_scene.draw_rendering_box_frame_lines", this::isDrawRenderingBoxFrameLines, this::setDrawRenderingBoxFrameLines);
     }
 
     protected void addSwitch(IGuiTexture baseTexture, @Nullable IGuiTexture pressedTexture, @Nullable String tooltips, BooleanSupplier getter, BooleanConsumer setter) {
@@ -120,23 +120,27 @@ public class MachineScenePanel extends WidgetGroup {
      */
     private void renderAfterWorld(SceneWidget sceneWidget) {
         if (previewMachine == null) return;
+        var drawFrameLines = drawShapeFrameLines || drawRenderingBoxFrameLines;
+        var poseStack = new PoseStack();
+        var tessellator = Tesselator.getInstance();
+        var buffer = tessellator.getBuilder();
+        var matrix4f = poseStack.last().pose();
+        var normal = poseStack.last().normal();
         if (drawFrameLines) {
-            PoseStack PoseStack = new PoseStack();
 
             RenderSystem.enableBlend();
             RenderSystem.disableDepthTest();
             RenderSystem.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
-            PoseStack.pushPose();
-            var tessellator = Tesselator.getInstance();
+            poseStack.pushPose();
             RenderSystem.disableCull();
-            BufferBuilder buffer = tessellator.getBuilder();
             RenderSystem.setShader(GameRenderer::getRendertypeLinesShader);
             buffer.begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
-            RenderSystem.lineWidth(10);
-            Matrix4f matrix4f = PoseStack.last().pose();
+            RenderSystem.lineWidth(5);
+        }
 
-            previewMachine.getMachineState().getShape(previewMachine.getFrontFacing().orElse(Direction.NORTH)).forAllEdges((x0, y0, z0, x1, y1, z1) -> {
+        if (drawShapeFrameLines) {
+            previewMachine.getMachineState().getShape(null).forAllEdges((x0, y0, z0, x1, y1, z1) -> {
                 float f = (float)(x1 - x0);
                 float f1 = (float)(y1 - y0);
                 float f2 = (float)(z1 - z0);
@@ -144,13 +148,26 @@ public class MachineScenePanel extends WidgetGroup {
                 f /= f3;
                 f1 /= f3;
                 f2 /= f3;
-                buffer.vertex(matrix4f, (float)(x0), (float)(y0), (float)(z0)).color(-1).normal(PoseStack.last().normal(), f, f1, f2).endVertex();
-                buffer.vertex(matrix4f, (float)(x1), (float)(y1), (float)(z1)).color(-1).normal(PoseStack.last().normal(), f, f1, f2).endVertex();
+                buffer.vertex(matrix4f, (float)(x0), (float)(y0), (float)(z0)).color(-1).normal(normal, f, f1, f2).endVertex();
+                buffer.vertex(matrix4f, (float)(x1), (float)(y1), (float)(z1)).color(-1).normal(normal, f, f1, f2).endVertex();
             });
+        }
 
+        if (drawRenderingBoxFrameLines) {
+            var aabb = previewMachine.getMachineState().getRenderingBox(null);
+            if (aabb != null) {
+                var color = 0xffeedd00;
+                RenderBufferUtils.drawCubeFrame(poseStack, buffer,
+                        (float)aabb.minX, (float)aabb.minY, (float)aabb.minZ,
+                        (float)aabb.maxX, (float)aabb.maxY, (float)aabb.maxZ,
+                        ColorUtils.red(color), ColorUtils.green(color), ColorUtils.blue(color), ColorUtils.alpha(color));
+            }
+        }
+
+        if (drawFrameLines) {
             tessellator.end();
 
-            PoseStack.popPose();
+            poseStack.popPose();
             RenderSystem.enableDepthTest();
             RenderSystem.enableCull();
         }

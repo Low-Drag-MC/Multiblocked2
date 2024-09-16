@@ -21,12 +21,19 @@ public class ConfigHolder {
             .comment("Whether search for recipes asynchronously.")
             .define("asyncRecipeSearching", true);
 
+    private static final ForgeConfigSpec.BooleanValue USE_VBO = BUILDER
+            .comment("Whether use vbo for preview page rendering.")
+            .define("useVBO", true);
+
     public static final ForgeConfigSpec SPEC = BUILDER.build();
 
     public static boolean asyncRecipeSearching;
 
+    public static boolean useVBO;
+
     @SubscribeEvent
     static void onLoad(final ModConfigEvent event) {
         asyncRecipeSearching = ASYNC_RECIPE_SEARCHING.get();
+        useVBO = USE_VBO.get();
     }
 }

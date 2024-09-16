@@ -43,4 +43,12 @@ public class MBD2 {
     public static ResourceLocation id(String path) {
         return new ResourceLocation(MOD_ID, path);
     }
+
+    public static boolean isGeckolibLoaded() {
+        return LDLib.isModLoaded("geckolib");
+    }
+
+    public static boolean isPhotonLoaded() {
+        return LDLib.isModLoaded("photon");
+    }
 }

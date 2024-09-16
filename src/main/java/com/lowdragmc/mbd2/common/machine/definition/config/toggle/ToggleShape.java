@@ -46,7 +46,7 @@ public class ToggleShape extends ToggleObject<VoxelShape> implements ITagSeriali
 
     @Override
     public void setValue(VoxelShape value) {
-        this.value = value;
+        this.value = null;
         this.aabbs.clear();
         this.aabbs.addAll(value.toAabbs());
     }

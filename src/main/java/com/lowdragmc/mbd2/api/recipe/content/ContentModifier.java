@@ -1,12 +1,23 @@
 package com.lowdragmc.mbd2.api.recipe.content;
 
+import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
-public class ContentModifier {
-
-    private final double multiplier;
-    private final double addition;
+@Getter
+@Setter
+public class ContentModifier implements IConfigurable {
+    @Configurable(name="content_modifier.multiplier", tips="content_modifier.multiplier.tips")
+    @NumberRange(range = {0, Double.MAX_VALUE}, wheel = 1f)
+    private double multiplier;
+    @Configurable(name="content_modifier.addition", tips="content_modifier.addition.tips")
+    @NumberRange(range = {0, Double.MAX_VALUE}, wheel = 1f)
+    private double addition;
 
     public static ContentModifier of(double multiplier, double addition) {
         return new ContentModifier(multiplier, addition);
@@ -33,6 +44,10 @@ public class ContentModifier {
             return bigInteger.multiply(BigInteger.valueOf((long) multiplier)).add(BigInteger.valueOf((long) addition));
         }
         return number.doubleValue() * multiplier + addition;
+    }
+
+    public ContentModifier merge(ContentModifier modifier) {
+        return new ContentModifier(multiplier * modifier.multiplier, addition + modifier.addition);
     }
 
 }

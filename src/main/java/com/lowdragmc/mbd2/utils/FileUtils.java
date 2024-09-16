@@ -13,18 +13,18 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.function.BiConsumer;
 
 public class FileUtils {
-    public static void loadNBTFiles(File path, String extension, BiConsumer<Path, CompoundTag> consumer) {
+    public static void loadNBTFiles(File path, String extension, BiConsumer<File, CompoundTag> consumer) {
         if (path.exists() && path.isDirectory()) {
             // walk through all files under the directory, including subdirectory
             try {
                 Files.walkFileTree(path.toPath(), new SimpleFileVisitor<>() {
                     @Override
-                    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-                        if (file.getFileName().toString().endsWith(extension)) {
+                    public FileVisitResult visitFile(Path path, BasicFileAttributes attrs) {
+                        if (path.getFileName().toString().endsWith(extension)) {
                             try {
-                                var tag = NbtIo.read(file.toFile());
+                                var tag = NbtIo.read(path.toFile());
                                 if (tag != null) {
-                                    consumer.accept(file, tag);
+                                    consumer.accept(path.toFile(), tag);
                                 }
                             } catch (IOException ignored) {}
                         }

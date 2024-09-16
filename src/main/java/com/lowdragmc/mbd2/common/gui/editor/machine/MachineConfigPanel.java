@@ -22,7 +22,8 @@ public class MachineConfigPanel extends MachineScenePanel {
 
     public MachineConfigPanel(MachineEditor editor) {
         super(editor);
-        setDrawFrameLines(true);
+        setDrawShapeFrameLines(true);
+        setDrawRenderingBoxFrameLines(true);
         addWidget(floatView = new FloatView());
         floatView.setDraggable(true);
         loadMachineState();

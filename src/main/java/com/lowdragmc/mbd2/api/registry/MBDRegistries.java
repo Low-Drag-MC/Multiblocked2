@@ -10,7 +10,7 @@ import com.lowdragmc.mbd2.common.machine.definition.config.ConfigBlockProperties
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigItemProperties;
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
 import com.lowdragmc.mbd2.common.machine.definition.config.StateMachine;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleInteger;
+import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleLightValue;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleShape;
 import lombok.Getter;
@@ -26,12 +26,13 @@ public class MBDRegistries {
                         .name("base")
                         .renderer(new ToggleRenderer(IRenderer.EMPTY))
                         .shape(new ToggleShape(Shapes.block()))
-                        .lightLevel(new ToggleInteger(0))
+                        .lightLevel(new ToggleLightValue(0))
                         .build()))
                 .blockProperties(ConfigBlockProperties.builder().build())
                 .itemProperties(ConfigItemProperties.builder().build())
                 .build();
     }
+
     public static final MBDRegistry.RL<MBDMachineDefinition> MACHINE_DEFINITIONS = new MBDRegistry.RL<>(MBD2.id("machine_definition"));
     public static final MBDRegistry.RL<MBDRecipeType> RECIPE_TYPES = new MBDRegistry.RL<>(MBD2.id("recipe_type"));
     public static final MBDRegistry.String<RecipeCapability<?>> RECIPE_CAPABILITIES = new MBDRegistry.String<>(MBD2.id("recipe_capability"));

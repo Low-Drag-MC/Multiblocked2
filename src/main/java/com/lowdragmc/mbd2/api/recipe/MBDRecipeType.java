@@ -2,6 +2,7 @@ package com.lowdragmc.mbd2.api.recipe;
 
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.*;
+import com.lowdragmc.lowdraglib.gui.editor.data.resource.TexturesResource;
 import com.lowdragmc.lowdraglib.gui.editor.runtime.PersistedParser;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
@@ -14,7 +15,6 @@ import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeCapabilityHolder;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
-import com.lowdragmc.mbd2.common.gui.editor.RecipeTypeProject;
 import com.lowdragmc.mbd2.core.mixins.RecipeManagerAccessor;
 import com.lowdragmc.mbd2.utils.FormattingUtil;
 import com.lowdragmc.mbd2.utils.WidgetUtils;
@@ -91,30 +91,6 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, ITagSerializable<Co
         proxyRecipeTypes.addAll(Arrays.asList(proxyRecipes));
     }
 
-    /**
-     * Called when the mod is loaded completed. To make sure all resources are available.
-     * <br/>
-     * e.g. items, blocks and other registries are ready.
-     */
-    public void postLoading(CompoundTag tag) {
-        var proj = new RecipeTypeProject();
-        var resources = proj.loadResources(tag.getCompound("resources"));
-        var ui = new WidgetGroup();
-        var uiTag = tag.getCompound("ui");
-        IConfigurableWidget.deserializeNBT(ui, uiTag, resources, true);
-        this.deserializeNBT(tag.getCompound("recipe_type"));
-        setUiSize(ui.getSize());
-        setUiCreator(recipe -> {
-            var recipeUI = new WidgetGroup();
-            recipeUI.setClientSideWidget();
-            IConfigurableWidget.deserializeNBT(recipeUI, uiTag, resources, false);
-            bindXEIRecipeUI(recipeUI, recipe);
-            recipeUI.setSelfPosition(0, 0);
-            recipeUI.setBackground(IGuiTexture.EMPTY);
-            return recipeUI;
-        });
-    }
-
     @Override
     public String toString() {
         return registryName.toString();
@@ -141,6 +117,7 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, ITagSerializable<Co
                 matches.add(recipe);
             }
         }
+        matches.sort(Comparator.comparingInt(r -> r.priority));
         return matches;
     }
 
@@ -156,6 +133,7 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, ITagSerializable<Co
                     .toList();
             matches.addAll(found);
         }
+        matches.sort(Comparator.comparingInt(r -> r.priority));
         return matches;
     }
 

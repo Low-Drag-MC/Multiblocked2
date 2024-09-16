@@ -64,6 +64,8 @@ public class MBDRecipeBuilder {
     @Setter
     public boolean isFuel = false;
     @Setter
+    public int priority = 0;
+    @Setter
     public BiConsumer<MBDRecipeBuilder, Consumer<FinishedRecipe>> onSave;
 
     public MBDRecipeBuilder(ResourceLocation id, MBDRecipeType recipeType) {
@@ -411,7 +413,7 @@ public class MBDRecipeBuilder {
     }
 
     public MBDRecipe buildRawRecipe() {
-        return new MBDRecipe(recipeType, id, input, output, conditions, data, duration, isFuel);
+        return new MBDRecipe(recipeType, id, input, output, conditions, data, duration, isFuel, priority);
     }
 
 }

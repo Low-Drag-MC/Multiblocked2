@@ -79,11 +79,11 @@ public class ConfigBlockProperties implements IPersistedSerializable {
     @Builder.Default
     private Sound sound = Sound.STONE;
 
-    public BlockBehaviour.Properties apply(BlockBehaviour.Properties properties) {
+    public BlockBehaviour.Properties apply(StateMachine stateMachine, BlockBehaviour.Properties properties) {
         if (hasCollision) {
             properties = properties.noOcclusion();
         }
-        if (canOcclude) {
+        if (!canOcclude) {
             properties = properties.noOcclusion();
         }
         if (dynamicShape) {

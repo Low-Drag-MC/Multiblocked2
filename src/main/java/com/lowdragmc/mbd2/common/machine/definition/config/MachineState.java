@@ -5,7 +5,8 @@ import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib.utils.ShapeUtils;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleInteger;
+import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleAABB;
+import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleLightValue;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleShape;
 import lombok.*;
@@ -13,23 +14,23 @@ import lombok.experimental.Accessors;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.util.*;
 
 @Accessors(fluent = true)
 @Builder
-public class MachineState implements IConfigurable, IPersistedSerializable {
-    @Getter
+@Getter
+public class MachineState implements IConfigurable, IPersistedSerializable, Comparable<MachineState> {
     private final String name;
     @Singular
-    @Getter
     @NonNull
     private List<MachineState> children;
     @Nullable
-    @Getter
     private MachineState parent;
 
     @Configurable(name = "config.machine_state.renderer", subConfigurable = true, tips =
@@ -46,15 +47,21 @@ public class MachineState implements IConfigurable, IPersistedSerializable {
     @Configurable(name = "config.machine_state.light", subConfigurable = true, tips =
             {"config.machine_state.light.tooltip.0", "config.machine_state.light.tooltip.1"})
     @Builder.Default
-    private ToggleInteger lightLevel = new ToggleInteger();
+    private ToggleLightValue lightLevel = new ToggleLightValue();
+
+    @Configurable(name = "config.machine_state.rendering_box", subConfigurable = true, tips =
+            {"config.machine_state.rendering_box.tooltip.0", "config.machine_state.rendering_box.tooltip.1",
+                    "config.machine_state.rendering_box.tooltip.2"})
+    @Builder.Default
+    private ToggleAABB renderingBox = new ToggleAABB();
 
     // runtime
-    @Getter
     @Nullable
-    private StateMachine stateMachine = null;
+    private StateMachine stateMachine;
 
 
-    private final Map<Direction, VoxelShape> cache = new EnumMap<>(Direction.class);
+    private final Map<Direction, VoxelShape> shapeCache = new EnumMap<>(Direction.class);
+    private final Map<Direction, AABB> renderingBoxCache = new EnumMap<>(Direction.class);
 
     public static MachineState fromTag(CompoundTag tag) {
         var name = tag.getString("name");
@@ -136,7 +143,7 @@ public class MachineState implements IConfigurable, IPersistedSerializable {
         return renderer.getValue();
     }
 
-    public VoxelShape getShape(Direction direction) {
+    public VoxelShape getShape(@Nullable Direction direction) {
         if (!shape.isEnable() || shape.getValue() == null) {
             if (parent != null) {
                 return parent.getShape(direction);
@@ -145,8 +152,8 @@ public class MachineState implements IConfigurable, IPersistedSerializable {
             }
         }
         var value = shape.getValue();
-        if (value.isEmpty() || value == Shapes.block() || direction == Direction.NORTH) return value;
-        return this.cache.computeIfAbsent(direction, dir -> ShapeUtils.rotate(value, dir));
+        if (value.isEmpty() || value == Shapes.block() || direction == Direction.NORTH || direction == null) return value;
+        return this.shapeCache.computeIfAbsent(direction, dir -> ShapeUtils.rotate(value, dir));
     }
 
     public int getLightLevel() {
@@ -158,5 +165,30 @@ public class MachineState implements IConfigurable, IPersistedSerializable {
             }
         }
         return lightLevel.getValue();
+    }
+
+    @Nullable
+    public AABB getRenderingBox(@Nullable Direction direction) {
+        if (!renderingBox.isEnable() || renderingBox.getValue() == null) {
+            if (parent != null) {
+                return parent.getRenderingBox(direction);
+            } else {
+                return null;
+            }
+        }
+        var value = renderingBox.getValue();
+        return (direction == Direction.NORTH || direction == null) ? value : this.renderingBoxCache.computeIfAbsent(direction, dir -> ShapeUtils.rotate(value, dir));
+    }
+
+    public int getDepth() {
+        if (parent == null) {
+            return 0;
+        }
+        return parent.getDepth() + 1;
+    }
+
+    @Override
+    public int compareTo(@NotNull MachineState o) {
+        return Integer.compare(this.getDepth(), o.getDepth());
     }
 }

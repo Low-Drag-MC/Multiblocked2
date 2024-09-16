@@ -2,7 +2,7 @@ package com.lowdragmc.mbd2.common.machine.definition.config;
 
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.syncdata.ITagSerializable;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleInteger;
+import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleLightValue;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleShape;
 import lombok.Getter;
@@ -16,6 +16,7 @@ import java.util.function.Consumer;
 public class StateMachine implements ITagSerializable<CompoundTag> {
     @Getter
     protected final MachineState rootState;
+    // runtime
     protected final Map<String, MachineState> states = new HashMap<>();
 
     public StateMachine(MachineState rootState) {
@@ -23,7 +24,7 @@ public class StateMachine implements ITagSerializable<CompoundTag> {
         initStateMachine();
     }
 
-    public static StateMachine create(Consumer<MachineState.MachineStateBuilder> builderConsumer) {
+    public static StateMachine createSingleDefault(Consumer<MachineState.MachineStateBuilder> builderConsumer) {
         var stateBuilder = MachineState.builder()
                 .name("base")
                 .child(MachineState.builder()
@@ -39,11 +40,30 @@ public class StateMachine implements ITagSerializable<CompoundTag> {
         return new StateMachine(stateBuilder.build());
     }
 
+    public static StateMachine createMultiblockDefault(Consumer<MachineState.MachineStateBuilder> builderConsumer) {
+        var stateBuilder = MachineState.builder()
+                .name("base")
+                .child(MachineState.builder()
+                        .name("formed")
+                        .child(MachineState.builder()
+                                .name("working")
+                                .child(MachineState.builder()
+                                        .name("waiting")
+                                        .build())
+                                .build())
+                        .child(MachineState.builder()
+                                .name("suspend")
+                                .build())
+                        .build());
+        builderConsumer.accept(stateBuilder);
+        return new StateMachine(stateBuilder.build());
+    }
+
     public static StateMachine createDefault() {
-        return create(builder -> builder
+        return createSingleDefault(builder -> builder
                 .renderer(new ToggleRenderer(IRenderer.EMPTY))
                 .shape(new ToggleShape(Shapes.block()))
-                .lightLevel(new ToggleInteger(0)));
+                .lightLevel(new ToggleLightValue(0)));
     }
 
     @Override

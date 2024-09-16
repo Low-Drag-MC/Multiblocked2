@@ -13,13 +13,15 @@ import com.lowdragmc.lowdraglib.gui.widget.custom.PlayerInventoryWidget;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.common.gui.editor.machine.MachineConfigPanel;
+import com.lowdragmc.mbd2.common.gui.editor.machine.MachineEventsPanel;
 import com.lowdragmc.mbd2.common.gui.editor.machine.MachineTraitPanel;
 import com.lowdragmc.mbd2.common.gui.editor.machine.MachineUIPanel;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigBlockProperties;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigItemProperties;
+import com.lowdragmc.mbd2.common.machine.definition.config.ConfigPartSettings;
 import com.lowdragmc.mbd2.common.machine.definition.config.StateMachine;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleInteger;
+import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleLightValue;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleShape;
 import lombok.Getter;
@@ -73,12 +75,13 @@ public class MachineProject implements IProject {
         var renderer = new IModelRenderer(new ResourceLocation("block/furnace"));
         return MBDMachineDefinition.builder()
                 .id(MBD2.id("new_machine"))
-                .stateMachine(StateMachine.create(builder -> builder
+                .stateMachine(StateMachine.createSingleDefault(builder -> builder
                         .renderer(new ToggleRenderer(renderer))
                         .shape(new ToggleShape(Shapes.block()))
-                        .lightLevel(new ToggleInteger(0))))
+                        .lightLevel(new ToggleLightValue(0))))
                 .blockProperties(ConfigBlockProperties.builder().build())
                 .itemProperties(ConfigItemProperties.builder().build())
+                .partSettings(ConfigPartSettings.builder().build())
                 .build();
     }
 
@@ -119,7 +122,10 @@ public class MachineProject implements IProject {
 
     public void deserializeNBT(CompoundTag tag) {
         this.resources = loadResources(tag.getCompound("resources"));
-        this.definition = MBDMachineDefinition.fromTag(tag.getCompound("definition"));
+        if (this.definition == null) {
+            this.definition = createDefinition();
+        }
+        this.definition.deserializeNBT(tag.getCompound("definition"));
         this.ui = new WidgetGroup();
         IConfigurableWidget.deserializeNBT(this.ui, tag.getCompound("ui"), resources, true);
     }
@@ -152,9 +158,11 @@ public class MachineProject implements IProject {
             var tabContainer = machineEditor.getTabPages();
             var machineConfigPanel = new MachineConfigPanel(machineEditor);
             var machineTraitPanel = new MachineTraitPanel(machineEditor);
+            var machineEventsPanel = new MachineEventsPanel(machineEditor);
             var machineUIPanel = new MachineUIPanel(machineEditor);
             tabContainer.addTab("editor.machine.basic_settings", machineConfigPanel, machineConfigPanel::onPanelSelected);
             tabContainer.addTab("editor.machine.machine_traits", machineTraitPanel, machineTraitPanel::onPanelSelected, machineTraitPanel::onPanelDeselected);
+            tabContainer.addTab("editor.machine.machine_events", machineEventsPanel, machineEventsPanel::onPanelSelected, machineEventsPanel::onPanelDeselected);
             tabContainer.addTab("editor.machine.machine_ui", machineUIPanel, machineUIPanel::onPanelSelected, machineUIPanel::onPanelDeselected);
         }
     }

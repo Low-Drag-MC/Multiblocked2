@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.api.pattern;
 
+import com.lowdragmc.lowdraglib.utils.BlockInfo;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
 import com.lowdragmc.mbd2.api.machine.IMultiPart;
@@ -9,9 +10,7 @@ import com.lowdragmc.mbd2.api.pattern.error.SinglePredicateError;
 import com.lowdragmc.mbd2.api.pattern.predicates.SimplePredicate;
 import com.lowdragmc.mbd2.api.pattern.util.PatternMatchContext;
 import com.lowdragmc.mbd2.api.pattern.util.RelativeDirection;
-import com.lowdragmc.lowdraglib.utils.BlockInfo;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
@@ -21,17 +20,11 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.BlockHitResult;
 import org.apache.commons.lang3.ArrayUtils;
 
-import java.lang.reflect.Array;
 import java.util.*;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
 
 public class BlockPattern {
 
@@ -206,6 +199,7 @@ public class BlockPattern {
                             boolean find = false;
                             BlockInfo[] infos = new BlockInfo[0];
                             for (SimplePredicate limit : predicate.limited) {
+                                if (limit.controllerFront.isEnable() && limit.controllerFront.getValue() != facing) continue;
                                 if (limit.minLayerCount > 0) {
                                     if (!cacheLayer.containsKey(limit)) {
                                         cacheLayer.put(limit, 1);
@@ -223,6 +217,7 @@ public class BlockPattern {
                             }
                             if (!find) {
                                 for (SimplePredicate limit : predicate.limited) {
+                                    if (limit.controllerFront.isEnable() && limit.controllerFront.getValue() != facing) continue;
                                     if (limit.minCount > 0) {
                                         if (!cacheGlobal.containsKey(limit)) {
                                             cacheGlobal.put(limit, 1);
@@ -241,6 +236,7 @@ public class BlockPattern {
                             }
                                 if (!find) { // no limited
                                 for (SimplePredicate limit : predicate.limited) {
+                                    if (limit.controllerFront.isEnable() && limit.controllerFront.getValue() != facing) continue;
                                     if (limit.maxLayerCount != -1 && cacheLayer.getOrDefault(limit, Integer.MAX_VALUE) == limit.maxLayerCount)
                                         continue;
                                     if (limit.maxCount != -1 && cacheGlobal.getOrDefault(limit, Integer.MAX_VALUE) == limit.maxCount)
@@ -258,6 +254,7 @@ public class BlockPattern {
                                     infos = ArrayUtils.addAll(infos, limit.candidates == null ? null : limit.candidates.get());
                                 }
                                 for (SimplePredicate common : predicate.common) {
+                                    if (common.controllerFront.isEnable() && common.controllerFront.getValue() != facing) continue;
                                     infos = ArrayUtils.addAll(infos, common.candidates == null ? null : common.candidates.get());
                                 }
                             }
@@ -306,22 +303,12 @@ public class BlockPattern {
                 z++;
             }
         }
-        Direction frontFacing = controller.getFrontFacing().orElse(Direction.NORTH);
         blocks.forEach((pos, block) -> { // adjust facing
             if (!(block instanceof IMultiController)) {
-                if (block instanceof BlockState) {
-                    resetFacing(pos, (BlockState) block, frontFacing, (p, f) -> {
-                        Object object = blocks.get(p.relative(f));
-                        return object == null || (object instanceof BlockState && ((BlockState) object).getBlock() == Blocks.AIR);
-                    }, state -> world.setBlock(pos, state, 3));
+                if (block instanceof BlockState state) {
+                    world.setBlock(pos, state, 3);
                 } else if (block instanceof IMachine machine) {
-                    resetFacing(pos, machine.getBlockState(), frontFacing, (p, f) -> {
-                        Object object = blocks.get(p.relative(f));
-                        if (object == null || (object instanceof BlockState blockState && blockState.isAir())) {
-                            return machine.isFacingValid(f);
-                        }
-                        return false;
-                    }, state -> world.setBlock(pos, state, 3));
+                    world.setBlock(pos, machine.getBlockState(), 3);
                 }
             }
         });
@@ -346,6 +333,7 @@ public class BlockPattern {
                         boolean find = false;
                         BlockInfo[] infos = null;
                         for (SimplePredicate limit : predicate.limited) { // check layer and previewCount
+                            if (limit.controllerFront.isEnable() && limit.controllerFront.getValue() != Direction.NORTH) continue;
                             if (limit.minLayerCount > 0) {
                                 if (!cacheLayer.containsKey(limit)) {
                                     cacheLayer.put(limit, 1);
@@ -372,6 +360,7 @@ public class BlockPattern {
                         }
                         if (!find) { // check global and previewCount
                             for (SimplePredicate limit : predicate.limited) {
+                                if (limit.controllerFront.isEnable() && limit.controllerFront.getValue() != Direction.NORTH) continue;
                                 if (limit.minCount == -1 && limit.previewCount == -1) continue;
                                 if (cacheGlobal.getOrDefault(limit, 0) < limit.previewCount) {
                                     if (!cacheGlobal.containsKey(limit)) {
@@ -399,6 +388,7 @@ public class BlockPattern {
                         }
                         if (!find) { // check common with previewCount
                             for (SimplePredicate common : predicate.common) {
+                                if (common.controllerFront.isEnable() && common.controllerFront.getValue() != Direction.NORTH) continue;
                                 if (common.previewCount > 0) {
                                     if (!cacheGlobal.containsKey(common)) {
                                         cacheGlobal.put(common, 1);
@@ -417,6 +407,7 @@ public class BlockPattern {
                         }
                         if (!find) { // check without previewCount
                             for (SimplePredicate common : predicate.common) {
+                                if (common.controllerFront.isEnable() && common.controllerFront.getValue() != Direction.NORTH) continue;
                                 if (common.previewCount == -1) {
                                     infos = common.candidates == null ? null : common.candidates.get();
                                     find = true;
@@ -426,6 +417,7 @@ public class BlockPattern {
                         }
                         if (!find) { // check max
                             for (SimplePredicate limit : predicate.limited) {
+                                if (limit.controllerFront.isEnable() && limit.controllerFront.getValue() != Direction.NORTH) continue;
                                 if (limit.previewCount != -1) {
                                     continue;
                                 } else if (limit.maxCount != -1 || limit.maxLayerCount != -1) {
@@ -465,56 +457,14 @@ public class BlockPattern {
                 x++;
             }
         }
-        BlockInfo[][][] result = (BlockInfo[][][]) Array.newInstance(BlockInfo.class, maxX - minX + 1, maxY - minY + 1, maxZ - minZ + 1);
+        var result = new BlockInfo[maxX - minX + 1][maxY - minY + 1][maxZ - minZ + 1];
         int finalMinX = minX;
         int finalMinY = minY;
         int finalMinZ = minZ;
-        blocks.forEach((pos, info) -> {
-            resetFacing(pos, info.getBlockState(), null, (p, f) -> {
-                BlockInfo blockInfo = blocks.get(p.relative(f));
-                if (blockInfo == null || blockInfo.getBlockState().getBlock() == Blocks.AIR) {
-                    var block = blocks.get(pos).getBlockState().getBlock();
-                    if (block instanceof EntityBlock entityBlock) {
-                        var machineOptional = IMachine.ofMachine(entityBlock.newBlockEntity(BlockPos.ZERO, block.defaultBlockState()));
-                        if (machineOptional.isPresent()) {
-                            var machine = machineOptional.orElseThrow();
-                            if (machine instanceof IMultiController) {
-                                return false;
-                            } else {
-                                return machine.isFacingValid(f);
-                            }
-                        }
-                    }
-                    return true;
-                }
-                return false;
-            }, info::setBlockState);
-            result[pos.getX() - finalMinX][pos.getY() - finalMinY][pos.getZ() - finalMinZ] = info;
-        });
+        blocks.forEach((pos, info) -> result[pos.getX() - finalMinX][pos.getY() - finalMinY][pos.getZ() - finalMinZ] = info);
         return result;
     }
 
-    private void resetFacing(BlockPos pos, BlockState blockState, Direction facing, BiFunction<BlockPos, Direction, Boolean> checker, Consumer<BlockState> consumer) {
-        if (blockState.hasProperty(BlockStateProperties.FACING)) {
-            tryFacings(blockState, pos, checker, consumer, BlockStateProperties.FACING, facing == null ? FACINGS : ArrayUtils.addAll(new Direction[]{facing}, FACINGS));
-        } else if (blockState.hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
-            tryFacings(blockState, pos, checker, consumer, BlockStateProperties.HORIZONTAL_FACING, facing == null || facing.getAxis() == Direction.Axis.Y ? FACINGS_H : ArrayUtils.addAll(new Direction[]{facing}, FACINGS_H));
-        }
-    }
-
-    private void tryFacings(BlockState blockState, BlockPos pos, BiFunction<BlockPos, Direction, Boolean> checker, Consumer<BlockState> consumer, Property<Direction> property, Direction[] facings) {
-        Direction found = null;
-        for (Direction facing : facings) {
-            if (checker.apply(pos, facing)) {
-                found = facing;
-                break;
-            }
-        }
-        if (found == null) {
-            found = Direction.NORTH;
-        }
-        consumer.accept(blockState.setValue(property, found));
-    }
 
     private BlockPos setActualRelativeOffset(int x, int y, int z, Direction facing) {
         int[] c0 = new int[]{x, y, z}, c1 = new int[3];

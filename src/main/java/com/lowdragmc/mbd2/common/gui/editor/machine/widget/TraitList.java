@@ -39,7 +39,7 @@ public class TraitList extends DraggableScrollableWidgetGroup {
         var selectableWidgetGroup = new SelectableWidgetGroup(0, yOffset, getSizeWidth() - 2, 18);
         selectableWidgetGroup.addWidget(new ImageWidget(1, 0, 18, 18, definition.getIcon()));
         selectableWidgetGroup.addWidget(new ImageWidget(20, 0, getSizeWidth() - 20, 18,
-                new TextTexture().setSupplier(definition::getName).setType(TextTexture.TextType.HIDE).setWidth(getSizeWidth() - 20)));
+                new TextTexture().setSupplier(definition::getTranslateKey).setType(TextTexture.TextType.HIDE).setWidth(getSizeWidth() - 20)));
         selectableWidgetGroup.setSelectedTexture(ColorPattern.T_GRAY.rectTexture());
         selectableWidgetGroup.setOnSelected(group -> {
             editor.getConfigPanel().openConfigurator(MachineEditor.BASIC, definition);
@@ -80,7 +80,7 @@ public class TraitList extends DraggableScrollableWidgetGroup {
             var menu = TreeBuilder.Menu.start()
                     .branch(Icons.ADD_FILE, "editor.machine.machine_traits.add_trait", m -> {
                         for (var wrapper : MBDLDLibPlugin.REGISTER_TRAIT_DEFINITIONS.values()) {
-                            m.leaf(wrapper.annotation().name(), () -> {
+                            m.leaf("config.definition.trait.%s.name".formatted(wrapper.annotation().name()), () -> {
                                 var traitDefinition = wrapper.creator().get();
                                 if (!traitDefinition.allowMultiple()) {
                                     for (var existed : project.getDefinition().machineSettings().traitDefinitions()) {

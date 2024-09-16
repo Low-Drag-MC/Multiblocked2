@@ -24,6 +24,7 @@ import com.lowdragmc.mbd2.api.pattern.error.SinglePredicateError;
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.utils.BlockInfo;
 import com.lowdragmc.mbd2.common.gui.editor.MultiblockMachineProject;
+import com.lowdragmc.mbd2.common.gui.editor.multiblock.MultiblockPatternPanel;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleDirection;
 import com.lowdragmc.mbd2.integration.ldlib.MBDLDLibPlugin;
 import it.unimi.dsi.fastutil.longs.Long2ObjectArrayMap;
@@ -129,8 +130,11 @@ public class SimplePredicate implements IAutoPersistedSerializable, IConfigurabl
     }
 
     protected void notifySceneUpdate() {
-        if (LDLib.isClient() && Editor.INSTANCE != null && Editor.INSTANCE.getCurrentProject() instanceof MultiblockMachineProject project) {
-            project.getMultiblockPatternPanel().reloadScene();
+        if (LDLib.isClient() && Editor.INSTANCE != null && Editor.INSTANCE.getCurrentProject() instanceof MultiblockMachineProject) {
+            Editor.INSTANCE.getTabPages().tabs.values().stream()
+                    .filter(MultiblockPatternPanel.class::isInstance)
+                    .map(MultiblockPatternPanel.class::cast)
+                    .findAny().ifPresent(MultiblockPatternPanel::onBlockPlaceholdersChanged);
         }
     }
 
@@ -177,9 +181,6 @@ public class SimplePredicate implements IAutoPersistedSerializable, IConfigurabl
     }
 
     private boolean checkInnerConditions(MultiblockState blockWorldState) {
-        if (disableRenderFormed) {
-            blockWorldState.getMatchContext().getOrCreate("renderMask", LongOpenHashSet::new).add(blockWorldState.getPos().asLong());
-        }
         if (io != IO.BOTH) {
             if (blockWorldState.io == IO.BOTH) {
                 blockWorldState.io = io;
@@ -192,24 +193,22 @@ public class SimplePredicate implements IAutoPersistedSerializable, IConfigurabl
             if (te != null) {
                 var tag = te.saveWithFullMetadata();
                 var merged = tag.copy().merge(nbt);
-                if (tag.equals(merged)) {
-                    return true;
+                if (!tag.equals(merged)) {
+                    blockWorldState.setError(new PatternStringError("The NBT fails to match"));
+                    return false;
                 }
             }
-            blockWorldState.setError(new PatternStringError("The NBT fails to match"));
-            return false;
         }
         if (!controllerNbt.isEmpty() && !blockWorldState.world.isClientSide) {
             var te = blockWorldState.getController().getHolder();
             if (te != null) {
                 var tag = te.saveWithFullMetadata();
                 var merged = tag.copy().merge(controllerNbt);
-                if (tag.equals(merged)) {
+                if (!tag.equals(merged)) {
+                    blockWorldState.setError(new PatternStringError("The Controller NBT fails to match"));
                     return true;
                 }
             }
-            blockWorldState.setError(new PatternStringError("The Controller NBT fails to match"));
-            return false;
         }
         if (controllerFront.isEnable()) {
             var controller = blockWorldState.getController();
@@ -225,6 +224,9 @@ public class SimplePredicate implements IAutoPersistedSerializable, IConfigurabl
             Map<Long, Set<String>> slots = blockWorldState.getMatchContext().getOrCreate("slots", Long2ObjectArrayMap::new);
             slots.computeIfAbsent(blockWorldState.getPos().asLong(), s->new HashSet<>()).add(slotName);
             return true;
+        }
+        if (disableRenderFormed) {
+            blockWorldState.getMatchContext().getOrCreate("renderMask", LongOpenHashSet::new).add(blockWorldState.getPos().asLong());
         }
         return true;
     }

@@ -176,13 +176,16 @@ public interface IMachine extends IRecipeCapabilityHolder {
     //********   RECIPE LOGIC  *********//
     //////////////////////////////////////
 
+    /**
+     * Get the recipe type.
+     */
     @Nonnull
     MBDRecipeType getRecipeType();
 
     /**
      * Called when recipe logic status changed
      */
-    default void notifyStatusChanged(RecipeLogic.Status oldStatus, RecipeLogic.Status newStatus) {
+    default void notifyRecipeStatusChanged(RecipeLogic.Status oldStatus, RecipeLogic.Status newStatus) {
     }
 
     /**
@@ -200,21 +203,22 @@ public interface IMachine extends IRecipeCapabilityHolder {
     @Nullable
     default MBDRecipe doModifyRecipe(MBDRecipe recipe) {
         return recipe;
-//        return getDefinition().getRecipeModifier().apply(self(), recipe);
     }
 
     /**
      * Called in {@link RecipeLogic#setupRecipe(MBDRecipe)} ()}
+     * @return whether interrupt the recipe setup.
      */
-    default void beforeWorking() {
-
+    default boolean beforeWorking(MBDRecipe recipe) {
+        return false;
     }
 
     /**
      * Called per tick in {@link RecipeLogic#handleRecipeWorking()}
+     * @return whether interrupt the recipe working.
      */
-    default void onWorking() {
-
+    default boolean onWorking() {
+        return false;
     }
 
     /**
@@ -253,5 +257,12 @@ public interface IMachine extends IRecipeCapabilityHolder {
      */
     default int getRecipeDampingValue() {
         return 2;
+    }
+
+    /**
+     * Get the machine level. it will be used for recipe condition {@link com.lowdragmc.mbd2.common.recipe.MachineLevelCondition} an so on.
+     */
+    default int getMachineLevel() {
+        return 0;
     }
 }
