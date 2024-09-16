@@ -21,5 +21,6 @@
   "injectors": {
     "defaultRequire": 1,
     "maxShiftBy": 5
-  }
+  },
+  "refmap": "mixins.mbd2.refmap.json"
 }

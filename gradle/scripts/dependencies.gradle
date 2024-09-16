@@ -2,9 +2,7 @@ dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
 
     // Apply Mixin AP
-    if (!Boolean.getBoolean('idea.sync.active')) {
-        annotationProcessor "org.spongepowered:mixin:${mixin_version}:processor"
-    }
+    annotationProcessor "org.spongepowered:mixin:${mixin_version}:processor"
 
     // lombok
     compileOnly 'org.projectlombok:lombok:1.18.24'
