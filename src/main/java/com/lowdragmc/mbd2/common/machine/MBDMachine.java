@@ -188,6 +188,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
             level.getChunkSource().getLightEngine().checkBlock(pos);
             profilerfiller.pop();
         }
+        scheduleRenderUpdate();
     }
 
     /**

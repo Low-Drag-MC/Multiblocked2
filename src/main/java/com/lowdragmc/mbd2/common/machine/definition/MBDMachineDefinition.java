@@ -2,9 +2,11 @@ package com.lowdragmc.mbd2.common.machine.definition;
 
 import com.google.common.collect.Queues;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
+import com.lowdragmc.lowdraglib.client.renderer.impl.UIResourceRenderer;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurableWidget;
+import com.lowdragmc.lowdraglib.gui.editor.data.resource.IRendererResource;
 import com.lowdragmc.lowdraglib.gui.editor.data.resource.Resource;
 import com.lowdragmc.lowdraglib.gui.editor.data.resource.TexturesResource;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
@@ -169,11 +171,15 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
      */
     public MBDMachineDefinition loadProductiveTag(File file, CompoundTag projectTag, Deque<Runnable> postTask) {
         this.projectFile = file;
+        var rendererResource = new IRendererResource();
+        rendererResource.deserializeNBT(projectTag.getCompound("resources").getCompound(IRendererResource.RESOURCE_NAME));
+        UIResourceRenderer.setCurrentResource(rendererResource, false);
         var definitionTag = projectTag.getCompound("definition");
         id = new ResourceLocation(definitionTag.getString("id"));
         blockProperties.deserializeNBT(definitionTag.getCompound("blockProperties"));
         itemProperties.deserializeNBT(definitionTag.getCompound("itemProperties"));
         stateMachine.deserializeNBT(definitionTag.getCompound("stateMachine"));
+        UIResourceRenderer.clearCurrentResource();
         postTask.add(() -> {
             if (partSettings != null) {
                 partSettings.deserializeNBT(definitionTag.getCompound("partSettings"));

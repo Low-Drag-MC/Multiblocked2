@@ -1,6 +1,7 @@
 package com.lowdragmc.mbd2.common.machine.definition.config;
 
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.SelectorConfigurator;
@@ -31,6 +32,7 @@ public class ConfigMachineSettings implements IPersistedSerializable, IConfigura
     @Getter
     @Builder.Default
     @Configurable(name = "config.machine_settings.machine_level", tips = "config.machine_settings.machine_level.tooltip")
+    @NumberRange(range = {0, Integer.MAX_VALUE})
     private int machineLevel = 0;
     @Getter
     @Builder.Default
