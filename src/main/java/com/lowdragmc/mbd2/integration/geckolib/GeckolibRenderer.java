@@ -589,7 +589,7 @@ public class GeckolibRenderer implements ISerializableRenderer, GeoRenderer<GeoA
 
     private static ResourceLocation getResourceFromFile(File path, File r){
         var id = path.getPath().replace('\\', '/').split("assets/")[1].split("/")[0];
-        return new ResourceLocation(id, r.getPath().replace(path.getPath(), "").substring(1));
+        return new ResourceLocation(id, r.getPath().replace(path.getPath(), "").replace('\\', '/').substring(1));
     }
 
 }
