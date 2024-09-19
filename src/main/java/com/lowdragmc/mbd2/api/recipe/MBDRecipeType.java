@@ -278,6 +278,11 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, ITagSerializable<Co
                         case BOTH -> IngredientIO.BOTH;
                         default -> IngredientIO.RENDER_ONLY;
                     });
+                    var tooltips = new ArrayList<Component>();
+                    content.appendTooltip(tooltips);
+                    if (!tooltips.isEmpty()) {
+                        widget.appendHoverTooltips(tooltips);
+                    }
                 }
             }
         });

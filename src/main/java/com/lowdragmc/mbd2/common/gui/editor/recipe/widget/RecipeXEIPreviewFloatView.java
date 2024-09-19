@@ -1,14 +1,17 @@
 package com.lowdragmc.mbd2.common.gui.editor.recipe.widget;
 
 import com.google.gson.JsonElement;
+import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.editor.Icons;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib.gui.editor.ui.view.FloatViewWidget;
+import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ProgressTexture;
 import com.lowdragmc.lowdraglib.gui.texture.WidgetTexture;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
+import com.lowdragmc.lowdraglib.utils.Size;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeSerializer;
 import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
@@ -61,8 +64,28 @@ public class RecipeXEIPreviewFloatView extends FloatViewWidget {
             ui.setClientSideWidget();
             IConfigurableWidget.deserializeNBT(ui, tag, project.getResources(), true);
             project.getRecipeType().bindXEIRecipeUI(ui, recipe);
-            content.addWidget(new ImageWidget(0, 0, content.getSizeWidth(), content.getSizeHeight(), new WidgetTexture(ui).setMouse(0, 0)));
+            ui.setSelfPosition(0, 0);
+            resetSeize(ui.getSizeWidth(), ui.getSizeHeight());
+            content.addWidget(ui);
         }
+    }
+
+    public void resetSeize(int width, int height) {
+        setSize(width, height + 15);
+        clearAllWidgets();
+        initWidget();
+        // TODO
+//        if (isCollapse) {
+//            title.setSize(new Size(15, 15));
+//            title.setBackground(new GuiTextureGroup(ColorPattern.T_RED.rectTexture().setRadius(5f), ColorPattern.GRAY.borderTexture(-1).setRadius(5f)));
+//            content.setVisible(false);
+//            content.setActive(false);
+//        } else {
+//            title.setSize(new Size(getSize().width, 15));
+//            title.setBackground(new GuiTextureGroup(ColorPattern.T_RED.rectTexture().setTopRadius(5f), ColorPattern.GRAY.borderTexture(-1).setTopRadius(5f)));
+//            content.setVisible(true);
+//            content.setActive(true);
+//        }
     }
 
     @Override

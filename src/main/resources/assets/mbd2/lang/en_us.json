@@ -49,6 +49,7 @@
     "config.recipe.condition.pos_y.max": "max y",
     "config.recipe.condition.weather.min": "min level",
     "config.recipe.condition.weather.max": "max level",
+    "recipe.condition.machine_level": "machine level",
     "config.recipe.condition.machine_level.level": "machine level",
     "config.recipe.condition.machine_level.level.tooltip": "The machine level of the machine.",
     "recipe.condition.machine_level.tooltip": "The machine level >= %d",

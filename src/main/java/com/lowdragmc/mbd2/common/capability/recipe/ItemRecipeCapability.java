@@ -2,6 +2,8 @@ package com.lowdragmc.mbd2.common.capability.recipe;
 
 import com.lowdragmc.lowdraglib.gui.editor.accessors.CompoundTagAccessor;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.*;
+import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
+import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.widget.SlotWidget;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
 import com.lowdragmc.lowdraglib.jei.IngredientIO;
@@ -109,6 +111,12 @@ public class ItemRecipeCapability extends RecipeCapability<Ingredient> {
             }
             if (either == null) {
                 either = Either.right(List.of(ingredient.getItems()));
+            }
+            if (slotWidget.getOverlay() == null || slotWidget.getOverlay() == IGuiTexture.EMPTY) {
+                slotWidget.setOverlay(content.createOverlay());
+            } else {
+                var groupTexture = new GuiTextureGroup(slotWidget.getOverlay(), content.createOverlay());
+                slotWidget.setOverlay(groupTexture);
             }
             slotWidget.setHandlerSlot(new TagOrCycleItemStackTransfer(List.of(either)), 0);
             slotWidget.setIngredientIO(ingredientIO);

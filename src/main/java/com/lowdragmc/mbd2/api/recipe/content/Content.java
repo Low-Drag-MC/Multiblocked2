@@ -5,12 +5,9 @@ import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
-import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -63,37 +60,33 @@ public class Content {
             @Override
             @OnlyIn(Dist.CLIENT)
             public void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, int width, int height) {
-                drawChance(graphics, x, y, width, height);
+                var row = 0;
+                if (chance < 1) {
+                    String s = chance == 0 ? LocalizationUtils.format("mbd2.gui.content.chance_0_short") : String.format("%.1f", chance * 100) + "%";
+                    int color = chance == 0 ? 0xff0000 : 0xFFFF00;
+                    drawSmallString(graphics, x, y, width, height, row++, s, color);
+                }
                 if (perTick) {
-                    drawTick(graphics, x, y, width, height);
+                    drawSmallString(graphics, x, y, width, height, row++,
+                            LocalizationUtils.format("mbd2.gui.content.tips.per_tick_short"), 0xFFFF00);
                 }
             }
         };
     }
 
     @OnlyIn(Dist.CLIENT)
-    public void drawChance(GuiGraphics graphics, float x, float y, int width, int height) {
-        if (chance == 1) return;
+    public void drawSmallString(GuiGraphics graphics, float x, float y, int width, int height, int row, String text, int color) {
+        var font = Minecraft.getInstance().font;
+        var textWidth = font.width(text);
+        var posX = x + (width - textWidth);
+        var posY = y + row * font.lineHeight / 2f;
         graphics.pose().pushPose();
-        graphics.pose().translate(0, 0, 400);
+        graphics.pose().translate(posX + textWidth, posY + font.lineHeight / 2f, 0);
         graphics.pose().scale(0.5f, 0.5f, 1);
-        String s = chance == 0 ? LocalizationUtils.format("mbd2.gui.content.chance_0_short") : String.format("%.1f", chance * 100) + "%";
-        int color = chance == 0 ? 0xff0000 : 0xFFFF00;
-        Font fontRenderer = Minecraft.getInstance().font;
-        graphics.drawString(fontRenderer, s, (int) ((x + (width / 3f)) * 2 - fontRenderer.width(s) + 23), (int) ((y + (height / 3f) + 6) * 2 - height), color, true);
-        graphics.pose().popPose();
-    }
+        graphics.pose().translate(- posX - textWidth, - posY - font.lineHeight / 2f, 0);
 
-    @OnlyIn(Dist.CLIENT)
-    public void drawTick(GuiGraphics graphics, float x, float y, int width, int height) {
-        graphics.pose().pushPose();
-        RenderSystem.disableDepthTest();
-        graphics.pose().translate(0, 0, 400);
-        graphics.pose().scale(0.5f, 0.5f, 1);
-        String s = LocalizationUtils.format("mbd2.gui.content.tips.per_tick_short");
-        int color = 0xFFFF00;
-        Font fontRenderer = Minecraft.getInstance().font;
-        graphics.drawString(fontRenderer, s, (int) ((x + (width / 3f)) * 2 - fontRenderer.width(s) + 23), (int) ((y + (height / 3f) + 6) * 2 - height + (chance == 1 ? 0 : 10)), color);
+        graphics.drawString(font, text, (int) posX, (int) posY, color);
+
         graphics.pose().popPose();
     }
 

@@ -2,6 +2,8 @@ package com.lowdragmc.mbd2.common.capability.recipe;
 
 import com.lowdragmc.lowdraglib.gui.editor.accessors.CompoundTagAccessor;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.*;
+import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
+import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
 import com.lowdragmc.lowdraglib.gui.widget.TankWidget;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
@@ -97,6 +99,12 @@ public class FluidRecipeCapability extends RecipeCapability<FluidIngredient> {
             }
             if (either == null) {
                 either = Either.right(List.of(fluidIngredient.getStacks()));
+            }
+            if (tankWidget.getOverlay() == null || tankWidget.getOverlay() == IGuiTexture.EMPTY) {
+                tankWidget.setOverlay(content.createOverlay());
+            } else {
+                var groupTexture = new GuiTextureGroup(tankWidget.getOverlay(), content.createOverlay());
+                tankWidget.setOverlay(groupTexture);
             }
             tankWidget.setFluidTank(new TagOrCycleFluidTransfer(List.of(either)), 0);
             tankWidget.setIngredientIO(ingredientIO);
