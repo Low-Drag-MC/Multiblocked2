@@ -2,15 +2,11 @@ package com.lowdragmc.mbd2.api.pattern;
 
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
-import com.lowdragmc.lowdraglib.gui.texture.ColorRectTexture;
-import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
-import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
+import com.lowdragmc.lowdraglib.gui.editor.Icons;
+import com.lowdragmc.lowdraglib.gui.texture.*;
 import com.lowdragmc.lowdraglib.gui.widget.*;
 import com.lowdragmc.lowdraglib.jei.IngredientIO;
-import com.lowdragmc.lowdraglib.utils.BlockInfo;
-import com.lowdragmc.lowdraglib.utils.CycleItemStackHandler;
-import com.lowdragmc.lowdraglib.utils.ItemStackKey;
-import com.lowdragmc.lowdraglib.utils.TrackedDummyWorld;
+import com.lowdragmc.lowdraglib.utils.*;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
@@ -30,6 +26,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -49,36 +46,40 @@ public class PatternPreviewWidget extends WidgetGroup {
     private static BlockPos LAST_POS = new BlockPos(0, 50, 0);
     private static final Map<MultiblockMachineDefinition, MBPattern[]> CACHE = new HashMap<>();
     private final SceneWidget sceneWidget;
-    private final DraggableScrollableWidgetGroup scrollableWidgetGroup;
     public final MultiblockMachineDefinition controllerDefinition;
     public final MBPattern[] patterns;
-    private final List<SimplePredicate> predicates;
     private int index;
     public int layer;
-    private SlotWidget[] slotWidgets;
-    private SlotWidget[] candidates;
+    public int candidatePage;
+    private final CycleItemStackHandler predicatesItemHandler;
+    private final CycleItemStackHandler candidatesItemHandler;
+    private final SlotWidget[] predicates;
 
     protected PatternPreviewWidget(MultiblockMachineDefinition controllerDefinition) {
         super(0, 0, 160, 160);
         setClientSideWidget();
-        this.controllerDefinition = controllerDefinition;
-        predicates = new ArrayList<>();
-        layer = -1;
 
-        addWidget(sceneWidget = new SceneWidget(3, 3, 150, 150, LEVEL)
+        // predicates
+        predicates = new SlotWidget[5];
+        var predicateItems = new ArrayList<List<ItemStack>>();
+        for (int i = 0; i < 5; i++) {
+            predicateItems.add(Collections.emptyList());
+        }
+        predicatesItemHandler = new CycleItemStackHandler(predicateItems);
+        for (int i = 0; i < predicates.length; i++) {
+            var slot = new SlotWidget(predicatesItemHandler, i,
+                    6, 9 + i * 18, false, false)
+                    .setIngredientIO(IngredientIO.INPUT);
+            predicates[i] = slot;
+            addWidget(slot);
+        }
+
+        // prepare scene
+        addWidget(new ImageWidget(26, 7, 106, 106, ResourceBorderTexture.BORDERED_BACKGROUND_INVERSE));
+        addWidget(sceneWidget = new SceneWidget(26 + 3, 7 + 3, 106 - 6, 106 - 6, LEVEL)
                 .setOnSelected(this::onPosSelected)
                 .setRenderFacing(false)
                 .setRenderFacing(false));
-
-        scrollableWidgetGroup = new DraggableScrollableWidgetGroup(3, 132, 154, 22)
-                .setXScrollBarHeight(4)
-                .setXBarStyle(ColorPattern.T_WHITE.rectTexture().scale(0.8f), ColorPattern.T_GRAY.rectTexture())
-                .setScrollable(true)
-                .setDraggable(true);
-        scrollableWidgetGroup.setScrollWheelDirection(DraggableScrollableWidgetGroup.ScrollWheelDirection.HORIZONTAL);
-        scrollableWidgetGroup.setScrollYOffset(0);
-        addWidget(scrollableWidgetGroup);
-
         if (ConfigHolder.useVBO) {
             if (!RenderSystem.isOnRenderThread()) {
                 RenderSystem.recordRenderCall(sceneWidget::useCacheBuffer);
@@ -87,11 +88,9 @@ public class PatternPreviewWidget extends WidgetGroup {
             }
         }
 
-        addWidget(new ImageWidget(3, 3, 160, 10,
-                new TextTexture(controllerDefinition.getDescriptionId(), -1)
-                        .setType(TextTexture.TextType.ROLL)
-                        .setWidth(170)
-                        .setDropShadow(true)));
+        // load patterns
+        this.controllerDefinition = controllerDefinition;
+        this.layer = -1;
 
         this.patterns = CACHE.computeIfAbsent(controllerDefinition, definition -> {
             HashSet<ItemStackKey> drops = new HashSet<>();
@@ -102,19 +101,78 @@ public class PatternPreviewWidget extends WidgetGroup {
                     .toArray(MBPattern[]::new);
         });
 
-        addWidget(new ButtonWidget(138, 30, 18, 18, new GuiTextureGroup(
-                ColorPattern.T_GRAY.rectTexture(),
-                new TextTexture("1").setSupplier(() -> "P:" + index)),
-                (x) -> setPage((index + 1 >= patterns.length) ? 0 : index + 1))
-                .setHoverBorderTexture(1, -1));
+        // id
+        addWidget(new ImageWidget(26 + 3, 7 + 3, 106 - 6, 15,
+                new TextTexture(controllerDefinition.getDescriptionId(), -1)
+                        .setType(TextTexture.TextType.ROLL)
+                        .setWidth(106 - 6)
+                        .setDropShadow(true)));
 
-        addWidget(new ButtonWidget(138, 50, 18, 18, new GuiTextureGroup(
-                ColorPattern.T_GRAY.rectTexture(),
-                new TextTexture("1").setSupplier(() -> layer >= 0 ? "L:" + layer : "ALL")),
-                cd -> updateLayer())
-                .setHoverBorderTexture(1, -1));
+        // buttons
+        var buttonTexture = new GuiTextureGroup(
+                new ColorRectTexture(ColorUtils.color(255,221,221,221)),
+                new ColorBorderTexture(-1, ColorUtils.color(255, 73,73,73))
+        );
+        var pageButton = new ButtonWidget(136, 11, 18, 18, new GuiTextureGroup(
+                buttonTexture,
+                new ItemStackTexture(Items.PAPER),
+                new TextTexture("0", ColorPattern.BLACK.color).setSupplier(() -> Integer.toString(index)).scale(0.8f)
+        ), cd -> setPage((index + 1 >= patterns.length) ? 0 : index + 1)).setHoverBorderTexture(-1, -1)
+                .setHoverTooltips("pattern_preview.page");
+        var layerButton = new ButtonWidget(136, 34, 18, 18, new GuiTextureGroup(
+                buttonTexture,
+                new ResourceTexture("mbd2:textures/gui/multiblock_info_page_layer.png"),
+                new TextTexture("", ColorPattern.BLACK.color).setSupplier(() -> layer == -1 ? "" : Integer.toString(layer)).scale(0.8f)
+        ), cd -> updateLayer())
+                .setHoverBorderTexture(-1, -1)
+                .setHoverTooltips("pattern_preview.layer");
+        var formedButton = new SwitchWidget(136, 57, 18, 18, (cd, pressed) -> onFormedSwitch(pressed))
+                .setTexture(new GuiTextureGroup(buttonTexture, new ResourceTexture("mbd2:textures/gui/multiblock_info_page_unformed.png")),
+                        new GuiTextureGroup(buttonTexture, new ResourceTexture("mbd2:textures/gui/multiblock_info_page.png")))
+                .setHoverBorderTexture(-1, -1)
+                .setHoverTooltips("pattern_preview.formed");
+        if (patterns.length > 1) {
+            addWidget(pageButton);
+        }
+        addWidget(layerButton);
+        addWidget(formedButton);
 
+        // candidates
+        var items = new ArrayList<List<ItemStack>>();
+        for (int i = 0; i < 14; i++) {
+            items.add(Collections.emptyList());
+        }
+        candidatesItemHandler = new CycleItemStackHandler(items);
+        for (int x = 0; x < 7; x++) {
+            for (int y = 0; y < 2; y++) {
+                var slot = new SlotWidget(candidatesItemHandler, x + y * 7,
+                        6 + x * 18, 117 + y * 18, false, false)
+                        .setIngredientIO(IngredientIO.INPUT);
+                addWidget(slot);
+            }
+        }
+
+        // switch candidates page button
+        var buttonBackground = ResourceBorderTexture.BUTTON_COMMON;
+        var upButton = new ButtonWidget(136 + 1, 117 + 1, 16, 16,
+                new GuiTextureGroup(buttonBackground, Icons.UP.copy().scale(0.8f)),cd -> updateCandidatePage(candidatePage - 1))
+                .setHoverBorderTexture(-1, -1);
+        var downButton = new ButtonWidget(136 + 1, 135 + 1, 16, 16,
+                new GuiTextureGroup(buttonBackground, Icons.DOWN.copy().scale(0.8f)), cd -> updateCandidatePage(candidatePage + 1))
+                .setHoverBorderTexture(-1, -1);
+        addWidget(upButton);
+        addWidget(downButton);
+
+        // set initial page
         setPage(0);
+    }
+
+    private void updateCandidatePage(int page) {
+        if (this.candidatePage == page) return;
+        var maxPage = Math.max(0, (patterns[index].parts.size() - 1) / 14);
+        if (page > maxPage || page < 0) return;
+        this.candidatePage = page;
+        setupPatternCandidates(patterns[index]);
     }
 
     private void updateLayer() {
@@ -166,21 +224,24 @@ public class PatternPreviewWidget extends WidgetGroup {
         if (index >= patterns.length || index < 0) return;
         this.index = index;
         this.layer = -1;
+        this.candidatePage = 0;
         MBPattern pattern = patterns[index];
         setupScene(pattern);
-        if (slotWidgets != null) {
-            for (SlotWidget slotWidget : slotWidgets) {
-                scrollableWidgetGroup.removeWidget(slotWidget);
+        setupPatternCandidates(pattern);
+    }
+
+    private void setupPatternCandidates(MBPattern pattern) {
+        var parts = pattern.parts;
+        var items = new ArrayList<List<ItemStack>>();
+        for (int i = 0; i < 14; i++) {
+            var index = i + candidatePage * 14;
+            if (pattern.parts.size() > index) {
+                items.add(parts.get(index));
+            } else {
+                items.add(Collections.emptyList());
             }
         }
-        slotWidgets = new SlotWidget[Math.min(pattern.parts.size(), 18)];
-        var itemHandler = new CycleItemStackHandler(pattern.parts);
-        for (int i = 0; i < slotWidgets.length; i++) {
-            slotWidgets[i] = new SlotWidget(itemHandler, i, 4 + i * 18, 0, false, false)
-                    .setBackgroundTexture(ColorPattern.T_GRAY.rectTexture())
-                    .setIngredientIO(IngredientIO.INPUT);
-            scrollableWidgetGroup.addWidget(slotWidgets[i]);
-        }
+        candidatesItemHandler.updateStacks(items);
     }
 
     private void onFormedSwitch(boolean isFormed) {
@@ -198,36 +259,33 @@ public class PatternPreviewWidget extends WidgetGroup {
     private void onPosSelected(BlockPos pos, Direction facing) {
         if (index >= patterns.length || index < 0) return;
         TraceabilityPredicate predicate = patterns[index].predicateMap.get(pos);
-        if (predicate != null) {
-            predicates.clear();
-            predicates.addAll(predicate.common);
-            predicates.addAll(predicate.limited);
-            predicates.removeIf(p -> p == null || p.candidates == null); // why it happens?
-            if (candidates != null) {
-                for (SlotWidget candidate : candidates) {
-                    removeWidget(candidate);
-                }
+        var allPredicates = new ArrayList<SimplePredicate>();
+        allPredicates.addAll(predicate.common);
+        allPredicates.addAll(predicate.limited);
+        allPredicates.removeIf(p -> p == null || p.candidates == null); // why it happens?
+        var candidateStacks = new ArrayList<List<ItemStack>>();
+        var predicateTips = new ArrayList<List<Component>>();
+        for (var simplePredicate : allPredicates) {
+            List<ItemStack> itemStacks = simplePredicate.getCandidates();
+            if (!itemStacks.isEmpty()) {
+                candidateStacks.add(itemStacks);
+                predicateTips.add(simplePredicate.getToolTips(predicate));
             }
-            List<List<ItemStack>> candidateStacks = new ArrayList<>();
-            List<List<Component>> predicateTips = new ArrayList<>();
-            for (SimplePredicate simplePredicate : predicates) {
-                List<ItemStack> itemStacks = simplePredicate.getCandidates();
-                if (!itemStacks.isEmpty()) {
-                    candidateStacks.add(itemStacks);
-                    predicateTips.add(simplePredicate.getToolTips(predicate));
-                }
+        }
+        var predicateItems = new ArrayList<List<ItemStack>>();
+        for (int i = 0; i < 5; i++) {
+            if (candidateStacks.size() > i) {
+                predicateItems.add(candidateStacks.get(i));
+            } else {
+                predicateItems.add(Collections.emptyList());
             }
-            candidates = new SlotWidget[candidateStacks.size()];
-            CycleItemStackHandler itemHandler = new CycleItemStackHandler(candidateStacks);
-            int maxCol = (160 - (((slotWidgets.length - 1) / 9 + 1) * 18) - 35) % 18;
-            for (int i = 0; i < candidateStacks.size(); i++) {
-                int finalI = i;
-                candidates[i] = new SlotWidget(itemHandler, i, 3 + (i / maxCol) * 18, 3 + (i % maxCol) * 18, false,
-                        false)
-                        .setIngredientIO(IngredientIO.INPUT)
-                        .setBackgroundTexture(new ColorRectTexture(0x4fffffff))
-                        .setOnAddedTooltips((slot, list) -> list.addAll(predicateTips.get(finalI)));
-                addWidget(candidates[i]);
+        }
+        predicatesItemHandler.updateStacks(predicateItems);
+        for (int i = 0; i < 5; i++) {
+            if (predicateTips.size() > i) {
+                predicates[i].setHoverTooltips(predicateTips.get(i));
+            } else {
+                predicates[i].setHoverTooltips(Collections.emptyList());
             }
         }
     }
@@ -245,8 +303,7 @@ public class PatternPreviewWidget extends WidgetGroup {
         if (!isLoaded && LDLib.isEmiLoaded() && Minecraft.getInstance().screen instanceof RecipeScreen) {
             setPage(0);
             isLoaded = true;
-        } else if (!isLoaded && LDLib.isReiLoaded() &&
-                Minecraft.getInstance().screen instanceof AbstractDisplayViewingScreen) {
+        } else if (!isLoaded && LDLib.isReiLoaded() && Minecraft.getInstance().screen instanceof AbstractDisplayViewingScreen) {
             setPage(0);
             isLoaded = true;
         }

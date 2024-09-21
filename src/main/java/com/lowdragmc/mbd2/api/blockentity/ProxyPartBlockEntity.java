@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib.syncdata.blockentity.IAsyncAutoSyncBlockEntity;
 import com.lowdragmc.lowdraglib.syncdata.blockentity.IAutoPersistBlockEntity;
 import com.lowdragmc.lowdraglib.syncdata.field.FieldManagedStorage;
 import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder;
+import com.lowdragmc.lowdraglib.utils.DummyWorld;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -84,6 +85,10 @@ public class ProxyPartBlockEntity extends BlockEntity implements IAsyncAutoSyncB
                 this.originalData = originalData;
                 this.controllerPos = controllerPos;
             }));
+        } else if (level instanceof DummyWorld) {
+            this.originalState = originalState;
+            this.originalData = originalData;
+            this.controllerPos = controllerPos;
         }
     }
 
