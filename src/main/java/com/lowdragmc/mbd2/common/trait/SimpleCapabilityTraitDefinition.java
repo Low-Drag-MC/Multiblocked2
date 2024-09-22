@@ -68,6 +68,6 @@ public abstract class SimpleCapabilityTraitDefinition<T, CONTENT> extends TraitD
     /**
      * Get the capability for {@link ICapabilityProvider}.
      */
-    public abstract Capability<T> getCapability();
+    public abstract Capability<?> getCapability();
 
 }

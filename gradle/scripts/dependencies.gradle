@@ -38,4 +38,10 @@ dependencies {
 
     // Photon
     implementation fg.deobf("com.lowdragmc.photon:photon-forge-${minecraft_version}:${photon_version}") { transitive = false }
+
+    // Botania
+    compileOnly fg.deobf("vazkii.botania:Botania:${botania_version}:api")
+    implementation fg.deobf("vazkii.botania:Botania:${botania_version}")
+    runtimeOnly fg.deobf("top.theillusivec4.curios:curios-forge:${curios_version}")
+    runtimeOnly fg.deobf("vazkii.patchouli:Patchouli:${patchouli_version}")
 }

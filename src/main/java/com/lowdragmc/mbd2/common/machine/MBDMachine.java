@@ -387,6 +387,9 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
             if (runRecipeLogic()) {
                 recipeLogic.serverTick();
             }
+            for (ITrait trait : additionalTraits) {
+                trait.serverTick();
+            }
         }
     }
 
@@ -437,6 +440,9 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
     @OnlyIn(Dist.CLIENT)
     public void clientTick() {
         MinecraftForge.EVENT_BUS.post(new MachineClientTickEvent(this).postGraphEvent());
+        for (ITrait trait : additionalTraits) {
+            trait.clientTick();
+        }
     }
 
     /**

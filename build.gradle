@@ -24,11 +24,11 @@ apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 apply plugin: 'org.spongepowered.mixin'
 
-version = mod_version
+version = "${minecraft_version}-${mod_version}"
 group = mod_group_id
 
 base {
-    archivesName = mod_id
+    archivesName = "multiblocked2"
 }
 
 // Mojang ships Java 17 to end users in 1.18+, so your mod should target Java 17.
@@ -90,7 +90,8 @@ tasks.named('processResources', ProcessResources).configure {
             forge_version: forge_version, forge_version_range: forge_version_range,
             loader_version_range: loader_version_range,
             mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
-            mod_authors: mod_authors, mod_description: mod_description, mod_url: mod_url
+            mod_authors: mod_authors, mod_description: mod_description, mod_url: mod_url,
+            ldlib_version_range: ldlib_version_range, ldlib_version: ldlib_version,
     ]
     inputs.properties replaceProperties
 
@@ -116,15 +117,27 @@ tasks.named('jar', Jar).configure {
     finalizedBy 'reobfJar'
 }
 
+tasks.register('sourcesJar', Jar) {
+    from sourceSets.main.allSource
+    archiveBaseName.set("${archivesBaseName}")
+    archiveVersion.set("${project.version}")
+    archiveClassifier.set('sources')
+}
+
 publishing {
     publications {
         register('mavenJava', MavenPublication) {
             artifact jar
+            artifact sourcesJar
         }
     }
     repositories {
         maven {
-            url "file://${project.projectDir}/mcmodsrepo"
+            url "https://maven.firstdarkdev.xyz/snapshots"
+            credentials {
+                username System.getenv("MAVEN_USER")
+                password System.getenv("MAVEN_PASS")
+            }
         }
     }
 }

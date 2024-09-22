@@ -244,6 +244,16 @@
     "config.definition.trait.forge_energy_storage.fancy_renderer": "Fancy Forge Storage Renderer",
     "config.definition.trait.forge_energy_storage.fancy_renderer.tooltip": "Allow you render stored energy in the world. (e.g. Energy Container).",
 
+    "config.definition.trait.botania_mana_storage.name": "Botania Mana Storage",
+    "config.definition.trait.botania_mana_storage.capacity": "Capacity",
+    "config.definition.trait.botania_mana_storage.emit_speed": "Emit Speed",
+    "config.definition.trait.botania_mana_storage.emit_speed.tooltip": "The speed of emitting mana.",
+    "config.definition.trait.botania_mana_storage.ui_container_hover": "Stored: %d / %d Mana",
+    "config.definition.trait.botania_mana_storage.fancy_renderer": "Fancy Botania Mana Renderer",
+    "config.definition.trait.botania_mana_storage.fancy_renderer.tooltip": "Allow you render stored mana in the world. (e.g. Mana Storage).",
+
+
+
     "config.definition.trait.fancy_renderer.position": "Position",
     "config.definition.trait.fancy_renderer.position.tooltip": "The position offset of the fancy renderer.",
     "config.definition.trait.fancy_renderer.rotation": "Rotation",
@@ -393,6 +403,8 @@
     "recipe.capability.forge_energy.name": "Forge Energy Capability",
     "recipe.capability.forge_energy.energy": "Energy",
 
+    "recipe.capability.botania_mana.name": "Botania Mana Capability",
+    "recipe.capability.botania_mana.mana": "Mana",
 
     "editor.machine.machine_tab": "Machine",
     "editor.machine.multiblock.area_panel.sceneRadius": "Scene Radius",

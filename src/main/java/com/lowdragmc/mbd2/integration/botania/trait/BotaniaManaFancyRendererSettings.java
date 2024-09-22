@@ -1,35 +1,35 @@
-package com.lowdragmc.mbd2.common.trait.forgeenergy;
+package com.lowdragmc.mbd2.integration.botania.trait;
 
 import com.lowdragmc.lowdraglib.client.model.ModelFactory;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
-import com.lowdragmc.lowdraglib.client.utils.RenderBufferUtils;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberColor;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IToggleConfigurable;
 import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
-import com.lowdragmc.lowdraglib.utils.ColorUtils;
 import com.lowdragmc.mbd2.api.capability.MBDCapabilities;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.Tesselator;
-import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.Direction;
+import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
-import org.lwjgl.opengl.GL11;
+import vazkii.botania.client.core.helper.RenderHelper;
 
-public class ForgeEnergyFancyRendererSettings  implements IToggleConfigurable {
-    private final ForgeEnergyCapabilityTraitDefinition definition;
+import static vazkii.botania.common.lib.ResourceLocationHelper.prefix;
+
+public class BotaniaManaFancyRendererSettings implements IToggleConfigurable {
+    private final BotaniaManaCapabilityTraitDefinition definition;
     @Getter
     @Setter
     @Persisted
@@ -67,13 +67,13 @@ public class ForgeEnergyFancyRendererSettings  implements IToggleConfigurable {
     // run-time;
     private IRenderer renderer;
 
-    public ForgeEnergyFancyRendererSettings(ForgeEnergyCapabilityTraitDefinition definition) {
+    public BotaniaManaFancyRendererSettings(BotaniaManaCapabilityTraitDefinition definition) {
         this.definition = definition;
     }
 
     public IRenderer createRenderer() {
         if (isEnable()) {
-            return renderer == null ? (renderer = new ForgeEnergyFancyRendererSettings.Renderer()) : renderer;
+            return renderer == null ? (renderer = new Renderer()) : renderer;
         } else return IRenderer.EMPTY;
     }
 
@@ -89,9 +89,14 @@ public class ForgeEnergyFancyRendererSettings  implements IToggleConfigurable {
         public void render(BlockEntity blockEntity, float partialTicks, PoseStack poseStack, MultiBufferSource bufferSource, int combinedLight, int combinedOverlay) {
             var optional = blockEntity.getCapability(MBDCapabilities.CAPABILITY_MACHINE).resolve();
             if (optional.isPresent() && optional.get() instanceof MBDMachine machine) {
-                if (machine.getTraitByDefinition(definition) instanceof ForgeEnergyCapabilityTrait trait) {
+                if (machine.getTraitByDefinition(definition) instanceof BotaniaManaCapabilityTrait trait) {
                     var storage = trait.storage;
-                    if (storage.getEnergyStored() == 0 || storage.getMaxEnergyStored() == 0) return;
+                    if (storage.getCurrentMana() == 0 || storage.getMaxMana() == 0) return;
+
+                    int mana = storage.getCurrentMana();
+                    int maxMana =storage.getMaxMana();
+
+                    float manaLevel = mana * 1f / maxMana;
 
                     poseStack.pushPose();
 
@@ -111,25 +116,58 @@ public class ForgeEnergyFancyRendererSettings  implements IToggleConfigurable {
                     poseStack.scale(scale.x, scale.y, scale.z);
                     poseStack.translate(-0.5D, -0.5d, -0.5D);
 
+                    RenderSystem.defaultBlendFunc();
                     RenderSystem.enableBlend();
-                    RenderSystem.enableDepthTest();
-                    RenderSystem.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
-                    var tessellator = Tesselator.getInstance();
-                    var buffer = tessellator.getBuilder();
-                    RenderSystem.setShader(GameRenderer::getPositionColorShader);
-                    buffer.begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION_COLOR);
+                    var texture = Minecraft.getInstance().getTextureAtlas(InventoryMenu.BLOCK_ATLAS)
+                            .apply(prefix("block/mana_water"));
 
-                    RenderBufferUtils.drawCubeFace(poseStack, buffer,
-                            0, 0, 0, 1,
-                            percentHeight ? storage.getEnergyStored() * 1f / storage.getMaxEnergyStored() : 1, 1,
-                            ColorUtils.red(color), ColorUtils.green(color), ColorUtils.blue(color), ColorUtils.alpha(color),
-                            true);
+                    var buffer = bufferSource.getBuffer(RenderHelper.MANA_POOL_WATER);
 
-                    tessellator.end();
+                    renderCubeFace(poseStack, buffer, 0, 0, 0, 1,
+                            percentHeight ? manaLevel : 1, 1, 0xFFFFFFFF,
+                            combinedLight, texture.getU0(), texture.getV0(), texture.getU1(), texture.getV1());
                     poseStack.popPose();
+
                 }
             }
+        }
+
+        public static void renderCubeFace(PoseStack poseStack, VertexConsumer buffer, float minX, float minY, float minZ, float maxX, float maxY, float maxZ, int color, int combinedLight,
+                                          float u0, float v0, float u1, float v1) {
+            Matrix4f mat = poseStack.last().pose();
+
+            buffer.vertex(mat, minX, minY, minZ).color(color).uv(u0, v1).uv2(combinedLight).endVertex();
+            buffer.vertex(mat, minX, minY, maxZ).color(color).uv(u1, v1).uv2(combinedLight).endVertex();
+            buffer.vertex(mat, minX, maxY, maxZ).color(color).uv(u1, v0).uv2(combinedLight).endVertex();
+            buffer.vertex(mat, minX, maxY, minZ).color(color).uv(u0, v0).uv2(combinedLight).endVertex();
+
+            buffer.vertex(mat, maxX, minY, minZ).color(color).uv(u0, v1).uv2(combinedLight).endVertex();
+            buffer.vertex(mat, maxX, maxY, minZ).color(color).uv(u1, v1).uv2(combinedLight).endVertex();
+            buffer.vertex(mat, maxX, maxY, maxZ).color(color).uv(u1, v0).uv2(combinedLight).endVertex();
+            buffer.vertex(mat, maxX, minY, maxZ).color(color).uv(u0, v0).uv2(combinedLight).endVertex();
+
+
+            buffer.vertex(mat, minX, minY, minZ).color(color).uv(u0, v1).uv2(combinedLight).endVertex();
+            buffer.vertex(mat, maxX, minY, minZ).color(color).uv(u1, v1).uv2(combinedLight).endVertex();
+            buffer.vertex(mat, maxX, minY, maxZ).color(color).uv(u1, v0).uv2(combinedLight).endVertex();
+            buffer.vertex(mat, minX, minY, maxZ).color(color).uv(u0, v0).uv2(combinedLight).endVertex();
+
+
+            buffer.vertex(mat, minX, maxY, minZ).color(color).uv(u0, v1).uv2(combinedLight).endVertex();
+            buffer.vertex(mat, minX, maxY, maxZ).color(color).uv(u1, v1).uv2(combinedLight).endVertex();
+            buffer.vertex(mat, maxX, maxY, maxZ).color(color).uv(u1, v0).uv2(combinedLight).endVertex();
+            buffer.vertex(mat, maxX, maxY, minZ).color(color).uv(u0, v0).uv2(combinedLight).endVertex();
+
+            buffer.vertex(mat, minX, minY, minZ).color(color).uv(u0, v1).uv2(combinedLight).endVertex();
+            buffer.vertex(mat, minX, maxY, minZ).color(color).uv(u1, v1).uv2(combinedLight).endVertex();
+            buffer.vertex(mat, maxX, maxY, minZ).color(color).uv(u1, v0).uv2(combinedLight).endVertex();
+            buffer.vertex(mat, maxX, minY, minZ).color(color).uv(u0, v0).uv2(combinedLight).endVertex();
+
+            buffer.vertex(mat, minX, minY, maxZ).color(color).uv(u0, v1).uv2(combinedLight).endVertex();
+            buffer.vertex(mat, maxX, minY, maxZ).color(color).uv(u1, v1).uv2(combinedLight).endVertex();
+            buffer.vertex(mat, maxX, maxY, maxZ).color(color).uv(u1, v0).uv2(combinedLight).endVertex();
+            buffer.vertex(mat, minX, maxY, maxZ).color(color).uv(u0, v0).uv2(combinedLight).endVertex();
         }
 
     }

@@ -1,8 +1,10 @@
 package com.lowdragmc.mbd2.common.data;
 
+import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.ingredient.FluidIngredient;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
+import com.lowdragmc.mbd2.integration.botania.BotaniaManaRecipeCapability;
 import com.lowdragmc.mbd2.common.capability.recipe.FluidRecipeCapability;
 import com.lowdragmc.mbd2.common.capability.recipe.ForgeEnergyRecipeCapability;
 import com.lowdragmc.mbd2.common.capability.recipe.ItemRecipeCapability;
@@ -21,6 +23,10 @@ public class MBDRecipeCapabilities {
         MBDRegistries.RECIPE_CAPABILITIES.register(ITEM.name, ITEM);
         MBDRegistries.RECIPE_CAPABILITIES.register(FLUID.name, FLUID);
         MBDRegistries.RECIPE_CAPABILITIES.register(FORGE_ENERGY.name, FORGE_ENERGY);
+        // Register the mod capabilities
+        if (MBD2.isBotaniaLoaded()) {
+            MBDRegistries.RECIPE_CAPABILITIES.register(BotaniaManaRecipeCapability.CAP.name, BotaniaManaRecipeCapability.CAP);
+        }
         ModLoader.get().postEvent(new MBDRegistryEvent.RecipeCapability());
         MBDRegistries.RECIPE_CAPABILITIES.freeze();
     }

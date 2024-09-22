@@ -85,7 +85,7 @@ public class FluidFancyRendererSettings implements IToggleConfigurable {
             if (optional.isPresent() && optional.get() instanceof MBDMachine machine) {
                 if (machine.getTraitByDefinition(definition) instanceof FluidTankCapabilityTrait trait) {
                     FluidStack fluid = trait.storages[0].getFluid();
-                    if (fluid.isEmpty()) return;
+                    if (fluid.isEmpty() || trait.storages[0].getCapacity() == 0) return;
 
                     var fluidTexture = FluidHelper.getStillTexture(fluid);
                     if (fluidTexture == null) {

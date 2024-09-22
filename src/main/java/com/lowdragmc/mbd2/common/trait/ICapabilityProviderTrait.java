@@ -20,7 +20,7 @@ public interface ICapabilityProviderTrait<T> extends ITrait {
     /**
      * Get the capability for {@link ICapabilityProvider}.
      */
-    Capability<T> getCapability();
+    Capability<?> getCapability();
 
     /**
      * Get the capability content for {@link ICapabilityProvider}.

@@ -1,8 +1,10 @@
 package com.lowdragmc.mbd2.common.trait.forgeenergy;
 
+import com.lowdragmc.lowdraglib.syncdata.ITagSerializable;
+import net.minecraft.nbt.Tag;
 import net.minecraftforge.energy.EnergyStorage;
 
-public class CopiableEnergyStorage extends EnergyStorage {
+public class CopiableEnergyStorage extends EnergyStorage implements ITagSerializable<Tag> {
 
     public CopiableEnergyStorage(int capacity) {
         super(capacity);
@@ -22,5 +24,15 @@ public class CopiableEnergyStorage extends EnergyStorage {
 
     public CopiableEnergyStorage copy() {
         return new CopiableEnergyStorage(capacity, maxReceive, maxExtract, energy);
+    }
+
+    @Override
+    public void deserializeNBT(Tag tag) {
+        super.deserializeNBT(tag);
+    }
+
+    @Override
+    public Tag serializeNBT() {
+        return super.serializeNBT();
     }
 }

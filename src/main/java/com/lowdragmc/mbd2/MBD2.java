@@ -48,6 +48,10 @@ public class MBD2 {
         return LDLib.isModLoaded("geckolib");
     }
 
+    public static boolean isBotaniaLoaded() {
+        return LDLib.isModLoaded("botania");
+    }
+
     public static boolean isPhotonLoaded() {
         return LDLib.isModLoaded("photon");
     }

@@ -26,4 +26,19 @@ public interface ITrait {
      * e.g. you can do some storage preparation, or render some preview model.
      */
     default void onLoadingTraitInPreview() {}
+
+    /**
+     * Called per server tick.
+     */
+    default void serverTick() {
+
+    }
+
+    /**
+     * Called per client tick.
+     */
+    default void clientTick() {
+
+    }
+
 }

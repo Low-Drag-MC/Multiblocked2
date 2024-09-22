@@ -58,7 +58,7 @@ public abstract class SimpleCapabilityTrait<T, CONTENT> implements IRecipeCapabi
     }
 
     @Override
-    public Capability<T> getCapability() {
+    public Capability<?> getCapability() {
         return getDefinition().getCapability();
     }
 

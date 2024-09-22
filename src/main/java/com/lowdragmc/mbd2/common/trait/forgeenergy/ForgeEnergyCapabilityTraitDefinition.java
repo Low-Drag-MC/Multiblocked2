@@ -92,7 +92,7 @@ public class ForgeEnergyCapabilityTraitDefinition extends SimpleCapabilityTraitD
 //            var allowClickDrained = guiIO == IO.BOTH || guiIO == IO.OUT;
 //            var allowClickFilled = guiIO == IO.BOTH || guiIO == IO.IN;
             WidgetUtils.widgetByIdForEach(group, "^%s$".formatted(prefix), ProgressWidget.class, energyBar -> {
-                energyBar.setProgressSupplier(() -> forgeEnergyTrait.storage.getMaxEnergyStored() * 1d / forgeEnergyTrait.storage.getEnergyStored());
+                energyBar.setProgressSupplier(() -> forgeEnergyTrait.storage.getEnergyStored() * 1d / forgeEnergyTrait.storage.getMaxEnergyStored());
                 if (energyBar.getOverlay() instanceof TextTexture textTexture) {
                     textTexture.updateText(forgeEnergyTrait.storage.getEnergyStored() + "/" + forgeEnergyTrait.storage.getMaxEnergyStored() + " FE");
                 }
