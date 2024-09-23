@@ -47,6 +47,10 @@ public class BotaniaManaCapabilityTrait extends SimpleCapabilityTrait<ManaPool, 
         int required = left.stream().reduce(0, Integer::sum);
         var capability = simulate ? storage.copy() : storage;
         if (io == IO.IN) {
+            var cost = Math.min(required, capability.getCurrentMana());
+            capability.receiveMana(-cost);
+            required -= cost;
+        } else {
             if (capability.isFull() || !capability.canReceiveManaFromBursts()) return left;
             if (required > (capability.getMaxMana() - capability.getCurrentMana())) {
                 var received = capability.getMaxMana() - capability.getCurrentMana();
@@ -56,10 +60,6 @@ public class BotaniaManaCapabilityTrait extends SimpleCapabilityTrait<ManaPool, 
                 capability.receiveMana(required);
                 return null;
             }
-        } else {
-            var cost = Math.min(required, capability.getCurrentMana());
-            capability.receiveMana(-cost);
-            required -= cost;
         }
         return required > 0 ? List.of(required) : null;
     }

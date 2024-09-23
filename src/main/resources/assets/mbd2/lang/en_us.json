@@ -204,7 +204,8 @@
     "config.definition.trait.filter.fluids": "Fluids",
     "config.definition.trait.filter.item_tags": "Item Tags",
     "config.definition.trait.filter.fluid_tags": "Fluid Tags",
-
+    "config.definition.trait.filter.chemicals": "Chemicals",
+    "config.definition.trait.filter.chemical_tags": "Chemical Tags",
 
     "ldlib.gui.editor.register.editor.machine.trait_ui_view": "Trait UI View",
     "config.definition.trait.ui.generate": "add",
@@ -246,12 +247,35 @@
 
     "config.definition.trait.botania_mana_storage.name": "Botania Mana Storage",
     "config.definition.trait.botania_mana_storage.capacity": "Capacity",
-    "config.definition.trait.botania_mana_storage.emit_speed": "Emit Speed",
-    "config.definition.trait.botania_mana_storage.emit_speed.tooltip": "The speed of emitting mana.",
     "config.definition.trait.botania_mana_storage.ui_container_hover": "Stored: %d / %d Mana",
     "config.definition.trait.botania_mana_storage.fancy_renderer": "Fancy Botania Mana Renderer",
     "config.definition.trait.botania_mana_storage.fancy_renderer.tooltip": "Allow you render stored mana in the world. (e.g. Mana Storage).",
 
+    "config.definition.trait.gtm_energy_container.name": "GTM Energy Container",
+    "config.definition.trait.gtm_energy_container.capacity": "Capacity",
+    "config.definition.trait.gtm_energy_container.explosion_machine": "Explosion Machine",
+    "config.definition.trait.gtm_energy_container.explosion_machine.tooltip": "Whether the machine will explode when the voltage is overed.",
+    "config.definition.trait.gtm_energy_container.input_voltage": "Input Voltage",
+    "config.definition.trait.gtm_energy_container.input_voltage.tooltip": "The input voltage of the energy container.",
+    "config.definition.trait.gtm_energy_container.input_amperage": "Input amperage",
+    "config.definition.trait.gtm_energy_container.input_amperage.tooltip": "If its capability io is OUT or BOTH, Max input eu (voltage * amp) per tick.",
+    "config.definition.trait.gtm_energy_container.output_voltage": "Output Voltage",
+    "config.definition.trait.gtm_energy_container.output_voltage.tooltip": "The output voltage of the energy container.",
+    "config.definition.trait.gtm_energy_container.output_amperage": "Output amperage",
+    "config.definition.trait.gtm_energy_container.output_amperage.tooltip": "If its capability io is IN or BOTH, Max output (voltage * amp) per tick.",
+    "config.definition.trait.gtm_energy_container.ui_container_hover": "Stored: %d / %d eu",
+    "config.definition.trait.gtm_energy_container.fancy_renderer": "Fancy GTM Energy Container Renderer",
+    "config.definition.trait.gtm_energy_container.fancy_renderer.tooltip": "Allow you render stored energy in the world. (e.g. Energy Container).",
+
+    "config.definition.trait.mek_gas_container.name": "Mek Gas Container",
+    "config.definition.trait.mek_infuse_container.name": "Mek Infusion Container",
+    "config.definition.trait.mek_pigment_container.name": "Mek Pigment Container",
+    "config.definition.trait.mek_slurry_container.name": "Mek Slurry Container",
+    "config.definition.trait.mek_heat_container.name": "Mek Heat Container",
+    "config.definition.trait.mek_heat_container.capacity": "Capacity",
+    "config.definition.trait.mek_heat_container.inverse_conduction": "Inverse Conduction",
+    "config.definition.trait.mek_heat_container.inverse_conduction.tooltip": "Returns the inverse conduction coefficient of a given capacitor. This value defines how much heat is allowed to be dissipated. The larger the number the less heat can dissipate. The trade-off is that it also allows for lower amounts of heat to be inserted.",
+    "config.definition.trait.mek_heat_container.ui_container_hover": "Stored: %d / %d heat",
 
 
     "config.definition.trait.fancy_renderer.position": "Position",
@@ -405,6 +429,29 @@
 
     "recipe.capability.botania_mana.name": "Botania Mana Capability",
     "recipe.capability.botania_mana.mana": "Mana",
+
+    "recipe.capability.gtm_energy.name": "GTM Energy Capability",
+    "recipe.capability.gtm_energy.energy": "Energy",
+
+    "recipe.capability.mek_gas.name": "Mek Gas Capability",
+    "recipe.capability.mek_infuse.name": "Mek Infuse Capability",
+    "recipe.capability.mek_pigment.name": "Mek Pigment Capability",
+    "recipe.capability.mek_slurry.name": "Mek Slurry Capability",
+    "recipe.capability.mek_chemical.type": "Chemical Type",
+    "recipe.capability.mek_chemical.type.format": "§cChemical Type§r: %s",
+    "recipe.capability.mek_chemical.type.gas": "Gas",
+    "recipe.capability.mek_chemical.type.infuse_type": "Infusion",
+    "recipe.capability.mek_chemical.type.pigment": "Pigment",
+    "recipe.capability.mek_chemical.type.slurry": "Slurry",
+    "recipe.capability.mek_chemical.amount": "Chemical Amount",
+
+    "recipe.capability.mek_heat.name": "Mek Heat Capability",
+    "recipe.capability.mek_heat.heat": "Heat",
+    "ldlib.gui.editor.register.widget.container.chemical_gas_slot": "Chemical Gas Slot",
+    "ldlib.gui.editor.register.widget.container.chemical_infuse_slot": "Chemical Infusion Slot",
+    "ldlib.gui.editor.register.widget.container.chemical_pigment_slot": "Chemical Pigment Slot",
+    "ldlib.gui.editor.register.widget.container.chemical_slurry_slot": "Chemical Slurry Slot",
+
 
     "editor.machine.machine_tab": "Machine",
     "editor.machine.multiblock.area_panel.sceneRadius": "Scene Radius",

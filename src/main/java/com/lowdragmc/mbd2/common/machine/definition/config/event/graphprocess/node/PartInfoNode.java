@@ -16,7 +16,7 @@ public class PartInfoNode extends BaseNode {
     public MBDMachine machine;
     @OutputPort(name = "is formed")
     public boolean isFormed;
-    @InputPort
+    @OutputPort
     public List<MBDMultiblockMachine> controllers;
 
     @Override

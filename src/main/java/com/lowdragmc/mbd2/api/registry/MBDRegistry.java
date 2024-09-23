@@ -11,8 +11,6 @@ import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.fml.ModContainer;
-import net.minecraftforge.fml.ModLoadingContext;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -24,7 +22,7 @@ import java.util.*;
  * @implNote MBDRegistry
  */
 public abstract class MBDRegistry<K, V> implements Iterable<V> {
-    public static final Map<ResourceLocation, MBDRegistry<?, ?>> REGISTERED = new HashMap<>();
+    public static final Map<ResourceLocation, MBDRegistry<?, ?>> REGISTERED = new LinkedHashMap<>();
 
     protected final BiMap<K, V> registry;
     @Getter

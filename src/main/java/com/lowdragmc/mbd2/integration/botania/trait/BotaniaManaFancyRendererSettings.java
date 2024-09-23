@@ -3,7 +3,6 @@ package com.lowdragmc.mbd2.integration.botania.trait;
 import com.lowdragmc.lowdraglib.client.model.ModelFactory;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberColor;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IToggleConfigurable;
 import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
@@ -34,12 +33,6 @@ public class BotaniaManaFancyRendererSettings implements IToggleConfigurable {
     @Setter
     @Persisted
     private boolean enable;
-
-    @Getter
-    @Setter
-    @Configurable(name = "config.definition.trait.fancy_renderer.color", tips = "config.definition.trait.fancy_renderer.color.tooltip")
-    @NumberColor
-    private int color = 0xaaaa0011;
     @Getter
     @Setter
     @Configurable(name = "config.definition.trait.fancy_renderer.position", tips = "config.definition.trait.fancy_renderer.position.tooltip")

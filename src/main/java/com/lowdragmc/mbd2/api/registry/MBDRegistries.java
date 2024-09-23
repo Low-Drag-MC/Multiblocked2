@@ -1,6 +1,8 @@
 package com.lowdragmc.mbd2.api.registry;
 
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
+import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib.gui.editor.runtime.AnnotationDetector;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
@@ -13,6 +15,7 @@ import com.lowdragmc.mbd2.common.machine.definition.config.StateMachine;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleLightValue;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleShape;
+import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 import lombok.Getter;
 import net.minecraft.world.phys.shapes.Shapes;
 
@@ -36,6 +39,7 @@ public class MBDRegistries {
     public static final MBDRegistry.RL<MBDMachineDefinition> MACHINE_DEFINITIONS = new MBDRegistry.RL<>(MBD2.id("machine_definition"));
     public static final MBDRegistry.RL<MBDRecipeType> RECIPE_TYPES = new MBDRegistry.RL<>(MBD2.id("recipe_type"));
     public static final MBDRegistry.String<RecipeCapability<?>> RECIPE_CAPABILITIES = new MBDRegistry.String<>(MBD2.id("recipe_capability"));
+    public static final MBDRegistry.String<AnnotationDetector.Wrapper<LDLRegister, ? extends TraitDefinition>> TRAIT_DEFINITIONS = new MBDRegistry.String<>(MBD2.id("trait_definition"));
     public static final MBDRegistry.String<Class<? extends RecipeCondition>> RECIPE_CONDITIONS = new MBDRegistry.String<>(MBD2.id("recipe_condition"));
 
 }

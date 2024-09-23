@@ -9,6 +9,8 @@ import com.lowdragmc.lowdraglib.gui.widget.DraggableScrollableWidgetGroup;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
 import com.lowdragmc.lowdraglib.gui.widget.SelectableWidgetGroup;
 import com.lowdragmc.lowdraglib.utils.Size;
+import com.lowdragmc.mbd2.MBD2;
+import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
 import com.lowdragmc.mbd2.common.gui.editor.MachineProject;
 import com.lowdragmc.mbd2.common.gui.editor.machine.MachineScenePanel;
@@ -18,6 +20,7 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
 import javax.annotation.Nullable;
+import java.lang.reflect.InvocationTargetException;
 
 public class TraitList extends DraggableScrollableWidgetGroup {
     private final MachineEditor editor;
@@ -79,7 +82,7 @@ public class TraitList extends DraggableScrollableWidgetGroup {
         if (isMouseOverElement(mouseX, mouseY) && button == 1 && editor.getCurrentProject() instanceof MachineProject project) {
             var menu = TreeBuilder.Menu.start()
                     .branch(Icons.ADD_FILE, "editor.machine.machine_traits.add_trait", m -> {
-                        for (var wrapper : MBDLDLibPlugin.REGISTER_TRAIT_DEFINITIONS.values()) {
+                        for (var wrapper : MBDRegistries.TRAIT_DEFINITIONS.values()) {
                             m.leaf("config.definition.trait.%s.name".formatted(wrapper.annotation().name()), () -> {
                                 var traitDefinition = wrapper.creator().get();
                                 if (!traitDefinition.allowMultiple()) {

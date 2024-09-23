@@ -25,18 +25,13 @@ import vazkii.botania.api.mana.ManaPool;
 import vazkii.botania.api.mana.ManaReceiver;
 import vazkii.botania.common.block.BotaniaBlocks;
 
-@LDLRegister(name = "botania_mana_storage", group = "trait", priority = -100)
+@LDLRegister(name = "botania_mana_storage", group = "trait", modID = "botania")
 public class BotaniaManaCapabilityTraitDefinition extends SimpleCapabilityTraitDefinition<ManaPool, Integer> {
     @Getter
     @Setter
     @Configurable(name = "config.definition.trait.botania_mana_storage.capacity")
     @NumberRange(range = {1, Integer.MAX_VALUE})
     private int capacity = 5000;
-    @Getter
-    @Setter
-    @Configurable(name = "config.definition.trait.botania_mana_storage.emit_speed", tips = "config.definition.trait.botania_mana_storage.emit_speed.tooltip")
-    @NumberRange(range = {0, Integer.MAX_VALUE})
-    private int emitSpeed = 5000;
     @Configurable(name = "config.definition.trait.botania_mana_storage.fancy_renderer", subConfigurable = true,
             tips = "config.definition.trait.botania_mana_storage.fancy_renderer.tooltip")
     private final BotaniaManaFancyRendererSettings fancyRendererSettings = new BotaniaManaFancyRendererSettings(this);
@@ -80,16 +75,16 @@ public class BotaniaManaCapabilityTraitDefinition extends SimpleCapabilityTraitD
 
     @Override
     public void initTraitUI(ITrait trait, WidgetGroup group) {
-        if (trait instanceof BotaniaManaCapabilityTrait forgeEnergyTrait) {
+        if (trait instanceof BotaniaManaCapabilityTrait manaTrait) {
             var prefix = uiPrefixName();
             WidgetUtils.widgetByIdForEach(group, "^%s$".formatted(prefix), ProgressWidget.class, energyBar -> {
-                energyBar.setProgressSupplier(() -> forgeEnergyTrait.storage.getCurrentMana() * 1d / forgeEnergyTrait.storage.getMaxMana());
+                energyBar.setProgressSupplier(() -> manaTrait.storage.getCurrentMana() * 1d / manaTrait.storage.getMaxMana());
                 if (energyBar.getOverlay() instanceof TextTexture textTexture) {
-                    textTexture.updateText(forgeEnergyTrait.storage.getCurrentMana() + "/" + forgeEnergyTrait.storage.getMaxMana() + " mana");
+                    textTexture.updateText(manaTrait.storage.getCurrentMana() + "/" + manaTrait.storage.getMaxMana() + " mana");
                 }
                 energyBar.setDynamicHoverTips(value -> LocalizationUtils.format(
                         "config.definition.trait.botania_mana_storage.ui_container_hover",
-                        forgeEnergyTrait.storage.getCurrentMana(), forgeEnergyTrait.storage.getMaxMana()));
+                        manaTrait.storage.getCurrentMana(), manaTrait.storage.getMaxMana()));
             });
         }
     }

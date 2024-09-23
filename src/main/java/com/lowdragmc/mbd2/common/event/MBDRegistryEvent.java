@@ -2,7 +2,9 @@ package com.lowdragmc.mbd2.common.event;
 
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeSerializer;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
+import com.lowdragmc.mbd2.common.data.MBDTraitDefinitions;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
+import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.fml.event.IModBusEvent;
@@ -44,6 +46,15 @@ public class MBDRegistryEvent extends Event implements IModBusEvent {
          */
         public void register(String id, com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability<?> capability) {
             MBDRegistries.RECIPE_CAPABILITIES.register(id, capability);
+        }
+    }
+
+    public static class Trait extends MBDRegistryEvent {
+        /**
+         * Register a trait definition.
+         */
+        public void register(Class<? extends TraitDefinition> clazz) {
+            MBDTraitDefinitions.register(clazz);
         }
     }
 

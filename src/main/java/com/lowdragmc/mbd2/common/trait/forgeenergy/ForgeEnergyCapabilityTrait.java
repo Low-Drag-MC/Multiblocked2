@@ -47,11 +47,11 @@ public class ForgeEnergyCapabilityTrait extends SimpleCapabilityTrait<IEnergySto
         int required = left.stream().reduce(0, Integer::sum);
         var capability = simulate ? storage.copy() : storage;
         if (io == IO.IN) {
-            var received = capability.receiveEnergy(required, simulate);
-            required -= received;
-        } else {
             var extracted = capability.extractEnergy(required, simulate);
             required -= extracted;
+        } else {
+            var received = capability.receiveEnergy(required, simulate);
+            required -= received;
         }
         return required > 0 ? List.of(required) : null;
     }

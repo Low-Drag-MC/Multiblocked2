@@ -74,18 +74,17 @@ public class RecipeXEIPreviewFloatView extends FloatViewWidget {
         setSize(width, height + 15);
         clearAllWidgets();
         initWidget();
-        // TODO
-//        if (isCollapse) {
-//            title.setSize(new Size(15, 15));
-//            title.setBackground(new GuiTextureGroup(ColorPattern.T_RED.rectTexture().setRadius(5f), ColorPattern.GRAY.borderTexture(-1).setRadius(5f)));
-//            content.setVisible(false);
-//            content.setActive(false);
-//        } else {
-//            title.setSize(new Size(getSize().width, 15));
-//            title.setBackground(new GuiTextureGroup(ColorPattern.T_RED.rectTexture().setTopRadius(5f), ColorPattern.GRAY.borderTexture(-1).setTopRadius(5f)));
-//            content.setVisible(true);
-//            content.setActive(true);
-//        }
+        if (isCollapse) {
+            title.setSize(new Size(15, 15));
+            title.setBackground(new GuiTextureGroup(ColorPattern.T_RED.rectTexture().setRadius(5f), ColorPattern.GRAY.borderTexture(-1).setRadius(5f)));
+            content.setVisible(false);
+            content.setActive(false);
+        } else {
+            title.setSize(new Size(getSize().width, 15));
+            title.setBackground(new GuiTextureGroup(ColorPattern.T_RED.rectTexture().setTopRadius(5f), ColorPattern.GRAY.borderTexture(-1).setTopRadius(5f)));
+            content.setVisible(true);
+            content.setActive(true);
+        }
     }
 
     @Override

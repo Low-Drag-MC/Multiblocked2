@@ -54,6 +54,9 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait<IFluidHandle
         for (int i = 0; i < storages.length; i++) {
             storages[i] = new FluidStorage(getDefinition().getCapacity());
             storages[i].setOnContentsChanged(this::onContentsChanged);
+            if (getDefinition().getFluidFilterSettings().isEnable()) {
+                storages[i].setValidator(getDefinition().getFluidFilterSettings());
+            }
         }
         return storages;
     }

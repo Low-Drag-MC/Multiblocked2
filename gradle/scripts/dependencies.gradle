@@ -44,4 +44,16 @@ dependencies {
     implementation fg.deobf("vazkii.botania:Botania:${botania_version}")
     runtimeOnly fg.deobf("top.theillusivec4.curios:curios-forge:${curios_version}")
     runtimeOnly fg.deobf("vazkii.patchouli:Patchouli:${patchouli_version}")
+
+    // Mekanism
+    compileOnly fg.deobf("mekanism:Mekanism:${mekanism_version}:api")
+    implementation fg.deobf("mekanism:Mekanism:${mekanism_version}") // Mekanism
+    runtimeOnly fg.deobf("mekanism:Mekanism:${mekanism_version}:additions")// Mekanism: Additions
+    runtimeOnly fg.deobf("mekanism:Mekanism:${mekanism_version}:generators")// Mekanism: Generators
+    runtimeOnly fg.deobf("mekanism:Mekanism:${mekanism_version}:tools")// Mekanism: Tools
+
+    // GTM
+    implementation fg.deobf("com.gregtechceu.gtceu:gtceu-${minecraft_version}:${gtm_version}") { transitive = false }
+    compileOnly fg.deobf("com.tterrag.registrate:Registrate:${registrate_version}")
+
 }
