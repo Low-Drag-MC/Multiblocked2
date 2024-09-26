@@ -109,21 +109,13 @@ public class MekanismChemicalRecipeCapability<CHEMICAL extends Chemical<CHEMICAL
         this.createTankWidget = createTankWidget;
     }
 
-    @Override
-    public STACK copyInner(STACK content) {
-        return (STACK) content.copy();
-    }
-
-    @Override
-    public STACK copyWithModifier(STACK content, ContentModifier modifier) {
-        STACK copy = (STACK) content.copy();
-        copy.setAmount(modifier.apply(copy.getAmount()).longValue());
-        return copy;
+    public CHEMICAL createDefaultChemical() {
+        return defaultChemical == null ? registry.get().getValues().stream().findAny().orElse(empty) : defaultChemical.get();
     }
 
     @Override
     public STACK createDefaultContent() {
-        return createStack.apply(defaultChemical == null ? registry.get().getValues().stream().findAny().orElse(empty) : defaultChemical.get(), 1000L);
+        return createStack.apply(createDefaultChemical(), 1000L);
     }
 
     @Override
@@ -231,49 +223,56 @@ public class MekanismChemicalRecipeCapability<CHEMICAL extends Chemical<CHEMICAL
             BiFunction<CHEMICAL, Long, STACK> createStack) implements IContentSerializer<STACK> {
 
         @Override
-            public void toNetwork(FriendlyByteBuf buf, STACK content) {
-                content.writeToPacket(buf);
-            }
-
-            @Override
-            public STACK fromNetwork(FriendlyByteBuf buf) {
-                return readFromBuffer.apply(buf);
-            }
-
-            @Override
-            public STACK fromJson(JsonElement json) {
-                ResourceLocation type = new ResourceLocation(json.getAsJsonObject().get("type").getAsString());
-                long amount = json.getAsJsonObject().get("amount").getAsLong();
-                CHEMICAL chemical = ChemicalUtils.readChemicalFromRegistry(type, empty, registry.get());
-                return createStack.apply(chemical, amount);
-            }
-
-            @Override
-            public JsonElement toJson(STACK content) {
-                JsonObject jsonObj = new JsonObject();
-                jsonObj.addProperty("type", content.getType().getRegistryName().toString());
-                jsonObj.addProperty("amount", content.getAmount());
-                return jsonObj;
-            }
-
-            public STACK of(Object o) {
-                if (o instanceof ChemicalStack<?> chemicalStack && ChemicalType.getTypeFor(chemicalStack.getType()) == ChemicalType.getTypeFor(empty)) {
-                    return (STACK) chemicalStack;
-                } else if (o instanceof CharSequence) {
-                    String s = o.toString();
-                    if (!s.isEmpty() && !s.equals("-") && !s.equals("empty") && !s.equals("minecraft:empty")) {
-                        String[] s1 = s.split(" ", 2);
-                        CHEMICAL chemical = registry.get().getValue(new ResourceLocation(s1[0]));
-                        long amount = s1.length == 2 ? NumberUtils.toLong(s1[1], 1) : 1;
-                        return createStack.apply(chemical, amount);
-                    }
-                }
-                return (STACK) empty.getStack(0);
-            }
-
-            @Override
-            public STACK defaultValue() {
-                return (STACK) empty.getStack(0L);
-            }
+        public void toNetwork(FriendlyByteBuf buf, STACK content) {
+            content.writeToPacket(buf);
         }
+
+        @Override
+        public STACK fromNetwork(FriendlyByteBuf buf) {
+            return readFromBuffer.apply(buf);
+        }
+
+        @Override
+        public STACK fromJson(JsonElement json) {
+            ResourceLocation type = new ResourceLocation(json.getAsJsonObject().get("type").getAsString());
+            long amount = json.getAsJsonObject().get("amount").getAsLong();
+            CHEMICAL chemical = ChemicalUtils.readChemicalFromRegistry(type, empty, registry.get());
+            return createStack.apply(chemical, amount);
+        }
+
+        @Override
+        public JsonElement toJson(STACK content) {
+            JsonObject jsonObj = new JsonObject();
+            jsonObj.addProperty("type", content.getType().getRegistryName().toString());
+            jsonObj.addProperty("amount", content.getAmount());
+            return jsonObj;
+        }
+
+        public STACK of(Object o) {
+            if (o instanceof ChemicalStack<?> chemicalStack && ChemicalType.getTypeFor(chemicalStack.getType()) == ChemicalType.getTypeFor(empty)) {
+                return (STACK) chemicalStack;
+            } else if (o instanceof CharSequence) {
+                String s = o.toString();
+                if (!s.isEmpty() && !s.equals("-") && !s.equals("empty") && !s.equals("minecraft:empty")) {
+                    String[] s1 = s.split(" ", 2);
+                    CHEMICAL chemical = registry.get().getValue(new ResourceLocation(s1[0]));
+                    long amount = s1.length == 2 ? NumberUtils.toLong(s1[1], 1) : 1;
+                    return createStack.apply(chemical, amount);
+                }
+            }
+            return (STACK) empty.getStack(0);
+        }
+
+        @Override
+        public STACK copyInner(STACK content) {
+            return (STACK) content.copy();
+        }
+
+        @Override
+        public STACK copyWithModifier(STACK content, ContentModifier modifier) {
+            STACK copy = (STACK) content.copy();
+            copy.setAmount(modifier.apply(copy.getAmount()).longValue());
+            return copy;
+        }
+    }
 }

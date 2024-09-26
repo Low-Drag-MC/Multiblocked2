@@ -1,7 +1,9 @@
 package com.lowdragmc.mbd2.integration.botania.trait;
 
+import com.lowdragmc.lowdraglib.syncdata.IContentChangeAware;
 import com.lowdragmc.lowdraglib.syncdata.ITagSerializable;
 import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.IntTag;
 import net.minecraft.world.item.DyeColor;
@@ -10,7 +12,11 @@ import vazkii.botania.api.mana.ManaPool;
 
 import java.util.Optional;
 
-public class CopiableManaPool implements ManaPool, ITagSerializable<IntTag> {
+public class CopiableManaPool implements ManaPool, ITagSerializable<IntTag>, IContentChangeAware {
+    @Getter
+    @Setter
+    public Runnable onContentsChanged = () -> {};
+
     private final Level level;
     private final BlockPos pos;
     @Getter
@@ -56,7 +62,9 @@ public class CopiableManaPool implements ManaPool, ITagSerializable<IntTag> {
 
     @Override
     public void receiveMana(int mana) {
+        var old = this.mana;
         this.mana = Math.max(0, Math.min(this.mana + mana, maxMana));
+        if (old != this.mana) onContentsChanged.run();
     }
 
     @Override

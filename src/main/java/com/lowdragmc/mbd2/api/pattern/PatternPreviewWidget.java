@@ -127,6 +127,7 @@ public class PatternPreviewWidget extends WidgetGroup {
                 .setHoverBorderTexture(-1, -1)
                 .setHoverTooltips("pattern_preview.layer");
         var formedButton = new SwitchWidget(136, 57, 18, 18, (cd, pressed) -> onFormedSwitch(pressed))
+                .setSupplier(() -> patterns[index].controllerBase.isFormed())
                 .setTexture(new GuiTextureGroup(buttonTexture, new ResourceTexture("mbd2:textures/gui/multiblock_info_page_unformed.png")),
                         new GuiTextureGroup(buttonTexture, new ResourceTexture("mbd2:textures/gui/multiblock_info_page.png")))
                 .setHoverBorderTexture(-1, -1)
@@ -259,6 +260,7 @@ public class PatternPreviewWidget extends WidgetGroup {
     private void onPosSelected(BlockPos pos, Direction facing) {
         if (index >= patterns.length || index < 0) return;
         TraceabilityPredicate predicate = patterns[index].predicateMap.get(pos);
+        if (predicate == null) return;
         var allPredicates = new ArrayList<SimplePredicate>();
         allPredicates.addAll(predicate.common);
         allPredicates.addAll(predicate.limited);

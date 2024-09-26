@@ -11,7 +11,6 @@ import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.lowdraglib.jei.IngredientIO;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
-import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.api.recipe.content.SerializerInteger;
 import com.lowdragmc.mbd2.common.gui.recipe.CornerNumberWidget;
 import vazkii.botania.common.block.BotaniaBlocks;
@@ -25,16 +24,6 @@ public class BotaniaManaRecipeCapability extends RecipeCapability<Integer> {
     public final static ResourceTexture HUD_BAR= new ResourceTexture("mbd2:textures/gui/mana_hud.png").getSubTexture(0, 0.5, 1, 0.5);
     protected BotaniaManaRecipeCapability() {
         super("botania_mana", SerializerInteger.INSTANCE);
-    }
-
-    @Override
-    public Integer copyInner(Integer content) {
-        return content;
-    }
-
-    @Override
-    public Integer copyWithModifier(Integer content, ContentModifier modifier) {
-        return modifier.apply(content).intValue();
     }
 
     @Override

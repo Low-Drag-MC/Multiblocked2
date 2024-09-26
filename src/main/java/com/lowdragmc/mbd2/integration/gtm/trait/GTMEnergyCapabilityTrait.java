@@ -26,6 +26,7 @@ public class GTMEnergyCapabilityTrait extends SimpleCapabilityTrait<IEnergyConta
     public GTMEnergyCapabilityTrait(MBDMachine machine, GTMEnergyCapabilityTraitDefinition definition) {
         super(machine, definition);
         container = createStorages(machine);
+        container.setOnContentsChanged(this::notifyListeners);
     }
 
     @Override

@@ -375,38 +375,32 @@ public abstract class ChemicalTankWidget<CHEMICAL extends Chemical<CHEMICAL>, ST
     public void handleClientAction(int id, FriendlyByteBuf buffer) {
         super.handleClientAction(id, buffer);
         if (id == 1) {
-            boolean isShiftKeyDown = buffer.readBoolean();
-            int clickResult = tryClickContainer(isShiftKeyDown);
+            boolean isFill = buffer.readBoolean();
+            int clickResult = tryClickContainer(isFill);
             if (clickResult >= 0) {
                 writeUpdateInfo(4, buf -> buf.writeVarInt(clickResult));
             }
         }
     }
 
-    private int tryClickContainer(boolean isShiftKeyDown) {
+    private int tryClickContainer(boolean isFill) {
         if (chemicalHandler == null) return -1;
         Player player = gui.entityPlayer;
         ItemStack currentStack = gui.getModularUIContainer().getCarried();
         var optional = currentStack.getCapability(getCapability()).resolve();
         if (optional.isEmpty()) return -1;
         var handler = optional.get();
-        int maxAttempts = isShiftKeyDown ? currentStack.getCount() : 1;
-        if (allowClickFilled && chemicalHandler.getChemicalInTank(tank).getAmount() > 0) {
+        int maxAttempts = 1000;
+        if (isFill && allowClickFilled && chemicalHandler.getChemicalInTank(tank).getAmount() > 0) {
             boolean performedFill = false;
             for (int i = 0; i < maxAttempts; i++) {
                 var remaining = handler.insertChemical(chemicalHandler.getChemicalInTank(tank), Action.SIMULATE);
                 if (remaining.isStackIdentical(chemicalHandler.getChemicalInTank(tank))) break;
-                var remainingStack = currentStack.copyWithCount(1);
-                remainingStack.getCapability(getCapability()).ifPresent(cap -> {
+                currentStack.getCapability(getCapability()).ifPresent(cap -> {
                     var left = handler.insertChemical(chemicalHandler.getChemicalInTank(tank), Action.EXECUTE);
                     chemicalHandler.setChemicalInTank(tank, left);
                 });
-                currentStack.shrink(1);
                 performedFill = true;
-                if (!remainingStack.isEmpty() && !player.addItem(remainingStack)) {
-                    Block.popResource(player.level(), player.getOnPos(), remainingStack);
-                    break;
-                }
             }
             if (performedFill) {
                 var soundevent = FluidHelper.getFillSound(FluidStack.create(Fluids.WATER, 1000));
@@ -416,25 +410,24 @@ public abstract class ChemicalTankWidget<CHEMICAL extends Chemical<CHEMICAL>, ST
                 gui.getModularUIContainer().setCarried(currentStack);
                 return currentStack.getCount();
             }
-        }
-
-        if (allowClickDrained) {
+        } else if (!isFill && allowClickDrained) {
             boolean performedEmptying = false;
             for (int i = 0; i < maxAttempts; i++) {
-                var extracted = handler.extractChemical(chemicalHandler.getChemicalInTank(tank), Action.SIMULATE);
-                if (extracted.isEmpty()) break;
-                var remainingStack = currentStack.copyWithCount(1);
-                remainingStack.getCapability(getCapability()).ifPresent(cap -> {
-                    var left = chemicalHandler.getChemicalInTank(tank).copy();
-                    left.setAmount(left.getAmount() - handler.extractChemical(chemicalHandler.getChemicalInTank(tank), Action.EXECUTE).getAmount());
-                    chemicalHandler.setChemicalInTank(tank, (STACK) left);
-                });
-                currentStack.shrink(1);
-                performedEmptying = true;
-                if (!remainingStack.isEmpty() && !player.getInventory().add(remainingStack)) {
-                    Block.popResource(player.level(), player.getOnPos(), remainingStack);
-                    break;
+                var available = chemicalHandler.getChemicalInTank(tank).copy();
+                STACK extracted;
+                if (available.isEmpty()) {
+                    extracted = handler.extractChemical(chemicalHandler.getTankCapacity(tank), Action.SIMULATE);
+                } else {
+                    available.setAmount(chemicalHandler.getTankCapacity(tank) - available.getAmount());
+                    extracted = handler.extractChemical((STACK) available, Action.SIMULATE);
                 }
+                if (extracted.isEmpty()) break;
+                currentStack.getCapability(getCapability()).ifPresent(cap -> {
+                    var realExtracted = handler.extractChemical(extracted, Action.EXECUTE);
+                    realExtracted.setAmount(realExtracted.getAmount() + chemicalHandler.getChemicalInTank(tank).getAmount());
+                    chemicalHandler.setChemicalInTank(tank, realExtracted);
+                });
+                performedEmptying = true;
             }
             if (performedEmptying) {
                 var soundevent = FluidHelper.getEmptySound(FluidStack.create(Fluids.WATER, 1000));
@@ -452,10 +445,11 @@ public abstract class ChemicalTankWidget<CHEMICAL extends Chemical<CHEMICAL>, ST
     @OnlyIn(Dist.CLIENT)
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if ((allowClickDrained || allowClickFilled) && isMouseOverElement(mouseX, mouseY)) {
-            if (button == 0) {
-                if (FluidTransferHelper.getFluidTransfer(gui.entityPlayer, gui.getModularUIContainer()) != null) {
-                    boolean isShiftKeyDown = isShiftDown();
-                    writeClientAction(1, writer -> writer.writeBoolean(isShiftKeyDown));
+            if (button == 0 || button == 1) {
+                ItemStack currentStack = gui.getModularUIContainer().getCarried();
+                var optional = currentStack.getCapability(getCapability()).resolve();
+                if (optional.isPresent()) {
+                    writeClientAction(1, writer -> writer.writeBoolean(button == 0));
                     playButtonClickSound();
                     return true;
                 }

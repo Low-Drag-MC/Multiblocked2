@@ -59,7 +59,13 @@ public class SerializerFloat implements IContentSerializer<Float> {
     }
 
     @Override
-    public Float defaultValue() {
-        return 0f;
+    public Float copyWithModifier(Float content, ContentModifier modifier) {
+        return modifier.apply(content).floatValue();
     }
+
+    @Override
+    public Float copyInner(Float content) {
+        return content;
+    }
+
 }

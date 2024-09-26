@@ -2,7 +2,6 @@ package com.lowdragmc.mbd2.common.gui.editor;
 
 import com.lowdragmc.lowdraglib.client.renderer.impl.IModelRenderer;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.gui.editor.data.IProject;
 import com.lowdragmc.lowdraglib.gui.editor.data.Resources;
 import com.lowdragmc.lowdraglib.gui.editor.data.resource.Resource;
 import com.lowdragmc.lowdraglib.gui.editor.ui.Editor;
@@ -21,27 +20,17 @@ import com.lowdragmc.mbd2.common.gui.editor.multiblock.MultiblockAreaPanel;
 import com.lowdragmc.mbd2.common.gui.editor.multiblock.MultiblockPatternPanel;
 import com.lowdragmc.mbd2.common.gui.editor.multiblock.MultiblockShapeInfoPanel;
 import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
-import com.lowdragmc.mbd2.common.machine.definition.config.ConfigBlockProperties;
-import com.lowdragmc.mbd2.common.machine.definition.config.ConfigItemProperties;
-import com.lowdragmc.mbd2.common.machine.definition.config.ConfigMultiblockSettings;
-import com.lowdragmc.mbd2.common.machine.definition.config.StateMachine;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleLightValue;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleShape;
+import com.lowdragmc.mbd2.common.machine.definition.config.*;
 import com.lowdragmc.mbd2.utils.ControllerBlockInfo;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.phys.shapes.Shapes;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.*;
 
 @Getter
@@ -82,13 +71,9 @@ public class MultiblockMachineProject extends MachineProject {
 
     protected MultiblockMachineDefinition createDefinition() {
         // use vanilla furnace model as an example
-        var renderer = new IModelRenderer(new ResourceLocation("block/furnace"));
         var builder = MultiblockMachineDefinition.builder();
         builder.id(MBD2.id("new_machine"))
-                .stateMachine(StateMachine.createMultiblockDefault(b -> b
-                        .renderer(new ToggleRenderer(renderer))
-                        .shape(new ToggleShape(Shapes.block()))
-                        .lightLevel(new ToggleLightValue(0))))
+                .stateMachine(StateMachine.createMultiblockDefault(MachineState::builder, FURNACE_RENDERER))
                 .blockProperties(ConfigBlockProperties.builder().build())
                 .itemProperties(ConfigItemProperties.builder().build());
         builder.multiblockSettings(ConfigMultiblockSettings.builder().build());
@@ -199,12 +184,18 @@ public class MultiblockMachineProject extends MachineProject {
                 if (layerAxis == Direction.Axis.Y) {
                     min += aisleRepetitions[y][0];
                     max += aisleRepetitions[y][1];
+                } else if (layerAxis == Direction.Axis.Z) {
+                    min = 0;
+                    max = 0;
                 }
                 y++;
             }
             if (layerAxis == Direction.Axis.X) {
                 min += aisleRepetitions[x][0];
                 max += aisleRepetitions[x][1];
+            } else if (layerAxis == Direction.Axis.Y){
+                min = 0;
+                max = 0;
             }
             x++;
         }
@@ -290,7 +281,7 @@ public class MultiblockMachineProject extends MachineProject {
         };
         this.aisleRepetitions = new int[aisleLength][2];
         var repetitions = tag.getIntArray("aisle_repetitions");
-        for (int i = 0; i < x; i++) {
+        for (int i = 0; i < aisleLength; i++) {
             this.aisleRepetitions[i][0] = repetitions[i * 2];
             this.aisleRepetitions[i][1] = repetitions[i * 2 + 1];
         }
@@ -319,27 +310,25 @@ public class MultiblockMachineProject extends MachineProject {
         if (editor instanceof MachineEditor machineEditor) {
             super.onLoad(editor);
             var tabContainer = machineEditor.getTabPages();
-            var multiblockPatternPanel = new MultiblockPatternPanel(machineEditor, this);
-            var multiblockAreaPanel = new MultiblockAreaPanel(this, multiblockPatternPanel);
-            var MultiblockShapeInfoPanel = new MultiblockShapeInfoPanel(machineEditor, this);
+            var multiblockPatternPanel = createMultiblockPatternPanel(machineEditor);
+            var multiblockAreaPanel = createMultiblockAreaPanel(multiblockPatternPanel);
+            var MultiblockShapeInfoPanel = createMultiblockShapeInfoPanel(machineEditor);
             tabContainer.addTab("editor.machine.multiblock_area", multiblockAreaPanel, multiblockAreaPanel::onPanelSelected, multiblockAreaPanel:: onPanelDeselected);
             tabContainer.addTab("editor.machine.multiblock_pattern", multiblockPatternPanel, multiblockPatternPanel::onPanelSelected, multiblockPatternPanel::onPanelDeselected);
             tabContainer.addTab("editor.machine.multiblock.multiblock_shape_info", MultiblockShapeInfoPanel, MultiblockShapeInfoPanel::onPanelSelected, MultiblockShapeInfoPanel::onPanelDeselected);
         }
     }
 
-    @Nullable
-    @Override
-    public IProject loadProject(File file) {
-        try {
-            var tag = NbtIo.read(file);
-            if (tag != null) {
-                var proj = new MultiblockMachineProject();
-                proj.deserializeNBT(tag);
-                return proj;
-            }
-        } catch (IOException ignored) {}
-        return null;
+    public MultiblockPatternPanel createMultiblockPatternPanel(MachineEditor editor) {
+        return new MultiblockPatternPanel(editor, this);
+    }
+
+    public MultiblockAreaPanel createMultiblockAreaPanel(MultiblockPatternPanel multiblockPatternPanel) {
+        return new MultiblockAreaPanel(this, multiblockPatternPanel);
+    }
+
+    public MultiblockShapeInfoPanel createMultiblockShapeInfoPanel(MachineEditor editor) {
+        return new MultiblockShapeInfoPanel(editor, this);
     }
 
 }

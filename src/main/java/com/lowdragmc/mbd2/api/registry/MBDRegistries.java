@@ -25,7 +25,7 @@ public class MBDRegistries {
     private static MBDMachineDefinition createFakeMachine() {
         return MBDMachineDefinition.builder()
                 .id(MBD2.id("fake_machine"))
-                .stateMachine(new StateMachine(MachineState.builder()
+                .stateMachine(new StateMachine<>(MachineState.builder()
                         .name("base")
                         .renderer(new ToggleRenderer(IRenderer.EMPTY))
                         .shape(new ToggleShape(Shapes.block()))

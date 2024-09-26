@@ -30,15 +30,19 @@ import com.lowdragmc.mbd2.utils.WidgetUtils;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.EntityRenderersEvent;
@@ -79,7 +83,7 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
 
     @Configurable(tips = "config.definition.id.tooltip", forceUpdate = false)
     private ResourceLocation id;
-    protected final StateMachine stateMachine;
+    protected final StateMachine<?> stateMachine;
     @Configurable(name = "config.definition.block_properties", subConfigurable = true, tips = "config.definition.block_properties.tooltip", collapse = false)
     protected final ConfigBlockProperties blockProperties;
     @Configurable(name = "config.definition.item_properties", subConfigurable = true, tips = "config.definition.item_properties.tooltip", collapse = false)
@@ -99,21 +103,21 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
     // runtime
     @Nullable
     private File projectFile;
-    private MBDMachineBlock block;
-    private MBDMachineItem item;
-    private BlockEntityType<MachineBlockEntity> blockEntityType;
+    private Block block;
+    private Item item;
+    private BlockEntityType<?> blockEntityType;
     private IRenderer blockRenderer;
     private IRenderer itemRenderer;
     private Function<MBDMachine, WidgetGroup> uiCreator;
 
     protected MBDMachineDefinition(ResourceLocation id,
-                                   StateMachine stateMachine,
+                                   StateMachine<?> stateMachine,
                                    ConfigBlockProperties blockProperties,
                                    ConfigItemProperties itemProperties,
                                    ConfigMachineSettings machineSettings,
                                    @Nullable ConfigPartSettings partSettings) {
         this.id = id == null ? new ResourceLocation("mbd2", "undefined") : id;
-        this.stateMachine = stateMachine == null ? StateMachine.createDefault() : stateMachine;
+        this.stateMachine = stateMachine == null ? createDefaultStateMachine() : stateMachine;
         this.blockProperties = blockProperties == null ? ConfigBlockProperties.builder().build() : blockProperties;
         this.itemProperties = itemProperties == null ? ConfigItemProperties.builder().build() : itemProperties;
         this.machineSettings = machineSettings == null ? ConfigMachineSettings.builder().build() : machineSettings;
@@ -125,6 +129,10 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
         return new ConfigMachineEvents().registerEventGroup("MachineEvent");
     }
 
+    public StateMachine<?> createDefaultStateMachine() {
+        return StateMachine.createDefault(MachineState::builder);
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -132,20 +140,11 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
     public static MBDMachineDefinition createDefault() {
         return new MBDMachineDefinition(
                 MBD2.id("dummy"),
-                StateMachine.createDefault(),
+                StateMachine.createDefault(MachineState::builder),
                 ConfigBlockProperties.builder().build(),
                 ConfigItemProperties.builder().build(),
                 ConfigMachineSettings.builder().build(),
                 ConfigPartSettings.builder().build());
-    }
-
-    /**
-     * return null if the machine definition is invalid.
-     */
-    public static MBDMachineDefinition fromTag(CompoundTag tag) {
-        var definition = createDefault();
-        definition.deserializeNBT(tag);
-        return definition;
     }
 
     @Override
@@ -253,14 +252,24 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
     public void onRegistry(RegisterEvent event) {
         event.register(ForgeRegistries.BLOCKS.getRegistryKey(), helper -> {
             MBDMachineDefinition.set(this);
-            helper.register(id, block = new MBDMachineBlock(blockProperties.apply(stateMachine, BlockBehaviour.Properties.of()), this));
+            helper.register(id, block = createBlock());
             MBDMachineDefinition.clear();
         });
-        event.register(ForgeRegistries.ITEMS.getRegistryKey(), helper ->
-                helper.register(id, item = new MBDMachineItem(block, itemProperties.apply(new Item.Properties()))));
+        event.register(ForgeRegistries.ITEMS.getRegistryKey(), helper -> helper.register(id, item = createItem(block)));
         event.register(ForgeRegistries.BLOCK_ENTITY_TYPES.getRegistryKey(), helper ->
-                helper.register(id, blockEntityType = BlockEntityType.Builder.of((pos, state) ->
-                        new MachineBlockEntity(blockEntityType(), pos, state, this::createMachine), block).build(null)));
+                helper.register(id, blockEntityType = BlockEntityType.Builder.of(this::createBlockEntity, block).build(null)));
+    }
+
+    public Block createBlock() {
+        return new MBDMachineBlock(blockProperties.apply(stateMachine, BlockBehaviour.Properties.of()), this);
+    }
+
+    public Item createItem(Block block) {
+        return new MBDMachineItem((MBDMachineBlock)block, itemProperties.apply(new Item.Properties()));
+    }
+
+    public BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
+        return new MachineBlockEntity(blockEntityType(), pos, state, this::createMachine);
     }
 
     public MBDMachine createMachine(IMachineBlockEntity blockEntity) {
@@ -269,9 +278,24 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
 
     @OnlyIn(Dist.CLIENT)
     public void initRenderer(EntityRenderersEvent.RegisterRenderers event) {
-        blockRenderer = new MBDBlockRenderer(blockProperties::useAO);
-        itemRenderer = new MBDItemRenderer(itemProperties::useBlockLight, itemProperties::isGui3d, () -> itemProperties.renderer().isEnable() ? itemProperties.renderer().getValue() : stateMachine.getRootState().getRenderer());
-        event.registerBlockEntityRenderer(blockEntityType, MBDBESRenderer::getOrCreate);
+        blockRenderer = createBlockRenderer();
+        itemRenderer = createItemRenderer();
+        event.registerBlockEntityRenderer(blockEntityType, createBESRR());
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    public IRenderer createBlockRenderer() {
+        return new MBDBlockRenderer(blockProperties::useAO);
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    public IRenderer createItemRenderer() {
+        return new MBDItemRenderer(itemProperties::useBlockLight, itemProperties::isGui3d, () -> itemProperties.renderer().isEnable() ? itemProperties.renderer().getValue() : stateMachine.getRootState().getRealRenderer());
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    public BlockEntityRendererProvider<BlockEntity> createBESRR() {
+        return MBDBESRenderer::getOrCreate;
     }
 
     public MachineState getState(String name) {
@@ -301,7 +325,7 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
     @Accessors(chain = true, fluent = true)
     public static class Builder {
         protected ResourceLocation id;
-        protected StateMachine stateMachine;
+        protected StateMachine<?> stateMachine;
         protected ConfigBlockProperties blockProperties;
         protected ConfigItemProperties itemProperties;
         protected ConfigMachineSettings machineSettings;

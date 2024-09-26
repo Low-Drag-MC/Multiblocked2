@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.utils.NBTToJsonConverter;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
+import io.netty.buffer.Unpooled;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.FriendlyByteBuf;
@@ -34,9 +35,16 @@ public interface IContentSerializer<T> {
 
     T of(Object o);
 
-    T defaultValue();
+    /**
+     * deep copy and modify the size attribute for those Content that have the size attribute.
+     */
+    T copyWithModifier(T content, ContentModifier modifier);
 
-    @SuppressWarnings("unchecked")
+    /**
+     * deep copy of this content. recipe need it for searching and such things
+     */
+    T copyInner(T content);
+
     default void toNetworkContent(FriendlyByteBuf buf, Content content) {
         T inner = (T) content.getContent();
         toNetwork(buf, inner);

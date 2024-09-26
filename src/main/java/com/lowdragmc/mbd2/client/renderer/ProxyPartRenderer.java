@@ -31,7 +31,7 @@ public class ProxyPartRenderer implements IRenderer {
                 return IMachine.ofMachine(world, blockEntity.getControllerPos())
                         .filter(MBDMachine.class::isInstance)
                         .map(MBDMachine.class::cast)
-                        .map(machine -> machine.getMachineState().getRenderer().getParticleTexture())
+                        .map(machine -> machine.getMachineState().getRealRenderer().getParticleTexture())
                         .orElseGet(IRenderer.super::getParticleTexture);
             }
         }

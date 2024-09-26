@@ -25,6 +25,7 @@ public class BotaniaManaCapabilityTrait extends SimpleCapabilityTrait<ManaPool, 
     public BotaniaManaCapabilityTrait(MBDMachine machine, BotaniaManaCapabilityTraitDefinition definition) {
         super(machine, definition);
         storage = createStorages(machine);
+        storage.setOnContentsChanged(this::notifyListeners);
     }
 
     @Override

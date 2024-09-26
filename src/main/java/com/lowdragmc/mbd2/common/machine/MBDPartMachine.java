@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib.syncdata.annotation.RequireRerender;
 import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
+import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeCapabilityHolder;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
@@ -14,9 +15,9 @@ import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigPartSettings;
+import com.mojang.datafixers.util.Pair;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
@@ -166,7 +167,7 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
     @Override
     public MBDRecipe modifyControllerRecipe(MBDRecipe recipe, RecipeLogic controllerRecipeLogic) {
         if (getDefinition().partSettings() != null) {
-            var contentModifiers = new ArrayList<ContentModifier>();
+            var contentModifiers = new ArrayList<Pair<ContentModifier, IO>>();
             var durationModifiers = new ArrayList<ContentModifier>();
 
             for (var modifier : getDefinition().partSettings().recipeModifiers()) {
@@ -188,12 +189,19 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
                     }
                 }
                 if (success) {
-                    contentModifiers.add(modifier.contentModifier);
+                    contentModifiers.add(Pair.of(modifier.contentModifier, modifier.targetContent));
                     durationModifiers.add(modifier.durationModifier);
                 }
             }
             if (!contentModifiers.isEmpty()) {
-                recipe = recipe.copy(contentModifiers.stream().reduce(ContentModifier::merge).orElseThrow());
+                var inputModifiers = contentModifiers.stream().filter(pair -> pair.getSecond() == IO.IN || pair.getSecond() == IO.BOTH).map(Pair::getFirst).toList();
+                var outputModifiers = contentModifiers.stream().filter(pair -> pair.getSecond() == IO.OUT || pair.getSecond() == IO.BOTH).map(Pair::getFirst).toList();
+                if (!inputModifiers.isEmpty()) {
+                    recipe = recipe.copy(inputModifiers.stream().reduce(ContentModifier::merge).orElseThrow(), false, IO.IN);
+                }
+                if (!outputModifiers.isEmpty()) {
+                    recipe = recipe.copy(outputModifiers.stream().reduce(ContentModifier::merge).orElseThrow(), false, IO.OUT);
+                }
                 recipe.duration = durationModifiers.stream().reduce(ContentModifier::merge).orElseThrow().apply(recipe.duration).intValue();
             }
         }

@@ -2,7 +2,6 @@ package com.lowdragmc.mbd2.common.trait.item;
 
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.DefaultValue;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IToggleConfigurable;
 import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
 import com.lowdragmc.mbd2.utils.TagUtil;
@@ -33,7 +32,6 @@ public class ItemFilterSettings implements IToggleConfigurable, Predicate<ItemSt
     @Getter
     @Setter
     @Configurable(name = "config.definition.trait.filter.items")
-    @NumberRange(range = {1, 1})
     private List<ItemStack> filterItems = new ArrayList<>();
     @Getter
     @Setter

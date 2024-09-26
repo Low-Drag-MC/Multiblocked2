@@ -12,6 +12,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.level.block.Block;
 import net.minecraftforge.items.IItemHandler;
 import org.jetbrains.annotations.Nullable;
 
@@ -32,6 +33,24 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
         super(machine, definition);
         this.storage = createStorage();
         this.storage.setOnContentsChanged(this::onContentsChanged);
+    }
+
+    /**
+     * pop storage to the world.
+     */
+    @Override
+    public void onMachineRemoved() {
+        super.onMachineRemoved();
+        var level = getMachine().getLevel();
+        var pos = getMachine().getPos();
+        for (int i = 0; i < storage.getSlots(); i++) {
+            ItemStack stackInSlot = storage.getStackInSlot(i);
+            if (!stackInSlot.isEmpty()) {
+                storage.setStackInSlot(i, ItemStack.EMPTY);
+                storage.onContentsChanged();
+                Block.popResource(level, pos, stackInSlot);
+            }
+        }
     }
 
     @Override

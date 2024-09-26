@@ -3,9 +3,11 @@ package com.lowdragmc.mbd2.api.recipe;
 import com.google.common.collect.Table;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.capability.recipe.*;
+import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
+import com.mojang.datafixers.util.Pair;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.RegistryAccess;
@@ -88,7 +90,14 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
     }
 
     public MBDRecipe copy(ContentModifier modifier, boolean modifyDuration) {
-        var copied = new MBDRecipe(recipeType, id, copyContents(inputs, modifier), copyContents(outputs, modifier), conditions, data, duration, isFuel, priority);
+        return copy(modifier, modifyDuration, IO.BOTH);
+    }
+
+    public MBDRecipe copy(ContentModifier modifier, boolean modifyDuration, IO io) {
+        var copied = new MBDRecipe(recipeType, id,
+                (io == IO.BOTH || io == IO.IN) ? copyContents(inputs, modifier) : inputs,
+                (io == IO.BOTH || io == IO.OUT) ? copyContents(outputs, modifier): outputs,
+                conditions, data, duration, isFuel, priority);
         if (modifyDuration) {
             copied.duration = modifier.apply(this.duration).intValue();
         }
@@ -434,6 +443,43 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
 
         public static ActionResult fail(@Nullable Supplier<Component> component, float expectingRate) {
             return new ActionResult(false, component, expectingRate);
+        }
+    }
+
+    /**
+     * Accurate parallel, always look for the maximum parallel value within maxParallel.
+     * @param machine recipe holder
+     * @param recipe current recipe
+     * @param maxParallel max parallel limited
+     * @param modifyDuration should multiply the duration
+     * @return modified recipe and parallel amount
+     */
+    public static Pair<MBDRecipe, Integer> accurateParallel(IMachine machine, @Nonnull MBDRecipe recipe, int maxParallel, boolean modifyDuration) {
+        if (maxParallel == 1) {
+            return Pair.of(recipe, 1);
+        }
+        var parallel = tryParallel(machine, recipe, 1, maxParallel, modifyDuration);
+        return parallel == null ? Pair.of(recipe, 1) : parallel;
+    }
+
+    @Nullable
+    private static Pair<MBDRecipe, Integer> tryParallel(IMachine machine, MBDRecipe original, int min, int max, boolean modifyDuration) {
+        if (min > max) return null;
+
+        int mid = (min + max) / 2;
+
+        var copied = original.copy(ContentModifier.multiplier(mid), modifyDuration);
+        if (!copied.matchRecipe(machine).isSuccess() || !copied.matchTickRecipe(machine).isSuccess()) {
+            // tried too many
+            return tryParallel(machine, original, min, mid - 1, modifyDuration);
+        } else {
+            // at max parallels
+            if (mid == max) {
+                return Pair.of(copied, mid);
+            }
+            // matches, but try to do more
+            var tryMore = tryParallel(machine, original, mid + 1, max, modifyDuration);
+            return tryMore != null ? tryMore : Pair.of(copied, mid);
         }
     }
 

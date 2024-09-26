@@ -5,12 +5,16 @@ import com.gregtechceu.gtceu.utils.GTUtil;
 import com.lowdragmc.lowdraglib.syncdata.ITagSerializable;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.LongTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.level.Level;
 
 public class CopiableEnergyContainer implements IEnergyContainer, ITagSerializable<Tag> {
+    @Getter
+    @Setter
+    public Runnable onContentsChanged = () -> {};
     private final MBDMachine machine;
     protected final boolean explosionMachine;
     @Getter
@@ -77,6 +81,7 @@ public class CopiableEnergyContainer implements IEnergyContainer, ITagSerializab
     public void setEnergyStored(long energyStored) {
         if (this.energyStored == energyStored) return;
         this.energyStored = energyStored;
+        onContentsChanged.run();
     }
 
     @Override

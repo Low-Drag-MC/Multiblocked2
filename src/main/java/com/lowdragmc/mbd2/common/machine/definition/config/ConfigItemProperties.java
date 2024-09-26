@@ -70,7 +70,7 @@ public class ConfigItemProperties implements IConfigurable, IPersistedSerializab
                             }
                             if (Editor.INSTANCE instanceof MachineEditor editor) {
                                 if (editor.getCurrentProject() instanceof MachineProject project) {
-                                    return project.getDefinition().getState("base").getRenderer();
+                                    return project.getDefinition().getState("base").getRealRenderer();
                                 }
                             }
                             return IRenderer.EMPTY;

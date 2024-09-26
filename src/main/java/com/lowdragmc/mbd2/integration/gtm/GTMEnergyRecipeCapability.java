@@ -1,7 +1,6 @@
 package com.lowdragmc.mbd2.integration.gtm;
 
 import com.gregtechceu.gtceu.common.data.GTItems;
-import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.NumberConfigurator;
 import com.lowdragmc.lowdraglib.gui.texture.*;
@@ -12,7 +11,6 @@ import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.lowdraglib.jei.IngredientIO;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
-import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.api.recipe.content.SerializerLong;
 import com.lowdragmc.mbd2.common.gui.recipe.CornerNumberWidget;
 
@@ -27,16 +25,6 @@ public class GTMEnergyRecipeCapability extends RecipeCapability<Long> {
             "mbd2:textures/gui/progress_bar_boiler_heat.png", 54, 10, 1, 1);
     protected GTMEnergyRecipeCapability() {
         super("gtm_energy", SerializerLong.INSTANCE);
-    }
-
-    @Override
-    public Long copyInner(Long content) {
-        return content;
-    }
-
-    @Override
-    public Long copyWithModifier(Long content, ContentModifier modifier) {
-        return modifier.apply(content).longValue();
     }
 
     @Override

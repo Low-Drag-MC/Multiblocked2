@@ -1,9 +1,6 @@
 package com.lowdragmc.mbd2.common;
 
 import com.lowdragmc.lowdraglib.Platform;
-import com.lowdragmc.lowdraglib.client.renderer.block.RendererBlock;
-import com.lowdragmc.lowdraglib.client.renderer.block.RendererBlockEntity;
-import com.lowdragmc.lowdraglib.client.renderer.block.forge.RendererBlockEntityImpl;
 import com.lowdragmc.lowdraglib.gui.factory.UIFactory;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.block.ProxyPartBlock;
@@ -21,6 +18,7 @@ import com.lowdragmc.mbd2.common.gui.factory.MachineUIFactory;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
 import com.lowdragmc.mbd2.config.ConfigHolder;
+import com.lowdragmc.mbd2.integration.create.machine.CreateKineticMachineDefinition;
 import com.lowdragmc.mbd2.test.MBDTest;
 import com.lowdragmc.mbd2.utils.FileUtils;
 import lombok.Getter;
@@ -72,6 +70,9 @@ public class CommonProxy {
         ProxyPartBlockEntity.TYPE = BLOCK_ENTITY_TYPES.register("proxy_part_block", () -> BlockEntityType.Builder.of(ProxyPartBlockEntity::new, ProxyPartBlock.BLOCK).build(null));
         BLOCKS.register(eventBus);
         BLOCK_ENTITY_TYPES.register(eventBus);
+        if (MBD2.isCreateLoaded()) {
+            CreateKineticMachineDefinition.registerStressProvider();
+        }
     }
 
     public void registerRecipeType() {
@@ -95,6 +96,11 @@ public class CommonProxy {
         // load multiblock machine
         path = new File(MBD2.getLocation(), "multiblock");
         FileUtils.loadNBTFiles(path, ".mb", (file, tag) -> event.register(MultiblockMachineDefinition.createDefault().loadProductiveTag(file, tag, postTask)));
+        if (MBD2.isCreateLoaded()) {
+            // load kinetic machine
+            path = new File(MBD2.getLocation(), "kinetic_machine");
+            FileUtils.loadNBTFiles(path, ".km", (file, tag) -> event.register(CreateKineticMachineDefinition.createDefault().loadProductiveTag(file, tag, postTask)));
+        }
         ModLoader.get().postEvent(event);
         MBDRegistries.MACHINE_DEFINITIONS.freeze();
     }

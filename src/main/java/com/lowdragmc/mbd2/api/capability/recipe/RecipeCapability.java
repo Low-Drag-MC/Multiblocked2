@@ -31,16 +31,14 @@ public abstract class RecipeCapability<T> {
      * deep copy of this content. recipe need it for searching and such things
      */
     public T copyInner(T content) {
-        FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
-        serializer.toNetwork(buf, content);
-        return serializer.fromNetwork(buf);
+        return serializer.copyInner(content);
     }
 
     /**
      * deep copy and modify the size attribute for those Content that have the size attribute.
      */
     public T copyWithModifier(T content, ContentModifier modifier){
-        return copyInner(content);
+        return serializer.copyWithModifier(content, modifier);
     }
 
     @SuppressWarnings("unchecked")

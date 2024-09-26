@@ -52,19 +52,6 @@ public class FluidRecipeCapability extends RecipeCapability<FluidIngredient> {
     }
 
     @Override
-    public FluidIngredient copyInner(FluidIngredient content) {
-        return content.copy();
-    }
-
-    @Override
-    public FluidIngredient copyWithModifier(FluidIngredient content, ContentModifier modifier) {
-        if (content.isEmpty()) return content.copy();
-        FluidIngredient copy = content.copy();
-        copy.setAmount(modifier.apply(copy.getAmount()).intValue());
-        return copy;
-    }
-
-    @Override
     public FluidIngredient createDefaultContent() {
         return FluidIngredient.of(1000, Fluids.WATER);
     }

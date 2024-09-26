@@ -5,7 +5,6 @@ import com.lowdragmc.lowdraglib.client.renderer.IBlockRendererProvider;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.mbd2.api.block.RotationState;
 import com.lowdragmc.mbd2.api.machine.IMachine;
-import com.lowdragmc.mbd2.common.blockentity.MachineBlockEntity;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import lombok.Getter;
@@ -67,8 +66,12 @@ public class MBDMachineBlock extends Block implements EntityBlock, IBlockRendere
         rotationState.property.ifPresent(property -> registerDefaultState(defaultBlockState().setValue(property, rotationState.defaultDirection)));
     }
 
+    public Optional<Direction> getFrontFacing(BlockState state) {
+        return rotationState.property.map(state::getValue);
+    }
+
     @Override
-    public MachineBlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return getDefinition().blockEntityType().create(pos, state);
     }
 

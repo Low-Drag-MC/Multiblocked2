@@ -59,7 +59,13 @@ public class SerializerDouble implements IContentSerializer<Double> {
     }
 
     @Override
-    public Double defaultValue() {
-        return 0d;
+    public Double copyWithModifier(Double content, ContentModifier modifier) {
+        return modifier.apply(content).doubleValue();
     }
+
+    @Override
+    public Double copyInner(Double content) {
+        return content;
+    }
+
 }

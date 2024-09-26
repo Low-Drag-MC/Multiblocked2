@@ -64,8 +64,13 @@ public class SerializerLong implements IContentSerializer<Long> {
     }
 
     @Override
-    public Long defaultValue() {
-        return 0L;
+    public Long copyWithModifier(Long content, ContentModifier modifier) {
+        return modifier.apply(content).longValue();
+    }
+
+    @Override
+    public Long copyInner(Long content) {
+        return content;
     }
 
 }

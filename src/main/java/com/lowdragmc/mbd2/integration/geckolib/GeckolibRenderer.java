@@ -37,7 +37,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.ItemRenderer;
-import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.BakedModel;
@@ -183,7 +182,7 @@ public class GeckolibRenderer implements ISerializableRenderer, GeoRenderer<GeoA
         this.animatable = staticAnimatable;
         this.currentItemStack = stack;
         this.renderPerspective = transformType;
-
+        poseStack.pushPose();
         poseStack.translate(0, -0.25, 0);
         ForgeHooksClient.handleCameraTransforms(poseStack, getItemTransformModel(), transformType, leftHand);
         if (transformType == ItemDisplayContext.GUI) {
@@ -196,6 +195,7 @@ public class GeckolibRenderer implements ISerializableRenderer, GeoRenderer<GeoA
             defaultRender(poseStack, this.animatable, bufferSource, renderType, buffer,
                     0, Minecraft.getInstance().getFrameTime(), packedLight);
         }
+        poseStack.popPose();
         IItemRendererProvider.disabled.set(false);
     }
 

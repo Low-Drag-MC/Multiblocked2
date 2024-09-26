@@ -10,7 +10,6 @@ import com.lowdragmc.lowdraglib.gui.widget.ProgressWidget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
-import com.lowdragmc.mbd2.common.capability.recipe.ForgeEnergyRecipeCapability;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.ITrait;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
@@ -48,7 +47,7 @@ public class BotaniaManaCapabilityTraitDefinition extends SimpleCapabilityTraitD
 
     @Override
     public RecipeCapability<Integer> getRecipeCapability() {
-        return ForgeEnergyRecipeCapability.CAP;
+        return BotaniaManaRecipeCapability.CAP;
     }
 
     @Override

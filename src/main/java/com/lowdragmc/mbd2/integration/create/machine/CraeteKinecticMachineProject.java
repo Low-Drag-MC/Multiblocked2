@@ -1,0 +1,129 @@
+package com.lowdragmc.mbd2.integration.create.machine;
+
+import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
+import com.lowdragmc.lowdraglib.client.renderer.impl.IModelRenderer;
+import com.lowdragmc.lowdraglib.gui.editor.Icons;
+import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib.gui.editor.configurator.NumberConfigurator;
+import com.lowdragmc.lowdraglib.gui.editor.data.Resources;
+import com.lowdragmc.lowdraglib.gui.editor.data.resource.IRendererResource;
+import com.lowdragmc.lowdraglib.gui.editor.data.resource.Resource;
+import com.lowdragmc.lowdraglib.gui.editor.ui.Editor;
+import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
+import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
+import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
+import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
+import com.lowdragmc.mbd2.MBD2;
+import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
+import com.lowdragmc.mbd2.common.gui.editor.MachineProject;
+import com.lowdragmc.mbd2.common.gui.editor.machine.MachineConfigPanel;
+import com.lowdragmc.mbd2.common.machine.definition.config.ConfigBlockProperties;
+import com.lowdragmc.mbd2.common.machine.definition.config.ConfigItemProperties;
+import com.lowdragmc.mbd2.common.machine.definition.config.ConfigPartSettings;
+import com.lowdragmc.mbd2.common.machine.definition.config.StateMachine;
+import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleLightValue;
+import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
+import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleShape;
+import com.simibubi.create.Create;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import net.minecraft.world.phys.shapes.Shapes;
+
+import java.io.File;
+import java.util.Map;
+
+@Getter
+@LDLRegister(name = "km", group = "editor.machine", modID = "create")
+@NoArgsConstructor
+public class CraeteKinecticMachineProject extends MachineProject {
+    public static final IRenderer GEARBOX_RENDERER = new IModelRenderer(MBD2.id("block/gearbox"));
+    public static final IRenderer SHAFT_RENDERER = new IModelRenderer(Create.asResource("block/shaft"));
+
+    @Getter
+    @Setter
+    private boolean isRotating = true;
+    @Getter
+    @Setter
+    private float stress = 128;
+
+    public CraeteKinecticMachineProject(Resources resources, CreateKineticMachineDefinition definition, WidgetGroup ui) {
+        this.resources = resources;
+        this.definition = definition;
+        this.ui = ui;
+    }
+
+    public float getSpeed() {
+        return Math.min(256, stress / Math.max(getDefinition().kineticMachineSettings.torque(), Float.MIN_VALUE));
+    }
+
+    @Override
+    protected Map<String, Resource<?>> createResources() {
+        var resources = super.createResources();
+        if (resources.get(IRendererResource.RESOURCE_NAME) instanceof IRendererResource rendererResource) {
+            rendererResource.addResource("shaft", new IModelRenderer(Create.asResource("block/shaft")));
+        }
+        return resources;
+    }
+
+    @Override
+    public CreateKineticMachineDefinition getDefinition() {
+        return (CreateKineticMachineDefinition) super.getDefinition();
+    }
+
+    protected CreateKineticMachineDefinition createDefinition() {
+        // use vanilla furnace model as an example
+        var builder = CreateKineticMachineDefinition.builder();
+        builder.id(MBD2.id("new_machine"))
+                .stateMachine(new StateMachine<>(CreateMachineState.builder()
+                        .rotationRenderer(new ToggleRenderer(SHAFT_RENDERER))
+                        .name("base")
+                        .renderer(new ToggleRenderer(GEARBOX_RENDERER))
+                        .shape(new ToggleShape(Shapes.block()))
+                        .lightLevel(new ToggleLightValue(0))
+                        .child(CreateMachineState.builder()
+                                .name("working")
+                                .child(CreateMachineState.builder()
+                                        .name("waiting")
+                                        .build())
+                                .build())
+                        .child(CreateMachineState.builder()
+                                .name("suspend")
+                                .build()).build()));
+        builder.blockProperties(ConfigBlockProperties.builder().build());
+        builder.itemProperties(ConfigItemProperties.builder().build());
+        builder.partSettings(ConfigPartSettings.builder().build());
+        builder.kineticMachineSettings(ConfigKineticMachineSettings.builder().build());
+        return builder.build();
+    }
+
+    @Override
+    public CraeteKinecticMachineProject newEmptyProject() {
+        return new CraeteKinecticMachineProject(new Resources(createResources()), createDefinition(), createDefaultUI());
+    }
+
+    @Override
+    public File getProjectWorkSpace(Editor editor) {
+        return new File(editor.getWorkSpace(), "kinetic_machine");
+    }
+
+    @Override
+    protected MachineConfigPanel createMachineConfigPanel(MachineEditor editor) {
+        var panel = super.createMachineConfigPanel(editor);
+        panel.addSwitch(Icons.ROTATION, null, "config.create_kinetic_machine.is_preview_rotating", this::isRotating, this::setRotating);
+        panel.refreshButtonGroupPosition();
+        var buttonGroup = panel.getButtonGroup();
+        var stressConfigurator = new NumberConfigurator("config.create_kinetic_machine.preview_stress",
+                this::getStress,
+                number -> setStress(number.floatValue()),
+                getStress(), true);
+        stressConfigurator.setRange(0, Float.MAX_VALUE);
+        stressConfigurator.setWheel(1);
+        stressConfigurator.init(200);
+        stressConfigurator.setSelfPosition(buttonGroup.getSizeWidth() - 200, 25);
+        buttonGroup.addWidget(stressConfigurator);
+        buttonGroup.addWidget(new ImageWidget(buttonGroup.getSizeWidth() - 200 + 3, 50, 100, 10,
+                new TextTexture(() -> LocalizationUtils.format("config.create_kinetic_machine.preview_speed", getSpeed())).setType(TextTexture.TextType.LEFT)));
+        return panel;
+    }
+}

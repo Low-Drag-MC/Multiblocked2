@@ -31,22 +31,18 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.function.BooleanSupplier;
 
+@Getter
 public class MachineScenePanel extends WidgetGroup {
-    @Getter
     protected final MachineEditor editor;
-    @Getter
     protected final TrackedDummyWorld level;
-    @Getter
     protected final SceneWidget scene;
     protected final WidgetGroup buttonGroup;
     @Nullable
-    @Getter
     protected MBDMachine previewMachine;
-    @Setter @Getter
+    @Setter
     protected boolean drawShapeFrameLines = false;
-    @Setter @Getter
+    @Setter
     protected boolean drawRenderingBoxFrameLines = false;
-
 
     public MachineScenePanel(MachineEditor editor) {
         super(0, MenuPanel.HEIGHT, editor.getSize().getWidth() - ConfigPanel.WIDTH, editor.getSize().height - MenuPanel.HEIGHT - 16);
@@ -62,8 +58,6 @@ public class MachineScenePanel extends WidgetGroup {
         scene.getRenderer().setEndBatchLast(false);
         resetScene();
         prepareButtonGroup();
-        buttonGroup.setSize(new Size(Math.max(0, buttonGroup.widgets.size() * 25 - 5), 20));
-        buttonGroup.setSelfPosition(new Position(this.getSize().width - buttonGroup.getSize().width - 25, 25));
     }
 
     /**
@@ -91,12 +85,14 @@ public class MachineScenePanel extends WidgetGroup {
     /**
      * prepare the button group, you can add buttons / switches here.
      */
-    protected void prepareButtonGroup() {
+    public void prepareButtonGroup() {
+        buttonGroup.clearAllWidgets();
         addSwitch(Icons.icon(MBD2.MOD_ID, "cube_outline"), null, "editor.machine_scene.draw_shape_frame_lines", this::isDrawShapeFrameLines, this::setDrawShapeFrameLines);
         addSwitch(Icons.icon(MBD2.MOD_ID, "cube_outline").copy().setColor(0xffeedd00), null, "editor.machine_scene.draw_rendering_box_frame_lines", this::isDrawRenderingBoxFrameLines, this::setDrawRenderingBoxFrameLines);
+        refreshButtonGroupPosition();
     }
 
-    protected void addSwitch(IGuiTexture baseTexture, @Nullable IGuiTexture pressedTexture, @Nullable String tooltips, BooleanSupplier getter, BooleanConsumer setter) {
+    public void addSwitch(IGuiTexture baseTexture, @Nullable IGuiTexture pressedTexture, @Nullable String tooltips, BooleanSupplier getter, BooleanConsumer setter) {
         var switchWidget = new SwitchWidget(buttonGroup.widgets.size() * 25, 0,  20, 20,
                 (cd, pressed) -> setter.accept(pressed.booleanValue()))
                 .setSupplier(getter::getAsBoolean).setTexture(
@@ -106,11 +102,16 @@ public class MachineScenePanel extends WidgetGroup {
         buttonGroup.addWidget(switchWidget);
     }
 
-    protected void addButton(IGuiTexture baseTexture, @Nullable String tooltips, Runnable action) {
+    public void addButton(IGuiTexture baseTexture, @Nullable String tooltips, Runnable action) {
         var buttonWidget = new ButtonWidget(buttonGroup.widgets.size() * 25, 0,  20, 20,
                 new GuiTextureGroup(ColorPattern.T_GRAY.rectTexture().setRadius(5), baseTexture),
                 cd -> action.run()).setHoverTooltips(tooltips);
         buttonGroup.addWidget(buttonWidget);
+    }
+
+    public void refreshButtonGroupPosition() {
+        buttonGroup.setSize(new Size(Math.max(0, buttonGroup.widgets.size() * 25 - 5), 20));
+        buttonGroup.setSelfPosition(new Position(this.getSize().width - buttonGroup.getSize().width - 25, 25));
     }
 
     /**

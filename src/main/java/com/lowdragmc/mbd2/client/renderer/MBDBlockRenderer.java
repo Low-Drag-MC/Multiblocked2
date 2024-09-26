@@ -64,7 +64,7 @@ public class MBDBlockRenderer implements IRenderer {
     public List<BakedQuad> renderModel(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand) {
         return getMachine(level, pos)
                 .filter(machine -> !machine.isDisableRendering())
-                .map(machine -> machine.getMachineState().getRenderer().renderModel(level, pos, state, side, rand))
+                .map(machine -> machine.getMachineState().getRealRenderer().renderModel(level, pos, state, side, rand))
                 .orElseGet(Collections::emptyList);
     }
 
@@ -76,7 +76,7 @@ public class MBDBlockRenderer implements IRenderer {
             var world = modelData.get(WORLD);
             var pos = modelData.get(POS);
             return getMachine(world, pos)
-                    .map(machine -> machine.getMachineState().getRenderer().getParticleTexture())
+                    .map(machine -> machine.getMachineState().getRealRenderer().getParticleTexture())
                     .orElseGet(IRenderer.super::getParticleTexture);
         }
         return IRenderer.super.getParticleTexture();
@@ -85,7 +85,7 @@ public class MBDBlockRenderer implements IRenderer {
     @Override
     public boolean hasTESR(BlockEntity blockEntity) {
         return getMachine(blockEntity).map(machine ->
-                machine.getMachineState().getRenderer().hasTESR(blockEntity) ||
+                machine.getMachineState().getRealRenderer().hasTESR(blockEntity) ||
                         machine.getDefinition().machineSettings().traitDefinitions().stream()
                                 .map(TraitDefinition::getBESRenderer)
                                 .anyMatch(renderer -> renderer.hasTESR(blockEntity))
@@ -95,7 +95,7 @@ public class MBDBlockRenderer implements IRenderer {
     @Override
     public boolean isGlobalRenderer(BlockEntity blockEntity) {
         return getMachine(blockEntity).map(machine ->
-                machine.getMachineState().getRenderer().isGlobalRenderer(blockEntity) ||
+                machine.getMachineState().getRealRenderer().isGlobalRenderer(blockEntity) ||
                         machine.getDefinition().machineSettings().traitDefinitions().stream()
                                 .map(TraitDefinition::getBESRenderer)
                                 .anyMatch(renderer -> renderer.isGlobalRenderer(blockEntity))
@@ -105,14 +105,14 @@ public class MBDBlockRenderer implements IRenderer {
     @Override
     public boolean shouldRender(BlockEntity blockEntity, Vec3 cameraPos) {
         return getMachine(blockEntity).filter(machine -> !machine.isDisableRendering())
-                .map(machine -> machine.getMachineState().getRenderer().shouldRender(blockEntity, cameraPos))
+                .map(machine -> machine.getMachineState().getRealRenderer().shouldRender(blockEntity, cameraPos))
                 .orElseGet(() -> IRenderer.super.shouldRender(blockEntity, cameraPos));
     }
 
     @Override
     public void render(BlockEntity blockEntity, float partialTicks, PoseStack stack, MultiBufferSource buffer, int combinedLight, int combinedOverlay) {
         getMachine(blockEntity).ifPresent(machine -> {
-            machine.getMachineState().getRenderer().render(blockEntity, partialTicks, stack, buffer, combinedLight, combinedOverlay);
+            machine.getMachineState().getRealRenderer().render(blockEntity, partialTicks, stack, buffer, combinedLight, combinedOverlay);
             for (var traitDefinition : machine.getDefinition().machineSettings().traitDefinitions()) {
                 var renderer = traitDefinition.getBESRenderer();
                 if (renderer.hasTESR(blockEntity)) {

@@ -12,7 +12,6 @@ import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.lowdraglib.jei.IngredientIO;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
-import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.api.recipe.content.SerializerInteger;
 import com.lowdragmc.mbd2.common.gui.recipe.CornerNumberWidget;
 
@@ -26,16 +25,6 @@ public class ForgeEnergyRecipeCapability extends RecipeCapability<Integer> {
         super("forge_energy", SerializerInteger.INSTANCE);
     }
 
-
-    @Override
-    public Integer copyInner(Integer content) {
-        return content;
-    }
-
-    @Override
-    public Integer copyWithModifier(Integer content, ContentModifier modifier) {
-        return modifier.apply(content).intValue();
-    }
 
     @Override
     public Integer createDefaultContent() {

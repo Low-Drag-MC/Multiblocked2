@@ -39,7 +39,9 @@ public class ManaPoolWrapper implements ManaPool {
 
     @Override
     public void receiveMana(int mana) {
-        if (io == IO.IN || io == IO.BOTH) {
+        if (mana > 0 && (io == IO.IN || io == IO.BOTH)) {
+            manaPool.receiveMana(mana);
+        } else if (mana < 0 && (io == IO.OUT || io == IO.BOTH)) {
             manaPool.receiveMana(mana);
         }
     }

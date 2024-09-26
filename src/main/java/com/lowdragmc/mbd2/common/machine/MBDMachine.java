@@ -116,11 +116,23 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
         loadAdditionalTraits();
     }
 
+    @Override
+    public void onUnload() {
+        IMachine.super.onUnload();
+        for (ITrait additionalTrait : additionalTraits) {
+            additionalTrait.onMachineLoad();
+        }
+    }
+
     /**
      * on machine valid in the chunk.
      */
     @Override
     public void onLoad() {
+        IMachine.super.onLoad();
+        for (ITrait additionalTrait : additionalTraits) {
+            additionalTrait.onMachineLoad();
+        }
         if (getLevel() instanceof ServerLevel serverLevel) {
             serverLevel.getServer().tell(new TickTask(0, () -> MinecraftForge.EVENT_BUS.post(new MachineOnLoadEvent(this).postGraphEvent())));
         }
@@ -402,6 +414,27 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
         return getDefinition().machineSettings().hasRecipeLogic() && getRecipeType() != MBDRecipeType.DUMMY;
     }
 
+    @Nullable
+    @Override
+    public MBDRecipe doModifyRecipe(MBDRecipe recipe) {
+        return applyParallel(IMachine.super.doModifyRecipe(recipe));
+    }
+
+    public MBDRecipe applyParallel(MBDRecipe recipe) {
+        if (recipe != null) {
+            // apply parallel here
+            var maxParallel = getDefinition().machineSettings().maxParallel();
+            if (maxParallel.isEnable()) {
+                var parallel = maxParallel.getMaxParallel();
+                if (parallel > 1) {
+                    var result = MBDRecipe.accurateParallel(this, recipe, parallel, maxParallel.isModifyDuration());
+                    return result.getFirst();
+                }
+            }
+        }
+        return recipe;
+    }
+
     @Override
     public boolean beforeWorking(MBDRecipe recipe) {
         var event = new MachineBeforeRecipeWorkingEvent(this, recipe);
@@ -484,6 +517,9 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
      * On machine removed.
      */
     public void onMachineRemoved() {
+        for (ITrait additionalTrait : additionalTraits) {
+            additionalTrait.onMachineRemoved();
+        }
         MinecraftForge.EVENT_BUS.post(new MachineRemovedEvent(this).postGraphEvent());
     }
 

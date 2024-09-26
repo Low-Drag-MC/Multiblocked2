@@ -11,12 +11,14 @@ import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
 import com.lowdragmc.mbd2.common.gui.editor.MachineProject;
 import com.lowdragmc.mbd2.common.gui.editor.machine.widget.MachineStatePreview;
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
+import lombok.Getter;
 import net.minecraft.client.gui.GuiGraphics;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@Getter
 public class MachineConfigPanel extends MachineScenePanel {
     protected final FloatView floatView;
 

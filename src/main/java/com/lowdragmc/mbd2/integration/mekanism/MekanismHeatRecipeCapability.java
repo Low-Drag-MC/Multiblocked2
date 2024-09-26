@@ -10,7 +10,6 @@ import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.lowdraglib.jei.IngredientIO;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
-import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.api.recipe.content.SerializerDouble;
 import com.lowdragmc.mbd2.common.gui.recipe.CornerNumberWidget;
 import mekanism.common.registries.MekanismBlocks;
@@ -25,16 +24,6 @@ public class MekanismHeatRecipeCapability extends RecipeCapability<Double> {
     public static final ResourceTexture HUD_BAR = new ResourceTexture("mbd2:textures/gui/horizontal_rate.png");
     protected MekanismHeatRecipeCapability() {
         super("mek_heat", SerializerDouble.INSTANCE);
-    }
-
-    @Override
-    public Double copyInner(Double content) {
-        return content;
-    }
-
-    @Override
-    public Double copyWithModifier(Double content, ContentModifier modifier) {
-        return modifier.apply(content).doubleValue();
     }
 
     @Override

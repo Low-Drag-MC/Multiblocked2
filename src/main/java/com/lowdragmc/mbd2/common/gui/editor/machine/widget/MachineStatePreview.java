@@ -129,8 +129,7 @@ public class MachineStatePreview extends DraggableWidgetGroup {
             DialogWidget.showStringEditorDialog(panel, "editor.machine_state.add", "new_state",
                     s -> true, s -> {
                         if (s != null && state.stateMachine() != null && !state.stateMachine().hasState(s)) {
-                            var newState = MachineState.builder().name(s).build();
-                            state.addChild(newState);
+                            var newState =  state.addChild(s);
                             panel.onStateAdded(newState);
                         }
                     });

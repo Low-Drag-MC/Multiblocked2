@@ -2,7 +2,6 @@ package com.lowdragmc.mbd2.common.trait.fluid;
 
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.DefaultValue;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IToggleConfigurable;
 import com.lowdragmc.lowdraglib.side.fluid.FluidStack;
 import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
@@ -34,7 +33,6 @@ public class FluidFilterSettings implements IToggleConfigurable, Predicate<Fluid
     @Getter
     @Setter
     @Configurable(name = "config.definition.trait.filter.fluids")
-    @NumberRange(range = {1, 1})
     private List<FluidStack> filterFluids = new ArrayList<>();
     @Getter
     @Setter

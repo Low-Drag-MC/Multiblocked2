@@ -21,6 +21,9 @@ public class MBDMixinPlugin implements IMixinConfigPlugin, MixinPluginShared {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
+        if (mixinClassName.contains("com.lowdragmc.mbd2.core.mixins.create")) {
+            return MixinPluginShared.isClassFound("com.simibubi.create.compat.Mods");
+        }
 //        if (mixinClassName.contains("com.lowdragmc.mbd2.core.mixins.kjs") || mixinClassName.contains("com.lowdragmc.mbd2.core.mixins.rhino")) {
 //            return MixinPluginShared.isClassFound("dev.latvian.mods.kubejs.KubeJSPlugin");
 //        } else if (mixinClassName.contains("com.lowdragmc.mbd2.core.mixins.create")) {

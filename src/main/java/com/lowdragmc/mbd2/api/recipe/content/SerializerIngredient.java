@@ -50,8 +50,12 @@ public class SerializerIngredient implements IContentSerializer<Ingredient> {
     }
 
     @Override
-    public Ingredient defaultValue() {
-        return Ingredient.EMPTY;
+    public Ingredient copyInner(Ingredient content) {
+        return SizedIngredient.copy(content);
     }
 
+    @Override
+    public Ingredient copyWithModifier(Ingredient content, ContentModifier modifier) {
+        return content instanceof SizedIngredient sizedIngredient ? SizedIngredient.create(sizedIngredient.getInner(), modifier.apply(sizedIngredient.getAmount()).intValue()) : SizedIngredient.create(content, modifier.apply(1).intValue());
+    }
 }

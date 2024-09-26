@@ -45,7 +45,7 @@ public class MultiblockMachineDefinition extends MBDMachineDefinition {
     private Function<MultiblockMachineDefinition, MultiblockShapeInfo[]> shapeInfoFactory;
 
     public MultiblockMachineDefinition(ResourceLocation id,
-                                       StateMachine stateMachine,
+                                       StateMachine<?> stateMachine,
                                        ConfigBlockProperties blockProperties,
                                        ConfigItemProperties itemProperties,
                                        ConfigMachineSettings machineSettings,
@@ -57,20 +57,11 @@ public class MultiblockMachineDefinition extends MBDMachineDefinition {
     public static MultiblockMachineDefinition createDefault() {
         return new MultiblockMachineDefinition(
                 MBD2.id("dummy"),
-                StateMachine.createDefault(),
+                StateMachine.createDefault(MachineState::builder),
                 ConfigBlockProperties.builder().build(),
                 ConfigItemProperties.builder().build(),
                 ConfigMachineSettings.builder().build(),
                 ConfigMultiblockSettings.builder().build());
-    }
-
-    /**
-     * return null if the machine definition is invalid.
-     */
-    public static MultiblockMachineDefinition fromTag(CompoundTag tag) {
-        var definition = createDefault();
-        definition.deserializeNBT(tag);
-        return definition;
     }
 
     public static Builder builder() {

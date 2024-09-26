@@ -61,7 +61,7 @@ public abstract class ChemicalTankCapabilityTraitDefinition<CHEMICAL extends Che
             MekanismChemicalRecipeCapability<CHEMICAL, STACK> recipeCapability,
             ChemicalTags<CHEMICAL> chemicalTags) {
         this.recipeCapability = recipeCapability;
-        this.chemicalFilterSettings = new ChemicalFilterSettings<>(chemicalTags);
+        this.chemicalFilterSettings = new ChemicalFilterSettings<>(chemicalTags, recipeCapability);
     }
 
     @Override

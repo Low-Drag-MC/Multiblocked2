@@ -125,6 +125,11 @@
     "config.machine_settings.has_recipe_logic": "Has Recipe Logic",
     "config.machine_settings.has_recipe_logic.tooltip.0": "If false, the machine will not process recipes.",
     "config.machine_settings.has_recipe_logic.tooltip.1": "Please set it false for better performance if the machine does not need to process recipes.",
+    "config.machine_settings.parallel": "Has Parallel",
+    "config.machine_settings.max_parallel": "Max Parallel",
+    "config.machine_settings.max_parallel.tooltip": "The value is he maximum number of parallel that can be processed. Do not set it too high.",
+    "config.machine_settings.modify_duration": "Modify Duration",
+    "config.machine_settings.modify_duration.tooltip": "Whether modify the duration of the recipe.",
 
     "config.definition.id.tooltip": "The unique identifier of the definition.",
     "config.definition.block_properties": "Block Properties",
@@ -154,6 +159,8 @@
     "config.part_settings.recipe_conditions": "Recipe Conditions",
     "config.part_settings.recipe_conditions.tooltip": "Handling Recipe Modifiers if and only if conditions are satisfied.",
     "config.part_settings.recipe_condition.type": "Condition Type",
+    "config.part_settings.target_content": "Target Content",
+    "config.part_settings.target_content.tooltip": "The target content should be modified.",
 
     "config.machine_event.graph.edit": "edit graph",
     "config.machine_event.graph.add": "add graph",
@@ -172,6 +179,28 @@
     "config.multiblock_settings.catalyst.consume_type.consume_durability.amount": "durability value",
     "config.multiblock_settings.show_ui_only_formed": "show UI only when formed",
 
+    "config.definition.kinetic_machine_settings": "Kinetic Machine Settings",
+    "config.definition.kinetic_machine_settings.tooltip": "The settings of the create kinetic machine, e.g. rotation, models.",
+    "config.kinetic_machine.is_generator": "Is Generator",
+    "config.kinetic_machine.is_generator.tooltip": "Whether the kinetic machine is a generator.",
+    "config.kinetic_machine.torque": "Torque",
+    "config.kinetic_machine.torque.tooltip.0": "Torque defines the relationship between rpm and stress.",
+    "config.kinetic_machine.torque.tooltip.1": "rpm = stress / torque.",
+    "config.kinetic_machine.front_rotation": "Rotation Axis",
+    "config.kinetic_machine.front_rotation.tooltip": "Get the rotation axis facing based on the machine front facing",
+    "config.kinetic_machine.has_back_rotation": "Has Back Rotation",
+    "config.kinetic_machine.has_back_rotation.tooltip.0": "If true, the rotation will be passed to the back of the rotation axis side.",
+    "config.kinetic_machine.has_back_rotation.tooltip.1": "If false, only the rotation axis side can be rotated.",
+    "config.kinetic_machine.max_rpm": "Max RPM",
+    "config.kinetic_machine.max_rpm.tooltip": "The maximum RPM of the kinetic machine.",
+    "config.kinetic_machine.use_flywheel": "Use Flywheel",
+    "config.kinetic_machine.use_flywheel.tooltip": "Whether the kinetic renderer uses the flywheel instance. (flywheel will have better performance)",
+
+    "config.create_machine_state.rotation_renderer": "Rotation Renderer",
+    "config.create_machine_state.rotation_renderer.tooltip": "Kinetic Part Renderer",
+    "config.create_kinetic_machine.is_preview_rotating": "Is Rotating Preview",
+    "config.create_kinetic_machine.preview_stress": "Preview Stress (su)",
+    "config.create_kinetic_machine.preview_speed": "Preview RPM: %2f",
 
     "config.definition.trait.name": "Name",
     "config.definition.trait.name.tooltip": "Name has to be unique.",
@@ -356,6 +385,7 @@
 
     "ldlib.gui.editor.register.editor.machine.sm": "Single Machine Project",
     "ldlib.gui.editor.register.editor.machine.mb": "Multiblock Project",
+    "ldlib.gui.editor.register.editor.machine.km": "Create Kinetic Machine Project",
     "ldlib.gui.editor.register.editor.machine.rt": "Recipe Type Project",
     "ldlib.gui.editor.register.editor.machine.recipe_xei_preview": "Recipe XEI Preview",
     "ldlib.gui.editor.register.editor.machine.recipe_type_ui_view": "RecipeType UI View",
@@ -452,6 +482,10 @@
     "ldlib.gui.editor.register.widget.container.chemical_pigment_slot": "Chemical Pigment Slot",
     "ldlib.gui.editor.register.widget.container.chemical_slurry_slot": "Chemical Slurry Slot",
 
+    "recipe.capability.create_stress.name": "Create Stress",
+    "recipe.capability.create_stress.stress": "Stress",
+    "recipe.capability.create_stress.stress.unit": "%d su",
+    "ldlib.gui.editor.register.widget.container.create_stress": "Create Stress Slot",
 
     "editor.machine.machine_tab": "Machine",
     "editor.machine.multiblock.area_panel.sceneRadius": "Scene Radius",

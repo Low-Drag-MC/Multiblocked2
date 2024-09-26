@@ -1,11 +1,17 @@
 package com.lowdragmc.mbd2.integration.mekanism.trait.heat;
 
+import com.lowdragmc.lowdraglib.syncdata.IContentChangeAware;
 import com.lowdragmc.lowdraglib.syncdata.ITagSerializable;
+import lombok.Getter;
+import lombok.Setter;
 import mekanism.api.heat.IHeatHandler;
 import net.minecraft.nbt.DoubleTag;
 import net.minecraft.nbt.Tag;
 
-public class CopiableHeatContainer implements IHeatHandler, ITagSerializable<Tag> {
+public class CopiableHeatContainer implements IHeatHandler, ITagSerializable<Tag>, IContentChangeAware {
+    @Getter
+    @Setter
+    public Runnable onContentsChanged = () -> {};
 
     public final double capacity;
     public final double inverseConduction;
@@ -45,7 +51,11 @@ public class CopiableHeatContainer implements IHeatHandler, ITagSerializable<Tag
     @Override
     public void handleHeat(int capacitor, double transfer) {
         if (capacitor == 0) {
+            var oldTemperature = temperature;
             temperature = Math.min(capacity, temperature + transfer);
+            if (oldTemperature != temperature) {
+                onContentsChanged.run();
+            }
         }
     }
 

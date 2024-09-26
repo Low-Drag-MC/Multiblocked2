@@ -59,7 +59,12 @@ public class SerializerInteger implements IContentSerializer<Integer> {
     }
 
     @Override
-    public Integer defaultValue() {
-        return 0;
+    public Integer copyWithModifier(Integer content, ContentModifier modifier) {
+        return modifier.apply(content).intValue();
+    }
+
+    @Override
+    public Integer copyInner(Integer content) {
+        return content;
     }
 }

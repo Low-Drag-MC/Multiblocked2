@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.common.gui.editor;
 
+import com.gregtechceu.gtceu.api.machine.trait.MachineTrait;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.client.renderer.impl.IModelRenderer;
 import com.lowdragmc.lowdraglib.client.renderer.impl.UIResourceRenderer;
@@ -20,20 +21,12 @@ import com.lowdragmc.mbd2.common.gui.editor.machine.MachineEventsPanel;
 import com.lowdragmc.mbd2.common.gui.editor.machine.MachineTraitPanel;
 import com.lowdragmc.mbd2.common.gui.editor.machine.MachineUIPanel;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
-import com.lowdragmc.mbd2.common.machine.definition.config.ConfigBlockProperties;
-import com.lowdragmc.mbd2.common.machine.definition.config.ConfigItemProperties;
-import com.lowdragmc.mbd2.common.machine.definition.config.ConfigPartSettings;
-import com.lowdragmc.mbd2.common.machine.definition.config.StateMachine;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleLightValue;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleShape;
+import com.lowdragmc.mbd2.common.machine.definition.config.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.phys.shapes.Shapes;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -44,6 +37,8 @@ import java.util.Map;
 @LDLRegister(name = "sm", group = "editor.machine")
 @NoArgsConstructor
 public class MachineProject implements IProject {
+    public static final IRenderer FURNACE_RENDERER = new IModelRenderer(new ResourceLocation("block/furnace"));
+
     protected Resources resources;
     protected MBDMachineDefinition definition;
     protected WidgetGroup ui;
@@ -75,13 +70,9 @@ public class MachineProject implements IProject {
 
     protected MBDMachineDefinition createDefinition() {
         // use vanilla furnace model as an example
-        var renderer = new IModelRenderer(new ResourceLocation("block/furnace"));
         return MBDMachineDefinition.builder()
                 .id(MBD2.id("new_machine"))
-                .stateMachine(StateMachine.createSingleDefault(builder -> builder
-                        .renderer(new ToggleRenderer(renderer))
-                        .shape(new ToggleShape(Shapes.block()))
-                        .lightLevel(new ToggleLightValue(0))))
+                .stateMachine(StateMachine.createSingleDefault(MachineState::builder, FURNACE_RENDERER))
                 .blockProperties(ConfigBlockProperties.builder().build())
                 .itemProperties(ConfigItemProperties.builder().build())
                 .partSettings(ConfigPartSettings.builder().build())
@@ -144,34 +135,36 @@ public class MachineProject implements IProject {
         } catch (IOException ignored) { }
     }
 
-    @Nullable
-    @Override
-    public IProject loadProject(File file) {
-        try {
-            var tag = NbtIo.read(file);
-            if (tag != null) {
-                var proj = new MachineProject();
-                proj.deserializeNBT(tag);
-                return proj;
-            }
-        } catch (IOException ignored) {}
-        return null;
-    }
-
     @Override
     public void onLoad(Editor editor) {
         if (editor instanceof MachineEditor machineEditor) {
             IProject.super.onLoad(editor);
             var tabContainer = machineEditor.getTabPages();
-            var machineConfigPanel = new MachineConfigPanel(machineEditor);
-            var machineTraitPanel = new MachineTraitPanel(machineEditor);
-            var machineEventsPanel = new MachineEventsPanel(machineEditor);
-            var machineUIPanel = new MachineUIPanel(machineEditor);
+            var machineConfigPanel = createMachineConfigPanel(machineEditor);
+            var machineTraitPanel = createMachineTraitPanel(machineEditor);
+            var machineEventsPanel = createMachineEventsPanel(machineEditor);
+            var machineUIPanel = createMachineUIPanel(machineEditor);
             tabContainer.addTab("editor.machine.basic_settings", machineConfigPanel, machineConfigPanel::onPanelSelected);
             tabContainer.addTab("editor.machine.machine_traits", machineTraitPanel, machineTraitPanel::onPanelSelected, machineTraitPanel::onPanelDeselected);
             tabContainer.addTab("editor.machine.machine_events", machineEventsPanel, machineEventsPanel::onPanelSelected, machineEventsPanel::onPanelDeselected);
             tabContainer.addTab("editor.machine.machine_ui", machineUIPanel, machineUIPanel::onPanelSelected, machineUIPanel::onPanelDeselected);
         }
+    }
+
+    protected MachineConfigPanel createMachineConfigPanel(MachineEditor editor) {
+        return new MachineConfigPanel(editor);
+    }
+
+    protected MachineTraitPanel createMachineTraitPanel(MachineEditor editor) {
+        return new MachineTraitPanel(editor);
+    }
+
+    protected MachineEventsPanel createMachineEventsPanel(MachineEditor editor) {
+        return new MachineEventsPanel(editor);
+    }
+
+    protected MachineUIPanel createMachineUIPanel(MachineEditor editor) {
+        return new MachineUIPanel(editor);
     }
 
     @Override

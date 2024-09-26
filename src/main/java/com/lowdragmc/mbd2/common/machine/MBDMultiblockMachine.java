@@ -39,6 +39,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.common.MinecraftForge;
+import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
 import java.util.*;
@@ -121,6 +122,11 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
             setMachineState("base");
         }
         MinecraftForge.EVENT_BUS.post(new MachineRecipeStatusChangedEvent(this, oldStatus, newStatus).postGraphEvent());
+    }
+
+    @Override
+    public @Nullable MBDRecipe doModifyRecipe(MBDRecipe recipe) {
+        return applyParallel(IMultiController.super.doModifyRecipe(recipe));
     }
 
     @Override

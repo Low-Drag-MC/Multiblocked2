@@ -28,6 +28,21 @@ public interface ITrait {
     default void onLoadingTraitInPreview() {}
 
     /**
+     * Called when the machine is being loaded.
+     */
+    default void onMachineLoad() {}
+
+    /**
+     * Called when the machine is being unloaded.
+     */
+    default void onMachineUnLoad() {}
+
+    /**
+     * Called when the machine is being removed.
+     */
+    default void onMachineRemoved() {}
+
+    /**
      * Called per server tick.
      */
     default void serverTick() {

@@ -43,7 +43,15 @@ public class SerializerFluidIngredient implements IContentSerializer<FluidIngred
     }
 
     @Override
-    public FluidIngredient defaultValue() {
-        return FluidIngredient.EMPTY;
+    public FluidIngredient copyInner(FluidIngredient content) {
+        return content.copy();
+    }
+
+    @Override
+    public FluidIngredient copyWithModifier(FluidIngredient content, ContentModifier modifier) {
+        if (content.isEmpty()) return content.copy();
+        FluidIngredient copy = content.copy();
+        copy.setAmount(modifier.apply(copy.getAmount()).intValue());
+        return copy;
     }
 }

@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib.gui.editor.ui.Editor;
 import com.lowdragmc.lowdraglib.gui.widget.DialogWidget;
 import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
+import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
 import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
@@ -48,8 +49,7 @@ public class ConfigPartSettings implements IToggleConfigurable, IPersistedSerial
                 DialogWidget.showCheckBox(Editor.INSTANCE, "config.part_settings.formed_tips", "config.part_settings.formed_tips.info", result -> {
                     if (result) {
                         var state = project.getDefinition().stateMachine().getRootState();
-                        var newState = MachineState.builder().name("formed").build();
-                        state.addChild(newState);
+                        var newState = state.addChild("formed");
                         machineEditor.getTabPages().tabs.values().stream()
                                 .filter(MachineConfigPanel.class::isInstance)
                                 .map(MachineConfigPanel.class::cast)
@@ -93,14 +93,14 @@ public class ConfigPartSettings implements IToggleConfigurable, IPersistedSerial
     @Override
     public void buildConfigurator(ConfiguratorGroup father) {
         IToggleConfigurable.super.buildConfigurator(father);
-        var modifiers = new ArrayConfiguratorGroup<>("config.part_settings.content_modifiers", false,
+        var modifiers = new ArrayConfiguratorGroup<>("config.part_settings.recipe_modifiers", false,
                 () -> recipeModifiers, (getter, setter) -> {
             var recipeModifier = getter.get();
             var group = new ConfiguratorGroup("config.part_settings.content_modifier", false);
             recipeModifier.buildConfigurator(group);
             return group;
         }, true);
-        modifiers.setTips("config.part_settings.content_modifiers.tooltip");
+        modifiers.setTips("config.part_settings.recipe_modifiers.tooltip");
         modifiers.setAddDefault(RecipeModifier::new);
         modifiers.setOnAdd(recipeModifiers::add);
         modifiers.setOnRemove(recipeModifiers::remove);
@@ -117,6 +117,8 @@ public class ConfigPartSettings implements IToggleConfigurable, IPersistedSerial
     public static class RecipeModifier implements IConfigurable, IPersistedSerializable {
         @Configurable(name = "config.part_settings.content_modifier", subConfigurable = true, tips = {"config.part_settings.content_modifier.tooltip"}, collapse = false)
         public final ContentModifier contentModifier = ContentModifier.of(1, 0);
+        @Configurable(name = "config.part_settings.target_content", tips = {"config.part_settings.target_content.tooltip"})
+        public final IO targetContent = IO.BOTH;
         @Configurable(name = "config.part_settings.duration_modifier", subConfigurable = true, tips = {"config.part_settings.duration_modifier.tooltip"}, collapse = false)
         public final ContentModifier durationModifier = ContentModifier.of(1, 0);
         public final List<RecipeCondition> recipeConditions = new ArrayList<>();

@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
+import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleParallelValue;
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 import com.lowdragmc.mbd2.utils.FileUtils;
 import lombok.Builder;
@@ -45,6 +46,10 @@ public class ConfigMachineSettings implements IPersistedSerializable, IConfigura
             "config.machine_settings.has_recipe_logic.tooltip.1"
     })
     private boolean hasRecipeLogic = true;
+    @Getter
+    @Builder.Default
+    @Configurable(name = "config.machine_settings.parallel", subConfigurable = true)
+    private ToggleParallelValue maxParallel = new ToggleParallelValue();
     @Builder.Default
     @Persisted
     private ResourceLocation recipeType = MBDRecipeType.DUMMY.registryName;

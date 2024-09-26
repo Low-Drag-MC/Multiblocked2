@@ -60,6 +60,10 @@ public class MBD2 {
         return LDLib.isModLoaded("mekanism");
     }
 
+    public static boolean isCreateLoaded() {
+        return LDLib.isModLoaded("create");
+    }
+
     public static boolean isPhotonLoaded() {
         return LDLib.isModLoaded("photon");
     }

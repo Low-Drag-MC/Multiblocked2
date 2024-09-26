@@ -11,59 +11,58 @@ import net.minecraft.world.phys.shapes.Shapes;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Consumer;
+import java.util.function.Supplier;
 
-public class StateMachine implements ITagSerializable<CompoundTag> {
+public class StateMachine<T extends MachineState> implements ITagSerializable<CompoundTag> {
     @Getter
-    protected final MachineState rootState;
+    protected final T rootState;
     // runtime
-    protected final Map<String, MachineState> states = new HashMap<>();
+    protected final Map<String, T> states = new HashMap<>();
 
-    public StateMachine(MachineState rootState) {
+    public StateMachine(T rootState) {
         this.rootState = rootState;
         initStateMachine();
     }
 
-    public static StateMachine createSingleDefault(Consumer<MachineState.MachineStateBuilder> builderConsumer) {
-        var stateBuilder = MachineState.builder()
-                .name("base")
-                .child(MachineState.builder()
+    public static <T extends MachineState> StateMachine<T> createSingleDefault(Supplier<MachineState.Builder<T>> builderCreator, IRenderer renderer) {
+        var builder = builderCreator.get().name("base")
+                .renderer(new ToggleRenderer(renderer))
+                .shape(new ToggleShape(Shapes.block()))
+                .lightLevel(new ToggleLightValue(0))
+                .child(builderCreator.get()
                         .name("working")
-                        .child(MachineState.builder()
+                        .child(builderCreator.get()
                                 .name("waiting")
                                 .build())
                         .build())
-                .child(MachineState.builder()
+                .child(builderCreator.get()
                         .name("suspend")
                         .build());
-        builderConsumer.accept(stateBuilder);
-        return new StateMachine(stateBuilder.build());
+        return new StateMachine<>(builder.build());
     }
 
-    public static StateMachine createMultiblockDefault(Consumer<MachineState.MachineStateBuilder> builderConsumer) {
-        var stateBuilder = MachineState.builder()
-                .name("base")
-                .child(MachineState.builder()
+    public static <T extends MachineState> StateMachine<T> createMultiblockDefault(Supplier<MachineState.Builder<T>> builderCreator, IRenderer renderer) {
+        var builder = builderCreator.get().name("base")
+                .renderer(new ToggleRenderer(renderer))
+                .shape(new ToggleShape(Shapes.block()))
+                .lightLevel(new ToggleLightValue(0))
+                .child(builderCreator.get()
                         .name("formed")
-                        .child(MachineState.builder()
+                        .child(builderCreator.get()
                                 .name("working")
-                                .child(MachineState.builder()
+                                .child(builderCreator.get()
                                         .name("waiting")
                                         .build())
                                 .build())
-                        .child(MachineState.builder()
+                        .child(builderCreator.get()
                                 .name("suspend")
                                 .build())
                         .build());
-        builderConsumer.accept(stateBuilder);
-        return new StateMachine(stateBuilder.build());
+        return new StateMachine<>(builder.build());
     }
 
-    public static StateMachine createDefault() {
-        return createSingleDefault(builder -> builder
-                .renderer(new ToggleRenderer(IRenderer.EMPTY))
-                .shape(new ToggleShape(Shapes.block()))
-                .lightLevel(new ToggleLightValue(0)));
+    public static <T extends MachineState> StateMachine<T> createDefault(Supplier<MachineState.Builder<T>> builderCreator) {
+        return createSingleDefault(builderCreator, IRenderer.EMPTY);
     }
 
     @Override
@@ -92,11 +91,11 @@ public class StateMachine implements ITagSerializable<CompoundTag> {
      * <br/>
      * In general, you don't need to call this method. it will be called automatically during {@link StateMachine#initStateMachine()}
      */
-    protected void addState(MachineState state) {
+    protected void addState(T state) {
         states.put(state.name(), state);
     }
 
-    public MachineState getState(String name) {
+    public T getState(String name) {
         return states.getOrDefault(name, rootState);
     }
 

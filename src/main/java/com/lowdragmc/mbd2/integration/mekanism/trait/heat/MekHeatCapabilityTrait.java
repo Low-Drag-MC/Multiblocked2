@@ -1,6 +1,5 @@
 package com.lowdragmc.mbd2.integration.mekanism.trait.heat;
 
-import com.gregtechceu.gtceu.api.misc.EnergyContainerList;
 import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder;
@@ -26,6 +25,7 @@ public class MekHeatCapabilityTrait extends SimpleCapabilityTrait<IHeatHandler, 
     public MekHeatCapabilityTrait(MBDMachine machine, MekHeatCapabilityTraitDefinition definition) {
         super(machine, definition);
         container = createStorages();
+        container.setOnContentsChanged(this::notifyListeners);
     }
 
     @Override

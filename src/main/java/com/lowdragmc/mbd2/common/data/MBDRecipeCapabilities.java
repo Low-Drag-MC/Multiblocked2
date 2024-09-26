@@ -7,6 +7,7 @@ import com.lowdragmc.mbd2.common.capability.recipe.FluidRecipeCapability;
 import com.lowdragmc.mbd2.common.capability.recipe.ForgeEnergyRecipeCapability;
 import com.lowdragmc.mbd2.common.capability.recipe.ItemRecipeCapability;
 import com.lowdragmc.mbd2.common.event.MBDRegistryEvent;
+import com.lowdragmc.mbd2.integration.create.CreateStressRecipeCapability;
 import com.lowdragmc.mbd2.integration.gtm.GTMEnergyRecipeCapability;
 import com.lowdragmc.mbd2.integration.mekanism.MekanismChemicalRecipeCapability;
 import com.lowdragmc.mbd2.integration.mekanism.MekanismHeatRecipeCapability;
@@ -32,6 +33,9 @@ public class MBDRecipeCapabilities {
             MBDRegistries.RECIPE_CAPABILITIES.register(MekanismChemicalRecipeCapability.CAP_INFUSE.name, MekanismChemicalRecipeCapability.CAP_INFUSE);
             MBDRegistries.RECIPE_CAPABILITIES.register(MekanismChemicalRecipeCapability.CAP_PIGMENT.name, MekanismChemicalRecipeCapability.CAP_PIGMENT);
             MBDRegistries.RECIPE_CAPABILITIES.register(MekanismHeatRecipeCapability.CAP.name, MekanismHeatRecipeCapability.CAP);
+        }
+        if (MBD2.isCreateLoaded()) {
+             MBDRegistries.RECIPE_CAPABILITIES.register(CreateStressRecipeCapability.CAP.name, CreateStressRecipeCapability.CAP);
         }
         ModLoader.get().postEvent(new MBDRegistryEvent.RecipeCapability());
         MBDRegistries.RECIPE_CAPABILITIES.freeze();

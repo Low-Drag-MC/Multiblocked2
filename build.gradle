@@ -71,8 +71,8 @@ minecraft {
     }
 }
 
-apply from: "$rootDir/gradle/scripts/repositories.gradle"
-apply from: "$rootDir/gradle/scripts/dependencies.gradle"
+apply from: "$rootDir/repositories.gradle"
+apply from: "$rootDir/dependencies.gradle"
 
 sourceSets.main.resources {
     srcDir 'src/generated/resources'
