@@ -6,8 +6,8 @@ import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ItemStackTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ProgressTexture;
-import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib.gui.widget.ProgressWidget;
+import com.lowdragmc.lowdraglib.gui.widget.TextTextureWidget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
@@ -22,6 +22,7 @@ import lombok.Setter;
 import mekanism.api.heat.IHeatHandler;
 import mekanism.common.capabilities.Capabilities;
 import mekanism.common.registries.MekanismBlocks;
+import net.minecraft.network.chat.Component;
 import net.minecraftforge.common.capabilities.Capability;
 
 @LDLRegister(name = "mek_heat_container", group = "trait", modID = "mekanism")
@@ -65,9 +66,11 @@ public class MekHeatCapabilityTraitDefinition extends SimpleCapabilityTraitDefin
                 IGuiTexture.EMPTY, MekanismHeatRecipeCapability.HUD_BAR
         ));
         energyBar.setBackground(MekanismHeatRecipeCapability.HUD_BACKGROUND);
-        energyBar.setOverlay(new TextTexture("0/0 heat"));
         energyBar.setId(prefix);
+        var energyBarText = new TextTextureWidget(5, 3, 90, 10, "0 heat");
+        energyBarText.setId(prefix + "_text");
         ui.addWidget(energyBar);
+        ui.addWidget(energyBarText);
     }
 
     @Override
@@ -76,12 +79,12 @@ public class MekHeatCapabilityTraitDefinition extends SimpleCapabilityTraitDefin
             var prefix = uiPrefixName();
             WidgetUtils.widgetByIdForEach(group, "^%s$".formatted(prefix), ProgressWidget.class, energyBar -> {
                 energyBar.setProgressSupplier(() -> Math.max(heatTrait.container.getTotalTemperature(), 0) / heatTrait.container.getTotalHeatCapacity());
-                if (energyBar.getOverlay() instanceof TextTexture textTexture) {
-                    textTexture.updateText(heatTrait.container.getTotalTemperature() + "/" + heatTrait.container.getTotalHeatCapacity() + " heat");
-                }
                 energyBar.setDynamicHoverTips(value -> LocalizationUtils.format(
                         "config.definition.trait.gtm_energy_container.ui_container_hover",
-                        heatTrait.container.getTotalTemperature(), heatTrait.container.getTotalHeatCapacity()));
+                        heatTrait.container.getTotalHeatCapacity() * value, heatTrait.container.getTotalHeatCapacity()));
+            });
+            WidgetUtils.widgetByIdForEach(group, "^%s_text$".formatted(prefix), TextTextureWidget.class, energyBarText -> {
+                energyBarText.setText(() -> Component.literal(heatTrait.container.getTotalTemperature() + " heat"));
             });
         }
     }

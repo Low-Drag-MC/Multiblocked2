@@ -7,8 +7,8 @@ import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ProgressTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
-import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib.gui.widget.ProgressWidget;
+import com.lowdragmc.lowdraglib.gui.widget.TextTextureWidget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
@@ -20,6 +20,7 @@ import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTraitDefinition;
 import com.lowdragmc.mbd2.utils.WidgetUtils;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.network.chat.Component;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.energy.IEnergyStorage;
@@ -77,28 +78,25 @@ public class ForgeEnergyCapabilityTraitDefinition extends SimpleCapabilityTraitD
                 IGuiTexture.EMPTY, new ResourceTexture("mbd2:textures/gui/energy_bar_base.png")
         ));
         energyBar.setBackground(new ResourceTexture("mbd2:textures/gui/energy_bar_background.png"));
-        energyBar.setOverlay(new TextTexture("0/0 FE"));
         energyBar.setId(prefix);
+        var energyBarText = new TextTextureWidget(5, 9, 90, 10, "0/0 FE");
+        energyBarText.setId(prefix + "_text");
         ui.addWidget(energyBar);
+        ui.addWidget(energyBarText);
     }
 
     @Override
     public void initTraitUI(ITrait trait, WidgetGroup group) {
         if (trait instanceof ForgeEnergyCapabilityTrait forgeEnergyTrait) {
             var prefix = uiPrefixName();
-            // Todo energy item container
-//            var guiIO = getGuiIO();
-//            var ingredientIO = guiIO == IO.IN ? IngredientIO.INPUT : guiIO == IO.OUT ? IngredientIO.OUTPUT : guiIO == IO.BOTH ? IngredientIO.BOTH : IngredientIO.RENDER_ONLY;
-//            var allowClickDrained = guiIO == IO.BOTH || guiIO == IO.OUT;
-//            var allowClickFilled = guiIO == IO.BOTH || guiIO == IO.IN;
             WidgetUtils.widgetByIdForEach(group, "^%s$".formatted(prefix), ProgressWidget.class, energyBar -> {
                 energyBar.setProgressSupplier(() -> forgeEnergyTrait.storage.getEnergyStored() * 1d / forgeEnergyTrait.storage.getMaxEnergyStored());
-                if (energyBar.getOverlay() instanceof TextTexture textTexture) {
-                    textTexture.updateText(forgeEnergyTrait.storage.getEnergyStored() + "/" + forgeEnergyTrait.storage.getMaxEnergyStored() + " FE");
-                }
                 energyBar.setDynamicHoverTips(value -> LocalizationUtils.format(
                         "config.definition.trait.forge_energy_storage.ui_container_hover",
-                        forgeEnergyTrait.storage.getEnergyStored(), forgeEnergyTrait.storage.getMaxEnergyStored()));
+                        forgeEnergyTrait.storage.getMaxEnergyStored() * value, forgeEnergyTrait.storage.getMaxEnergyStored()));
+            });
+            WidgetUtils.widgetByIdForEach(group, "^%s_text$".formatted(prefix), TextTextureWidget.class, energyBarText -> {
+                energyBarText.setText(() -> Component.literal(forgeEnergyTrait.storage.getEnergyStored() + "/" + forgeEnergyTrait.storage.getMaxEnergyStored() + " FE"));
             });
         }
     }

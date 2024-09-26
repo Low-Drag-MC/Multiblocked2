@@ -9,6 +9,7 @@ import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.texture.*;
 import com.lowdragmc.lowdraglib.gui.widget.ProgressWidget;
+import com.lowdragmc.lowdraglib.gui.widget.TextTextureWidget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
@@ -20,6 +21,7 @@ import com.lowdragmc.mbd2.integration.gtm.GTMEnergyRecipeCapability;
 import com.lowdragmc.mbd2.utils.WidgetUtils;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.network.chat.Component;
 import net.minecraftforge.common.capabilities.Capability;
 
 @LDLRegister(name = "gtm_energy_container", group = "trait", modID = "gtceu")
@@ -90,9 +92,11 @@ public class GTMEnergyCapabilityTraitDefinition extends SimpleCapabilityTraitDef
                 IGuiTexture.EMPTY, GTMEnergyRecipeCapability.HUD_BAR
         ));
         energyBar.setBackground(GTMEnergyRecipeCapability.HUD_BACKGROUND);
-        energyBar.setOverlay(new TextTexture("0/0 eu"));
         energyBar.setId(prefix);
+        var energyBarText = new TextTextureWidget(5, 3, 90, 10, "0/0 eu");
+        energyBarText.setId(prefix + "_text");
         ui.addWidget(energyBar);
+        ui.addWidget(energyBarText);
     }
 
     @Override
@@ -101,12 +105,12 @@ public class GTMEnergyCapabilityTraitDefinition extends SimpleCapabilityTraitDef
             var prefix = uiPrefixName();
             WidgetUtils.widgetByIdForEach(group, "^%s$".formatted(prefix), ProgressWidget.class, energyBar -> {
                 energyBar.setProgressSupplier(() -> energyTrait.container.getEnergyStored() * 1d / energyTrait.container.getEnergyCapacity());
-                if (energyBar.getOverlay() instanceof TextTexture textTexture) {
-                    textTexture.updateText(energyTrait.container.getEnergyStored() + "/" + energyTrait.container.getEnergyCapacity() + " eu");
-                }
                 energyBar.setDynamicHoverTips(value -> LocalizationUtils.format(
                         "config.definition.trait.gtm_energy_container.ui_container_hover",
-                        energyTrait.container.getEnergyStored(), energyTrait.container.getEnergyCapacity()));
+                        energyTrait.container.getEnergyCapacity() * value, energyTrait.container.getEnergyCapacity()));
+            });
+            WidgetUtils.widgetByIdForEach(group, "^%s_text$".formatted(prefix), TextTextureWidget.class, energyBarText -> {
+                energyBarText.setText(() -> Component.literal(energyTrait.container.getEnergyStored() + "/" + energyTrait.container.getEnergyCapacity() + " eu"));
             });
         }
     }

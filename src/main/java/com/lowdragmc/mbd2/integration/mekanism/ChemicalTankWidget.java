@@ -18,7 +18,6 @@ import com.lowdragmc.lowdraglib.jei.IngredientIO;
 import com.lowdragmc.lowdraglib.jei.JEIPlugin;
 import com.lowdragmc.lowdraglib.side.fluid.FluidHelper;
 import com.lowdragmc.lowdraglib.side.fluid.FluidStack;
-import com.lowdragmc.lowdraglib.side.fluid.FluidTransferHelper;
 import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.lowdraglib.utils.Size;
@@ -28,7 +27,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import mekanism.api.Action;
-import mekanism.api.MekanismAPI;
 import mekanism.api.chemical.*;
 import mekanism.api.chemical.gas.GasStack;
 import mekanism.api.chemical.gas.IGasHandler;
@@ -51,7 +49,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -311,8 +308,8 @@ public abstract class ChemicalTankWidget<CHEMICAL extends Chemical<CHEMICAL>, ST
             }
             if (!chemicalStack.isStackIdentical(lastChemicalInTank)) {
                 this.lastChemicalInTank = chemicalStack.copy();
-                var fluidStackTag = chemicalStack.write(new CompoundTag());
-                writeUpdateInfo(2, buffer -> buffer.writeNbt(fluidStackTag));
+                var chemicalStackTag = chemicalStack.write(new CompoundTag());
+                writeUpdateInfo(2, buffer -> buffer.writeNbt(chemicalStackTag));
             } else if (chemicalStack.getAmount() != lastChemicalInTank.getAmount()) {
                 this.lastChemicalInTank.setAmount(chemicalStack.getAmount());
                 writeUpdateInfo(3, buffer -> buffer.writeVarLong(lastChemicalInTank.getAmount()));
@@ -376,24 +373,24 @@ public abstract class ChemicalTankWidget<CHEMICAL extends Chemical<CHEMICAL>, ST
         super.handleClientAction(id, buffer);
         if (id == 1) {
             boolean isFill = buffer.readBoolean();
-            int clickResult = tryClickContainer(isFill);
+            boolean tryMax = buffer.readBoolean();
+            int clickResult = tryClickContainer(isFill, tryMax);
             if (clickResult >= 0) {
                 writeUpdateInfo(4, buf -> buf.writeVarInt(clickResult));
             }
         }
     }
 
-    private int tryClickContainer(boolean isFill) {
+    private int tryClickContainer(boolean isFill, boolean tryMax) {
         if (chemicalHandler == null) return -1;
         Player player = gui.entityPlayer;
         ItemStack currentStack = gui.getModularUIContainer().getCarried();
         var optional = currentStack.getCapability(getCapability()).resolve();
         if (optional.isEmpty()) return -1;
         var handler = optional.get();
-        int maxAttempts = 1000;
         if (isFill && allowClickFilled && chemicalHandler.getChemicalInTank(tank).getAmount() > 0) {
             boolean performedFill = false;
-            for (int i = 0; i < maxAttempts; i++) {
+            while (true) {
                 var remaining = handler.insertChemical(chemicalHandler.getChemicalInTank(tank), Action.SIMULATE);
                 if (remaining.isStackIdentical(chemicalHandler.getChemicalInTank(tank))) break;
                 currentStack.getCapability(getCapability()).ifPresent(cap -> {
@@ -401,6 +398,7 @@ public abstract class ChemicalTankWidget<CHEMICAL extends Chemical<CHEMICAL>, ST
                     chemicalHandler.setChemicalInTank(tank, left);
                 });
                 performedFill = true;
+                if (!tryMax) break;
             }
             if (performedFill) {
                 var soundevent = FluidHelper.getFillSound(FluidStack.create(Fluids.WATER, 1000));
@@ -412,7 +410,7 @@ public abstract class ChemicalTankWidget<CHEMICAL extends Chemical<CHEMICAL>, ST
             }
         } else if (!isFill && allowClickDrained) {
             boolean performedEmptying = false;
-            for (int i = 0; i < maxAttempts; i++) {
+            while (true) {
                 var available = chemicalHandler.getChemicalInTank(tank).copy();
                 STACK extracted;
                 if (available.isEmpty()) {
@@ -428,6 +426,7 @@ public abstract class ChemicalTankWidget<CHEMICAL extends Chemical<CHEMICAL>, ST
                     chemicalHandler.setChemicalInTank(tank, realExtracted);
                 });
                 performedEmptying = true;
+                if (!tryMax) break;
             }
             if (performedEmptying) {
                 var soundevent = FluidHelper.getEmptySound(FluidStack.create(Fluids.WATER, 1000));
@@ -448,8 +447,13 @@ public abstract class ChemicalTankWidget<CHEMICAL extends Chemical<CHEMICAL>, ST
             if (button == 0 || button == 1) {
                 ItemStack currentStack = gui.getModularUIContainer().getCarried();
                 var optional = currentStack.getCapability(getCapability()).resolve();
+                var isFill = button == 0;
+                var tryMax = isShiftDown();
                 if (optional.isPresent()) {
-                    writeClientAction(1, writer -> writer.writeBoolean(button == 0));
+                    writeClientAction(1, writer -> {
+                        writer.writeBoolean(isFill);
+                        writer.writeBoolean(tryMax);
+                    });
                     playButtonClickSound();
                     return true;
                 }

@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.texture.*;
 import com.lowdragmc.lowdraglib.gui.widget.ProgressWidget;
+import com.lowdragmc.lowdraglib.gui.widget.TextTextureWidget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
@@ -18,6 +19,7 @@ import com.lowdragmc.mbd2.integration.botania.BotaniaManaRecipeCapability;
 import com.lowdragmc.mbd2.utils.WidgetUtils;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.network.chat.Component;
 import net.minecraftforge.common.capabilities.Capability;
 import vazkii.botania.api.BotaniaForgeCapabilities;
 import vazkii.botania.api.mana.ManaPool;
@@ -63,13 +65,15 @@ public class BotaniaManaCapabilityTraitDefinition extends SimpleCapabilityTraitD
     @Override
     public void createTraitUITemplate(WidgetGroup ui) {
         var prefix = uiPrefixName();
-        var energyBar = new ProgressWidget(ProgressWidget.JEIProgress, 0, 0, 100, 5, new ProgressTexture(
+        var energyBar = new ProgressWidget(ProgressWidget.JEIProgress, 0, 5, 100, 5, new ProgressTexture(
                 IGuiTexture.EMPTY, BotaniaManaRecipeCapability.HUD_BAR.copy().setColor(ColorPattern.LIGHT_BLUE.color)
         ));
         energyBar.setBackground(BotaniaManaRecipeCapability.HUD_BACKGROUND);
-        energyBar.setOverlay(new TextTexture("0/0 mana"));
         energyBar.setId(prefix);
+        var energyBarText = new TextTextureWidget(5, 3, 90, 10, "0/0 mana");
+        energyBarText.setId(prefix + "_text");
         ui.addWidget(energyBar);
+        ui.addWidget(energyBarText);
     }
 
     @Override
@@ -78,12 +82,12 @@ public class BotaniaManaCapabilityTraitDefinition extends SimpleCapabilityTraitD
             var prefix = uiPrefixName();
             WidgetUtils.widgetByIdForEach(group, "^%s$".formatted(prefix), ProgressWidget.class, energyBar -> {
                 energyBar.setProgressSupplier(() -> manaTrait.storage.getCurrentMana() * 1d / manaTrait.storage.getMaxMana());
-                if (energyBar.getOverlay() instanceof TextTexture textTexture) {
-                    textTexture.updateText(manaTrait.storage.getCurrentMana() + "/" + manaTrait.storage.getMaxMana() + " mana");
-                }
-                energyBar.setDynamicHoverTips(value -> LocalizationUtils.format(
+                energyBar.setDynamicHoverTips(progress -> LocalizationUtils.format(
                         "config.definition.trait.botania_mana_storage.ui_container_hover",
-                        manaTrait.storage.getCurrentMana(), manaTrait.storage.getMaxMana()));
+                        manaTrait.storage.getMaxMana() * progress, manaTrait.storage.getMaxMana()));
+            });
+            WidgetUtils.widgetByIdForEach(group, "^%s_text$".formatted(prefix), TextTextureWidget.class, energyBarText -> {
+                energyBarText.setText(() -> Component.literal(manaTrait.storage.getCurrentMana() + "/" + manaTrait.storage.getMaxMana() + " mana"));
             });
         }
     }
