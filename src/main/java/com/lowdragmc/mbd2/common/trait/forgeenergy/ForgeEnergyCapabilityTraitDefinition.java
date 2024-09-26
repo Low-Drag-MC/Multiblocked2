@@ -79,7 +79,9 @@ public class ForgeEnergyCapabilityTraitDefinition extends SimpleCapabilityTraitD
         ));
         energyBar.setBackground(new ResourceTexture("mbd2:textures/gui/energy_bar_background.png"));
         energyBar.setId(prefix);
-        var energyBarText = new TextTextureWidget(5, 9, 90, 10, "0/0 FE");
+        var energyBarText = new TextTextureWidget(5, 9, 90, 10)
+                .setText("0/0 FE")
+                .textureStyle(textTexture -> textTexture.setDropShadow(true));
         energyBarText.setId(prefix + "_text");
         ui.addWidget(energyBar);
         ui.addWidget(energyBarText);

@@ -67,7 +67,9 @@ public class MekHeatCapabilityTraitDefinition extends SimpleCapabilityTraitDefin
         ));
         energyBar.setBackground(MekanismHeatRecipeCapability.HUD_BACKGROUND);
         energyBar.setId(prefix);
-        var energyBarText = new TextTextureWidget(5, 3, 90, 10, "0 heat");
+        var energyBarText = new TextTextureWidget(5, 3, 90, 10)
+                .setText("0 heat")
+                .textureStyle(texture -> texture.setDropShadow(true));
         energyBarText.setId(prefix + "_text");
         ui.addWidget(energyBar);
         ui.addWidget(energyBarText);

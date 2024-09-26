@@ -93,7 +93,9 @@ public class GTMEnergyCapabilityTraitDefinition extends SimpleCapabilityTraitDef
         ));
         energyBar.setBackground(GTMEnergyRecipeCapability.HUD_BACKGROUND);
         energyBar.setId(prefix);
-        var energyBarText = new TextTextureWidget(5, 3, 90, 10, "0/0 eu");
+        var energyBarText = new TextTextureWidget(5, 3, 90, 10)
+                .setText("0/0 eu")
+                .textureStyle(textTexture -> textTexture.setDropShadow(true));
         energyBarText.setId(prefix + "_text");
         ui.addWidget(energyBar);
         ui.addWidget(energyBarText);

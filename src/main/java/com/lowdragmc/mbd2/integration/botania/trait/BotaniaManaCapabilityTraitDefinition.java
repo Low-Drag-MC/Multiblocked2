@@ -70,7 +70,9 @@ public class BotaniaManaCapabilityTraitDefinition extends SimpleCapabilityTraitD
         ));
         energyBar.setBackground(BotaniaManaRecipeCapability.HUD_BACKGROUND);
         energyBar.setId(prefix);
-        var energyBarText = new TextTextureWidget(5, 3, 90, 10, "0/0 mana");
+        var energyBarText = new TextTextureWidget(5, 3, 90, 10)
+                .setText("0/0 mana")
+                .textureStyle(textTexture -> textTexture.setDropShadow(true));
         energyBarText.setId(prefix + "_text");
         ui.addWidget(energyBar);
         ui.addWidget(energyBarText);
