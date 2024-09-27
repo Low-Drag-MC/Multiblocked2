@@ -14,6 +14,8 @@ import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
 import com.lowdragmc.mbd2.common.gui.editor.MachineProject;
 import com.lowdragmc.mbd2.common.gui.editor.machine.MachineConfigPanel;
+import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
+import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTraitDefinition;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -66,6 +68,8 @@ public class ConfigPartSettings implements IToggleConfigurable, IPersistedSerial
     protected boolean canShare = true;
     @Builder.Default
     protected final List<RecipeModifier> recipeModifiers = new ArrayList<>();
+    @Builder.Default
+    protected final List<ProxyCapability> proxyControllerCapabilities = new ArrayList<>();
 
     @Override
     public CompoundTag serializeNBT() {
@@ -75,6 +79,11 @@ public class ConfigPartSettings implements IToggleConfigurable, IPersistedSerial
             modifiers.add(modifier.serializeNBT());
         }
         tag.put("recipeModifiers", modifiers);
+        var proxyCapabilities = new ListTag();
+        for (ProxyCapability proxyCapability : proxyControllerCapabilities) {
+            proxyCapabilities.add(proxyCapability.serializeNBT());
+        }
+        tag.put("proxyControllerCapabilities", proxyCapabilities);
         return tag;
     }
 
@@ -87,6 +96,13 @@ public class ConfigPartSettings implements IToggleConfigurable, IPersistedSerial
             var modifier = new RecipeModifier();
             modifier.deserializeNBT(modifiers.getCompound(i));
             recipeModifiers.add(modifier);
+        }
+        proxyControllerCapabilities.clear();
+        var proxyCapabilities = tag.getList("proxyControllerCapabilities", Tag.TAG_COMPOUND);
+        for (int i = 0; i < proxyCapabilities.size(); i++) {
+            var proxyCapability = new ProxyCapability();
+            proxyCapability.deserializeNBT(proxyCapabilities.getCompound(i));
+            proxyControllerCapabilities.add(proxyCapability);
         }
     }
 
@@ -109,6 +125,14 @@ public class ConfigPartSettings implements IToggleConfigurable, IPersistedSerial
             recipeModifiers.addAll(list);
         });
         father.addConfigurators(modifiers);
+        var proxyCapabilities = new ArrayConfiguratorGroup<>("config.part_settings.proxy_controller_capabilities", false,
+                () -> proxyControllerCapabilities, (getter, setter) -> {
+            var proxyCapability = getter.get();
+            var group = new ConfiguratorGroup("config.part_settings.proxy_capability.trait_filter", false);
+            proxyCapability.buildConfigurator(group);
+            return group;
+        }, true);
+        proxyCapabilities.setTips("config.part_settings.proxy_controller_capabilities.tooltip");
     }
 
     /**
@@ -181,4 +205,17 @@ public class ConfigPartSettings implements IToggleConfigurable, IPersistedSerial
     }
 
 
+    /**
+     * To proxy the capabilities from the controller.
+     */
+    @Getter
+    public static class ProxyCapability implements IConfigurable, IPersistedSerializable {
+        @Configurable(name = "config.part_settings.proxy_capability.trait_name_filter",
+                tips = {"config.part_settings.proxy_capability.trait_name_filter.tooltip.0",
+                        "config.part_settings.proxy_capability.trait_name_filter.tooltip.1"})
+        private String traitNameFilter;
+        @Configurable(name = "config.definition.trait.capability_io", subConfigurable = true,
+                tips = {"config.definition.trait.capability_io.tooltip.0", "config.definition.trait.capability_io.tooltip.1"})
+        private final SimpleCapabilityTraitDefinition.CapabilityIO capabilityIO = new SimpleCapabilityTraitDefinition.CapabilityIO();
+    }
 }

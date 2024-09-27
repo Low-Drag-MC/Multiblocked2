@@ -161,6 +161,12 @@
     "config.part_settings.recipe_condition.type": "Condition Type",
     "config.part_settings.target_content": "Target Content",
     "config.part_settings.target_content.tooltip": "The target content should be modified.",
+    "config.part_settings.proxy_capability.trait_filter": "Trait Filter",
+    "config.part_settings.proxy_capability.trait_name_filter": "Trait Name Filter",
+    "config.part_settings.proxy_capability.trait_name_filter.tooltip.0": "All traits that name contain the filter name will be proxied.",
+    "config.part_settings.proxy_capability.trait_name_filter.tooltip.1": "e.g. if the filer name is §cempty§r, all traits that name contain will be proxied.",
+    "config.part_settings.proxy_controller_capabilities": "Proxy Controller Trait Capabilities",
+    "config.part_settings.proxy_controller_capabilities.tooltip": "If the part doesnt contain the required capability, the part will proxy the capabilities from controllers’ traits.",
 
     "config.machine_event.graph.edit": "edit graph",
     "config.machine_event.graph.add": "add graph",

@@ -172,7 +172,7 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
     }
 
     public ActionResult matchRecipe(boolean perTick, IO io, IRecipeCapabilityHolder holder, Map<RecipeCapability<?>, List<Content>> contents, boolean calculateExpectingRate) {
-        Table<IO, RecipeCapability<?>, List<IRecipeHandler<?>>> capabilityProxies = holder.getCapabilitiesProxy();
+        Table<IO, RecipeCapability<?>, List<IRecipeHandler<?>>> capabilityProxies = holder.getRecipeCapabilitiesProxy();
         for (Map.Entry<RecipeCapability<?>, List<Content>> entry : contents.entrySet()) {
             Set<IRecipeHandler<?>> used = new HashSet<>();
             List content = new ArrayList<>();
@@ -230,7 +230,7 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
     }
 
     public boolean handleRecipe(boolean perTick, IO io, IRecipeCapabilityHolder holder, Map<RecipeCapability<?>, List<Content>> contents) {
-        Table<IO, RecipeCapability<?>, List<IRecipeHandler<?>>> capabilityProxies = holder.getCapabilitiesProxy();
+        Table<IO, RecipeCapability<?>, List<IRecipeHandler<?>>> capabilityProxies = holder.getRecipeCapabilitiesProxy();
         for (Map.Entry<RecipeCapability<?>, List<Content>> entry : contents.entrySet()) {
             Set<IRecipeHandler<?>> used = new HashSet<>();
             List content = new ArrayList<>();
@@ -374,12 +374,12 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
 
     public void handlePre(Map<RecipeCapability<?>, List<Content>> contents, IRecipeCapabilityHolder holder, IO io) {
         contents.forEach(((capability, tuples) -> {
-            if (holder.getCapabilitiesProxy().contains(io, capability)) {
-                for (IRecipeHandler<?> capabilityProxy : holder.getCapabilitiesProxy().get(io, capability)) {
+            if (holder.getRecipeCapabilitiesProxy().contains(io, capability)) {
+                for (IRecipeHandler<?> capabilityProxy : holder.getRecipeCapabilitiesProxy().get(io, capability)) {
                     capabilityProxy.preWorking(holder, io, this);
                 }
-            } else if (holder.getCapabilitiesProxy().contains(IO.BOTH, capability)) {
-                for (IRecipeHandler<?> capabilityProxy : holder.getCapabilitiesProxy().get(IO.BOTH, capability)) {
+            } else if (holder.getRecipeCapabilitiesProxy().contains(IO.BOTH, capability)) {
+                for (IRecipeHandler<?> capabilityProxy : holder.getRecipeCapabilitiesProxy().get(IO.BOTH, capability)) {
                     capabilityProxy.preWorking(holder, io, this);
                 }
             }
@@ -388,12 +388,12 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
 
     public void handlePost(Map<RecipeCapability<?>, List<Content>> contents, IRecipeCapabilityHolder holder, IO io) {
         contents.forEach(((capability, tuples) -> {
-            if (holder.getCapabilitiesProxy().contains(io, capability)) {
-                for (IRecipeHandler<?> capabilityProxy : holder.getCapabilitiesProxy().get(io, capability)) {
+            if (holder.getRecipeCapabilitiesProxy().contains(io, capability)) {
+                for (IRecipeHandler<?> capabilityProxy : holder.getRecipeCapabilitiesProxy().get(io, capability)) {
                     capabilityProxy.postWorking(holder, io, this);
                 }
-            } else if (holder.getCapabilitiesProxy().contains(IO.BOTH, capability)) {
-                for (IRecipeHandler<?> capabilityProxy : holder.getCapabilitiesProxy().get(IO.BOTH, capability)) {
+            } else if (holder.getRecipeCapabilitiesProxy().contains(IO.BOTH, capability)) {
+                for (IRecipeHandler<?> capabilityProxy : holder.getRecipeCapabilitiesProxy().get(IO.BOTH, capability)) {
                     capabilityProxy.postWorking(holder, io, this);
                 }
             }

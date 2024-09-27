@@ -4,9 +4,7 @@ import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib.syncdata.annotation.RequireRerender;
 import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
-import com.lowdragmc.mbd2.api.capability.recipe.IO;
-import com.lowdragmc.mbd2.api.capability.recipe.IRecipeCapabilityHolder;
-import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
+import com.lowdragmc.mbd2.api.capability.recipe.*;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
 import com.lowdragmc.mbd2.api.machine.IMultiPart;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
@@ -15,11 +13,17 @@ import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigPartSettings;
+import com.lowdragmc.mbd2.common.trait.ICapabilityProviderTrait;
 import com.mojang.datafixers.util.Pair;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.util.LazyOptional;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
@@ -73,7 +77,7 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
     /**
      * Get all available traits for recipe logic. It is only used for controller recipe logic.
      * <br>
-     * For self recipe logic, use {@link IRecipeCapabilityHolder#getCapabilitiesProxy()} to get recipe handlers.
+     * For self recipe logic, use {@link IRecipeCapabilityHolder#getRecipeCapabilitiesProxy()} to get recipe handlers.
      */
     @Override
     public List<IRecipeHandlerTrait> getRecipeHandlers() {
@@ -207,4 +211,42 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
         }
         return recipe;
     }
+
+    @Override
+    public @NotNull <T> LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable Direction side) {
+        var result = super.getCapability(cap, side);
+        if (result.isPresent() || Objects.requireNonNull(getDefinition().partSettings())
+                .proxyControllerCapabilities().isEmpty()) return result;
+        var front = getFrontFacing().orElse(Direction.NORTH);
+
+        for (var controller : getControllers()) {
+            if (controller instanceof MBDMultiblockMachine proxyController) {
+                List<T> results = new ArrayList<>();
+                // get proxy capabilities from controller
+                for (var proxyControllerCapability : getDefinition().partSettings().proxyControllerCapabilities()) {
+                    var io = proxyControllerCapability.capabilityIO().getIO(front, side);
+                    for (var trait : proxyController.getAdditionalTraits()) {
+                        if (trait instanceof ICapabilityProviderTrait capabilityProviderTrait &&
+                                capabilityProviderTrait.getCapability() == cap &&
+                                trait.getDefinition().getName().contains(proxyControllerCapability.traitNameFilter())) {
+                            results.add((T) capabilityProviderTrait.getCapContent(io));
+                        }
+                    }
+                }
+                if (results.size() == 1) {
+                    return LazyOptional.of(() -> results.get(0));
+                } else {
+                    for (var trait : proxyController.getAdditionalTraits()) {
+                        if (trait instanceof ICapabilityProviderTrait capabilityProviderTrait &&
+                                capabilityProviderTrait.getCapability() == cap) {
+                            return LazyOptional.of(() -> (T) capabilityProviderTrait.mergeContents(results));
+                        }
+                    }
+                    return LazyOptional.of(() -> results.get(0));
+                }
+            }
+        }
+        return result;
+    }
+
 }

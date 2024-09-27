@@ -8,7 +8,6 @@ import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
 import mekanism.api.heat.IHeatHandler;
-import net.minecraft.core.Direction;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -56,8 +55,8 @@ public class MekHeatCapabilityTrait extends SimpleCapabilityTrait<IHeatHandler, 
     }
 
     @Override
-    public IHeatHandler getCapContent(@Nullable Direction side) {
-        return new HeatContainerWrapper(this.container, getCapabilityIO(side));
+    public IHeatHandler getCapContent(IO capbilityIO) {
+        return new HeatContainerWrapper(this.container, capbilityIO);
     }
 
     @Override

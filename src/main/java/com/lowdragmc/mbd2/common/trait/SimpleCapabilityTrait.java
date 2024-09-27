@@ -65,23 +65,7 @@ public abstract class SimpleCapabilityTrait<T, CONTENT> implements IRecipeCapabi
     @Override
     public IO getCapabilityIO(@Nullable Direction side) {
         var front = machine.getFrontFacing().orElse(Direction.NORTH);
-        if (side == null || front.getAxis() == Direction.Axis.Y) {
-            return getDefinition().getCapabilityIO().getInternal();
-        }
-        if (side == Direction.UP) {
-            return getDefinition().getCapabilityIO().getTopIO();
-        } else if (side == Direction.DOWN) {
-            return getDefinition().getCapabilityIO().getBottomIO();
-        } else if (side == front) {
-            return getDefinition().getCapabilityIO().getFrontIO();
-        } else if (side == front.getOpposite()) {
-            return getDefinition().getCapabilityIO().getBackIO();
-        } else if (side == front.getClockWise()) {
-            return getDefinition().getCapabilityIO().getRightIO();
-        } else if (side == front.getCounterClockWise()) {
-            return getDefinition().getCapabilityIO().getLeftIO();
-        }
-        return IO.NONE;
+        return getDefinition().getCapabilityIO().getIO(front, side);
     }
 
     @Override

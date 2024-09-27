@@ -21,7 +21,6 @@ import mekanism.api.chemical.pigment.IPigmentHandler;
 import mekanism.api.chemical.pigment.PigmentStack;
 import mekanism.api.chemical.slurry.ISlurryHandler;
 import mekanism.api.chemical.slurry.SlurryStack;
-import net.minecraft.core.Direction;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
@@ -154,8 +153,8 @@ public abstract class ChemicalTankCapabilityTrait<CHEMICAL extends Chemical<CHEM
         }
 
         @Override
-        public IGasHandler getCapContent(@Nullable Direction side) {
-            return new ChemicalStorageWrapper.Gas(storages, getCapabilityIO(side));
+        public IGasHandler getCapContent(IO capbilityIO) {
+            return new ChemicalStorageWrapper.Gas(storages, capbilityIO);
         }
 
         @Override
@@ -175,8 +174,8 @@ public abstract class ChemicalTankCapabilityTrait<CHEMICAL extends Chemical<CHEM
         }
 
         @Override
-        public IInfusionHandler getCapContent(@Nullable Direction side) {
-            return new ChemicalStorageWrapper.Infuse(storages, getCapabilityIO(side));
+        public IInfusionHandler getCapContent(IO capbilityIO) {
+            return new ChemicalStorageWrapper.Infuse(storages, capbilityIO);
         }
 
         @Override
@@ -196,8 +195,8 @@ public abstract class ChemicalTankCapabilityTrait<CHEMICAL extends Chemical<CHEM
         }
 
         @Override
-        public IPigmentHandler getCapContent(@Nullable Direction side) {
-            return new ChemicalStorageWrapper.Pigment(storages, getCapabilityIO(side));
+        public IPigmentHandler getCapContent(IO capbilityIO) {
+            return new ChemicalStorageWrapper.Pigment(storages, capbilityIO);
         }
 
         @Override
@@ -217,8 +216,8 @@ public abstract class ChemicalTankCapabilityTrait<CHEMICAL extends Chemical<CHEM
         }
 
         @Override
-        public ISlurryHandler getCapContent(@Nullable Direction side) {
-            return new ChemicalStorageWrapper.Slurry(storages, getCapabilityIO(side));
+        public ISlurryHandler getCapContent(IO capbilityIO) {
+            return new ChemicalStorageWrapper.Slurry(storages, capbilityIO);
         }
 
         @Override

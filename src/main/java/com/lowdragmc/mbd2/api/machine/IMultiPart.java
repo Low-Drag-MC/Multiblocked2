@@ -61,7 +61,7 @@ public interface IMultiPart extends IMachine {
     /**
      * Get all available traits for recipe logic. It is only used for controller recipe logic.
      * <br>
-     * For self recipe logic, use {@link IRecipeCapabilityHolder#getCapabilitiesProxy()} to get recipe handlers.
+     * For self recipe logic, use {@link IRecipeCapabilityHolder#getRecipeCapabilitiesProxy()} to get recipe handlers.
      */
     List<IRecipeHandlerTrait> getRecipeHandlers();
 

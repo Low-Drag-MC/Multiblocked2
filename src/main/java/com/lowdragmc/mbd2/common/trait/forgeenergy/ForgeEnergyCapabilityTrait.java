@@ -7,7 +7,6 @@ import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
-import net.minecraft.core.Direction;
 import net.minecraftforge.energy.IEnergyStorage;
 import org.jetbrains.annotations.Nullable;
 
@@ -58,8 +57,8 @@ public class ForgeEnergyCapabilityTrait extends SimpleCapabilityTrait<IEnergySto
     }
 
     @Override
-    public IEnergyStorage getCapContent(@Nullable Direction side) {
-        return new EnergyStorageWrapper(this.storage, getCapabilityIO(side));
+    public IEnergyStorage getCapContent(IO capbilityIO) {
+        return new EnergyStorageWrapper(this.storage, capbilityIO);
     }
 
     @Override

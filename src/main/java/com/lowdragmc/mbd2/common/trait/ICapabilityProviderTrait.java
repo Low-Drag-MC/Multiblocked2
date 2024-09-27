@@ -20,18 +20,18 @@ public interface ICapabilityProviderTrait<T> extends ITrait {
     /**
      * Get the capability for {@link ICapabilityProvider}.
      */
-    Capability<?> getCapability();
+    Capability<? super T> getCapability();
 
     /**
      * Get the capability content for {@link ICapabilityProvider}.
      */
-    T getCapContent(@Nullable Direction side);
+    T getCapContent(IO capabilityIO);
 
     /**
      * Merge the content of the capability.
      * for example, when you create multiple item handlers, you can merge them into one.
      */
     default T mergeContents(List<T> contents) {
-        return !contents.isEmpty() ? contents.get(0) : getCapContent(null);
+        return !contents.isEmpty() ? contents.get(0) : getCapContent(getCapabilityIO(null));
     }
 }

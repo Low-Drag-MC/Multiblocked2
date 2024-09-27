@@ -11,7 +11,6 @@ import com.lowdragmc.mbd2.api.recipe.ingredient.FluidIngredient;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
 import lombok.Setter;
-import net.minecraft.core.Direction;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import org.jetbrains.annotations.Nullable;
@@ -138,8 +137,8 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait<IFluidHandle
     }
 
     @Override
-    public IFluidHandler getCapContent(@Nullable Direction side) {
-        return new FluidHandlerWrapper(this.storages, getCapabilityIO(side), getDefinition().isAllowSameFluids());
+    public IFluidHandler getCapContent(IO capbilityIO) {
+        return new FluidHandlerWrapper(this.storages, capbilityIO, getDefinition().isAllowSameFluids());
     }
 
     @Override

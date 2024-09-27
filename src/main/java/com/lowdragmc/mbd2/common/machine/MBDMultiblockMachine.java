@@ -227,7 +227,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
     }
 
     /**
-     * Initialize the capabilities proxy for recipe logic. see {@link IRecipeCapabilityHolder#getCapabilitiesProxy()}
+     * Initialize the capabilities proxy for recipe logic. see {@link IRecipeCapabilityHolder#getRecipeCapabilitiesProxy()}
      * <br>
      * For a formed multiblock, it will collect all the recipe handlers from all parts.
      */
@@ -235,7 +235,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
     public void initCapabilitiesProxy() {
         super.initCapabilitiesProxy();
         if (isFormed()) {
-            var capabilitiesProxy = getCapabilitiesProxy();
+            var capabilitiesProxy = getRecipeCapabilitiesProxy();
             Map<Long, IO> ioMap = getMultiblockState().getMatchContext().getOrCreate("ioMap", Long2ObjectMaps::emptyMap);
             for (IMultiPart part : getParts()) {
                 IO io = ioMap.getOrDefault(part.getPos().asLong(), IO.BOTH);

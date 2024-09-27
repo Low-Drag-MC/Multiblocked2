@@ -7,7 +7,6 @@ import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
-import net.minecraft.core.Direction;
 import org.jetbrains.annotations.Nullable;
 import vazkii.botania.api.mana.ManaPool;
 
@@ -66,8 +65,8 @@ public class BotaniaManaCapabilityTrait extends SimpleCapabilityTrait<ManaPool, 
     }
 
     @Override
-    public ManaPool getCapContent(@Nullable Direction side) {
-        return new ManaPoolWrapper(this.storage, getCapabilityIO(side));
+    public ManaPool getCapContent(IO capbilityIO) {
+        return new ManaPoolWrapper(this.storage, capbilityIO);
     }
 
     @Override

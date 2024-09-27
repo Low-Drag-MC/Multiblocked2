@@ -9,7 +9,6 @@ import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
-import net.minecraft.core.Direction;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -67,8 +66,8 @@ public class GTMEnergyCapabilityTrait extends SimpleCapabilityTrait<IEnergyConta
     }
 
     @Override
-    public IEnergyContainer getCapContent(@Nullable Direction side) {
-        return new EnergyContainerWrapper(this.container, getCapabilityIO(side));
+    public IEnergyContainer getCapContent(IO capbilityIO) {
+        return new EnergyContainerWrapper(this.container, capbilityIO);
     }
 
     @Override

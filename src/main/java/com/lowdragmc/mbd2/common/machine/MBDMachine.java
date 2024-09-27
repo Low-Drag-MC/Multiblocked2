@@ -86,7 +86,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
     @Persisted
     @DescSynced
     private final RecipeLogic recipeLogic;
-    private final Table<IO, RecipeCapability<?>, List<IRecipeHandler<?>>> capabilitiesProxy;
+    private final Table<IO, RecipeCapability<?>, List<IRecipeHandler<?>>> recipeCapabilitiesProxy;
     @Nonnull
     @Persisted
     @DescSynced
@@ -108,7 +108,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
         } else {
             throw new RuntimeException("Root storage of MBDMachine's holder must be MultiManagedStorage");
         }
-        capabilitiesProxy = Tables.newCustomTable(new EnumMap<>(IO.class), HashMap::new);;
+        recipeCapabilitiesProxy = Tables.newCustomTable(new EnumMap<>(IO.class), HashMap::new);;
         machineState = definition.stateMachine().getRootState().name();
         // trait initialization
         recipeLogic = createRecipeLogic(args);
@@ -230,16 +230,16 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
     }
 
     /**
-     * Initialize the capabilities proxy for recipe logic. see {@link IRecipeCapabilityHolder#getCapabilitiesProxy()}
+     * Initialize the capabilities proxy for recipe logic. see {@link IRecipeCapabilityHolder#getRecipeCapabilitiesProxy()}
      */
     public void initCapabilitiesProxy() {
-        capabilitiesProxy.clear();
+        recipeCapabilitiesProxy.clear();
         for (var trait : additionalTraits) {
             if (trait instanceof IRecipeHandlerTrait<?> recipeHandlerTrait) {
-                if (!capabilitiesProxy.contains(recipeHandlerTrait.getHandlerIO(), recipeHandlerTrait.getRecipeCapability())) {
-                    capabilitiesProxy.put(recipeHandlerTrait.getHandlerIO(), recipeHandlerTrait.getRecipeCapability(), new ArrayList<>());
+                if (!recipeCapabilitiesProxy.contains(recipeHandlerTrait.getHandlerIO(), recipeHandlerTrait.getRecipeCapability())) {
+                    recipeCapabilitiesProxy.put(recipeHandlerTrait.getHandlerIO(), recipeHandlerTrait.getRecipeCapability(), new ArrayList<>());
                 }
-                capabilitiesProxy.get(recipeHandlerTrait.getHandlerIO(), recipeHandlerTrait.getRecipeCapability()).add(recipeHandlerTrait);
+                recipeCapabilitiesProxy.get(recipeHandlerTrait.getHandlerIO(), recipeHandlerTrait.getRecipeCapability()).add(recipeHandlerTrait);
             }
         }
     }
@@ -356,7 +356,10 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
         List<T> results = new ArrayList<>();
         for (var trait : additionalTraits) {
             if (trait instanceof ICapabilityProviderTrait<?> capabilityProviderTrait && capabilityProviderTrait.getCapability() == cap) {
-                results.add((T) capabilityProviderTrait.getCapContent(side));
+                var io = capabilityProviderTrait.getCapabilityIO(side);
+                if (io != IO.NONE) {
+                    results.add((T) capabilityProviderTrait.getCapContent(io));
+                }
             }
         }
         if (results.isEmpty()) {
@@ -367,7 +370,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
             } else {
                 for (var trait : additionalTraits) {
                     if (trait instanceof ICapabilityProviderTrait capabilityProviderTrait && capabilityProviderTrait.getCapability() == cap) {
-                        return cap.orEmpty(cap, LazyOptional.of(() -> (T) capabilityProviderTrait.mergeContents(results)));
+                        return LazyOptional.of(() -> (T) capabilityProviderTrait.mergeContents(results));
                     }
                 }
             }

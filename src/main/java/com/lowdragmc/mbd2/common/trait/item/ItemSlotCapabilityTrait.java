@@ -8,7 +8,6 @@ import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
-import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.Ingredient;
@@ -146,8 +145,8 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
     }
 
     @Override
-    public IItemHandler getCapContent(@Nullable Direction side) {
-        return new ItemHandlerWrapper(this.storage, getCapabilityIO(side));
+    public IItemHandler getCapContent(IO capbilityIO) {
+        return new ItemHandlerWrapper(this.storage, capbilityIO);
     }
 
     @Override

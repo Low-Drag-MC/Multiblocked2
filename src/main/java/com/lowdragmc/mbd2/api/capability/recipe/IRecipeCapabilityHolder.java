@@ -9,14 +9,14 @@ import java.util.List;
 public interface IRecipeCapabilityHolder {
 
     default boolean hasProxies() {
-        return !getCapabilitiesProxy().isEmpty();
+        return !getRecipeCapabilitiesProxy().isEmpty();
     }
 
     /**
      * Get the recipe capability proxies.
      */
     @Nonnull
-    Table<IO, RecipeCapability<?>, List<IRecipeHandler<?>>> getCapabilitiesProxy();
+    Table<IO, RecipeCapability<?>, List<IRecipeHandler<?>>> getRecipeCapabilitiesProxy();
 
     /**
      * Get Tier for chance boost.
