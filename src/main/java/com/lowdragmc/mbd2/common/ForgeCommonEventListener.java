@@ -1,14 +1,11 @@
 package com.lowdragmc.mbd2.common;
 
 import com.lowdragmc.mbd2.MBD2;
+import com.lowdragmc.mbd2.api.pattern.MultiblockWorldSavedData;
+import com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.event.AddReloadListenerEvent;
-import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.level.LevelEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -21,33 +18,23 @@ import net.minecraftforge.fml.common.Mod;
 public class ForgeCommonEventListener {
 
     @SubscribeEvent
-    public static void registerItemStackCapabilities(AttachCapabilitiesEvent<ItemStack> event) {
-    }
-
-    @SubscribeEvent
     public static void registerCommand(RegisterCommandsEvent event) {
         ServerCommands.createServerCommands().forEach(event.getDispatcher()::register);
     }
 
     @SubscribeEvent
-    public static void registerReloadListeners(AddReloadListenerEvent event) {
-    }
-
-    @SubscribeEvent
-    public static void attachCapabilities(AttachCapabilitiesEvent<BlockEntity> event) {
-    }
-
-    @SubscribeEvent
-    public static void levelTick(TickEvent.LevelTickEvent event) {
-        if (event.level instanceof ServerLevel serverLevel && event.phase.equals(TickEvent.Phase.END)) {
-
-        }
-    }
-
-    @SubscribeEvent
-    public static void worldUnload(LevelEvent.Unload event) {
-        if (event.getLevel() instanceof ServerLevel serverLevel) {
-
+    public static void registerCommand(PlayerInteractEvent.RightClickBlock event) {
+        if (!event.getEntity().isCrouching() && event.getLevel() instanceof ServerLevel serverLevel) {
+            var pos = event.getPos();
+            for (var state : MultiblockWorldSavedData.getOrCreate(serverLevel).getControllerInPos(pos)) {
+                if (state.getController() instanceof MBDMultiblockMachine machine) {
+                    if (machine.getDefinition().machineSettings().hasUI() &&
+                            machine.getDefinition().multiblockSettings().showUIWhenClickStructure()) {
+                        machine.openUI(event.getEntity());
+                        event.setCanceled(true);
+                    }
+                }
+            }
         }
     }
 

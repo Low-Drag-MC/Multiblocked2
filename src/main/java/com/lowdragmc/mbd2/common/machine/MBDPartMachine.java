@@ -235,7 +235,7 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
                 }
                 if (results.size() == 1) {
                     return LazyOptional.of(() -> results.get(0));
-                } else {
+                } else if (results.size() > 1) {
                     for (var trait : proxyController.getAdditionalTraits()) {
                         if (trait instanceof ICapabilityProviderTrait capabilityProviderTrait &&
                                 capabilityProviderTrait.getCapability() == cap) {

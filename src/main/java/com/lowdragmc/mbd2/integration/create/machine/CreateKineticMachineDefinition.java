@@ -15,6 +15,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -25,6 +26,9 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.EntityRenderersEvent;
 import org.jetbrains.annotations.Nullable;
+
+import java.io.File;
+import java.util.Deque;
 
 @Getter
 @Accessors(fluent = true)
@@ -60,6 +64,13 @@ public class CreateKineticMachineDefinition extends MBDMachineDefinition {
                 ConfigMachineSettings.builder().build(),
                 ConfigPartSettings.builder().build(),
                 ConfigKineticMachineSettings.builder().build());
+    }
+
+    @Override
+    public MBDMachineDefinition loadProductiveTag(File file, CompoundTag projectTag, Deque<Runnable> postTask) {
+        super.loadProductiveTag(file, projectTag, postTask);
+        kineticMachineSettings.deserializeNBT(projectTag.getCompound("definition").getCompound("kineticMachineSettings"));
+        return this;
     }
 
     @Override

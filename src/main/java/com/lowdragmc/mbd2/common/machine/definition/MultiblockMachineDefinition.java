@@ -82,6 +82,7 @@ public class MultiblockMachineDefinition extends MBDMachineDefinition {
     public MultiblockMachineDefinition loadProductiveTag(File file, CompoundTag projectTag, Deque<Runnable> postTask) {
         super.loadProductiveTag(file, projectTag, postTask);
         postTask.add(() -> {
+            multiblockSettings.deserializeNBT(projectTag.getCompound("definition").getCompound("multiblockSettings"));
             // setup block pattern
             var predicateResource = new PredicateResource();
             predicateResource.deserializeNBT(projectTag.getCompound("resources").getCompound(PredicateResource.RESOURCE_NAME));

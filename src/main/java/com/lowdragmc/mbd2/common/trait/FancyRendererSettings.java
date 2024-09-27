@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IToggleConfigurable;
 import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib.utils.DummyWorld;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import lombok.Getter;
@@ -54,11 +55,13 @@ public abstract class FancyRendererSettings implements IToggleConfigurable {
     public IRenderer getFancyRenderer(IMachine machine) {
         if (!enable) return IRenderer.EMPTY;
         if (filterSet == null) filterSet = new HashSet<>(filters);
-        var state = ((MBDMachine) machine).getMachineStateName();
-        if (isWhiteList) {
-            if (!filterSet.contains(state)) return IRenderer.EMPTY;
-        } else {
-            if (filterSet.contains(state)) return IRenderer.EMPTY;
+        if (!(machine.getLevel() instanceof DummyWorld)) {
+            var state = ((MBDMachine) machine).getMachineStateName();
+            if (isWhiteList) {
+                if (!filterSet.contains(state)) return IRenderer.EMPTY;
+            } else {
+                if (filterSet.contains(state)) return IRenderer.EMPTY;
+            }
         }
         if (renderer == null) renderer = createFancyRenderer();
         return renderer;

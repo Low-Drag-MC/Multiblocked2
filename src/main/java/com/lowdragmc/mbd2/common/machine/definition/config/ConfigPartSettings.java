@@ -14,7 +14,6 @@ import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
 import com.lowdragmc.mbd2.common.gui.editor.MachineProject;
 import com.lowdragmc.mbd2.common.gui.editor.machine.MachineConfigPanel;
-import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTraitDefinition;
 import lombok.Builder;
 import lombok.Getter;
@@ -133,6 +132,14 @@ public class ConfigPartSettings implements IToggleConfigurable, IPersistedSerial
             return group;
         }, true);
         proxyCapabilities.setTips("config.part_settings.proxy_controller_capabilities.tooltip");
+        proxyCapabilities.setAddDefault(ProxyCapability::new);
+        proxyCapabilities.setOnAdd(proxyControllerCapabilities::add);
+        proxyCapabilities.setOnRemove(proxyControllerCapabilities::remove);
+        proxyCapabilities.setOnUpdate(list -> {
+            proxyControllerCapabilities.clear();
+            proxyControllerCapabilities.addAll(list);
+        });
+        father.addConfigurators(proxyCapabilities);
     }
 
     /**

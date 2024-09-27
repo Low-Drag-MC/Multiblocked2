@@ -184,6 +184,8 @@
     "config.multiblock_settings.catalyst.consume_type.consume_durability": "durability",
     "config.multiblock_settings.catalyst.consume_type.consume_durability.amount": "durability value",
     "config.multiblock_settings.show_ui_only_formed": "show UI only when formed",
+    "config.multiblock_settings.show_ui_when_click_structure": "show UI when click structure",
+    "config.multiblock_settings.show_ui_when_click_structure.tooltip": "If true, right-click on the blocks of the structure can open ui.",
 
     "config.definition.kinetic_machine_settings": "Kinetic Machine Settings",
     "config.definition.kinetic_machine_settings.tooltip": "The settings of the create kinetic machine, e.g. rotation, models.",

@@ -21,4 +21,9 @@ public class ConfigMultiblockSettings implements IConfigurable, IPersistedSerial
     @Builder.Default
     private boolean showUIOnlyFormed = true;
 
+    @Configurable(name = "config.multiblock_settings.show_ui_when_click_structure",
+            tips = "config.multiblock_settings.show_ui_when_click_structure.tooltip")
+    @Builder.Default
+    private boolean showUIWhenClickStructure = false;
+
 }
