@@ -18,12 +18,12 @@ import net.minecraftforge.fml.common.Mod;
 public class ForgeCommonEventListener {
 
     @SubscribeEvent
-    public static void registerCommand(RegisterCommandsEvent event) {
+    public static void onRegisterCommands(RegisterCommandsEvent event) {
         ServerCommands.createServerCommands().forEach(event.getDispatcher()::register);
     }
 
     @SubscribeEvent
-    public static void registerCommand(PlayerInteractEvent.RightClickBlock event) {
+    public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
         if (!event.getEntity().isCrouching() && event.getLevel() instanceof ServerLevel serverLevel) {
             var pos = event.getPos();
             for (var state : MultiblockWorldSavedData.getOrCreate(serverLevel).getControllerInPos(pos)) {
