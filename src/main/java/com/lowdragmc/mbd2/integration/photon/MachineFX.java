@@ -2,9 +2,9 @@ package com.lowdragmc.mbd2.integration.photon;
 
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
-import com.lowdragmc.photon.client.emitter.IParticleEmitter;
 import com.lowdragmc.photon.client.fx.FX;
 import com.lowdragmc.photon.client.fx.FXEffect;
+import com.lowdragmc.photon.client.gameobject.emitter.IParticleEmitter;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import org.joml.Vector3f;
@@ -60,4 +60,5 @@ public class MachineFX extends FXEffect {
         }
         return false;
     }
+
 }
