@@ -87,7 +87,7 @@ public class MBDBlockRenderer implements IRenderer {
         return getMachine(blockEntity).map(machine ->
                 machine.getMachineState().getRealRenderer().hasTESR(blockEntity) ||
                         machine.getDefinition().machineSettings().traitDefinitions().stream()
-                                .map(TraitDefinition::getBESRenderer)
+                                .map(definition -> definition.getBESRenderer(machine))
                                 .anyMatch(renderer -> renderer.hasTESR(blockEntity))
         ).orElse(false);
     }
@@ -97,7 +97,7 @@ public class MBDBlockRenderer implements IRenderer {
         return getMachine(blockEntity).map(machine ->
                 machine.getMachineState().getRealRenderer().isGlobalRenderer(blockEntity) ||
                         machine.getDefinition().machineSettings().traitDefinitions().stream()
-                                .map(TraitDefinition::getBESRenderer)
+                                .map(definition -> definition.getBESRenderer(machine))
                                 .anyMatch(renderer -> renderer.isGlobalRenderer(blockEntity))
         ).orElse(false);
     }
@@ -114,7 +114,7 @@ public class MBDBlockRenderer implements IRenderer {
         getMachine(blockEntity).ifPresent(machine -> {
             machine.getMachineState().getRealRenderer().render(blockEntity, partialTicks, stack, buffer, combinedLight, combinedOverlay);
             for (var traitDefinition : machine.getDefinition().machineSettings().traitDefinitions()) {
-                var renderer = traitDefinition.getBESRenderer();
+                var renderer = traitDefinition.getBESRenderer(machine);
                 if (renderer.hasTESR(blockEntity)) {
                     renderer.render(blockEntity, partialTicks, stack, buffer, combinedLight, combinedOverlay);
                 }

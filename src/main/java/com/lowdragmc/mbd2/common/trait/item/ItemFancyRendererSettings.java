@@ -4,10 +4,9 @@ import com.lowdragmc.lowdraglib.client.model.ModelFactory;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IToggleConfigurable;
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
 import com.lowdragmc.mbd2.api.capability.MBDCapabilities;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
+import com.lowdragmc.mbd2.common.trait.FancyRendererSettings;
 import com.mojang.blaze3d.vertex.PoseStack;
 import lombok.Getter;
 import lombok.Setter;
@@ -25,28 +24,9 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
-public class ItemFancyRendererSettings implements IToggleConfigurable {
+public class ItemFancyRendererSettings extends FancyRendererSettings {
     private final ItemSlotCapabilityTraitDefinition definition;
-    @Getter
-    @Setter
-    @Persisted
-    private boolean enable;
 
-    @Getter
-    @Setter
-    @Configurable(name = "config.definition.trait.fancy_renderer.position", tips = "config.definition.trait.fancy_renderer.position.tooltip")
-    @NumberRange(range = {-Float.MAX_VALUE, Float.MAX_VALUE})
-    private Vector3f position = new Vector3f(0, 0, 0);
-    @Getter
-    @Setter
-    @Configurable(name = "config.definition.trait.fancy_renderer.rotation", tips = "config.definition.trait.fancy_renderer.rotation.tooltip")
-    @NumberRange(range = {-Float.MAX_VALUE, Float.MAX_VALUE})
-    private Vector3f rotation = new Vector3f(0, 0, 0);
-    @Getter
-    @Setter
-    @Configurable(name = "config.definition.trait.fancy_renderer.scale", tips = "config.definition.trait.fancy_renderer.scale.tooltip")
-    @NumberRange(range = {-Float.MAX_VALUE, Float.MAX_VALUE})
-    private Vector3f scale = new Vector3f(1, 1, 1);
     @Getter
     @Setter
     @Configurable(name = "config.definition.trait.fancy_renderer.spin", tips = "config.definition.trait.fancy_renderer.spin.tooltip")
@@ -54,23 +34,16 @@ public class ItemFancyRendererSettings implements IToggleConfigurable {
     private float spin = 0;
     @Getter
     @Setter
-    @Configurable(name = "config.definition.trait.fancy_renderer.rotate_orientation", tips = "config.definition.trait.fancy_renderer.rotate_orientation.tooltip")
-    private boolean rotateOrientation = true;
-    @Getter
-    @Setter
     @Configurable(name = "config.definition.trait.fancy_renderer.render_stack", tips = "config.definition.trait.fancy_renderer.render_stack.tooltip")
     private boolean renderStack = true;
-    // run-time;
-    private IRenderer renderer;
 
     public ItemFancyRendererSettings(ItemSlotCapabilityTraitDefinition definition) {
         this.definition = definition;
     }
 
-    public IRenderer createRenderer() {
-        if (isEnable()) {
-            return renderer == null ? (renderer = new Renderer()) : renderer;
-        } else return IRenderer.EMPTY;
+    @Override
+    public IRenderer createFancyRenderer() {
+        return new Renderer();
     }
 
     private class Renderer implements IRenderer {

@@ -25,8 +25,7 @@ public class ChunkMixin {
         MinecraftServer server = level.getServer();
         if (server != null) {
             if (level instanceof ServerLevel serverLevel) {
-                for (var structure : MultiblockWorldSavedData.getOrCreate(serverLevel)
-                        .getControllerInChunk(((LevelChunk)(Object)this).getPos())) {
+                for (var structure : MultiblockWorldSavedData.getOrCreate(serverLevel).getControllerInPos(pos)) {
                     if (structure.isPosInCache(pos)) {
                         server.executeBlocking(() -> structure.onBlockStateChanged(pos, state));
                     }

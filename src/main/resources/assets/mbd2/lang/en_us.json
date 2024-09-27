@@ -307,6 +307,8 @@
     "config.definition.trait.mek_heat_container.ui_container_hover": "Stored: %d / %d heat",
 
 
+    "config.definition.trait.fancy_renderer.filters": "State Filters",
+    "config.definition.trait.fancy_renderer.filters.tooltip": "The fancy renderer only work with specific machine states",
     "config.definition.trait.fancy_renderer.position": "Position",
     "config.definition.trait.fancy_renderer.position.tooltip": "The position offset of the fancy renderer.",
     "config.definition.trait.fancy_renderer.rotation": "Rotation",

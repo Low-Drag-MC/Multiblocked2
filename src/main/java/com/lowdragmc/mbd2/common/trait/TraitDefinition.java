@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.syncdata.IAutoPersistedSerializable;
 import com.lowdragmc.mbd2.MBD2;
+import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.integration.ldlib.MBDLDLibPlugin;
@@ -63,7 +64,7 @@ public abstract class TraitDefinition implements IConfigurable, IAutoPersistedSe
     /**
      * Get a fancy renderer for block entity.
      */
-    public IRenderer getBESRenderer() {
+    public IRenderer getBESRenderer(IMachine machine) {
         return IRenderer.EMPTY;
     }
 

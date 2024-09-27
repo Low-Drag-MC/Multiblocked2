@@ -346,6 +346,10 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
         return definition.getState(machineState);
     }
 
+    public String getMachineStateName() {
+        return machineState;
+    }
+
     @Override
     @NotNull
     public <T> LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable Direction side) {

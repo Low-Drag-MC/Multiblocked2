@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.lowdraglib.utils.Size;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
+import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.api.recipe.ingredient.FluidIngredient;
 import com.lowdragmc.mbd2.common.capability.recipe.FluidRecipeCapability;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
@@ -73,8 +74,8 @@ public class FluidTankCapabilityTraitDefinition extends SimpleCapabilityTraitDef
     }
 
     @Override
-    public IRenderer getBESRenderer() {
-        return fancyRendererSettings.createRenderer();
+    public IRenderer getBESRenderer(IMachine machine) {
+        return fancyRendererSettings.getFancyRenderer(machine);
     }
 
     @Override

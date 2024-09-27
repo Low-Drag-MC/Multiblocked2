@@ -13,6 +13,7 @@ import com.lowdragmc.lowdraglib.gui.widget.TextTextureWidget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
+import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.ITrait;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
@@ -81,8 +82,8 @@ public class GTMEnergyCapabilityTraitDefinition extends SimpleCapabilityTraitDef
     }
 
     @Override
-    public IRenderer getBESRenderer() {
-        return fancyRendererSettings.createRenderer();
+    public IRenderer getBESRenderer(IMachine machine) {
+        return fancyRendererSettings.getFancyRenderer(machine);
     }
 
     @Override

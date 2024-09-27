@@ -12,6 +12,7 @@ import com.lowdragmc.lowdraglib.jei.IngredientIO;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
+import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.common.capability.recipe.ItemRecipeCapability;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.ITrait;
@@ -64,8 +65,8 @@ public class ItemSlotCapabilityTraitDefinition extends SimpleCapabilityTraitDefi
     }
 
     @Override
-    public IRenderer getBESRenderer() {
-        return itemRendererSettings.createRenderer();
+    public IRenderer getBESRenderer(IMachine machine) {
+        return itemRendererSettings.getFancyRenderer(machine);
     }
 
     @Override

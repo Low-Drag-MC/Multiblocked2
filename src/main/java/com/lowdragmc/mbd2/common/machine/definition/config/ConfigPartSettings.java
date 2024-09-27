@@ -180,4 +180,5 @@ public class ConfigPartSettings implements IToggleConfigurable, IPersistedSerial
         }
     }
 
+
 }

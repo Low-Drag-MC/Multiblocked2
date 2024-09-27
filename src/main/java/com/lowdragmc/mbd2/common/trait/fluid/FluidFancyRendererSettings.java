@@ -4,13 +4,12 @@ import com.lowdragmc.lowdraglib.client.model.ModelFactory;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.client.utils.RenderBufferUtils;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IToggleConfigurable;
 import com.lowdragmc.lowdraglib.side.fluid.FluidHelper;
 import com.lowdragmc.lowdraglib.side.fluid.FluidStack;
 import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
 import com.lowdragmc.mbd2.api.capability.MBDCapabilities;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
+import com.lowdragmc.mbd2.common.trait.FancyRendererSettings;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import lombok.Getter;
@@ -25,50 +24,22 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import org.joml.Quaternionf;
-import org.joml.Vector3f;
 
-public class FluidFancyRendererSettings implements IToggleConfigurable {
+public class FluidFancyRendererSettings extends FancyRendererSettings {
     private final FluidTankCapabilityTraitDefinition definition;
-    @Getter
-    @Setter
-    @Persisted
-    private boolean enable;
 
-    @Getter
-    @Setter
-    @Configurable(name = "config.definition.trait.fancy_renderer.position", tips = "config.definition.trait.fancy_renderer.position.tooltip")
-    @NumberRange(range = {-Float.MAX_VALUE, Float.MAX_VALUE})
-    private Vector3f position = new Vector3f(0, 0, 0);
-    @Getter
-    @Setter
-    @Configurable(name = "config.definition.trait.fancy_renderer.rotation", tips = "config.definition.trait.fancy_renderer.rotation.tooltip")
-    @NumberRange(range = {-Float.MAX_VALUE, Float.MAX_VALUE})
-    private Vector3f rotation = new Vector3f(0, 0, 0);
-    @Getter
-    @Setter
-    @Configurable(name = "config.definition.trait.fancy_renderer.scale", tips = "config.definition.trait.fancy_renderer.scale.tooltip")
-    @NumberRange(range = {-Float.MAX_VALUE, Float.MAX_VALUE})
-    private Vector3f scale = new Vector3f(1, 1, 1);
-    @Getter
-    @Setter
-    @Configurable(name = "config.definition.trait.fancy_renderer.rotate_orientation", tips = "config.definition.trait.fancy_renderer.rotate_orientation.tooltip")
-    private boolean rotateOrientation = true;
     @Getter
     @Setter
     @Configurable(name = "config.definition.trait.fancy_renderer.percent_height", tips = "config.definition.trait.fancy_renderer.percent_height.tooltip")
     private boolean percentHeight = false;
 
-    // run-time;
-    private IRenderer renderer;
 
     public FluidFancyRendererSettings(FluidTankCapabilityTraitDefinition definition) {
         this.definition = definition;
     }
 
-    public IRenderer createRenderer() {
-        if (isEnable()) {
-            return renderer == null ? (renderer = new FluidFancyRendererSettings.Renderer()) : renderer;
-        } else return IRenderer.EMPTY;
+    public IRenderer createFancyRenderer() {
+        return new FluidFancyRendererSettings.Renderer();
     }
 
     private class Renderer implements IRenderer {

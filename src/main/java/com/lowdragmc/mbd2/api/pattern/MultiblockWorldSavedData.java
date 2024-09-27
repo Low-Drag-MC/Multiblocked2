@@ -4,12 +4,13 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
 import com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.saveddata.SavedData;
 
 import javax.annotation.Nonnull;
@@ -28,38 +29,46 @@ public class MultiblockWorldSavedData extends SavedData {
      */
     public final Map<BlockPos, MultiblockState> mapping;
     /**
-     * Chunk pos mapping.
+     * Structure Cache pos mapping.
      */
-    public final Map<ChunkPos, Set<MultiblockState>> chunkPosMapping;
+    public final Long2ObjectOpenHashMap<Set<MultiblockState>> structureCachePosMapping;
+    /**
+     * Pos Cache of multiblock.
+     */
+    public final LongOpenHashSet posCache = new LongOpenHashSet();
 
     private MultiblockWorldSavedData(ServerLevel serverLevel) {
         this.serverLevel = serverLevel;
         this.mapping = new Object2ObjectOpenHashMap<>();
-        this.chunkPosMapping = new HashMap<>();
+        this.structureCachePosMapping = new Long2ObjectOpenHashMap<>();
     }
 
     private MultiblockWorldSavedData(ServerLevel serverLevel, CompoundTag tag) {
         this(serverLevel);
     }
 
-    public MultiblockState[] getControllerInChunk(ChunkPos chunkPos) {
-        return chunkPosMapping.getOrDefault(chunkPos, Collections.emptySet()).toArray(MultiblockState[]::new);
+    public Collection<MultiblockState> getControllerInPos(BlockPos pos) {
+        return structureCachePosMapping.getOrDefault(pos.asLong(), Collections.emptySet());
     }
 
     public void addMapping(MultiblockState state) {
         this.mapping.put(state.controllerPos, state);
-        for (BlockPos blockPos : state.getCache()) {
-            chunkPosMapping.computeIfAbsent(new ChunkPos(blockPos), c->new HashSet<>()).add(state);
+        for (var blockPos : state.getCache()) {
+            structureCachePosMapping.computeIfAbsent(blockPos.asLong(), c-> new HashSet<>()).add(state);
         }
-        setDirty(true);
     }
 
     public void removeMapping(MultiblockState state) {
         this.mapping.remove(state.controllerPos);
-        for (Set<MultiblockState> set : chunkPosMapping.values()) {
-            set.remove(state);
+        var iterator = structureCachePosMapping.long2ObjectEntrySet().iterator();
+        while (iterator.hasNext()) {
+            var entry = iterator.next();
+            var stateSet = entry.getValue();
+            stateSet.remove(state);
+            if (stateSet.isEmpty()) {
+                iterator.remove();
+            }
         }
-        setDirty(true);
     }
 
     @Nonnull
