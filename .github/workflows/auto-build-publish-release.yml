@@ -61,7 +61,7 @@ jobs:
         name: Get Version
         id: var
         run: |
-          MESSAGE=$(./gradlew -q printVersion)
+          MESSAGE=$(./gradlew -q printVersion | grep -v "Java:")
           echo forge_version=$MESSAGE >> $GITHUB_OUTPUT
 
       - if: ${{ inputs.publishCurseForgeAndModrinth }}
