@@ -14,8 +14,6 @@ import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.mojang.datafixers.util.Pair;
-import lombok.Builder;
-import lombok.Singular;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;

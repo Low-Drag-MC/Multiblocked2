@@ -85,6 +85,9 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
                 serverLevel.getServer().tell(new TickTask(0, () -> {
                     if (checkPatternWithLock()) {
                         onStructureFormed();
+                        var mwsd = MultiblockWorldSavedData.getOrCreate(serverLevel);
+                        mwsd.addMapping(getMultiblockState());
+                        mwsd.removeAsyncLogic(this);
                     }
                 }));
             }
@@ -416,6 +419,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
         if (event.isCanceled()) {
             return false;
         }
+        if (player.isCreative()) return true;
         return switch (catalyst.getCatalystType()) {
             case CONSUME_ITEM -> {
                 if (held.getCount() >= catalyst.getConsumeItemAmount()) {

@@ -84,7 +84,7 @@ public class ConfigMachineSettings implements IPersistedSerializable, IConfigura
         IPersistedSerializable.super.deserializeNBT(tag);
         recipeModifiers.deserializeNBT(tag.getList("recipeModifiers", Tag.TAG_COMPOUND));
         var traits = tag.getList("traitDefinitions", 10);
-        traitDefinitions.clear();
+        traitDefinitions = new ArrayList<>();
         for (var i = 0; i < traits.size(); i++) {
             var trait = traits.getCompound(i);
             var definition = TraitDefinition.deserializeDefinition(trait);

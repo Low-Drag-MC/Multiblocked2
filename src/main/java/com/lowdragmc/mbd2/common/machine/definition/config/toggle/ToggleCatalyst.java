@@ -38,8 +38,10 @@ public class ToggleCatalyst extends ItemFilterSettings {
     @Getter
     private CatalystType catalystType = CatalystType.CONSUME_ITEM;
     @Getter
+    @Persisted
     private int consumeItemAmount = 0;
     @Getter
+    @Persisted
     private int consumeDurabilityValue = 1;
 
     @Override
