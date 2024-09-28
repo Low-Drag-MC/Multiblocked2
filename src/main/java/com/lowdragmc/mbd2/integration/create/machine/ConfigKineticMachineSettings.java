@@ -58,7 +58,10 @@ public class ConfigKineticMachineSettings implements IConfigurable, IPersistedSe
             "config.kinetic_machine.has_back_rotation.tooltip.1"})
     @Builder.Default
     public boolean hasBackRotation = true;
-    @Configurable(name = "config.kinetic_machine.max_rpm", tips = "config.kinetic_machine.max_rpm.tooltip")
+    @Configurable(name = "config.kinetic_machine.max_rpm", tips = {
+            "config.kinetic_machine.max_rpm.tooltip.0",
+            "config.kinetic_machine.max_rpm.tooltip.1"
+    })
     @Builder.Default
     @NumberRange(range = {0, Integer.MAX_VALUE})
     public int maxRPM = 256;

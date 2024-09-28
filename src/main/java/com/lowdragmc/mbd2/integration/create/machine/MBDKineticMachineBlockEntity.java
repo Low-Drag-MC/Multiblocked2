@@ -123,6 +123,17 @@ public class MBDKineticMachineBlockEntity extends KineticBlockEntity implements 
         scheduleWorking(su, false);
     }
 
+    @Override
+    public void onSpeedChanged(float previousSpeed) {
+        super.onSpeedChanged(previousSpeed);
+        if (!level.isClientSide && !definition.kineticMachineSettings.isGenerator) {
+            if (speed > definition.kineticMachineSettings.maxRPM) {
+                // over speed
+                this.level.destroyBlock(this.worldPosition, true);
+            }
+        }
+    }
+
     public void stopWorking() {
         if (definition.kineticMachineSettings.isGenerator && getGeneratedSpeed() != 0) {
             workingSpeed = 0;

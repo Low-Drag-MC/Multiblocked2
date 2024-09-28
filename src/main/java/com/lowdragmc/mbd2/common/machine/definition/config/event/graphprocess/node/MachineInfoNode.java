@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib.gui.graphprocessor.annotation.OutputPort;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.data.BaseNode;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.Level;
 import org.joml.Vector3f;
 
@@ -23,6 +24,8 @@ public class MachineInfoNode extends BaseNode {
     public String status;
     @OutputPort(name = "recipe status", tips = "graph_processor.node.mbd2.recipe_logic.status.tips")
     public String recipeStatus;
+    @OutputPort(name = "custom data")
+    public CompoundTag customData;
 
     @Override
     protected void process() {
@@ -33,6 +36,7 @@ public class MachineInfoNode extends BaseNode {
             front = machine.getFrontFacing().orElse(Direction.NORTH);
             status = machine.getMachineState().name();
             recipeStatus = machine.getRecipeLogic().getStatus().toString();
+            customData = machine.getCustomData();
         }
     }
 }

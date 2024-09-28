@@ -31,8 +31,10 @@ import com.lowdragmc.mbd2.integration.geckolib.GeckolibRenderer;
 import com.lowdragmc.mbd2.integration.photon.MachineFX;
 import com.lowdragmc.photon.client.fx.FXHelper;
 import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.TickTask;
 import net.minecraft.server.level.ServerLevel;
@@ -83,6 +85,11 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
     private final MBDMachineDefinition definition;
     private final IMachineBlockEntity machineHolder;
 
+    @Persisted
+    @DescSynced
+    @UpdateListener(methodName = "updateCustomData")
+    @Setter
+    private CompoundTag customData = new CompoundTag();
     @Persisted
     @DescSynced
     private final RecipeLogic recipeLogic;
@@ -181,6 +188,10 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
                 updateState(newState, oldState);
             }
         }
+    }
+
+    public void updateCustomData(CompoundTag newValue, CompoundTag oldValue) {
+        MinecraftForge.EVENT_BUS.post(new MachineCustomDataUpdateEvent(this, newValue, oldValue).postGraphEvent());
     }
 
     public void updateState(String newValue, String oldValue) {

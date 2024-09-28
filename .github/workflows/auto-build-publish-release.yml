@@ -79,8 +79,8 @@ jobs:
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
 
           files: |
-            build/libs/!(*-@(dev|sources|javadoc|dev-shadow)).jar
-            build/libs/*-@(dev|sources|javadoc|dev-shadow).jar
+            build/libs/!(*-@(dev|sources|javadoc|dev-shadow|all)).jar
+            build/libs/*-@(dev|sources|javadoc|dev-shadow|all).jar
 
           name: Multiblocked2 ${{ steps.var.outputs.forge_version }}-forge
           version: mc${{ steps.var.outputs.forge_version }}-forge
