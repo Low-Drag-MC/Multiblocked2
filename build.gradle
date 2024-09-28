@@ -117,6 +117,12 @@ tasks.named('jar', Jar).configure {
     finalizedBy 'reobfJar'
 }
 
+task printVersion {
+    doLast {
+        println project.version
+    }
+}
+
 tasks.register('sourcesJar', Jar) {
     from sourceSets.main.allSource
     archiveBaseName.set("${archivesBaseName}")

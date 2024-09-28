@@ -60,9 +60,7 @@ jobs:
       - if: ${{ inputs.publishCurseForgeAndModrinth }}
         name: Get Version
         id: var
-        run: |
-          MESSAGE=$(ls build/libs/* | grep sources.jar -v | grep shadow.jar -v | grep all.jar -v | awk -F 'multiblocked2-|.jar' '{print $2}')
-          echo forge_version=$MESSAGE >> $GITHUB_OUTPUT
+        run: echo "forge_version=$(./gradlew -q printVersion)" >> $GITHUB_OUTPUT
 
       - if: ${{ inputs.publishCurseForgeAndModrinth }}
         name: mc-publish-forge
@@ -79,8 +77,8 @@ jobs:
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
 
           files: |
-            build/libs/!(*-@(dev|sources|javadoc|dev-shadow|all)).jar
-            build/libs/*-@(dev|sources|javadoc|dev-shadow|all).jar
+            build/libs/!(*${{ steps.var.outputs.forge_version }}-@(dev|sources|javadoc|dev-shadow|all)).jar
+            build/libs/*${{ steps.var.outputs.forge_version }}-@(dev|sources|javadoc|dev-shadow|all).jar
 
           name: Multiblocked2 ${{ steps.var.outputs.forge_version }}-forge
           version: mc${{ steps.var.outputs.forge_version }}-forge
