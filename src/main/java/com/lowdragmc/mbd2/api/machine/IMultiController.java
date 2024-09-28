@@ -99,6 +99,7 @@ public interface IMultiController extends IMachine {
      */
     @Nullable
     default MBDRecipe doModifyRecipe(MBDRecipe recipe) {
+        if (recipe == null) return null;
         for (var part : getParts()) {
             recipe = part.modifyControllerRecipe(recipe, getRecipeLogic());
             if (recipe == null) return null;

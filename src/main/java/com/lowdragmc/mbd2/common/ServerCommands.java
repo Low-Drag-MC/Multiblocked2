@@ -1,6 +1,7 @@
 package com.lowdragmc.mbd2.common;
 
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
+import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -19,6 +20,9 @@ public class ServerCommands {
                 Commands.literal("mbd2")
                         .then(Commands.literal("reload_machine_projects")
                                 .executes(context -> {
+                                    // clear up the catalyst candidates
+                                    MultiblockMachineDefinition.CATALYST_CANDIDATES.clear();
+                                    // reload all machine definitions
                                     for (var definition : MBDRegistries.MACHINE_DEFINITIONS) {
                                         if (definition.isCreatedFromProjectFile()) {
                                             definition.reloadFromProjectFile();

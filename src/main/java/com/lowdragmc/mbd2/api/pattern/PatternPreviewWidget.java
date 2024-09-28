@@ -14,6 +14,7 @@ import com.lowdragmc.mbd2.api.pattern.predicates.SimplePredicate;
 import com.lowdragmc.mbd2.common.block.MBDMachineBlock;
 import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
 import com.lowdragmc.mbd2.config.ConfigHolder;
+import com.lowdragmc.mbd2.utils.ControllerBlockInfo;
 import com.mojang.blaze3d.systems.RenderSystem;
 import dev.emi.emi.screen.RecipeScreen;
 import it.unimi.dsi.fastutil.longs.LongSet;
@@ -328,6 +329,13 @@ public class PatternPreviewWidget extends WidgetGroup {
             for (int y = 0; y < aisle.length; y++) {
                 BlockInfo[] column = aisle[y];
                 for (int z = 0; z < column.length; z++) {
+                    if (column[z] instanceof ControllerBlockInfo controllerBlockInfo) {
+                        var state = controllerDefinition.block().defaultBlockState();
+                        if (controllerDefinition.blockProperties().rotationState().property.isPresent()) {
+                            state = state.setValue(controllerDefinition.blockProperties().rotationState().property.get(), controllerBlockInfo.getFacing());
+                        }
+                        column[z] = new BlockInfo(state, true);
+                    }
                     BlockState blockState = column[z].getBlockState();
                     BlockPos pos = multiPos.offset(x, y, z);
                     if (column[z].getBlockEntity(pos) instanceof IMachineBlockEntity holder &&

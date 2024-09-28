@@ -37,6 +37,7 @@ import net.minecraft.world.item.crafting.SmeltingRecipe;
 import net.minecraft.world.level.ItemLike;
 import net.minecraftforge.registries.ForgeRegistries;
 
+import javax.annotation.Nullable;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -102,7 +103,8 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, ITagSerializable<Co
         for (var type : proxyRecipeTypes) {
             var recipes = new ArrayList<MBDRecipe>();
             for (var recipe : ((RecipeManagerAccessor)recipeManager).getRawRecipes().get(type).entrySet()) {
-                recipes.add(toMBDrecipe(recipe.getKey(), recipe.getValue()));
+                var mbdRecipe = toMBDrecipe(recipe.getKey(), recipe.getValue());
+                if (mbdRecipe != null) recipes.add(mbdRecipe);
             }
             proxyRecipes.put(type, recipes);
         }
@@ -175,8 +177,10 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, ITagSerializable<Co
         return this;
     }
 
+    @Nullable
     public MBDRecipe toMBDrecipe(ResourceLocation id, Recipe<?> recipe) {
-        var builder = recipeBuilder(id);
+        if (recipe.getIngredients().isEmpty()) return null;
+        var builder = recipeBuilder(id).recipeType(this);
         for (var ingredient : recipe.getIngredients()) {
             builder.inputItems(ingredient);
         }
@@ -184,7 +188,7 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, ITagSerializable<Co
         if (recipe instanceof SmeltingRecipe smeltingRecipe) {
             builder.duration(smeltingRecipe.getCookingTime());
         }
-        return MBDRecipeSerializer.SERIALIZER.fromJson(id, builder.build().serializeRecipe());
+        return builder.buildRawRecipe();
     }
 
     @Override
@@ -242,7 +246,7 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, ITagSerializable<Co
         }
         // builtin recipes
         builtinRecipes.clear();
-           var recipesTag = tag.getCompound("builtinRecipes");
+        var recipesTag = tag.getCompound("builtinRecipes");
         for (var key : recipesTag.getAllKeys()) {
             var recipe = MBDRecipeSerializer.SERIALIZER.fromNBT(new ResourceLocation(key), recipesTag.getCompound(key));
             recipe.recipeType = this;

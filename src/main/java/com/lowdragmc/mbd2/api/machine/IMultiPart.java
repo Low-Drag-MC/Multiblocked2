@@ -108,7 +108,7 @@ public interface IMultiPart extends IMachine {
      * @return modified recipe.
      *         null -- this recipe is unavailable
      */
-    default MBDRecipe modifyControllerRecipe(MBDRecipe recipe, RecipeLogic controllerRecipeLogic) {
+    default @Nullable MBDRecipe modifyControllerRecipe(MBDRecipe recipe, RecipeLogic controllerRecipeLogic) {
         return recipe;
     }
 

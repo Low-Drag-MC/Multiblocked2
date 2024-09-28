@@ -60,6 +60,11 @@ public class BlockPattern {
         this.centerOffset = centerOffset;
     }
 
+    public boolean checkPatternAtWithoutController(MultiblockState worldState, Direction facing) {
+        var centerPos = worldState.controllerPos;
+        return checkPatternAt(worldState, centerPos, facing, false);
+    }
+
     public boolean checkPatternAt(MultiblockState worldState, boolean savePredicate) {
         IMultiController controller = worldState.getController();
         if (controller == null) {
@@ -329,7 +334,7 @@ public class BlockPattern {
                 Map<SimplePredicate, Integer> cacheLayer = new HashMap<>();
                 for (int y = 0; y < this.thumbLength; y++) {
                     for (int z = 0; z < this.palmLength; z++) {
-                        TraceabilityPredicate predicate = this.blockMatches[l][y][z];
+                        var predicate = this.blockMatches[l][y][z];
                         boolean find = false;
                         BlockInfo[] infos = null;
                         for (SimplePredicate limit : predicate.limited) { // check layer and previewCount

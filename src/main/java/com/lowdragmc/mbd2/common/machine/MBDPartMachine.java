@@ -171,43 +171,7 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
     @Override
     public MBDRecipe modifyControllerRecipe(MBDRecipe recipe, RecipeLogic controllerRecipeLogic) {
         if (getDefinition().partSettings() != null) {
-            var contentModifiers = new ArrayList<Pair<ContentModifier, IO>>();
-            var durationModifiers = new ArrayList<ContentModifier>();
-
-            for (var modifier : getDefinition().partSettings().recipeModifiers()) {
-                var or = new HashMap<String, List<RecipeCondition>>();
-                var success = true;
-                for (RecipeCondition condition : modifier.recipeConditions) {
-                    if (condition.isOr()) {
-                        or.computeIfAbsent(condition.getType(), type -> new ArrayList<>()).add(condition);
-                    } else if (condition.test(recipe, controllerRecipeLogic) == condition.isReverse()) {
-                        success = false;
-                        break;
-                    }
-                }
-                for (List<RecipeCondition> conditions : or.values()) {
-                    MBDRecipe finalRecipe = recipe;
-                    if (conditions.stream().allMatch(condition -> condition.test(finalRecipe, controllerRecipeLogic) == condition.isReverse())) {
-                        success = false;
-                        break;
-                    }
-                }
-                if (success) {
-                    contentModifiers.add(Pair.of(modifier.contentModifier, modifier.targetContent));
-                    durationModifiers.add(modifier.durationModifier);
-                }
-            }
-            if (!contentModifiers.isEmpty()) {
-                var inputModifiers = contentModifiers.stream().filter(pair -> pair.getSecond() == IO.IN || pair.getSecond() == IO.BOTH).map(Pair::getFirst).toList();
-                var outputModifiers = contentModifiers.stream().filter(pair -> pair.getSecond() == IO.OUT || pair.getSecond() == IO.BOTH).map(Pair::getFirst).toList();
-                if (!inputModifiers.isEmpty()) {
-                    recipe = recipe.copy(inputModifiers.stream().reduce(ContentModifier::merge).orElseThrow(), false, IO.IN);
-                }
-                if (!outputModifiers.isEmpty()) {
-                    recipe = recipe.copy(outputModifiers.stream().reduce(ContentModifier::merge).orElseThrow(), false, IO.OUT);
-                }
-                recipe.duration = durationModifiers.stream().reduce(ContentModifier::merge).orElseThrow().apply(recipe.duration).intValue();
-            }
+            return getDefinition().partSettings().recipeModifiers().applyModifiers(controllerRecipeLogic, recipe);
         }
         return recipe;
     }

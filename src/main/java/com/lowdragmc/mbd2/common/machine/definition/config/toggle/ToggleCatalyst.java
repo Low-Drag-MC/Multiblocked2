@@ -1,5 +1,7 @@
 package com.lowdragmc.mbd2.common.machine.definition.config.toggle;
 
+import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.gui.editor.annotation.DefaultValue;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorSelectorConfigurator;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.NumberConfigurator;
@@ -7,6 +9,7 @@ import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
 import com.lowdragmc.mbd2.common.trait.item.ItemFilterSettings;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.world.level.block.Block;
 
 import java.util.Arrays;
 
@@ -28,6 +31,10 @@ public class ToggleCatalyst extends ItemFilterSettings {
         }
     }
 
+    @Getter
+    @Configurable(name = "config.multiblock_settings.catalyst.candidates", subConfigurable = true,
+            tips = "config.multiblock_settings.catalyst.candidates.tooltip")
+    private ToggleCandidates candidates = new ToggleCandidates();
     @Getter
     private CatalystType catalystType = CatalystType.CONSUME_ITEM;
     @Getter
@@ -62,5 +69,30 @@ public class ToggleCatalyst extends ItemFilterSettings {
                     }
                 }
                 ));
+    }
+
+    public static class ToggleCandidates extends ToggleObject<Block[]> {
+        @Getter
+        @Setter
+        @Configurable
+        @DefaultValue(numberValue = {0, 0, 0, 1, 1, 1})
+        private Block[] value;
+
+        public ToggleCandidates(Block[] value, boolean enable) {
+            setValue(value);
+            this.enable = enable;
+        }
+
+        public ToggleCandidates(Block[] value) {
+            this(value, true);
+        }
+
+        public ToggleCandidates(boolean enable) {
+            this(new Block[0], enable);
+        }
+
+        public ToggleCandidates() {
+            this(false);
+        }
     }
 }

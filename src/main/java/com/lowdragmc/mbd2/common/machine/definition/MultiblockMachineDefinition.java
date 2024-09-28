@@ -17,12 +17,10 @@ import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.block.Block;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Deque;
-import java.util.List;
+import java.util.*;
 import java.util.function.Function;
 
 import static com.lowdragmc.mbd2.common.gui.editor.MultiblockMachineProject.createBlockPattern;
@@ -35,6 +33,8 @@ import static com.lowdragmc.mbd2.common.gui.editor.MultiblockMachineProject.crea
 @Getter
 @Accessors(fluent = true)
 public class MultiblockMachineDefinition extends MBDMachineDefinition {
+    public static final Map<Block, Set<MultiblockMachineDefinition>> CATALYST_CANDIDATES = Collections.synchronizedMap(new HashMap<>());
+
     @Configurable(name = "config.definition.multiblock_settings", subConfigurable = true, tips = "config.definition.multiblock_settings.tooltip", collapse = false)
     protected final ConfigMultiblockSettings multiblockSettings;
 
@@ -82,7 +82,14 @@ public class MultiblockMachineDefinition extends MBDMachineDefinition {
     public MultiblockMachineDefinition loadProductiveTag(File file, CompoundTag projectTag, Deque<Runnable> postTask) {
         super.loadProductiveTag(file, projectTag, postTask);
         postTask.add(() -> {
+            // load multiblock settings
             multiblockSettings.deserializeNBT(projectTag.getCompound("definition").getCompound("multiblockSettings"));
+            // setup catalyst candidates
+            if (multiblockSettings.catalyst().isEnable() && multiblockSettings.catalyst().getCandidates().isEnable()) {
+                for (var block : multiblockSettings.catalyst().getCandidates().getValue()) {
+                    CATALYST_CANDIDATES.computeIfAbsent(block, b -> new HashSet<>()).add(this);
+                }
+            }
             // setup block pattern
             var predicateResource = new PredicateResource();
             predicateResource.deserializeNBT(projectTag.getCompound("resources").getCompound(PredicateResource.RESOURCE_NAME));
@@ -104,7 +111,8 @@ public class MultiblockMachineDefinition extends MBDMachineDefinition {
             // setup shape info
             var shapeInfos = new ArrayList<>(projectTag.getList("shape_infos", Tag.TAG_COMPOUND).stream()
                     .map(CompoundTag.class::cast)
-                    .map(MultiblockShapeInfo::loadFromTag).toList());
+                    .map(MultiblockShapeInfo::loadFromTag)
+                    .toList());
             if (shapeInfos.isEmpty()) {
                 // generate builtin shape info from pattern
                 var repetition = Arrays.stream(aisleRepetitions).mapToInt(range -> range[0]).toArray();

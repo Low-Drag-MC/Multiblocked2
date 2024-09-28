@@ -165,6 +165,11 @@ public class MultiblockMachineProject extends MachineProject {
                             traceabilityPredicate = new TraceabilityPredicate(new SimplePredicate(state ->
                                     state.getBlockState().getBlock() == MBDRegistries.getFAKE_MACHINE().block(), () -> new BlockInfo[]{new ControllerBlockInfo()}));
                         } else {
+                            if (definition.multiblockSettings().catalyst().isEnable() && definition.multiblockSettings().catalyst().getCandidates().isEnable()) {
+                                for (var block : definition.multiblockSettings().catalyst().getCandidates().getValue()) {
+                                    traceabilityPredicate = new TraceabilityPredicate(new PredicateBlocks(block)).or(traceabilityPredicate);
+                                }
+                            }
                             traceabilityPredicate = new TraceabilityPredicate(new PredicateBlocks(definition.block())).or(traceabilityPredicate);
                         }
                     }

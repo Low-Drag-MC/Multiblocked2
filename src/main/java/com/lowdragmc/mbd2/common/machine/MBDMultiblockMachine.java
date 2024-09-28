@@ -20,20 +20,19 @@ import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
-import com.lowdragmc.mbd2.common.machine.definition.config.event.MachineRecipeStatusChangedEvent;
-import com.lowdragmc.mbd2.common.machine.definition.config.event.MachineStructureFormedEvent;
-import com.lowdragmc.mbd2.common.machine.definition.config.event.MachineStructureInvalidEvent;
-import com.lowdragmc.mbd2.common.machine.definition.config.event.MachineUseCatalystEvent;
+import com.lowdragmc.mbd2.common.machine.definition.config.event.*;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.longs.LongSets;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.server.TickTask;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -75,12 +74,20 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
     /**
      * on machine valid in the chunk.
      * <br>
-     * We will add the async pattern checking logic int the next tick.
+     * We will add the async pattern checking logic into the next tick.
      */
     @Override
     public void onLoad() {
         super.onLoad();
         if (getLevel() instanceof ServerLevel serverLevel) {
+            if (isFormed && getDefinition().multiblockSettings().catalyst().isEnable()) {
+                // check pattern in the next tick
+                serverLevel.getServer().tell(new TickTask(0, () -> {
+                    if (checkPatternWithLock()) {
+                        onStructureFormed();
+                    }
+                }));
+            }
             MultiblockWorldSavedData.getOrCreate(serverLevel).addAsyncLogic(this);
         }
     }
@@ -126,6 +133,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
 
     @Override
     public @Nullable MBDRecipe doModifyRecipe(MBDRecipe recipe) {
+        recipe = getDefinition().machineSettings().recipeModifiers().applyModifiers(getRecipeLogic(), recipe);
         return applyParallel(IMultiController.super.doModifyRecipe(recipe));
     }
 
@@ -383,33 +391,15 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
             var held = player.getItemInHand(hand);
             if (catalyst.test(held)) {
                 if (world instanceof ServerLevel serverLevel && checkPatternWithLock()) { // formed
-                    var event = new MachineUseCatalystEvent(this, held);
-                    MinecraftForge.EVENT_BUS.post(event.postGraphEvent());
-                    if (event.isCanceled()) {
-                        return InteractionResult.FAIL;
-                    }
-                    var success = switch (catalyst.getCatalystType()) {
-                        case CONSUME_ITEM -> {
-                            if (held.getCount() >= catalyst.getConsumeItemAmount()) {
-                                held.shrink(catalyst.getConsumeItemAmount());
-                                yield true;
-                            }
-                            yield false;
-                        }
-                        case CONSUME_DURABILITY -> {
-                            if (catalyst.getConsumeDurabilityValue() <= held.getMaxDamage() - held.getDamageValue()) {
-                                held.hurtAndBreak(catalyst.getConsumeDurabilityValue(), player, p -> p.broadcastBreakEvent(hand));
-                                yield true;
-                            }
-                            yield false;
-                        }
-                    };
+                    var success = onCatalystUsed(player, hand, held);
                     if (success) {
                         onStructureFormed();
                         var mwsd = MultiblockWorldSavedData.getOrCreate(serverLevel);
                         mwsd.addMapping(getMultiblockState());
                         mwsd.removeAsyncLogic(this);
                         return InteractionResult.CONSUME;
+                    } else {
+                        return InteractionResult.FAIL;
                     }
                 }
                 return InteractionResult.SUCCESS;
@@ -417,5 +407,30 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
             return InteractionResult.FAIL;
         }
         return super.onUse(state, world, pos, player, hand, hit);
+    }
+
+    public boolean onCatalystUsed(Player player, InteractionHand hand, ItemStack held) {
+        var catalyst = getDefinition().multiblockSettings().catalyst();
+        var event = new MachineUseCatalystEvent(this, held);
+        MinecraftForge.EVENT_BUS.post(event.postGraphEvent());
+        if (event.isCanceled()) {
+            return false;
+        }
+        return switch (catalyst.getCatalystType()) {
+            case CONSUME_ITEM -> {
+                if (held.getCount() >= catalyst.getConsumeItemAmount()) {
+                    held.shrink(catalyst.getConsumeItemAmount());
+                    yield true;
+                }
+                yield false;
+            }
+            case CONSUME_DURABILITY -> {
+                if (catalyst.getConsumeDurabilityValue() <= held.getMaxDamage() - held.getDamageValue()) {
+                    held.hurtAndBreak(catalyst.getConsumeDurabilityValue(), player, p -> p.broadcastBreakEvent(hand));
+                    yield true;
+                }
+                yield false;
+            }
+        };
     }
 }

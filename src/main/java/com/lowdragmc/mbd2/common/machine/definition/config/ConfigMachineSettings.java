@@ -2,6 +2,7 @@ package com.lowdragmc.mbd2.common.machine.definition.config;
 
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.gui.editor.configurator.ArrayConfiguratorGroup;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.SelectorConfigurator;
@@ -20,6 +21,7 @@ import lombok.Singular;
 import lombok.experimental.Accessors;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 
 import java.io.File;
@@ -53,6 +55,9 @@ public class ConfigMachineSettings implements IPersistedSerializable, IConfigura
     @Builder.Default
     @Persisted
     private ResourceLocation recipeType = MBDRecipeType.DUMMY.registryName;
+    @Builder.Default
+    @Getter
+    protected final RecipeModifier.RecipeModifiers recipeModifiers = new RecipeModifier.RecipeModifiers();
     @Singular
     @NonNull
     @Getter
@@ -65,6 +70,7 @@ public class ConfigMachineSettings implements IPersistedSerializable, IConfigura
     @Override
     public CompoundTag serializeNBT() {
         var tag = IPersistedSerializable.super.serializeNBT();
+        tag.put("recipeModifiers", recipeModifiers.serializeNBT());
         var traits = new ListTag();
         for (var definition : traitDefinitions) {
             traits.add(TraitDefinition.serializeDefinition(definition));
@@ -76,8 +82,9 @@ public class ConfigMachineSettings implements IPersistedSerializable, IConfigura
     @Override
     public void deserializeNBT(CompoundTag tag) {
         IPersistedSerializable.super.deserializeNBT(tag);
+        recipeModifiers.deserializeNBT(tag.getList("recipeModifiers", Tag.TAG_COMPOUND));
         var traits = tag.getList("traitDefinitions", 10);
-        traitDefinitions = new ArrayList<>();
+        traitDefinitions.clear();
         for (var i = 0; i < traits.size(); i++) {
             var trait = traits.getCompound(i);
             var definition = TraitDefinition.deserializeDefinition(trait);
@@ -120,5 +127,7 @@ public class ConfigMachineSettings implements IPersistedSerializable, IConfigura
                 true,
                 candidates.stream().toList(),
                 ResourceLocation::toString));
+
+        recipeModifiers.buildConfigurator(father);
     }
 }
