@@ -19,14 +19,11 @@ import com.lowdragmc.lowdraglib.gui.widget.SceneWidget;
 import com.lowdragmc.lowdraglib.gui.widget.SelectorWidget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.lowdraglib.utils.*;
-import com.lowdragmc.mbd2.api.pattern.predicates.SimplePredicate;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.blockentity.MachineBlockEntity;
 import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
 import com.lowdragmc.mbd2.common.gui.editor.MultiblockMachineProject;
 import com.lowdragmc.mbd2.common.gui.editor.multiblock.widget.PatternLayerList;
-import com.lowdragmc.mbd2.common.machine.MBDMachine;
-import com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine;
 import com.lowdragmc.mbd2.common.trait.ITrait;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
@@ -197,6 +194,15 @@ public class MultiblockPatternPanel extends WidgetGroup {
                     if (resource == null) return IGuiTexture.EMPTY;
                     return resource.getPreviewTexture();
                 }).setBorder(2, ColorPattern.T_WHITE.color);
+                preview.setDraggingConsumer(
+                        o -> o instanceof String key && project.getPredicateResource().hasResource(key),
+                        o -> preview.setBorder(2, ColorPattern.GREEN.color),
+                        o -> preview.setBorder(2, ColorPattern.T_WHITE.color),
+                        o -> {
+                            if (o instanceof String key && project.getPredicateResource().hasResource(key)) {
+                                setter.accept(key);
+                            }
+                        });
                 var selector = new SelectorWidget(0, 85, 180, 10,
                         project.getPredicateResource().allResources().stream().map(Map.Entry::getKey).toList(), -1)
                         .setCandidatesSupplier(() -> project.getPredicateResource().allResources().stream().map(Map.Entry::getKey).toList())
