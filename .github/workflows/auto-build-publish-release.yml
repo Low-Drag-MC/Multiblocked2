@@ -60,7 +60,7 @@ jobs:
       - if: ${{ inputs.publishCurseForgeAndModrinth }}
         name: Get Version
         id: var
-        run: echo "forge_version=$(./gradlew -q printVersion)" >> $GITHUB_OUTPUT
+        run: echo "forge_version=\"$(./gradlew -q printVersion)\"" >> $GITHUB_OUTPUT
 
       - if: ${{ inputs.publishCurseForgeAndModrinth }}
         name: mc-publish-forge
