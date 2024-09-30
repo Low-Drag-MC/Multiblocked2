@@ -119,7 +119,7 @@ public class MultiblockMachineDefinition extends MBDMachineDefinition {
                 shapeInfos.add(new MultiblockShapeInfo(blockPattern.getPreview(repetition)));
                 for (int layer = 0; layer < aisleRepetitions.length; layer++) {
                     var range = aisleRepetitions[layer];
-                    for (int i = range[0] + 1; i < range[1]; i++) {
+                    for (int i = range[0] + 1; i <= range[1]; i++) {
                         repetition[layer] = i;
                         shapeInfos.add(new MultiblockShapeInfo(blockPattern.getPreview(repetition)));
                         repetition[layer] = range[0];

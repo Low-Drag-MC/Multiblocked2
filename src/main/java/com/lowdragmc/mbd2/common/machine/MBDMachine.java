@@ -11,6 +11,7 @@ import com.lowdragmc.lowdraglib.syncdata.IManaged;
 import com.lowdragmc.lowdraglib.syncdata.annotation.*;
 import com.lowdragmc.lowdraglib.syncdata.field.FieldManagedStorage;
 import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder;
+import com.lowdragmc.lowdraglib.syncdata.managed.IRef;
 import com.lowdragmc.lowdraglib.syncdata.managed.MultiManagedStorage;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
@@ -233,6 +234,9 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
                 var trait = traitDefinition.createTrait(this);
                 additionalTraits.add(trait);
                 if (trait instanceof IManaged managed) {
+                    for (IRef ref : managed.getSyncStorage().getPersistedFields()) {
+                        ref.setPersistedPrefixName("trait." + traitDefinition.getName());
+                    }
                     multiManagedStorage.attach(managed.getSyncStorage());
                 }
             });

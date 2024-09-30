@@ -22,13 +22,8 @@ import com.lowdragmc.lowdraglib.utils.Size;
 import com.lowdragmc.mbd2.api.pattern.MultiblockShapeInfo;
 import com.lowdragmc.mbd2.api.pattern.predicates.PredicateBlocks;
 import com.lowdragmc.mbd2.api.pattern.predicates.PredicateFluids;
-import com.lowdragmc.mbd2.api.registry.MBDRegistries;
-import com.lowdragmc.mbd2.common.blockentity.MachineBlockEntity;
 import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
 import com.lowdragmc.mbd2.common.gui.editor.MultiblockMachineProject;
-import com.lowdragmc.mbd2.common.machine.MBDMachine;
-import com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine;
-import com.lowdragmc.mbd2.common.trait.ITrait;
 import com.lowdragmc.mbd2.utils.ControllerBlockInfo;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
@@ -39,6 +34,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.joml.Vector3i;
@@ -269,7 +265,7 @@ public class MultiblockAreaPanel extends WidgetGroup {
                                 addNewResource = true;
                             }
                         } else {
-                            id = Optional.ofNullable(ForgeRegistries.BLOCKS.getKey(block)).map(ResourceLocation::toString).orElse("any");
+                            id = block == Blocks.AIR ? "air" : Optional.ofNullable(ForgeRegistries.BLOCKS.getKey(block)).map(ResourceLocation::toString).orElse("any");
                             if (!predicateResource.hasResource(id)) {
                                 predicateResource.addResource(id, new PredicateBlocks(block));
                                 addNewResource = true;

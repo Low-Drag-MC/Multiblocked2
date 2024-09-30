@@ -54,7 +54,7 @@ public class ShapeInfoList extends DraggableScrollableWidgetGroup {
             shapes.add(new MultiblockShapeInfo(blockPattern.getPreview(repetition)));
             for (int layer = 0; layer < panel.getProject().getAisleRepetitions().length; layer++) {
                 var range = panel.getProject().getAisleRepetitions()[layer];
-                for (int i = range[0] + 1; i < range[1]; i++) {
+                for (int i = range[0] + 1; i <= range[1]; i++) {
                     repetition[layer] = i;
                     shapes.add(new MultiblockShapeInfo(blockPattern.getPreview(repetition)));
                     repetition[layer] = range[0];

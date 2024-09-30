@@ -205,6 +205,22 @@ public abstract class ChemicalTankWidget<CHEMICAL extends Chemical<CHEMICAL>, ST
     }
 
     @Override
+    public List<Component> getFullTooltipTexts() {
+        var tooltips = new ArrayList<Component>();
+        var chemicalStack = this.lastChemicalInTank;
+        if (chemicalStack != null && !chemicalStack.isEmpty()) {
+            tooltips.add(chemicalStack.getTextComponent());
+            tooltips.add(Component.translatable("recipe.capability.mek_chemical.type.format", LocalizationUtils.format("recipe.capability.mek_chemical.type." + ChemicalType.getTypeFor(lastChemicalInTank.getType()).getSerializedName())));
+            tooltips.add(Component.translatable("ldlib.fluid.amount", lastChemicalInTank.getAmount(), lastTankCapacity).append(" mB"));
+        } else {
+            tooltips.add(Component.translatable("ldlib.fluid.empty"));
+            tooltips.add(Component.translatable("ldlib.fluid.amount", 0, lastTankCapacity).append(" mB"));
+        }
+        tooltips.addAll(getTooltipTexts());
+        return tooltips;
+    }
+
+    @Override
     @OnlyIn(Dist.CLIENT)
     public void drawInBackground(@Nonnull GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
         super.drawInBackground(graphics, mouseX, mouseY, partialTicks);
@@ -278,18 +294,8 @@ public abstract class ChemicalTankWidget<CHEMICAL extends Chemical<CHEMICAL>, ST
     @OnlyIn(Dist.CLIENT)
     public void drawInForeground(@Nonnull GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
         if (drawHoverTips && isMouseOverElement(mouseX, mouseY) && getHoverElement(mouseX, mouseY) == this) {
-            List<Component> tooltips = new ArrayList<>();
-            if (lastChemicalInTank != null && !lastChemicalInTank.isEmpty()) {
-                tooltips.add(lastChemicalInTank.getTextComponent());
-                tooltips.add(Component.translatable("recipe.capability.mek_chemical.type.format", LocalizationUtils.format("recipe.capability.mek_chemical.type." + ChemicalType.getTypeFor(lastChemicalInTank.getType()).getSerializedName())));
-                tooltips.add(Component.translatable("ldlib.fluid.amount", lastChemicalInTank.getAmount(), lastTankCapacity).append(" mB"));
-            } else {
-                tooltips.add(Component.translatable("ldlib.fluid.empty"));
-                tooltips.add(Component.translatable("ldlib.fluid.amount", 0, lastTankCapacity).append(" mB"));
-            }
             if (gui != null) {
-                tooltips.addAll(getTooltipTexts());
-                gui.getModularUIGui().setHoverTooltip(tooltips, ItemStack.EMPTY, null, null);
+                gui.getModularUIGui().setHoverTooltip(getFullTooltipTexts(), ItemStack.EMPTY, null, null);
             }
             RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1f);
         } else {

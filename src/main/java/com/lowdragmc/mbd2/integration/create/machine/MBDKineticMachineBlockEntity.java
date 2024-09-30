@@ -1,5 +1,7 @@
 package com.lowdragmc.mbd2.integration.create.machine;
 
+import com.lowdragmc.lowdraglib.syncdata.IManaged;
+import com.lowdragmc.lowdraglib.syncdata.managed.IRef;
 import com.lowdragmc.lowdraglib.syncdata.managed.MultiManagedStorage;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
@@ -54,7 +56,14 @@ public class MBDKineticMachineBlockEntity extends KineticBlockEntity implements 
         }
         metaMachine = newMachine;
         if (newMachine instanceof MBDMachine machine) {
-            machine.getAdditionalTraits().add(CreateStressTrait.DEFINITION.createTrait(machine));
+            var trait = CreateStressTrait.DEFINITION.createTrait(machine);
+            machine.getAdditionalTraits().add(trait);
+            if (trait instanceof IManaged managed) {
+                for (IRef ref : managed.getSyncStorage().getPersistedFields()) {
+                    ref.setPersistedPrefixName("trait." + CreateStressTrait.DEFINITION.getName());
+                }
+                rootStorage.attach(managed.getSyncStorage());
+            }
             machine.initCapabilitiesProxy();
         }
     }
