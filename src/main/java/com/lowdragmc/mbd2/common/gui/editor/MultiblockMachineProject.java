@@ -127,13 +127,13 @@ public class MultiblockMachineProject extends MachineProject {
         };
         var aisleHeight = switch (layerAxis) {
             case X -> blockPlaceholders[0].length;
-            case Y -> blockPlaceholders[0][0].length;
+            case Y -> blockPlaceholders.length;
             case Z -> blockPlaceholders.length;
         };
         var rowWidth = switch (layerAxis) {
-            case X -> blockPlaceholders[0].length;
-            case Y -> blockPlaceholders.length;
-            case Z -> blockPlaceholders[0][0].length;
+            case X -> blockPlaceholders[0][0].length;
+            case Y -> blockPlaceholders[0][0].length;
+            case Z -> blockPlaceholders[0].length;
         };
         var predicate = new TraceabilityPredicate[aisleLength][aisleHeight][rowWidth];
         BlockPlaceholder controller = null;

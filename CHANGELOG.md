@@ -1,3 +1,3 @@
 # ChangeLog
 
-* bump up ldlib to fix the trait data persisted.
+* fix crash while the multiblock structure width is not equal to the depth.
