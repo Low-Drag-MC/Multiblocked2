@@ -38,7 +38,7 @@ public class BotaniaManaCapabilityTrait extends SimpleCapabilityTrait<ManaPool, 
     }
 
     protected CopiableManaPool createStorages(MBDMachine machine) {
-        return new CopiableManaPool(machine.getLevel(), machine.getPos(), getDefinition().getCapacity());
+        return new CopiableManaPool(machine, getDefinition().getCapacity());
     }
 
     @Override

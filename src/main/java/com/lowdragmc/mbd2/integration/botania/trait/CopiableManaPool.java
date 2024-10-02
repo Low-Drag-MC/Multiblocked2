@@ -2,6 +2,7 @@ package com.lowdragmc.mbd2.integration.botania.trait;
 
 import com.lowdragmc.lowdraglib.syncdata.IContentChangeAware;
 import com.lowdragmc.lowdraglib.syncdata.ITagSerializable;
+import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.core.BlockPos;
@@ -17,36 +18,34 @@ public class CopiableManaPool implements ManaPool, ITagSerializable<IntTag>, ICo
     @Setter
     public Runnable onContentsChanged = () -> {};
 
-    private final Level level;
-    private final BlockPos pos;
+    private final MBDMachine machine;
     @Getter
     protected final int maxMana;
 
     protected int mana;
 
-    public CopiableManaPool(Level level, BlockPos pos, int capacity) {
-        this(level, pos, capacity, 0);
+    public CopiableManaPool(MBDMachine machine, int capacity) {
+        this(machine, capacity, 0);
     }
 
-    public CopiableManaPool(Level level, BlockPos pos, int capacity, int mana) {
-        this.level = level;
-        this.pos = pos;
+    public CopiableManaPool(MBDMachine machine, int capacity, int mana) {
+        this.machine = machine;
         this.maxMana = capacity;
         this.mana = mana;
     }
 
     public CopiableManaPool copy() {
-        return new CopiableManaPool(level, pos, maxMana, mana);
+        return new CopiableManaPool(machine, maxMana, mana);
     }
 
     @Override
     public Level getManaReceiverLevel() {
-        return level;
+        return machine.getLevel();
     }
 
     @Override
     public BlockPos getManaReceiverPos() {
-        return pos;
+        return machine.getPos();
     }
 
     @Override

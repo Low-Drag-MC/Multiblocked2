@@ -2,6 +2,7 @@ package com.lowdragmc.mbd2.integration.gtm.trait;
 
 import com.gregtechceu.gtceu.api.capability.IEnergyContainer;
 import com.gregtechceu.gtceu.utils.GTUtil;
+import com.lowdragmc.lowdraglib.syncdata.IContentChangeAware;
 import com.lowdragmc.lowdraglib.syncdata.ITagSerializable;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import lombok.Getter;
@@ -11,7 +12,7 @@ import net.minecraft.nbt.LongTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.level.Level;
 
-public class CopiableEnergyContainer implements IEnergyContainer, ITagSerializable<Tag> {
+public class CopiableEnergyContainer implements IEnergyContainer, ITagSerializable<Tag>, IContentChangeAware {
     @Getter
     @Setter
     public Runnable onContentsChanged = () -> {};
