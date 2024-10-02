@@ -38,7 +38,7 @@ public class ForgeEnergyCapabilityTrait extends SimpleCapabilityTrait<IEnergySto
     }
 
     protected CopiableEnergyStorage createStorages() {
-        return new CopiableEnergyStorage(getDefinition().getCapacity(), getDefinition().getMaxReceive(), getDefinition().getMaxExtract());
+        return new CopiableEnergyStorage(getDefinition().getCapacity());
     }
 
     @Override
@@ -58,7 +58,7 @@ public class ForgeEnergyCapabilityTrait extends SimpleCapabilityTrait<IEnergySto
 
     @Override
     public IEnergyStorage getCapContent(IO capbilityIO) {
-        return new EnergyStorageWrapper(this.storage, capbilityIO);
+        return new EnergyStorageWrapper(this.storage, capbilityIO, getDefinition().getMaxReceive(), getDefinition().getMaxExtract());
     }
 
     @Override

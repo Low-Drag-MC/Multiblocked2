@@ -6,16 +6,20 @@ import net.minecraftforge.energy.IEnergyStorage;
 public class EnergyStorageWrapper implements IEnergyStorage {
     private final IEnergyStorage storage;
     private final IO io;
+    private final int maxReceive;
+    private final int maxExtract;
 
-    public EnergyStorageWrapper(IEnergyStorage storage, IO io) {
+    public EnergyStorageWrapper(IEnergyStorage storage, IO io, int maxReceive, int maxExtract) {
         this.storage = storage;
         this.io = io;
+        this.maxReceive = maxReceive;
+        this.maxExtract = maxExtract;
     }
 
     @Override
     public int receiveEnergy(int maxReceive, boolean simulate) {
         if (io == IO.IN || io == IO.BOTH) {
-            return storage.receiveEnergy(maxReceive, simulate);
+            return storage.receiveEnergy(Math.min(this.maxReceive, maxReceive), simulate);
         }
         return 0;
     }
@@ -23,7 +27,7 @@ public class EnergyStorageWrapper implements IEnergyStorage {
     @Override
     public int extractEnergy(int maxExtract, boolean simulate) {
         if (io == IO.OUT || io == IO.BOTH) {
-            return storage.extractEnergy(maxExtract, simulate);
+            return storage.extractEnergy(Math.min(this.maxExtract, maxExtract), simulate);
         }
         return 0;
     }

@@ -122,6 +122,9 @@ public class MultiblockWorldSavedData extends SavedData {
 
     private void searchingTask() {
         try {
+            if (serverLevel.getServer().isCurrentlySaving() || serverLevel.getServer().isStopped() || !serverLevel.getServer().isRunning()) {
+                return;
+            }
             IN_SERVICE.set(true);
             for (var controller : controllers) {
                 controller.asyncCheckPattern(periodID);

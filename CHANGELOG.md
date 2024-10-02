@@ -1,4 +1,3 @@
 # ChangeLog
 
-* fix gtm energy trait crash
-* fix botania mana trait crash
+* adjust: forge energy `maxExtract` and `maxReceive` only affect to the capability.

@@ -16,16 +16,8 @@ public class CopiableEnergyStorage extends EnergyStorage implements ITagSerializ
         super(capacity);
     }
 
-    public CopiableEnergyStorage(int capacity, int maxTransfer) {
-        super(capacity, maxTransfer);
-    }
-
-    public CopiableEnergyStorage(int capacity, int maxReceive, int maxExtract) {
-        super(capacity, maxReceive, maxExtract);
-    }
-
-    public CopiableEnergyStorage(int capacity, int maxReceive, int maxExtract, int energy) {
-        super(capacity, maxReceive, maxExtract, energy);
+    public CopiableEnergyStorage(int capacity, int energy) {
+        super(capacity, capacity, capacity, energy);
     }
 
     @Override
@@ -43,7 +35,7 @@ public class CopiableEnergyStorage extends EnergyStorage implements ITagSerializ
     }
 
     public CopiableEnergyStorage copy() {
-        return new CopiableEnergyStorage(capacity, maxReceive, maxExtract, energy);
+        return new CopiableEnergyStorage(capacity, energy);
     }
 
     @Override
