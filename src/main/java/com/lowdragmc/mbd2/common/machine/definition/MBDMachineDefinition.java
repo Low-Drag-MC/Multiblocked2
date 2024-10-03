@@ -30,6 +30,8 @@ import com.lowdragmc.mbd2.utils.WidgetUtils;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import net.minecraft.client.renderer.ItemBlockRenderTypes;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -281,6 +283,18 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
         blockRenderer = createBlockRenderer();
         itemRenderer = createItemRenderer();
         event.registerBlockEntityRenderer(blockEntityType, createBESRR());
+        ItemBlockRenderTypes.setRenderLayer(block(), renderType -> {
+            if (renderType == RenderType.translucent()) {
+                return blockProperties.renderTypes().translucent();
+            } else if (renderType == RenderType.cutout()) {
+                return blockProperties.renderTypes().cutout();
+            } else if (renderType == RenderType.cutoutMipped()) {
+                return blockProperties.renderTypes().cutoutMipped();
+            } else if (renderType == RenderType.solid()) {
+                return blockProperties.renderTypes().solid();
+            }
+            return false;
+        });
     }
 
     @OnlyIn(Dist.CLIENT)

@@ -8,13 +8,10 @@ import com.lowdragmc.mbd2.api.capability.recipe.*;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
 import com.lowdragmc.mbd2.api.machine.IMultiPart;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
-import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
-import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigPartSettings;
 import com.lowdragmc.mbd2.common.trait.ICapabilityProviderTrait;
-import com.mojang.datafixers.util.Pair;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -109,12 +106,20 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
     public void removedFromController(IMultiController controller) {
         controllerPositions.remove(controller.getPos());
         checkDisabledRendering();
+        if (!isFormed()) {
+            setMachineState("base");
+        }
+        notifyBlockUpdate();
     }
 
     @Override
     public void addedToController(IMultiController controller) {
         controllerPositions.add(controller.getPos());
         checkDisabledRendering();
+        if (isFormed()) {
+            setMachineState("formed");
+        }
+        notifyBlockUpdate();
     }
 
     /**

@@ -54,6 +54,12 @@
     "config.recipe.condition.machine_level.level.tooltip": "The machine level of the machine.",
     "recipe.condition.machine_level.tooltip": "The machine level >= %d",
 
+    "config.block_properties.render_types": "Render Types",
+    "config.block_properties.render_types.tooltip": "The render type of the block.",
+    "config.block_properties.render_types.solid": "Render in Solid",
+    "config.block_properties.render_types.cutout": "Render in Cutout",
+    "config.block_properties.render_types.cutout_mipped": "Render in Cutout Mipped",
+    "config.block_properties.render_types.translucent": "Render in Translucent",
     "config.block_properties.rotation_state": "Rotation State",
     "config.block_properties.rotation_state.tooltip": "The rotation state of the block.",
     "config.block_properties.has_collision": "Has Collision",

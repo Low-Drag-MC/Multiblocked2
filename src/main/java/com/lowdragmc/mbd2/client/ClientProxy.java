@@ -5,6 +5,7 @@ import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.CommonProxy;
 import com.lowdragmc.mbd2.integration.create.machine.KineticInstanceRenderer;
 import com.simibubi.create.CreateClient;
+import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.EntityRenderersEvent.RegisterRenderers;

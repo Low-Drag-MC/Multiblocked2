@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
 import com.lowdragmc.mbd2.api.block.RotationState;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -14,6 +15,23 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 @Accessors(fluent = true)
 @Builder
 public class ConfigBlockProperties implements IPersistedSerializable {
+    @Getter
+    @Setter
+    public static class RenderTypes implements IPersistedSerializable {
+        @Configurable(name = "config.block_properties.render_types.solid")
+        private boolean solid;
+        @Configurable(name = "config.block_properties.render_types.cutout")
+        private boolean cutout = true;
+        @Configurable(name = "config.block_properties.render_types.cutout_mipped")
+        private boolean cutoutMipped;
+        @Configurable(name = "config.block_properties.render_types.translucent")
+        private boolean translucent;
+    }
+
+    @Configurable(name = "config.block_properties.render_types", subConfigurable = true, tips = "config.block_properties.render_types.tooltip")
+    @Builder.Default
+    private final RenderTypes renderTypes = new RenderTypes();
+
     @Configurable(name = "config.block_properties.use_ao", tips = "config.block_properties.use_ao.tooltip")
     @Builder.Default
     private boolean useAO = true;
