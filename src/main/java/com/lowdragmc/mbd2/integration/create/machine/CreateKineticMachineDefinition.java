@@ -36,14 +36,14 @@ public class CreateKineticMachineDefinition extends MBDMachineDefinition {
     @Configurable(name = "config.definition.kinetic_machine_settings", subConfigurable = true, tips = "config.definition.kinetic_machine_settings.tooltip", collapse = false)
     protected final ConfigKineticMachineSettings kineticMachineSettings;
 
-    protected CreateKineticMachineDefinition(ResourceLocation id, StateMachine<?> stateMachine,
-                                             ConfigBlockProperties blockProperties,
-                                             ConfigItemProperties itemProperties,
-                                             ConfigMachineSettings machineSettings,
-                                             @Nullable ConfigPartSettings partSettings,
-                                             ConfigKineticMachineSettings kineticMachineSettings) {
-        super(id, stateMachine, blockProperties, itemProperties, machineSettings, partSettings);
-        this.kineticMachineSettings = kineticMachineSettings;
+    protected CreateKineticMachineDefinition(ResourceLocation id, MachineState rootState,
+                                             @Nullable ConfigBlockProperties blockProperties,
+                                             @Nullable ConfigItemProperties itemProperties,
+                                             @Nullable ConfigMachineSettingsFactory machineSettings,
+                                             @Nullable ConfigPartSettingsFactory partSettings,
+                                             @Nullable ConfigKineticMachineSettings kineticMachineSettings) {
+        super(id, rootState, blockProperties, itemProperties, machineSettings, partSettings);
+        this.kineticMachineSettings = kineticMachineSettings == null ? ConfigKineticMachineSettings.builder().build() : kineticMachineSettings;
     }
 
     public static Builder builder() {
@@ -51,7 +51,7 @@ public class CreateKineticMachineDefinition extends MBDMachineDefinition {
     }
 
     @Override
-    public StateMachine<?> createDefaultStateMachine() {
+    public MachineState createDefaultRootState() {
         return StateMachine.createDefault(CreateMachineState::builder);
     }
 
@@ -61,8 +61,8 @@ public class CreateKineticMachineDefinition extends MBDMachineDefinition {
                 StateMachine.createDefault(CreateMachineState::builder),
                 ConfigBlockProperties.builder().build(),
                 ConfigItemProperties.builder().build(),
-                ConfigMachineSettings.builder().build(),
-                ConfigPartSettings.builder().build(),
+                () -> ConfigMachineSettings.builder().build(),
+                () -> ConfigPartSettings.builder().build(),
                 ConfigKineticMachineSettings.builder().build());
     }
 
@@ -174,7 +174,7 @@ public class CreateKineticMachineDefinition extends MBDMachineDefinition {
         }
 
         public CreateKineticMachineDefinition build() {
-            return new CreateKineticMachineDefinition(id, stateMachine, blockProperties, itemProperties, machineSettings, partSettings, kineticMachineSettings);
+            return new CreateKineticMachineDefinition(id, rootState, blockProperties, itemProperties, machineSettings, partSettings, kineticMachineSettings);
         }
 
     }

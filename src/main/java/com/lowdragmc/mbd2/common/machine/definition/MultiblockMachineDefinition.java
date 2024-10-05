@@ -19,9 +19,11 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static com.lowdragmc.mbd2.common.gui.editor.MultiblockMachineProject.createBlockPattern;
 
@@ -34,24 +36,28 @@ import static com.lowdragmc.mbd2.common.gui.editor.MultiblockMachineProject.crea
 @Accessors(fluent = true)
 public class MultiblockMachineDefinition extends MBDMachineDefinition {
     public static final Map<Block, Set<MultiblockMachineDefinition>> CATALYST_CANDIDATES = Collections.synchronizedMap(new HashMap<>());
+    @FunctionalInterface
+    public interface ConfigMultiblockSettingsFactory extends Supplier<ConfigMultiblockSettings> { }
 
     @Configurable(name = "config.definition.multiblock_settings", subConfigurable = true, tips = "config.definition.multiblock_settings.tooltip", collapse = false)
-    protected final ConfigMultiblockSettings multiblockSettings;
+    protected ConfigMultiblockSettings multiblockSettings;
 
     // runtime
+    protected ConfigMultiblockSettingsFactory multiblockSettingsFactory;
+
     @Setter
     private Function<MBDMultiblockMachine, BlockPattern> blockPatternFactory;
     @Setter
     private Function<MultiblockMachineDefinition, MultiblockShapeInfo[]> shapeInfoFactory;
 
     public MultiblockMachineDefinition(ResourceLocation id,
-                                       StateMachine<?> stateMachine,
-                                       ConfigBlockProperties blockProperties,
-                                       ConfigItemProperties itemProperties,
-                                       ConfigMachineSettings machineSettings,
-                                       ConfigMultiblockSettings multiblockSettings) {
-        super(id, stateMachine, blockProperties, itemProperties, machineSettings, null);
-        this.multiblockSettings = multiblockSettings;
+                                       @Nullable MachineState rootState,
+                                       @Nullable ConfigBlockProperties blockProperties,
+                                       @Nullable ConfigItemProperties itemProperties,
+                                       @Nullable ConfigMachineSettingsFactory machineSettingsFactory,
+                                       @Nullable ConfigMultiblockSettingsFactory multiblockSettingsFactory) {
+        super(id, rootState, blockProperties, itemProperties, machineSettingsFactory, null);
+        this.multiblockSettingsFactory = multiblockSettingsFactory == null ? () -> ConfigMultiblockSettings.builder().build() : multiblockSettingsFactory;
     }
 
     public static MultiblockMachineDefinition createDefault() {
@@ -60,8 +66,8 @@ public class MultiblockMachineDefinition extends MBDMachineDefinition {
                 StateMachine.createDefault(MachineState::builder),
                 ConfigBlockProperties.builder().build(),
                 ConfigItemProperties.builder().build(),
-                ConfigMachineSettings.builder().build(),
-                ConfigMultiblockSettings.builder().build());
+                () -> ConfigMachineSettings.builder().build(),
+                () -> ConfigMultiblockSettings.builder().build());
     }
 
     public static Builder builder() {
@@ -71,6 +77,12 @@ public class MultiblockMachineDefinition extends MBDMachineDefinition {
     @Override
     public ConfigMachineEvents createMachineEvents() {
         return super.createMachineEvents().registerEventGroup("MachineEvent.Multiblock");
+    }
+
+    @Override
+    public void loadFactory() {
+        super.loadFactory();
+        multiblockSettings = multiblockSettingsFactory.get();
     }
 
     @Override
@@ -142,13 +154,13 @@ public class MultiblockMachineDefinition extends MBDMachineDefinition {
     @Setter
     @Accessors(chain = true, fluent = true)
     public static class Builder extends MBDMachineDefinition.Builder {
-        protected ConfigMultiblockSettings multiblockSettings;
+        protected ConfigMultiblockSettingsFactory multiblockSettings;
 
         protected Builder() {
         }
 
         public MultiblockMachineDefinition build() {
-            return new MultiblockMachineDefinition(id, stateMachine, blockProperties, itemProperties, machineSettings, multiblockSettings);
+            return new MultiblockMachineDefinition(id, rootState, blockProperties, itemProperties, machineSettings, multiblockSettings);
         }
     }
 }

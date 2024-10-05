@@ -36,7 +36,6 @@ import mekanism.common.registries.MekanismInfuseTypes;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.registries.IForgeRegistry;
-import org.apache.commons.lang3.math.NumberUtils;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.BiFunction;
@@ -58,7 +57,7 @@ public class MekanismChemicalRecipeCapability<CHEMICAL extends Chemical<CHEMICAL
     public static final MekanismChemicalRecipeCapability<InfuseType, InfusionStack> CAP_INFUSE =
             new MekanismChemicalRecipeCapability<>("mek_infuse",
                     MekanismAPI.EMPTY_INFUSE_TYPE,
-                    MekanismInfuseTypes.BIO::getChemical,
+                    MekanismInfuseTypes.DIAMOND::getChemical,
                     MekanismAPI::infuseTypeRegistry,
                     InfusionStack::new,
                     ChemicalTankBuilder.INFUSION,
@@ -252,12 +251,20 @@ public class MekanismChemicalRecipeCapability<CHEMICAL extends Chemical<CHEMICAL
             if (o instanceof ChemicalStack<?> chemicalStack && ChemicalType.getTypeFor(chemicalStack.getType()) == ChemicalType.getTypeFor(empty)) {
                 return (STACK) chemicalStack;
             } else if (o instanceof CharSequence) {
-                String s = o.toString();
-                if (!s.isEmpty() && !s.equals("-") && !s.equals("empty") && !s.equals("minecraft:empty")) {
-                    String[] s1 = s.split(" ", 2);
-                    CHEMICAL chemical = registry.get().getValue(new ResourceLocation(s1[0]));
-                    long amount = s1.length == 2 ? NumberUtils.toLong(s1[1], 1) : 1;
-                    return createStack.apply(chemical, amount);
+                String str = o.toString();
+                // parse "Nx ID"
+
+                int x = str.indexOf('x');
+                if (x > 0 && x < str.length() - 2 && str.charAt(x + 1) == ' ') {
+                    try {
+                        var chemical = registry.get().getValue(new ResourceLocation(str.substring(x + 2)));
+                        var amount = Long.parseLong(str.substring(0, x));
+                        return createStack.apply(chemical, amount);
+                    } catch (Exception ignore) {
+                        throw new IllegalStateException("Invalid chemical input: " + str);
+                    }
+                } else {
+                    return createStack.apply(registry.get().getValue(new ResourceLocation(str)), 1L);
                 }
             }
             return (STACK) empty.getStack(0);

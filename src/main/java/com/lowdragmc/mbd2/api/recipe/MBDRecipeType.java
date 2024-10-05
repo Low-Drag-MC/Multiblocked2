@@ -2,7 +2,6 @@ package com.lowdragmc.mbd2.api.recipe;
 
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.*;
-import com.lowdragmc.lowdraglib.gui.editor.data.resource.TexturesResource;
 import com.lowdragmc.lowdraglib.gui.editor.runtime.PersistedParser;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
@@ -41,7 +40,6 @@ import javax.annotation.Nullable;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -53,6 +51,11 @@ import java.util.stream.Collectors;
 @Accessors(chain = true)
 public class MBDRecipeType implements RecipeType<MBDRecipe>, ITagSerializable<CompoundTag>, IConfigurable {
     public static final MBDRecipeType DUMMY = new MBDRecipeType(MBD2.id("dummy"));
+
+    public interface UICreator {
+        UICreator DEFAULT = recipe -> new WidgetGroup();
+        WidgetGroup create(MBDRecipe recipe);
+    }
 
     @Configurable(name = "recipe_type.registry_name", tips = "recipe_type.registry_name.tooltip")
     public final ResourceLocation registryName;
@@ -75,7 +78,7 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, ITagSerializable<Co
     protected final Map<ResourceLocation, MBDRecipe> builtinRecipes = new LinkedHashMap<>();
     @Setter
     @Getter
-    protected Function<MBDRecipe, WidgetGroup> uiCreator = recipe -> new WidgetGroup();
+    protected UICreator uiCreator = UICreator.DEFAULT;
     @Setter
     @Getter
     protected Size uiSize = new Size(176, 166);

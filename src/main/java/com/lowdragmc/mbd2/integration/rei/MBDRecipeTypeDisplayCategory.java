@@ -15,7 +15,6 @@ import me.shedaniel.rei.api.client.registry.display.DisplayRegistry;
 import me.shedaniel.rei.api.common.category.CategoryIdentifier;
 import me.shedaniel.rei.api.common.entry.EntryStack;
 import me.shedaniel.rei.api.common.entry.type.VanillaEntryTypes;
-import me.shedaniel.rei.api.common.util.EntryStacks;
 import net.minecraft.Util;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -31,7 +30,7 @@ public class MBDRecipeTypeDisplayCategory extends ModularUIDisplayCategory<MBDRe
         private final MBDRecipe recipe;
 
         public MBDRecipeDisplay(MBDRecipe recipe) {
-            super(() -> recipe.recipeType.getUiCreator().apply(recipe), MBDRecipeTypeDisplayCategory.CATEGORIES.apply(recipe.recipeType));
+            super(() -> recipe.recipeType.getUiCreator().create(recipe).setClientSideWidget(), MBDRecipeTypeDisplayCategory.CATEGORIES.apply(recipe.recipeType));
             this.recipe = recipe;
         }
 

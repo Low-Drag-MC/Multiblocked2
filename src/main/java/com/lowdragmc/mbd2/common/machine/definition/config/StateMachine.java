@@ -2,9 +2,6 @@ package com.lowdragmc.mbd2.common.machine.definition.config;
 
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.syncdata.ITagSerializable;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleLightValue;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleShape;
 import lombok.Getter;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.phys.shapes.Shapes;
@@ -24,11 +21,11 @@ public class StateMachine<T extends MachineState> implements ITagSerializable<Co
         initStateMachine();
     }
 
-    public static <T extends MachineState> StateMachine<T> createSingleDefault(Supplier<MachineState.Builder<T>> builderCreator, IRenderer renderer) {
+    public static <T extends MachineState> T createSingleDefault(Supplier<MachineState.Builder<T>> builderCreator, IRenderer renderer) {
         var builder = builderCreator.get().name("base")
-                .renderer(new ToggleRenderer(renderer))
-                .shape(new ToggleShape(Shapes.block()))
-                .lightLevel(new ToggleLightValue(0))
+                .renderer(renderer)
+                .shape(Shapes.block())
+                .lightLevel(0)
                 .child(builderCreator.get()
                         .name("working")
                         .child(builderCreator.get()
@@ -38,14 +35,14 @@ public class StateMachine<T extends MachineState> implements ITagSerializable<Co
                 .child(builderCreator.get()
                         .name("suspend")
                         .build());
-        return new StateMachine<>(builder.build());
+        return builder.build();
     }
 
-    public static <T extends MachineState> StateMachine<T> createMultiblockDefault(Supplier<MachineState.Builder<T>> builderCreator, IRenderer renderer) {
+    public static <T extends MachineState> T createMultiblockDefault(Supplier<MachineState.Builder<T>> builderCreator, IRenderer renderer) {
         var builder = builderCreator.get().name("base")
-                .renderer(new ToggleRenderer(renderer))
-                .shape(new ToggleShape(Shapes.block()))
-                .lightLevel(new ToggleLightValue(0))
+                .renderer(renderer)
+                .shape(Shapes.block())
+                .lightLevel(0)
                 .child(builderCreator.get()
                         .name("formed")
                         .child(builderCreator.get()
@@ -58,10 +55,10 @@ public class StateMachine<T extends MachineState> implements ITagSerializable<Co
                                 .name("suspend")
                                 .build())
                         .build());
-        return new StateMachine<>(builder.build());
+        return builder.build();
     }
 
-    public static <T extends MachineState> StateMachine<T> createDefault(Supplier<MachineState.Builder<T>> builderCreator) {
+    public static <T extends MachineState> T createDefault(Supplier<MachineState.Builder<T>> builderCreator) {
         return createSingleDefault(builderCreator, IRenderer.EMPTY);
     }
 

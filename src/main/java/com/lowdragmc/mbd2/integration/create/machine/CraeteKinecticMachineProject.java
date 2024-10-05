@@ -17,13 +17,6 @@ import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
 import com.lowdragmc.mbd2.common.gui.editor.MachineProject;
 import com.lowdragmc.mbd2.common.gui.editor.machine.MachineConfigPanel;
-import com.lowdragmc.mbd2.common.machine.definition.config.ConfigBlockProperties;
-import com.lowdragmc.mbd2.common.machine.definition.config.ConfigItemProperties;
-import com.lowdragmc.mbd2.common.machine.definition.config.ConfigPartSettings;
-import com.lowdragmc.mbd2.common.machine.definition.config.StateMachine;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleLightValue;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleShape;
 import com.simibubi.create.Create;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -38,7 +31,7 @@ import java.util.Map;
 @NoArgsConstructor
 public class CraeteKinecticMachineProject extends MachineProject {
     public static final IRenderer GEARBOX_RENDERER = new IModelRenderer(MBD2.id("block/gearbox"));
-    public static final IRenderer SHAFT_RENDERER = new IModelRenderer(Create.asResource("block/shaft"));
+    public static final IModelRenderer SHAFT_RENDERER = new IModelRenderer(Create.asResource("block/shaft"));
 
     @Getter
     @Setter
@@ -48,9 +41,7 @@ public class CraeteKinecticMachineProject extends MachineProject {
     private float stress = 128;
 
     public CraeteKinecticMachineProject(Resources resources, CreateKineticMachineDefinition definition, WidgetGroup ui) {
-        this.resources = resources;
-        this.definition = definition;
-        this.ui = ui;
+        super(resources, definition, ui);
     }
 
     public float getSpeed() {
@@ -75,12 +66,12 @@ public class CraeteKinecticMachineProject extends MachineProject {
         // use vanilla furnace model as an example
         var builder = CreateKineticMachineDefinition.builder();
         builder.id(MBD2.id("new_machine"))
-                .stateMachine(new StateMachine<>(CreateMachineState.builder()
-                        .rotationRenderer(new ToggleRenderer(SHAFT_RENDERER))
+                .rootState(CreateMachineState.builder()
+                        .rotationRenderer(SHAFT_RENDERER)
                         .name("base")
-                        .renderer(new ToggleRenderer(GEARBOX_RENDERER))
-                        .shape(new ToggleShape(Shapes.block()))
-                        .lightLevel(new ToggleLightValue(0))
+                        .renderer(GEARBOX_RENDERER)
+                        .shape(Shapes.block())
+                        .lightLevel(0)
                         .child(CreateMachineState.builder()
                                 .name("working")
                                 .child(CreateMachineState.builder()
@@ -89,11 +80,7 @@ public class CraeteKinecticMachineProject extends MachineProject {
                                 .build())
                         .child(CreateMachineState.builder()
                                 .name("suspend")
-                                .build()).build()));
-        builder.blockProperties(ConfigBlockProperties.builder().build());
-        builder.itemProperties(ConfigItemProperties.builder().build());
-        builder.partSettings(ConfigPartSettings.builder().build());
-        builder.kineticMachineSettings(ConfigKineticMachineSettings.builder().build());
+                                .build()).build());
         return builder.build();
     }
 

@@ -5,21 +5,27 @@ import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib.gui.editor.configurator.SelectorConfigurator;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.WrapperConfigurator;
 import com.lowdragmc.lowdraglib.gui.editor.ui.Editor;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
 import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
+import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
 import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
 import com.lowdragmc.mbd2.common.gui.editor.MachineProject;
 import com.lowdragmc.mbd2.common.gui.editor.texture.IRendererSlotTexture;
+import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleCreativeTab;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Rarity;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -54,6 +60,12 @@ public class ConfigItemProperties implements IConfigurable, IPersistedSerializab
     @Configurable(name = "config.item_properties.item_tooltips", tips = "config.item_properties.item_tooltips.tooltip")
     @Builder.Default
     private List<Component> itemTooltips = new ArrayList<>();
+
+    @Persisted
+    @Configurable(name = "config.item_properties.creative_tab", subConfigurable = true,
+            tips = "config.item_properties.creative_tab.tooltip")
+    @Builder.Default
+    private ToggleCreativeTab creativeTab = new ToggleCreativeTab(true);
 
     public Item.Properties apply(Item.Properties itemProp) {
         return itemProp.stacksTo(maxStackSize).rarity(rarity);

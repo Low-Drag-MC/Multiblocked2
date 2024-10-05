@@ -67,4 +67,8 @@ public class MBD2 {
     public static boolean isPhotonLoaded() {
         return LDLib.isModLoaded("photon");
     }
+
+    public static boolean isKubeJSLoaded() {
+        return LDLib.isModLoaded("kubejs");
+    }
 }

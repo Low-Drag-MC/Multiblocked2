@@ -57,6 +57,7 @@ import java.io.IOException;
 import java.util.Deque;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Machine definition.
@@ -66,6 +67,12 @@ import java.util.function.Function;
 @Getter
 @Accessors(fluent = true)
 public class MBDMachineDefinition implements IConfigurable, IPersistedSerializable {
+    @FunctionalInterface
+    public interface ConfigMachineSettingsFactory extends Supplier<ConfigMachineSettings> {}
+
+    @FunctionalInterface
+    public interface ConfigPartSettingsFactory extends Supplier<ConfigPartSettings> {}
+
     /**
      * used for block initialization.
      */
@@ -91,18 +98,22 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
     @Configurable(name = "config.definition.item_properties", subConfigurable = true, tips = "config.definition.item_properties.tooltip", collapse = false)
     protected final ConfigItemProperties itemProperties;
     @Configurable(name = "config.definition.machine_settings", subConfigurable = true, tips = "config.definition.machine_settings.tooltip", collapse = false)
-    protected final ConfigMachineSettings machineSettings;
-    @Persisted(subPersisted = true)
-    protected final ConfigMachineEvents machineEvents;
+    protected ConfigMachineSettings machineSettings;
     @Nullable
     @Configurable(name = "config.definition.part_settings", subConfigurable = true, tips = {
             "config.definition.part_settings.tooltip.0",
             "config.definition.part_settings.tooltip.1",
             "config.definition.part_settings.tooltip.2",
     })
-    protected final ConfigPartSettings partSettings;
+    protected ConfigPartSettings partSettings;
+    @Persisted(subPersisted = true)
+    protected final ConfigMachineEvents machineEvents;
 
     // runtime
+    protected ConfigMachineSettingsFactory machineSettingsFactory;
+    @Nullable
+    protected ConfigPartSettingsFactory partSettingsFactory;
+
     @Nullable
     private File projectFile;
     private Block block;
@@ -113,17 +124,17 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
     private Function<MBDMachine, WidgetGroup> uiCreator;
 
     protected MBDMachineDefinition(ResourceLocation id,
-                                   StateMachine<?> stateMachine,
-                                   ConfigBlockProperties blockProperties,
-                                   ConfigItemProperties itemProperties,
-                                   ConfigMachineSettings machineSettings,
-                                   @Nullable ConfigPartSettings partSettings) {
+                                   @Nullable MachineState rootState,
+                                   @Nullable ConfigBlockProperties blockProperties,
+                                   @Nullable ConfigItemProperties itemProperties,
+                                   @Nullable ConfigMachineSettingsFactory machineSettingsFactory,
+                                   @Nullable ConfigPartSettingsFactory partSettingsFactory) {
         this.id = id == null ? new ResourceLocation("mbd2", "undefined") : id;
-        this.stateMachine = stateMachine == null ? createDefaultStateMachine() : stateMachine;
+        this.stateMachine = new StateMachine<>(rootState == null ? createDefaultRootState() : rootState);
         this.blockProperties = blockProperties == null ? ConfigBlockProperties.builder().build() : blockProperties;
         this.itemProperties = itemProperties == null ? ConfigItemProperties.builder().build() : itemProperties;
-        this.machineSettings = machineSettings == null ? ConfigMachineSettings.builder().build() : machineSettings;
-        this.partSettings = partSettings;
+        this.machineSettingsFactory = machineSettingsFactory == null ? () -> ConfigMachineSettings.builder().build() : machineSettingsFactory;
+        this.partSettingsFactory = partSettingsFactory;
         this.machineEvents = createMachineEvents();
     }
 
@@ -131,8 +142,16 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
         return new ConfigMachineEvents().registerEventGroup("MachineEvent");
     }
 
-    public StateMachine<?> createDefaultStateMachine() {
+    public MachineState createDefaultRootState() {
         return StateMachine.createDefault(MachineState::builder);
+    }
+
+    /**
+     * Load factory settings. Called after all registry finished.
+     */
+    public void loadFactory() {
+        machineSettings = machineSettingsFactory.get();
+        if (partSettingsFactory != null) partSettings = partSettingsFactory.get();
     }
 
     public static Builder builder() {
@@ -145,8 +164,8 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
                 StateMachine.createDefault(MachineState::builder),
                 ConfigBlockProperties.builder().build(),
                 ConfigItemProperties.builder().build(),
-                ConfigMachineSettings.builder().build(),
-                ConfigPartSettings.builder().build());
+                () -> ConfigMachineSettings.builder().build(),
+                () -> ConfigPartSettings.builder().build());
     }
 
     @Override
@@ -182,10 +201,10 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
         stateMachine.deserializeNBT(definitionTag.getCompound("stateMachine"));
         UIResourceRenderer.clearCurrentResource();
         postTask.add(() -> {
+            machineSettings.deserializeNBT(definitionTag.getCompound("machineSettings"));
             if (partSettings != null) {
                 partSettings.deserializeNBT(definitionTag.getCompound("partSettings"));
             }
-            machineSettings.deserializeNBT(definitionTag.getCompound("machineSettings"));
             machineEvents.deserializeNBT(definitionTag.getCompound("machineEvents"));
             if (machineSettings().hasUI()) {
                 var texturesResource = new TexturesResource();
@@ -339,17 +358,18 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
     @Accessors(chain = true, fluent = true)
     public static class Builder {
         protected ResourceLocation id;
-        protected StateMachine<?> stateMachine;
+        protected MachineState rootState;
         protected ConfigBlockProperties blockProperties;
         protected ConfigItemProperties itemProperties;
-        protected ConfigMachineSettings machineSettings;
-        protected ConfigPartSettings partSettings;
+        protected ConfigMachineSettingsFactory machineSettings;
+        @Nullable
+        protected ConfigPartSettingsFactory partSettings;
 
         protected Builder() {
         }
 
         public MBDMachineDefinition build() {
-            return new MBDMachineDefinition(id, stateMachine, blockProperties, itemProperties, machineSettings, partSettings);
+            return new MBDMachineDefinition(id, rootState, blockProperties, itemProperties, machineSettings, partSettings);
         }
     }
 }

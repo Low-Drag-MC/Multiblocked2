@@ -6,17 +6,17 @@ import com.lowdragmc.lowdraglib.client.renderer.impl.UIResourceRenderer;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleAABB;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleLightValue;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleShape;
 import lombok.NonNull;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.core.Direction;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 public class CreateMachineState extends MachineState {
@@ -24,9 +24,14 @@ public class CreateMachineState extends MachineState {
     @Persisted(subPersisted = true)
     private final ToggleRenderer rotationRenderer;
 
-    public CreateMachineState(String name, @NonNull List<MachineState> children, ToggleRenderer renderer, ToggleShape shape, ToggleLightValue lightLevel, ToggleAABB renderingBox, ToggleRenderer rotationRenderer) {
+    public CreateMachineState(String name, @NonNull List<MachineState> children,
+                              @Nullable IRenderer renderer,
+                              @Nullable VoxelShape shape,
+                              @Nullable Integer lightLevel,
+                              @Nullable AABB renderingBox,
+                              @Nullable IRenderer rotationRenderer) {
         super(name, children, renderer, shape, lightLevel, renderingBox);
-        this.rotationRenderer = rotationRenderer;
+        this.rotationRenderer = rotationRenderer == null ? new ToggleRenderer() : new ToggleRenderer(rotationRenderer);
     }
 
     @Override
@@ -77,7 +82,8 @@ public class CreateMachineState extends MachineState {
     @Setter
     @Accessors(chain = true, fluent = true)
     public static class Builder extends MachineState.Builder<CreateMachineState> {
-        private ToggleRenderer rotationRenderer = new ToggleRenderer();
+        @Nullable
+        private IModelRenderer rotationRenderer;
 
         @Override
         public CreateMachineState build() {

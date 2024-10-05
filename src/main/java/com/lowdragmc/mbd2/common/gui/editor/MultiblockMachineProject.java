@@ -44,9 +44,7 @@ public class MultiblockMachineProject extends MachineProject {
     protected List<MultiblockShapeInfo> multiblockShapeInfos = new ArrayList<>();
 
     public MultiblockMachineProject(Resources resources, MultiblockMachineDefinition definition, WidgetGroup ui) {
-        this.resources = resources;
-        this.definition = definition;
-        this.ui = ui;
+        super(resources, definition, ui);
         this.blockPlaceholders = new BlockPlaceholder[1][1][1];
         if (resources.resources.get(PredicateResource.RESOURCE_NAME) instanceof PredicateResource resource) {
             this.predicateResource = resource;
@@ -73,10 +71,7 @@ public class MultiblockMachineProject extends MachineProject {
         // use vanilla furnace model as an example
         var builder = MultiblockMachineDefinition.builder();
         builder.id(MBD2.id("new_machine"))
-                .stateMachine(StateMachine.createMultiblockDefault(MachineState::builder, FURNACE_RENDERER))
-                .blockProperties(ConfigBlockProperties.builder().build())
-                .itemProperties(ConfigItemProperties.builder().build());
-        builder.multiblockSettings(ConfigMultiblockSettings.builder().build());
+                .rootState(StateMachine.createMultiblockDefault(MachineState::builder, FURNACE_RENDERER));
         return builder.build();
     }
 

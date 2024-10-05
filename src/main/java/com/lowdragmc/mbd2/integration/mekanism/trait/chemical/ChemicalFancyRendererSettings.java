@@ -77,10 +77,11 @@ public class ChemicalFancyRendererSettings extends FancyRendererSettings {
                     poseStack.scale(scale.x, scale.y, scale.z);
                     poseStack.translate(-0.5D, -0.5d, -0.5D);
 
+                    var color = stack.getType().getTint() | 0xFF000000;
                     VertexConsumer builder = buffer.getBuffer(Sheets.translucentCullBlockSheet());
                     RenderBufferUtils.renderCubeFace(poseStack, builder, 0, 0, 0, 1,
                             percentHeight ? stack.getAmount() * 1f / trait.storages[0].getCapacity() : 1,
-                            1, -1, combinedLight, chemicalTexture);
+                            1, color, combinedLight, chemicalTexture);
                     poseStack.popPose();
                 }
             }

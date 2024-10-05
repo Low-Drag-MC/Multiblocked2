@@ -1,19 +1,24 @@
 package com.lowdragmc.mbd2.common.machine.definition.config;
 
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
+import com.lowdragmc.lowdraglib.client.renderer.impl.IModelRenderer;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib.utils.ShapeUtils;
+import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleAABB;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleLightValue;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleShape;
+import com.lowdragmc.mbd2.integration.geckolib.GeckolibRenderer;
+import dev.latvian.mods.rhino.util.HideFromJS;
 import lombok.*;
 import lombok.experimental.Accessors;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -59,13 +64,17 @@ public class MachineState implements IConfigurable, IPersistedSerializable, Comp
     private final Map<Direction, VoxelShape> shapeCache = new EnumMap<>(Direction.class);
     private final Map<Direction, AABB> renderingBoxCache = new EnumMap<>(Direction.class);
 
-    public MachineState(String name, @NonNull List<MachineState> children, ToggleRenderer renderer, ToggleShape shape, ToggleLightValue lightLevel, ToggleAABB renderingBox) {
+    public MachineState(String name, @NonNull List<MachineState> children,
+                        @Nullable IRenderer renderer,
+                        @Nullable VoxelShape shape,
+                        @Nullable Integer lightLevel,
+                        @Nullable AABB renderingBox) {
         this.name = name;
         this.children = children;
-        this.renderer = renderer;
-        this.shape = shape;
-        this.lightLevel = lightLevel;
-        this.renderingBox = renderingBox;
+        this.renderer = renderer == null ? new ToggleRenderer() : new ToggleRenderer(renderer);
+        this.shape = shape == null ? new ToggleShape() : new ToggleShape(shape);
+        this.lightLevel = lightLevel == null ? new ToggleLightValue() : new ToggleLightValue(lightLevel);
+        this.renderingBox = renderingBox == null ? new ToggleAABB() : new ToggleAABB(renderingBox);
     }
 
     @Override
@@ -221,16 +230,32 @@ public class MachineState implements IConfigurable, IPersistedSerializable, Comp
     public static class Builder<T extends MachineState> {
         protected String name;
         protected List<MachineState> children = new ArrayList<>();
-        protected ToggleRenderer renderer = new ToggleRenderer();
-        protected ToggleShape shape = new ToggleShape();
-        protected ToggleLightValue lightLevel = new ToggleLightValue();
-        protected ToggleAABB renderingBox = new ToggleAABB();
+        @Nullable
+        protected IRenderer renderer;
+        @Nullable
+        protected VoxelShape shape;
+        @Nullable
+        protected Integer lightLevel;
+        @Nullable
+        protected AABB renderingBox;
 
         protected Builder() {
         }
 
         public Builder<T> child(MachineState child) {
             children.add(child);
+            return this;
+        }
+
+        public Builder<T> modelRenderer(ResourceLocation modelPath) {
+            return renderer(new IModelRenderer(modelPath));
+        }
+
+        @HideFromJS
+        public Builder<T> geckolibRenderer(ResourceLocation modelPath, ResourceLocation texturePath, ResourceLocation animationPath) {
+            if (MBD2.isGeckolibLoaded()) {
+                return renderer(new GeckolibRenderer(modelPath, texturePath, animationPath));
+            }
             return this;
         }
 

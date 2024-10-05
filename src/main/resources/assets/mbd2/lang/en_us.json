@@ -103,6 +103,8 @@
     "config.item_properties.item_tooltips.tooltip": "The tooltips of the item which will be shown in the GUI by hovering.",
     "config.item_properties.is_gui_3d": "Is GUI 3D",
     "config.item_properties.is_gui_3d.tooltip": "Whether render the item in GUI as a 3D model.",
+    "config.item_properties.creative_tab": "Creative Tab",
+    "config.item_properties.creative_tab.tooltip": "The creative tab to display the item in.",
     "config.item_properties.renderer": "Item Renderer",
     "config.item_properties.renderer.tooltip.0": "Enable - set a separated renderer for item.",
     "config.item_properties.renderer.tooltip.1": "Disable - use the renderer of root state machine instead.",

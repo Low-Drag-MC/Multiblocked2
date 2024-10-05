@@ -16,7 +16,7 @@ dependencies {
 
     // Architectiry
 //    implementation fg.deobf("me.shedaniel.cloth:cloth-config-forge:${cloth_config_version}")
-    compileOnly fg.deobf("dev.architectury:architectury-forge:${architectury_version}")
+//    compileOnly fg.deobf("dev.architectury:architectury-forge:${architectury_version}")
 
     // JEI
     compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}") { transitive = false }
@@ -59,4 +59,9 @@ dependencies {
     // Create
     implementation fg.deobf("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
     implementation fg.deobf("com.jozufozu.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}")
+
+    // KubeJS
+    implementation fg.deobf("dev.latvian.mods:kubejs-forge:${kubejs_version}") { transitive = false }
+    implementation fg.deobf("dev.latvian.mods:rhino-forge:${rhino_version}")
+    implementation fg.deobf("dev.architectury:architectury-forge:${architectury_version}")
 }

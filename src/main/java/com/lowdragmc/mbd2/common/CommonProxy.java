@@ -19,10 +19,13 @@ import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
 import com.lowdragmc.mbd2.config.ConfigHolder;
 import com.lowdragmc.mbd2.integration.create.machine.CreateKineticMachineDefinition;
+import com.lowdragmc.mbd2.integration.kubejs.events.MBDMachineRegistryEventJS;
+import com.lowdragmc.mbd2.integration.kubejs.events.MBDRecipeTypeRegistryEventJS;
+import com.lowdragmc.mbd2.integration.kubejs.events.MBDStartupEvents;
 import com.lowdragmc.mbd2.test.MBDTest;
 import com.lowdragmc.mbd2.utils.FileUtils;
+import dev.latvian.mods.kubejs.script.ScriptType;
 import lombok.Getter;
-import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraftforge.common.capabilities.RegisterCapabilitiesEvent;
@@ -47,7 +50,6 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 public class CommonProxy {
     private static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, MBD2.MOD_ID);
     private static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITY_TYPES = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, MBD2.MOD_ID);
-
 
     @Getter
     private static final ConcurrentLinkedDeque<Runnable> postTask = new ConcurrentLinkedDeque<>();
@@ -83,6 +85,9 @@ public class CommonProxy {
         //load recipe type
         FileUtils.loadNBTFiles(path, ".rt", (file, tag) -> event.register(RecipeTypeProject.createProductFromProject(tag, postTask)));
         ModLoader.get().postEvent(event);
+        if (MBD2.isKubeJSLoaded()) {
+            MBDStartupEvents.RECIPE_TYPE.post(ScriptType.STARTUP, new MBDRecipeTypeRegistryEventJS());
+        }
         MBDRegistries.RECIPE_TYPES.freeze();
     }
 
@@ -102,6 +107,14 @@ public class CommonProxy {
             FileUtils.loadNBTFiles(path, ".km", (file, tag) -> event.register(CreateKineticMachineDefinition.createDefault().loadProductiveTag(file, tag, postTask)));
         }
         ModLoader.get().postEvent(event);
+        if (MBD2.isKubeJSLoaded()) {
+            MBDMachineRegistryEventJS.BUILDERS.put("single", MBDMachineDefinition::builder);
+            MBDMachineRegistryEventJS.BUILDERS.put("multiblock", MultiblockMachineDefinition::builder);
+            if (MBD2.isCreateLoaded()) {
+                MBDMachineRegistryEventJS.BUILDERS.put("kinetic", CreateKineticMachineDefinition::builder);
+            }
+            MBDStartupEvents.MACHINE.post(ScriptType.STARTUP, new MBDMachineRegistryEventJS());
+        }
         MBDRegistries.MACHINE_DEFINITIONS.freeze();
     }
 
@@ -126,6 +139,8 @@ public class CommonProxy {
     @SubscribeEvent
     public void loadComplete(FMLLoadCompleteEvent e) {
         e.enqueueWork(() -> {
+            MBDRegistries.getFAKE_MACHINE().loadFactory();
+            MBDRegistries.MACHINE_DEFINITIONS.forEach(MBDMachineDefinition::loadFactory);
             postTask.forEach(Runnable::run);
             postTask.clear();
         });
@@ -144,8 +159,12 @@ public class CommonProxy {
 
     @SubscribeEvent
     public void buildContents(BuildCreativeModeTabContentsEvent event) {
-        if (event.getTabKey() == CreativeModeTabs.REDSTONE_BLOCKS) {
-            MBDRegistries.MACHINE_DEFINITIONS.forEach((definition) -> event.accept(definition.item()));
+        var tabLoc = event.getTabKey().location();
+        for (var machineDefinition : MBDRegistries.MACHINE_DEFINITIONS) {
+            if (machineDefinition.itemProperties().creativeTab().isEnable() &&
+                    tabLoc.equals(machineDefinition.itemProperties().creativeTab().getValue())) {
+                event.accept(machineDefinition.item());
+            }
         }
     }
 }

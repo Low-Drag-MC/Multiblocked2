@@ -11,10 +11,7 @@ import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigBlockProperties;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigItemProperties;
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
-import com.lowdragmc.mbd2.common.machine.definition.config.StateMachine;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleLightValue;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleShape;
+import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleCreativeTab;
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 import lombok.Getter;
 import net.minecraft.world.phys.shapes.Shapes;
@@ -25,14 +22,16 @@ public class MBDRegistries {
     private static MBDMachineDefinition createFakeMachine() {
         return MBDMachineDefinition.builder()
                 .id(MBD2.id("fake_machine"))
-                .stateMachine(new StateMachine<>(MachineState.builder()
+                .rootState(MachineState.builder()
                         .name("base")
-                        .renderer(new ToggleRenderer(IRenderer.EMPTY))
-                        .shape(new ToggleShape(Shapes.block()))
-                        .lightLevel(new ToggleLightValue(0))
-                        .build()))
+                        .renderer(IRenderer.EMPTY)
+                        .shape(Shapes.block())
+                        .lightLevel(0)
+                        .build())
                 .blockProperties(ConfigBlockProperties.builder().build())
-                .itemProperties(ConfigItemProperties.builder().build())
+                .itemProperties(ConfigItemProperties.builder()
+                        .creativeTab(new ToggleCreativeTab())
+                        .build())
                 .build();
     }
 

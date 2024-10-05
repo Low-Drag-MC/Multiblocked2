@@ -1,6 +1,5 @@
 package com.lowdragmc.mbd2.common.gui.editor;
 
-import com.gregtechceu.gtceu.api.machine.trait.MachineTrait;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.client.renderer.impl.IModelRenderer;
 import com.lowdragmc.lowdraglib.client.renderer.impl.UIResourceRenderer;
@@ -47,6 +46,9 @@ public class MachineProject implements IProject {
         this.resources = resources;
         this.definition = definition;
         this.ui = ui;
+        if (this.definition != null) {
+            this.definition.loadFactory();
+        }
     }
 
     protected Map<String, Resource<?>> createResources() {
@@ -72,10 +74,7 @@ public class MachineProject implements IProject {
         // use vanilla furnace model as an example
         return MBDMachineDefinition.builder()
                 .id(MBD2.id("new_machine"))
-                .stateMachine(StateMachine.createSingleDefault(MachineState::builder, FURNACE_RENDERER))
-                .blockProperties(ConfigBlockProperties.builder().build())
-                .itemProperties(ConfigItemProperties.builder().build())
-                .partSettings(ConfigPartSettings.builder().build())
+                .rootState(StateMachine.createSingleDefault(MachineState::builder, FURNACE_RENDERER))
                 .build();
     }
 
@@ -120,6 +119,7 @@ public class MachineProject implements IProject {
         this.resources = loadResources(tag.getCompound("resources"));
         if (this.definition == null) {
             this.definition = createDefinition();
+            this.definition.loadFactory();
         }
         UIResourceRenderer.setCurrentResource((Resource<IRenderer>) resources.resources.get(IRendererResource.RESOURCE_NAME), true);
         this.definition.deserializeNBT(tag.getCompound("definition"));

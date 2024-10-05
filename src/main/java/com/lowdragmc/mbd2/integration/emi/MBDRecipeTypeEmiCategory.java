@@ -23,7 +23,7 @@ public class MBDRecipeTypeEmiCategory extends EmiRecipeCategory {
         final MBDRecipe recipe;
 
         public MBDEmiRecipe(MBDRecipeTypeEmiCategory category, MBDRecipe recipe) {
-            super(() -> recipe.recipeType.getUiCreator().apply(recipe));
+            super(() -> recipe.recipeType.getUiCreator().create(recipe).setClientSideWidget());
             this.category = category;
             this.recipe = recipe;
         }
