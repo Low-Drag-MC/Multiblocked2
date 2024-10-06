@@ -25,15 +25,22 @@ public class ConfigHolder {
             .comment("Whether use vbo for preview page rendering.")
             .define("useVBO", true);
 
+    private static final ForgeConfigSpec.IntValue MULTIBLOCK_PREVIEW_DURATION = BUILDER
+            .comment("Duration of the multiblock in-world preview (s)")
+            .defineInRange("multiblockPreviewDuration", 10, 1, 999);
+
     public static final ForgeConfigSpec SPEC = BUILDER.build();
 
     public static boolean asyncRecipeSearching;
 
     public static boolean useVBO;
 
+    public static int multiblockPreviewDuration;
+
     @SubscribeEvent
     static void onLoad(final ModConfigEvent event) {
         asyncRecipeSearching = ASYNC_RECIPE_SEARCHING.get();
         useVBO = USE_VBO.get();
+        multiblockPreviewDuration = MULTIBLOCK_PREVIEW_DURATION.get();
     }
 }

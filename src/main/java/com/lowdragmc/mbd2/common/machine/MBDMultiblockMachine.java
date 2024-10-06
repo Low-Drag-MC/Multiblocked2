@@ -19,8 +19,10 @@ import com.lowdragmc.mbd2.api.pattern.MultiblockWorldSavedData;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
+import com.lowdragmc.mbd2.client.renderer.MultiblockInWorldPreviewRenderer;
 import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.event.*;
+import com.lowdragmc.mbd2.config.ConfigHolder;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.longs.LongSets;
@@ -408,6 +410,12 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
                 return InteractionResult.SUCCESS;
             }
             return InteractionResult.FAIL;
+        }
+        if (!isFormed() && player.isShiftKeyDown() && player.getItemInHand(hand).isEmpty()) {
+            if (world.isClientSide()) {
+                MultiblockInWorldPreviewRenderer.showPreview(pos, this, ConfigHolder.multiblockPreviewDuration * 20);
+            }
+            return InteractionResult.SUCCESS;
         }
         return super.onUse(state, world, pos, player, hand, hit);
     }
