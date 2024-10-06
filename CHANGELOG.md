@@ -1,4 +1,4 @@
 # ChangeLog
 
-* add KubeJS compat
-* add creative tab support
+* fix kubejs is required
+* fix config part settings disappeared
