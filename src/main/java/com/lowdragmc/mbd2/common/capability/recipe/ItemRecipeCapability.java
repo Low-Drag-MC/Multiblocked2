@@ -12,7 +12,6 @@ import com.lowdragmc.lowdraglib.utils.CycleItemStackHandler;
 import com.lowdragmc.lowdraglib.utils.TagOrCycleItemStackTransfer;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
-import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.api.recipe.content.SerializerIngredient;
 import com.lowdragmc.mbd2.api.recipe.ingredient.SizedIngredient;
 import com.lowdragmc.mbd2.core.mixins.IngredientAccessor;
@@ -23,6 +22,7 @@ import com.lowdragmc.mbd2.utils.TagUtil;
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.tags.TagKey;
@@ -278,6 +278,33 @@ public class ItemRecipeCapability extends RecipeCapability<Ingredient> {
                 group.addConfigurators(new WrapperConfigurator("ldlib.gui.editor.group.preview", slot));
             }
         }));
+    }
+
+    @Override
+    public Component getLeftErrorInfo(List<Ingredient> left) {
+        var result = Component.empty();
+        for (int i = 0; i < left.size(); i++) {
+            var ingredient = left.get(i);
+            var amount = 1;
+            if (ingredient instanceof SizedIngredient sizedIngredient) {
+                amount = sizedIngredient.getAmount();
+                ingredient = sizedIngredient.getInner();
+            }
+            result.append(amount + "x ");
+            var stacks = ingredient.getItems();
+            if (stacks.length > 0) {
+                result.append(stacks[0].getDisplayName());
+            } else {
+                result.append("Unknown");
+            }
+            if (ingredient instanceof StrictNBTIngredient) {
+                result.append(" with NBT");
+            }
+            if (i < left.size() - 1) {
+                result.append(", ");
+            }
+        }
+        return result;
     }
 
 }

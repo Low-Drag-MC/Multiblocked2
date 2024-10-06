@@ -6,8 +6,6 @@ import com.lowdragmc.lowdraglib.jei.IngredientIO;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.api.recipe.content.IContentSerializer;
-import io.netty.buffer.Unpooled;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 
 import java.util.List;
@@ -95,5 +93,12 @@ public abstract class RecipeCapability<T> {
      //TODO
     public double calculateAmount(List<T> left) {
         return 1;
+    }
+
+    /**
+     * Get the error info for the left content.
+     */
+    public Component getLeftErrorInfo(List<T> left) {
+        return Component.literal(left.toString());
     }
 }

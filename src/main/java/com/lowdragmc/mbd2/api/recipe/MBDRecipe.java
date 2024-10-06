@@ -207,13 +207,28 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
 //                        }
 //                    }
 //                }
-                if (io == IO.IN) {
-                    return ActionResult.fail(() -> Component.translatable("mbd2.recipe_logic.insufficient_in").append(": ").append(capability.getTraslateComponent()), expectingRate);
-                } else if (io == IO.OUT) {
-                    return ActionResult.fail(() -> Component.translatable("mbd2.recipe_logic.insufficient_out").append(": ").append(capability.getTraslateComponent()), expectingRate);
-                } else {
-                    return ActionResult.FAIL_NO_REASON;
-                }
+                if (io == IO.NONE || io == IO.BOTH) return ActionResult.FAIL_NO_REASON;
+                var finalResult = result;
+                return ActionResult.fail(() -> {
+                    var reason = Component.translatable(io == IO.IN ? "mbd2.recipe_logic.insufficient_in" : "mbd2.recipe_logic.insufficient_out");
+                    if (perTick) {
+                        reason.append("/t : ");
+                    } else {
+                        reason.append(": ");
+                    }
+                    reason.append(capability.getTraslateComponent());
+                    if (finalResult.getA() != null) {
+                        reason.append("| miss: ");
+                        reason.append(capability.getLeftErrorInfo(finalResult.getA()));
+                    }
+                    if (!finalResult.getB().isEmpty()) {
+                        for (var tuple : finalResult.getB().entrySet()) {
+                            reason.append("| slot (%s) miss: ".formatted(tuple.getKey()));
+                            reason.append(capability.getLeftErrorInfo(tuple.getValue()));
+                        }
+                    }
+                    return reason;
+                }, expectingRate);
             }
         }
         return ActionResult.SUCCESS;

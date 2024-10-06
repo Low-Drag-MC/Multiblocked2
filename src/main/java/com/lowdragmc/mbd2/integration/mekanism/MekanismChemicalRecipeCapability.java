@@ -20,6 +20,7 @@ import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.api.recipe.content.IContentSerializer;
+import com.lowdragmc.mbd2.api.recipe.ingredient.FluidIngredient;
 import mekanism.api.Action;
 import mekanism.api.MekanismAPI;
 import mekanism.api.chemical.*;
@@ -34,10 +35,12 @@ import mekanism.api.chemical.slurry.SlurryStack;
 import mekanism.common.registries.MekanismGases;
 import mekanism.common.registries.MekanismInfuseTypes;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.registries.IForgeRegistry;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -159,6 +162,20 @@ public class MekanismChemicalRecipeCapability<CHEMICAL extends Chemical<CHEMICAL
             tankWidget.setAllowClickFilled(false);
             tankWidget.setXEIChance(content.chance);
         }
+    }
+
+    @Override
+    public Component getLeftErrorInfo(List<STACK> left) {
+        var result = Component.empty();
+        for (int i = 0; i < left.size(); i++) {
+            var stack = left.get(i);
+            result.append(stack.getAmount() + "x ");
+            result.append(stack.getTextComponent());
+            if (i < left.size() - 1) {
+                result.append(", ");
+            }
+        }
+        return result;
     }
 
     @Override

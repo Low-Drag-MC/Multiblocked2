@@ -60,7 +60,7 @@ public class MachineStatePreview extends DraggableWidgetGroup {
         scene.createScene(level);
         scene.getRenderer().setOnLookingAt(null); // better performance
         scene.setRenderedCore(Collections.singleton(BlockPos.ZERO), null);
-        level.addBlock(BlockPos.ZERO, BlockInfo.fromBlock(MBDRegistries.getFAKE_MACHINE().block()));
+        level.addBlock(BlockPos.ZERO, BlockInfo.fromBlock(MBDRegistries.FAKE_MACHINE().block()));
         Optional.ofNullable(level.getBlockEntity(BlockPos.ZERO)).ifPresent(blockEntity -> {
             if (blockEntity instanceof MachineBlockEntity holder && panel.getEditor().getCurrentProject() instanceof MachineProject project) {
                 holder.setMachine(this.previewMachine = project.getDefinition().createMachine(holder));

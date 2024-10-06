@@ -1,4 +1,19 @@
 {
+    "item.mbd2.mbd_gadgets": "MBD Gadgets",
+    "item.mbd2.mbd_gadgets.tooltip": "§2Shift + right click to switch the gadget modes.§r",
+    "item.mbd2.mbd_gadgets.multiblock_builder": "MBD Gadgets - §cMultiblock Builder§r",
+    "item.mbd2.mbd_gadgets.multiblock_builder.tooltip": "Right click on the controller to auto build the multiblock.",
+    "item.mbd2.mbd_gadgets.recipe_debugger": "MBD Gadgets - §eRecipe Debugger§r",
+    "item.mbd2.mbd_gadgets.recipe_debugger.tooltip.0": "Open UI to set a test recipe.",
+    "item.mbd2.mbd_gadgets.recipe_debugger.tooltip.1": "Right click on the machine to check whether the recipe can be processed.",
+    "item.mbd2.mbd_gadgets.recipe_debugger.tooltip.2": "Current Recipe: %s",
+    "item.mbd2.mbd_gadgets.recipe_debugger.raw.success": "Raw Recipe §e%s§r can be processed.",
+    "item.mbd2.mbd_gadgets.recipe_debugger.modified.empty": "Machine won't modify the raw recipe.",
+    "item.mbd2.mbd_gadgets.recipe_debugger.modified.success": "Modified Recipe §e%s§r can be processed.",
+    "item.mbd2.mbd_gadgets.recipe_debugger.raw.failure.0": "Raw Recipe §e%s§r can't be processed",
+    "item.mbd2.mbd_gadgets.recipe_debugger.modified.failure.0": "Modified Recipe §e%s§r can't be processed",
+    "item.mbd2.mbd_gadgets.recipe_debugger.modified.failure.1": "Modified Recipe is empty",
+    "item.mbd2.mbd_gadgets.recipe_debugger.failure.reason": "Reason: %s",
     "gui.mbd2.io.import": "Import",
     "gui.mbd2.io.export": "Export",
     "gui.mbd2.io.import.both": "Both",
@@ -627,6 +642,5 @@
     "pattern_preview.page": "switch pages",
     "pattern_preview.layer": "switch layers",
     "pattern_preview.formed": "switch structure formed"
-
 
 }

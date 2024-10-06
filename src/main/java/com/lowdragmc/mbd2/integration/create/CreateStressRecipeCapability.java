@@ -12,7 +12,9 @@ import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.api.recipe.content.SerializerFloat;
 import com.lowdragmc.mbd2.common.gui.recipe.CornerNumberWidget;
 import com.simibubi.create.AllBlocks;
+import net.minecraft.network.chat.Component;
 
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -54,5 +56,10 @@ public class CreateStressRecipeCapability extends RecipeCapability<Float> {
                 number -> onUpdate.accept(number.floatValue()), 1, true).setRange(0, Float.MAX_VALUE);
         configurator.setTips("config.kinetic_machine.torque.tooltip.1");
         father.addConfigurators(configurator);
+    }
+
+    @Override
+    public Component getLeftErrorInfo(List<Float> left) {
+        return Component.literal(left.stream().mapToDouble(Float::doubleValue).sum() + " stress");
     }
 }

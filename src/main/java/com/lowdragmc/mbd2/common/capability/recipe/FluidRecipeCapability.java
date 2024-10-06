@@ -21,9 +21,11 @@ import com.lowdragmc.mbd2.utils.TagUtil;
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 
@@ -198,4 +200,26 @@ public class FluidRecipeCapability extends RecipeCapability<FluidIngredient> {
         } catch (Exception ignored) {}
     }
 
+    @Override
+    public Component getLeftErrorInfo(List<FluidIngredient> left) {
+        var result = Component.empty();
+        for (int i = 0; i < left.size(); i++) {
+            var fluidIngredient = left.get(i);
+            result.append(fluidIngredient.getAmount() + "x ");
+            var stacks = fluidIngredient.getStacks();
+            if (stacks.length > 0) {
+                result.append(stacks[0].getDisplayName());
+            } else {
+                result.append("Unknown");
+            }
+            if (fluidIngredient.getNbt() != null) {
+                result.append(" with NBT");
+                result.append(fluidIngredient.getNbt().toString());
+            }
+            if (i < left.size() - 1) {
+                result.append(", ");
+            }
+        }
+        return result;
+    }
 }

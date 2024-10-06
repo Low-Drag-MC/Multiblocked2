@@ -5,10 +5,13 @@ import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.CommonProxy;
 import com.lowdragmc.mbd2.integration.create.machine.KineticInstanceRenderer;
 import com.simibubi.create.CreateClient;
+import net.minecraft.client.renderer.item.ItemProperties;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.EntityRenderersEvent.RegisterRenderers;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 
 /**
  * @author KilaBash
@@ -26,7 +29,13 @@ public class ClientProxy extends CommonProxy {
 
     @SubscribeEvent
     public void registerRenderers(RegisterRenderers e) {
-        MBDRegistries.getFAKE_MACHINE().initRenderer(e);
+        MBDRegistries.FAKE_MACHINE().initRenderer(e);
         MBDRegistries.MACHINE_DEFINITIONS.forEach(definition -> definition.initRenderer(e));
+    }
+
+    @SubscribeEvent
+    public void clientSetup(final FMLClientSetupEvent e) {
+        e.enqueueWork(()-> ItemProperties.register(MBDRegistries.GADGETS_ITEM(), MBD2.id("mode"),
+                (itemStack, clientWorld, entity, seed) -> itemStack.getDamageValue()));
     }
 }

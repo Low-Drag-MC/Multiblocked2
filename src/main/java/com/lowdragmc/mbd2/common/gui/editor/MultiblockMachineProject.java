@@ -158,7 +158,7 @@ public class MultiblockMachineProject extends MachineProject {
                         }
                         if (shapeInfo) {
                             traceabilityPredicate = new TraceabilityPredicate(new SimplePredicate(state ->
-                                    state.getBlockState().getBlock() == MBDRegistries.getFAKE_MACHINE().block(), () -> new BlockInfo[]{new ControllerBlockInfo()}));
+                                    state.getBlockState().getBlock() == MBDRegistries.FAKE_MACHINE().block(), () -> new BlockInfo[]{new ControllerBlockInfo()}));
                         } else {
                             if (definition.multiblockSettings().catalyst().isEnable() && definition.multiblockSettings().catalyst().getCandidates().isEnable()) {
                                 for (var block : definition.multiblockSettings().catalyst().getCandidates().getValue()) {

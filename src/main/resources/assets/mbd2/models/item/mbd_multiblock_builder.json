@@ -1,0 +1,6 @@
+{
+  "parent": "item/generated",
+  "textures": {
+    "layer0": "mbd2:item/mbd_multiblock_builder"
+  }
+}

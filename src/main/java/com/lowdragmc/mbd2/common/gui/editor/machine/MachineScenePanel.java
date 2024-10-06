@@ -66,7 +66,7 @@ public class MachineScenePanel extends WidgetGroup {
      */
     public void resetScene() {
         this.level.clear();
-        this.level.addBlock(BlockPos.ZERO, BlockInfo.fromBlock(MBDRegistries.getFAKE_MACHINE().block()));
+        this.level.addBlock(BlockPos.ZERO, BlockInfo.fromBlock(MBDRegistries.FAKE_MACHINE().block()));
         Optional.ofNullable(this.level.getBlockEntity(BlockPos.ZERO)).ifPresent(blockEntity -> {
             if (blockEntity instanceof MachineBlockEntity holder && editor.getCurrentProject() instanceof MachineProject project) {
                 holder.setMachine(this.previewMachine = project.getDefinition().createMachine(holder));

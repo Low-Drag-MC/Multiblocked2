@@ -26,6 +26,7 @@ import com.lowdragmc.mbd2.test.MBDTest;
 import com.lowdragmc.mbd2.utils.FileUtils;
 import dev.latvian.mods.kubejs.script.ScriptType;
 import lombok.Getter;
+import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraftforge.common.capabilities.RegisterCapabilitiesEvent;
@@ -149,7 +150,7 @@ public class CommonProxy {
     @SubscribeEvent
     public void loadComplete(FMLLoadCompleteEvent e) {
         e.enqueueWork(() -> {
-            MBDRegistries.getFAKE_MACHINE().loadFactory();
+            MBDRegistries.FAKE_MACHINE().loadFactory();
             MBDRegistries.MACHINE_DEFINITIONS.forEach(MBDMachineDefinition::loadFactory);
             postTask.forEach(Runnable::run);
             postTask.clear();
@@ -163,8 +164,10 @@ public class CommonProxy {
 
     @SubscribeEvent
     public void register(RegisterEvent event) {
-        MBDRegistries.getFAKE_MACHINE().onRegistry(event);
+        MBDRegistries.FAKE_MACHINE().onRegistry(event);
         MBDRegistries.MACHINE_DEFINITIONS.forEach((definition) -> definition.onRegistry(event));
+        // register items
+        event.register(ForgeRegistries.ITEMS.getRegistryKey(), helper -> helper.register(MBD2.id("mbd_gadgets"), MBDRegistries.GADGETS_ITEM()));
     }
 
     @SubscribeEvent
@@ -175,6 +178,9 @@ public class CommonProxy {
                     tabLoc.equals(machineDefinition.itemProperties().creativeTab().getValue())) {
                 event.accept(machineDefinition.item());
             }
+        }
+        if (event.getTabKey() == CreativeModeTabs.REDSTONE_BLOCKS) {
+            event.accept(MBDRegistries.GADGETS_ITEM());
         }
     }
 }

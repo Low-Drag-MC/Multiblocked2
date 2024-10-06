@@ -82,8 +82,8 @@ public class ShapeInfoList extends DraggableScrollableWidgetGroup {
                         renderPositions.add(pos);
                         var blockInfo = blocks[x][y][z];
                         if (blockInfo instanceof ControllerBlockInfo controllerBlockInfo) {
-                            blockInfo = new BlockInfo(MBDRegistries.getFAKE_MACHINE().block().defaultBlockState()
-                                    .setValue(MBDRegistries.getFAKE_MACHINE().blockProperties().rotationState().property.orElseThrow(), controllerBlockInfo.getFacing()), blockEntity -> {
+                            blockInfo = new BlockInfo(MBDRegistries.FAKE_MACHINE().block().defaultBlockState()
+                                    .setValue(MBDRegistries.FAKE_MACHINE().blockProperties().rotationState().property.orElseThrow(), controllerBlockInfo.getFacing()), blockEntity -> {
                                 if (blockEntity instanceof MachineBlockEntity machineBlockEntity) {
                                     var controllerMachine = panel.getProject().getDefinition().createMachine(machineBlockEntity);
                                     machineBlockEntity.setMachine(controllerMachine);

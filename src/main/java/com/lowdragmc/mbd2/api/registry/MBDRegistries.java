@@ -7,6 +7,7 @@ import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
+import com.lowdragmc.mbd2.common.item.MBDGadgetsItem;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigBlockProperties;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigItemProperties;
@@ -14,11 +15,19 @@ import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleCreativeTab;
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 import lombok.Getter;
+import lombok.experimental.Accessors;
 import net.minecraft.world.phys.shapes.Shapes;
 
 public class MBDRegistries {
     @Getter(lazy = true)
-    private final static MBDMachineDefinition FAKE_MACHINE = createFakeMachine();
+    @Accessors(fluent = true)
+    private static final MBDGadgetsItem GADGETS_ITEM = createGadgetsItem();
+    @Getter(lazy = true)
+    @Accessors(fluent = true)
+    private static final MBDMachineDefinition FAKE_MACHINE = createFakeMachine();
+    private static MBDGadgetsItem createGadgetsItem() {
+        return new MBDGadgetsItem();
+    }
     private static MBDMachineDefinition createFakeMachine() {
         return MBDMachineDefinition.builder()
                 .id(MBD2.id("fake_machine"))

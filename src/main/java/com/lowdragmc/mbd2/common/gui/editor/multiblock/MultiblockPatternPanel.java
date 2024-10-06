@@ -140,8 +140,8 @@ public class MultiblockPatternPanel extends WidgetGroup {
                             }
                         }
                         if (holder.isController()) {
-                            MBDRegistries.getFAKE_MACHINE().blockProperties().rotationState().property.ifPresent(property ->
-                                    this.level.addBlock(pos, BlockInfo.fromBlockState(MBDRegistries.getFAKE_MACHINE()
+                            MBDRegistries.FAKE_MACHINE().blockProperties().rotationState().property.ifPresent(property ->
+                                    this.level.addBlock(pos, BlockInfo.fromBlockState(MBDRegistries.FAKE_MACHINE()
                                             .block().defaultBlockState().setValue(property, holder.getFacing()))));
                             Optional.ofNullable(this.level.getBlockEntity(pos)).ifPresent(blockEntity -> {
                                 if (blockEntity instanceof MachineBlockEntity machineBlockEntity) {

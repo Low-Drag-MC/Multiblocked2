@@ -13,7 +13,9 @@ import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.api.recipe.content.SerializerDouble;
 import com.lowdragmc.mbd2.common.gui.recipe.CornerNumberWidget;
 import mekanism.common.registries.MekanismBlocks;
+import net.minecraft.network.chat.Component;
 
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -68,5 +70,10 @@ public class MekanismHeatRecipeCapability extends RecipeCapability<Double> {
     public void createContentConfigurator(ConfiguratorGroup father, Supplier<Double> supplier, Consumer<Double> onUpdate) {
         father.addConfigurators(new NumberConfigurator("recipe.capability.mek_heat.heat", supplier::get,
                 number -> onUpdate.accept(number.doubleValue()), 1, true).setRange(1, Double.MAX_VALUE));
+    }
+
+    @Override
+    public Component getLeftErrorInfo(List<Double> left) {
+        return Component.literal(left.stream().mapToDouble(Double::doubleValue).sum() + " heat");
     }
 }
