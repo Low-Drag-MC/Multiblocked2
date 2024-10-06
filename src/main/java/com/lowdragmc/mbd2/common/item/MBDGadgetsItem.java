@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.factory.HeldItemUIFactory;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceBorderTexture;
+import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
 import com.lowdragmc.lowdraglib.gui.widget.SearchComponentWidget;
 import com.lowdragmc.mbd2.api.machine.IMachine;
@@ -101,8 +102,6 @@ public class MBDGadgetsItem extends Item implements HeldItemUIFactory.IHeldItemU
                 stack.setDamageValue(0);
                 return InteractionResultHolder.success(stack);
             }
-        } else if (isRecipeDebugger(stack) && pPlayer instanceof ServerPlayer serverPlayer) {
-            HeldItemUIFactory.INSTANCE.openUI(serverPlayer, pUsedHand);
         }
         return super.use(pLevel, pPlayer, pUsedHand);
     }
@@ -139,9 +138,10 @@ public class MBDGadgetsItem extends Item implements HeldItemUIFactory.IHeldItemU
                                     if (modifiedRecipe == mbdRecipe) {
                                         serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.modified.empty"));
                                     } else if (modifiedRecipe == null) {
-                                        serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.modified.failure.0", mbdRecipe.id));
+                                        serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.modified.failure.0"));
                                         serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.modified.failure.1"));
                                     } else {
+                                        serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.modified.has"));
                                         result = modifiedRecipe.matchRecipe(machine);
                                         if (result.isSuccess()) {
                                             result = modifiedRecipe.matchTickRecipe(machine);
@@ -150,11 +150,11 @@ public class MBDGadgetsItem extends Item implements HeldItemUIFactory.IHeldItemU
                                             }
                                         }
                                         if (result.isSuccess()) {
-                                            serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.modified.success", modifiedRecipe.id));
+                                            serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.modified.success"));
                                         } else {
-                                            serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.modified.failure.0", mbdRecipe.id));
+                                            serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.modified.failure.0"));
                                             if (result.reason() != null) {
-                                                serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.failure.reason", result.reason().get()));
+                                                serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.failure.reason").append(result.reason().get()));
                                             }
                                         }
                                     }
@@ -162,14 +162,18 @@ public class MBDGadgetsItem extends Item implements HeldItemUIFactory.IHeldItemU
                                 } else {
                                     serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.raw.failure.0", mbdRecipe.id));
                                     if (result.reason() != null) {
-                                        serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.failure.reason", result.reason().get()));
+                                        serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.failure.reason").append(result.reason().get()));
                                     }
                                 }
                                 return InteractionResult.SUCCESS;
                             }
                         }
                     }
+                    return InteractionResult.SUCCESS;
                 }
+            } else if (isRecipeDebugger(stack) && context.getHand() == InteractionHand.MAIN_HAND) {
+                HeldItemUIFactory.INSTANCE.openUI(serverPlayer, context.getHand());
+                return InteractionResult.SUCCESS;
             }
         }
         return InteractionResult.PASS;
@@ -224,6 +228,7 @@ public class MBDGadgetsItem extends Item implements HeldItemUIFactory.IHeldItemU
         return new ModularUI(200, 50, holder, entityPlayer)
                 .background(ResourceBorderTexture.BORDERED_BACKGROUND)
                 .widget(new ImageWidget(x, y, 150, 10, ColorPattern.T_GRAY.rectTexture().setRadius(5)))
-                .widget(searchComponent);
+                .widget(searchComponent)
+                .widget(new ImageWidget(x, y - 12, 150, 10, new TextTexture("item.mbd2.mbd_gadgets.recipe_debugger.recipe_id").setWidth(150)));
     }
 }

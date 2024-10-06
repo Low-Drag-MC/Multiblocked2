@@ -272,6 +272,16 @@ public class MBDMachineBlock extends Block implements EntityBlock, IBlockRendere
     }
 
     @Override
+    public boolean propagatesSkylightDown(BlockState pState, BlockGetter pLevel, BlockPos pPos) {
+        return super.propagatesSkylightDown(pState, pLevel, pPos);
+    }
+
+    @Override
+    public float getShadeBrightness(BlockState pState, BlockGetter pLevel, BlockPos pPos) {
+        return super.getShadeBrightness(pState, pLevel, pPos);
+    }
+
+    @Override
     public int getLightMap(BlockAndTintGetter world, BlockState state, BlockPos pos) {
         if (state.emissiveRendering(world, pos)) {
             return LightTexture.FULL_BRIGHT;
