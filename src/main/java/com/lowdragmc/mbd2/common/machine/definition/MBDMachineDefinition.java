@@ -134,8 +134,12 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
         this.blockProperties = blockProperties == null ? ConfigBlockProperties.builder().build() : blockProperties;
         this.itemProperties = itemProperties == null ? ConfigItemProperties.builder().build() : itemProperties;
         this.machineSettingsFactory = machineSettingsFactory == null ? () -> ConfigMachineSettings.builder().build() : machineSettingsFactory;
-        this.partSettingsFactory = partSettingsFactory;
+        this.partSettingsFactory = allowPartSettings() ? (partSettingsFactory == null ? () -> ConfigPartSettings.builder().build() : partSettingsFactory) : null;
         this.machineEvents = createMachineEvents();
+    }
+
+    public boolean allowPartSettings() {
+        return true;
     }
 
     public ConfigMachineEvents createMachineEvents() {

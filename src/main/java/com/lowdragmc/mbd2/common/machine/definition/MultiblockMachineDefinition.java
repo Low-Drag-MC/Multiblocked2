@@ -60,6 +60,11 @@ public class MultiblockMachineDefinition extends MBDMachineDefinition {
         this.multiblockSettingsFactory = multiblockSettingsFactory == null ? () -> ConfigMultiblockSettings.builder().build() : multiblockSettingsFactory;
     }
 
+    @Override
+    public boolean allowPartSettings() {
+        return false;
+    }
+
     public static MultiblockMachineDefinition createDefault() {
         return new MultiblockMachineDefinition(
                 MBD2.id("dummy"),

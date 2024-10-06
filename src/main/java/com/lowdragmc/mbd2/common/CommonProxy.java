@@ -86,7 +86,7 @@ public class CommonProxy {
         FileUtils.loadNBTFiles(path, ".rt", (file, tag) -> event.register(RecipeTypeProject.createProductFromProject(tag, postTask)));
         ModLoader.get().postEvent(event);
         if (MBD2.isKubeJSLoaded()) {
-            MBDStartupEvents.RECIPE_TYPE.post(ScriptType.STARTUP, new MBDRecipeTypeRegistryEventJS());
+            KubeJSWrapper.postRecipeTypeEvent();
         }
         MBDRegistries.RECIPE_TYPES.freeze();
     }
@@ -108,6 +108,13 @@ public class CommonProxy {
         }
         ModLoader.get().postEvent(event);
         if (MBD2.isKubeJSLoaded()) {
+            KubeJSWrapper.postMachineEvent();
+        }
+        MBDRegistries.MACHINE_DEFINITIONS.freeze();
+    }
+
+    public static class KubeJSWrapper {
+        public static void postMachineEvent() {
             MBDMachineRegistryEventJS.BUILDERS.put("single", MBDMachineDefinition::builder);
             MBDMachineRegistryEventJS.BUILDERS.put("multiblock", MultiblockMachineDefinition::builder);
             if (MBD2.isCreateLoaded()) {
@@ -115,7 +122,10 @@ public class CommonProxy {
             }
             MBDStartupEvents.MACHINE.post(ScriptType.STARTUP, new MBDMachineRegistryEventJS());
         }
-        MBDRegistries.MACHINE_DEFINITIONS.freeze();
+
+        public static void postRecipeTypeEvent() {
+            MBDStartupEvents.RECIPE_TYPE.post(ScriptType.STARTUP, new MBDRecipeTypeRegistryEventJS());
+        }
     }
 
     @SubscribeEvent
