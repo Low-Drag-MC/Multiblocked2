@@ -58,6 +58,10 @@
     "recipe.condition.rain.tooltip": "Rain Level: from %d to %d",
     "recipe.condition.thunder": "thunder level",
     "recipe.condition.thunder.tooltip": "Thunder Level: from %d to %d",
+    "recipe.condition.machine_level": "machine level",
+    "recipe.condition.machine_level.tooltip": "The machine level >= %d",
+    "recipe.condition.block": "block",
+    "recipe.condition.block.tooltip": "blocks [%s] count in the structure from %d to %d",
 
     "config.require_restart": "§cYou need to restart the game to apply the changes.§r",
 
@@ -69,10 +73,11 @@
     "config.recipe.condition.pos_y.max": "max y",
     "config.recipe.condition.weather.min": "min level",
     "config.recipe.condition.weather.max": "max level",
-    "recipe.condition.machine_level": "machine level",
+    "config.recipe.condition.block.min": "min count",
+    "config.recipe.condition.block.max": "max count",
+    "config.recipe.condition.block.blocks": "block filters",
     "config.recipe.condition.machine_level.level": "machine level",
     "config.recipe.condition.machine_level.level.tooltip": "The machine level of the machine.",
-    "recipe.condition.machine_level.tooltip": "The machine level >= %d",
 
     "config.block_properties.render_types": "Render Types",
     "config.block_properties.render_types.tooltip": "The render type of the block.",

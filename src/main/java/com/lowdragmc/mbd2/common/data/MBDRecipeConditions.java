@@ -17,6 +17,7 @@ public final class MBDRecipeConditions {
         MBDRegistries.RECIPE_CONDITIONS.register(RainingCondition.INSTANCE.getType(), RainingCondition.class);
         MBDRegistries.RECIPE_CONDITIONS.register(ThunderCondition.INSTANCE.getType(), ThunderCondition.class);
         MBDRegistries.RECIPE_CONDITIONS.register(MachineLevelCondition.INSTANCE.getType(), MachineLevelCondition.class);
+        MBDRegistries.RECIPE_CONDITIONS.register(BlockCondition.INSTANCE.getType(), BlockCondition.class);
         ModLoader.get().postEvent(new MBDRegistryEvent.RecipeCondition());
         MBDRegistries.RECIPE_CONDITIONS.freeze();
     }
