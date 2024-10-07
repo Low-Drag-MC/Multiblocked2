@@ -16,6 +16,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
@@ -277,7 +278,7 @@ public class BlockPattern {
                             ItemStack found = null;
                             if (!player.isCreative()) {
                                 for (ItemStack itemStack : player.getInventory().items) {
-                                    if (candidates.stream().anyMatch(candidate -> ItemStack.isSameItemSameTags(candidate, itemStack)) && !itemStack.isEmpty() && itemStack.getItem() instanceof BlockItem) {
+                                    if (candidates.stream().anyMatch(candidate -> ItemStack.isSameItemSameTags(candidate, itemStack)) && !itemStack.isEmpty() && (itemStack.getItem() instanceof BlockItem || itemStack.getItem() instanceof BucketItem)) {
                                         found = itemStack.copy();
                                         itemStack.setCount(itemStack.getCount() - 1);
                                         break;
@@ -286,16 +287,19 @@ public class BlockPattern {
                             } else {
                                 for (ItemStack candidate : candidates) {
                                     found = candidate.copy();
-                                    if (!found.isEmpty() && found.getItem() instanceof BlockItem) {
+                                    if (!found.isEmpty() && (found.getItem() instanceof BlockItem || found.getItem() instanceof BucketItem)) {
                                         break;
                                     }
                                     found = null;
                                 }
                             }
                             if (found == null) continue;
-                            BlockItem itemBlock = (BlockItem) found.getItem();
-                            BlockPlaceContext context = new BlockPlaceContext(world, player, InteractionHand.MAIN_HAND, found, BlockHitResult.miss(player.getEyePosition(0), Direction.UP, pos));
-                            itemBlock.place(context);
+                            if (found.getItem() instanceof BlockItem itemBlock) {
+                                BlockPlaceContext context = new BlockPlaceContext(world, player, InteractionHand.MAIN_HAND, found, BlockHitResult.miss(player.getEyePosition(0), Direction.UP, pos));
+                                itemBlock.place(context);
+                            } else if (found.getItem() instanceof BucketItem itemBucket) {
+                                itemBucket.emptyContents(player, world, pos, null, null);
+                            }
                             var machineOptional = IMachine.ofMachine(world, pos);
                             if (machineOptional.isPresent()) {
                                 blocks.put(pos, machineOptional.orElseThrow());
