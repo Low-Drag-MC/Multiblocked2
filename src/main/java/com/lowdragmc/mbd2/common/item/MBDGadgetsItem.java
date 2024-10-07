@@ -91,10 +91,16 @@ public class MBDGadgetsItem extends Item implements HeldItemUIFactory.IHeldItemU
         }
     }
 
+    private boolean isUsed;
+
     @Override
     public InteractionResultHolder<ItemStack> use(Level pLevel, Player pPlayer, InteractionHand pUsedHand) {
         var stack = pPlayer.getItemInHand(pUsedHand);
-        if (pPlayer.isShiftKeyDown()) {
+        if (isUsed) {
+            isUsed = false;
+            return InteractionResultHolder.success(stack);
+        }
+        if (pPlayer.isCrouching()) {
             if (isMultiblockBuilder(stack)) {
                 stack.setDamageValue(1);
                 return InteractionResultHolder.success(stack);
@@ -102,6 +108,9 @@ public class MBDGadgetsItem extends Item implements HeldItemUIFactory.IHeldItemU
                 stack.setDamageValue(0);
                 return InteractionResultHolder.success(stack);
             }
+        } else if (pPlayer instanceof ServerPlayer serverPlayer && isRecipeDebugger(stack)) {
+            HeldItemUIFactory.INSTANCE.openUI(serverPlayer, pUsedHand);
+            return InteractionResultHolder.success(stack);
         }
         return super.use(pLevel, pPlayer, pUsedHand);
     }
@@ -109,12 +118,13 @@ public class MBDGadgetsItem extends Item implements HeldItemUIFactory.IHeldItemU
     @Override
     public InteractionResult onItemUseFirst(ItemStack stack, UseOnContext context) {
         var player = context.getPlayer();
-        if (player instanceof ServerPlayer serverPlayer) {
+        if (player instanceof ServerPlayer serverPlayer && !serverPlayer.isCrouching()) {
             if (isMultiblockBuilder(stack)) {
                 var controller = IMultiController.ofController(player.level(), context.getClickedPos()).orElse(null);
                 if (controller != null) {
                     controller.getPattern().autoBuild(player,
                             new MultiblockState(player.level(), context.getClickedPos()));
+                    isUsed = true;
                     return InteractionResult.SUCCESS;
                 }
             } else if (isRecipeDebugger(stack) && getRecipe(stack) != null && serverPlayer.getServer() != null) {
@@ -158,6 +168,7 @@ public class MBDGadgetsItem extends Item implements HeldItemUIFactory.IHeldItemU
                                             }
                                         }
                                     }
+                                    isUsed = true;
                                     return InteractionResult.SUCCESS;
                                 } else {
                                     serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.raw.failure.0", mbdRecipe.id));
@@ -165,15 +176,14 @@ public class MBDGadgetsItem extends Item implements HeldItemUIFactory.IHeldItemU
                                         serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.failure.reason").append(result.reason().get()));
                                     }
                                 }
+                                isUsed = true;
                                 return InteractionResult.SUCCESS;
                             }
                         }
                     }
+                    isUsed = true;
                     return InteractionResult.SUCCESS;
                 }
-            } else if (isRecipeDebugger(stack) && context.getHand() == InteractionHand.MAIN_HAND) {
-                HeldItemUIFactory.INSTANCE.openUI(serverPlayer, context.getHand());
-                return InteractionResult.SUCCESS;
             }
         }
         return InteractionResult.PASS;
@@ -224,10 +234,8 @@ public class MBDGadgetsItem extends Item implements HeldItemUIFactory.IHeldItemU
         searchComponent.setCapacity(5);
         var textFieldWidget = searchComponent.textFieldWidget;
         textFieldWidget.setCurrentString(currentRecipe == null ? "" : currentRecipe.toString());
-        textFieldWidget.setBordered(false);
         return new ModularUI(200, 50, holder, entityPlayer)
                 .background(ResourceBorderTexture.BORDERED_BACKGROUND)
-                .widget(new ImageWidget(x, y, 150, 10, ColorPattern.T_GRAY.rectTexture().setRadius(5)))
                 .widget(searchComponent)
                 .widget(new ImageWidget(x, y - 12, 150, 10, new TextTexture("item.mbd2.mbd_gadgets.recipe_debugger.recipe_id").setWidth(150)));
     }

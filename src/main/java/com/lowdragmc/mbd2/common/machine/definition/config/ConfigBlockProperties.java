@@ -97,6 +97,11 @@ public class ConfigBlockProperties implements IPersistedSerializable {
     @Builder.Default
     private Sound sound = Sound.STONE;
 
+    @Configurable(name = "config.block_properties.transparent", tips = "config.block_properties.transparent.tooltip")
+    @Builder.Default
+    private boolean transparent = false;
+
+
     public BlockBehaviour.Properties apply(StateMachine stateMachine, BlockBehaviour.Properties properties) {
         if (hasCollision) {
             properties = properties.noOcclusion();

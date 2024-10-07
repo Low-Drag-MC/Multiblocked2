@@ -149,7 +149,7 @@ public abstract class ChemicalTankCapabilityTrait<CHEMICAL extends Chemical<CHEM
 
         @Override
         public ChemicalStorage<mekanism.api.chemical.gas.Gas, GasStack> createStorage() {
-            return new ChemicalStorage.Gas(getDefinition().getCapacity(), chemical -> getDefinition().getChemicalFilterSettings().isEnable() || getDefinition().getChemicalFilterSettings().test(chemical), null);
+            return new ChemicalStorage.Gas(getDefinition().getCapacity(), chemical -> getDefinition().getChemicalFilterSettings().test(chemical), null);
         }
 
         @Override
@@ -170,7 +170,7 @@ public abstract class ChemicalTankCapabilityTrait<CHEMICAL extends Chemical<CHEM
 
         @Override
         public ChemicalStorage<InfuseType, InfusionStack> createStorage() {
-            return new ChemicalStorage.Infuse(getDefinition().getCapacity(), chemical -> getDefinition().getChemicalFilterSettings().isEnable() || getDefinition().getChemicalFilterSettings().test(chemical), null);
+            return new ChemicalStorage.Infuse(getDefinition().getCapacity(), chemical -> getDefinition().getChemicalFilterSettings().test(chemical), null);
         }
 
         @Override
@@ -191,7 +191,7 @@ public abstract class ChemicalTankCapabilityTrait<CHEMICAL extends Chemical<CHEM
 
         @Override
         public ChemicalStorage<mekanism.api.chemical.pigment.Pigment, PigmentStack> createStorage() {
-            return new ChemicalStorage.Pigment(getDefinition().getCapacity(), chemical -> getDefinition().getChemicalFilterSettings().isEnable() || getDefinition().getChemicalFilterSettings().test(chemical), null);
+            return new ChemicalStorage.Pigment(getDefinition().getCapacity(), chemical -> getDefinition().getChemicalFilterSettings().test(chemical), null);
         }
 
         @Override
@@ -212,7 +212,7 @@ public abstract class ChemicalTankCapabilityTrait<CHEMICAL extends Chemical<CHEM
 
         @Override
         public ChemicalStorage<mekanism.api.chemical.slurry.Slurry, SlurryStack> createStorage() {
-            return new ChemicalStorage.Slurry(getDefinition().getCapacity(), chemical -> getDefinition().getChemicalFilterSettings().isEnable() || getDefinition().getChemicalFilterSettings().test(chemical), null);
+            return new ChemicalStorage.Slurry(getDefinition().getCapacity(), chemical -> getDefinition().getChemicalFilterSettings().test(chemical), null);
         }
 
         @Override

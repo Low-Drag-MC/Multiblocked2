@@ -35,6 +35,7 @@ import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
@@ -272,14 +273,28 @@ public class MBDMachineBlock extends Block implements EntityBlock, IBlockRendere
     }
 
     @Override
-    public boolean propagatesSkylightDown(BlockState pState, BlockGetter pLevel, BlockPos pPos) {
-        return super.propagatesSkylightDown(pState, pLevel, pPos);
+    public boolean propagatesSkylightDown(BlockState state, BlockGetter level, BlockPos pos) {
+        return getDefinition().blockProperties().transparent() || !(state.getOptionalValue(BlockStateProperties.WATERLOGGED).orElse(false));
     }
 
     @Override
-    public float getShadeBrightness(BlockState pState, BlockGetter pLevel, BlockPos pPos) {
-        return super.getShadeBrightness(pState, pLevel, pPos);
+    @Deprecated
+    public VoxelShape getVisualShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext ctx) {
+        return getDefinition().blockProperties().transparent() ? Shapes.empty() : super.getVisualShape(state, level, pos, ctx);
     }
+
+    @Override
+    @Deprecated
+    public float getShadeBrightness(BlockState state, BlockGetter level, BlockPos pos) {
+        return getDefinition().blockProperties().transparent() ? 1F : super.getShadeBrightness(state, level, pos);
+    }
+
+    @Override
+    @Deprecated
+    public boolean skipRendering(BlockState state, BlockState state2, Direction direction) {
+        return getDefinition().blockProperties().transparent() ? (state2.is(this) || super.skipRendering(state, state2, direction)) : super.skipRendering(state, state2, direction);
+    }
+
 
     @Override
     public int getLightMap(BlockAndTintGetter world, BlockState state, BlockPos pos) {

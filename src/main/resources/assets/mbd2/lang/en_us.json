@@ -107,6 +107,8 @@
     "config.block_properties.sound.tooltip": "The sound played when the block is broken.",
     "config.block_properties.use_ao": "Use AO",
     "config.block_properties.use_ao.tooltip": "Whether render the block with Ambient Occlusion.",
+    "config.block_properties.transparent": "Transparent block",
+    "config.block_properties.transparent.tooltip": "enable it if your block is a glass-like block.",
 
     "config.item_properties.max_stack_size": "Max Stack Size",
     "config.item_properties.max_stack_size.tooltip": "The maximum stack size of the item.",
