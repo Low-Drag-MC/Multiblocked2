@@ -16,6 +16,7 @@ import net.minecraft.MethodsReturnNonnullByDefault;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.Arrays;
 
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
@@ -31,37 +32,79 @@ public abstract class ChemicalHandlerList<CHEMICAL extends Chemical<CHEMICAL>, S
 
     @Override
     public int getTanks() {
-        return handlers.length;
+        return Arrays.stream(handlers).mapToInt(IChemicalHandler::getTanks).sum();
     }
 
     @Override
     public STACK getChemicalInTank(int tank) {
-        return handlers[tank].getChemicalInTank(tank);
+        int index = 0;
+        for (var handler : handlers) {
+            if (tank - index < handler.getTanks()) {
+                return handler.getChemicalInTank(tank - index);
+            }
+            index += handler.getTanks();
+        }
+        return emptyStack;
     }
 
     @Override
     public void setChemicalInTank(int tank, STACK stack) {
-        handlers[tank].setChemicalInTank(tank, stack);
+        int index = 0;
+        for (var handler : handlers) {
+            if (tank - index < handler.getTanks()) {
+                handler.setChemicalInTank(tank - index, stack);
+                return;
+            }
+            index += handler.getTanks();
+        }
     }
 
     @Override
     public long getTankCapacity(int tank) {
-        return handlers[tank].getTankCapacity(tank);
+        int index = 0;
+        for (var handler : handlers) {
+            if (tank - index < handler.getTanks()) {
+                return handler.getTankCapacity(tank - index);
+            }
+            index += handler.getTanks();
+        }
+        return 0;
     }
 
     @Override
     public boolean isValid(int tank, STACK stack) {
-        return handlers[tank].isValid(tank, stack);
+        int index = 0;
+        for (var handler : handlers) {
+            if (tank - index < handler.getTanks()) {
+                return handler.isValid(tank - index, stack);
+            }
+            index += handler.getTanks();
+        }
+        return false;
     }
 
     @Override
     public STACK insertChemical(int tank, STACK stack, Action action) {
-        return handlers[tank].insertChemical(tank, stack, action);
+        int index = 0;
+        for (var handler : handlers) {
+            if (tank - index < handler.getTanks()) {
+                return handler.insertChemical(tank - index, stack, action);
+            }
+            index += handler.getTanks();
+        }
+        return stack;
     }
 
     @Override
     public STACK extractChemical(int tank, long amount, Action action) {
-        return handlers[tank].extractChemical(tank, amount, action);
+        int index = 0;
+        for (var handler : handlers) {
+            if (tank - index < handler.getTanks()) {
+                return handler.extractChemical(tank - index, amount, action);
+            }
+            index += handler.getTanks();
+        }
+        return emptyStack;
     }
 
     @Override
