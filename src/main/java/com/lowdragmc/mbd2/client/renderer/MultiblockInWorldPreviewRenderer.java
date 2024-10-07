@@ -11,6 +11,7 @@ import com.lowdragmc.mbd2.api.machine.IMultiController;
 import com.lowdragmc.mbd2.common.block.MBDMachineBlock;
 import com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine;
 import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
+import com.lowdragmc.mbd2.utils.ControllerBlockInfo;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import lombok.Getter;
@@ -116,6 +117,7 @@ public class MultiblockInWorldPreviewRenderer {
         var blocks = shapeInfo.getBlocks();
         BlockPos controllerPatternPos = null;
         var maxY = 0;
+
         // find the pos of controller
         for (int x = 0; x < blocks.length; x++) {
             BlockInfo[][] aisle = blocks[x];
@@ -123,11 +125,15 @@ public class MultiblockInWorldPreviewRenderer {
             for (int y = 0; y < aisle.length; y++) {
                 BlockInfo[] column = aisle[y];
                 for (int z = 0; z < column.length; z++) {
-                    var blockState = column[z].getBlockState();
                     // if its controller record its position offset.
-                    if (blockState.getBlock() instanceof MBDMachineBlock machineBlock &&
-                            machineBlock.getDefinition() instanceof MultiblockMachineDefinition) {
+                    if (column[z] instanceof ControllerBlockInfo) {
                         controllerPatternPos = new BlockPos(x, y, z);
+                    } else {
+                        var blockState = column[z].getBlockState();
+                        if (blockState != null && blockState.getBlock() instanceof MBDMachineBlock machineBlock &&
+                                machineBlock.getDefinition() instanceof MultiblockMachineDefinition) {
+                            controllerPatternPos = new BlockPos(x, y, z);
+                        }
                     }
                 }
             }
