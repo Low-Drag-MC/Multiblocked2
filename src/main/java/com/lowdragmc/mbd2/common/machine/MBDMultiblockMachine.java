@@ -137,9 +137,20 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
     }
 
     @Override
-    public @Nullable MBDRecipe doModifyRecipe(MBDRecipe recipe) {
-        recipe = getDefinition().machineSettings().recipeModifiers().applyModifiers(getRecipeLogic(), recipe);
-        return applyParallel(IMultiController.super.doModifyRecipe(recipe));
+    public @Nullable MBDRecipe getModifiedRecipe(@Nonnull MBDRecipe recipe) {
+        return IMultiController.super.getModifiedRecipe(
+                getDefinition().machineSettings().recipeModifiers().applyModifiers(getRecipeLogic(), recipe));
+    }
+
+    @Override
+    public int getMaxParallel(@Nonnull MBDRecipe recipe) {
+        var maxParallel = getDefinition().machineSettings().recipeModifiers().getMaxParallel(getRecipeLogic(), recipe);
+        return Math.max(IMultiController.super.getMaxParallel(recipe), maxParallel);
+    }
+
+    @Override
+    public boolean alwaysTryModifyRecipe() {
+        return super.alwaysTryModifyRecipe() || IMultiController.super.alwaysTryModifyRecipe();
     }
 
     @Override

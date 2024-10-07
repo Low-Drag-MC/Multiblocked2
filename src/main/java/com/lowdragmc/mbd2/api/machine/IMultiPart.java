@@ -108,8 +108,21 @@ public interface IMultiPart extends IMachine {
      * @return modified recipe.
      *         null -- this recipe is unavailable
      */
-    default @Nullable MBDRecipe modifyControllerRecipe(MBDRecipe recipe, RecipeLogic controllerRecipeLogic) {
+    default @Nullable MBDRecipe modifyControllerRecipe(@Nonnull MBDRecipe recipe, RecipeLogic controllerRecipeLogic) {
         return recipe;
     }
 
+    /**
+     * Get the max parallel for controller recipe handling.
+     */
+    default int getMaxControllerParallel(@Nonnull MBDRecipe recipe, RecipeLogic controllerRecipeLogic) {
+        return 1;
+    }
+
+    /**
+     * Always try controller's {@link #doModifyRecipe(MBDRecipe)} before setting up controller recipe.
+     */
+    default boolean alwaysTryModifyControllerRecipe() {
+        return false;
+    }
 }

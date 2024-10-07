@@ -48,10 +48,6 @@ public class ConfigMachineSettings implements IPersistedSerializable, IConfigura
             "config.machine_settings.has_recipe_logic.tooltip.1"
     })
     private boolean hasRecipeLogic = true;
-    @Getter
-    @Builder.Default
-    @Configurable(name = "config.machine_settings.parallel", subConfigurable = true)
-    private ToggleParallelValue maxParallel = new ToggleParallelValue();
     @Builder.Default
     @Persisted
     private ResourceLocation recipeType = MBDRecipeType.DUMMY.registryName;

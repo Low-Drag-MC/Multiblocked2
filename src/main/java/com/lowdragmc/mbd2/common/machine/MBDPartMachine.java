@@ -22,6 +22,7 @@ import net.minecraftforge.common.util.LazyOptional;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nonnull;
 import java.util.*;
 
 public class MBDPartMachine extends MBDMachine implements IMultiPart {
@@ -174,11 +175,27 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
      *         null -- this recipe is unavailable
      */
     @Override
-    public MBDRecipe modifyControllerRecipe(MBDRecipe recipe, RecipeLogic controllerRecipeLogic) {
+    public MBDRecipe modifyControllerRecipe(@Nonnull MBDRecipe recipe, RecipeLogic controllerRecipeLogic) {
         if (getDefinition().partSettings() != null) {
             return getDefinition().partSettings().recipeModifiers().applyModifiers(controllerRecipeLogic, recipe);
         }
         return recipe;
+    }
+
+    @Override
+    public int getMaxControllerParallel(@NotNull MBDRecipe recipe, RecipeLogic controllerRecipeLogic) {
+        if (getDefinition().partSettings() != null) {
+            return getDefinition().partSettings().recipeModifiers().getMaxParallel(controllerRecipeLogic, recipe);
+        }
+        return 1;
+    }
+
+    @Override
+    public boolean alwaysTryModifyControllerRecipe() {
+        if (getDefinition().partSettings() != null) {
+            return !getDefinition().partSettings().recipeModifiers().recipeModifiers.isEmpty();
+        }
+        return false;
     }
 
     @Override

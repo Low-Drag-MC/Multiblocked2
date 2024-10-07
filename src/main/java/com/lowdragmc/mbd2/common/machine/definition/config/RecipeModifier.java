@@ -1,6 +1,7 @@
 package com.lowdragmc.mbd2.common.machine.definition.config;
 
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.ArrayConfiguratorGroup;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorSelectorConfigurator;
@@ -18,7 +19,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 
-import javax.annotation.Nullable;
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -34,6 +35,9 @@ public class RecipeModifier implements IConfigurable, IPersistedSerializable {
     @Configurable(name = "config.recipe.duration_modifier", subConfigurable = true, tips = {"config.recipe.duration_modifier.tooltip"}, collapse = false)
     public final ContentModifier durationModifier = ContentModifier.of(1, 0);
     public final List<RecipeCondition> recipeConditions = new ArrayList<>();
+    @Configurable(name = "config.machine_settings.max_parallel", tips = "config.machine_settings.max_parallel.tooltip")
+    @NumberRange(range = {1, Integer.MAX_VALUE})
+    private int maxParallel = 1;
 
     @Override
     public CompoundTag serializeNBT() {
@@ -138,34 +142,21 @@ public class RecipeModifier implements IConfigurable, IPersistedSerializable {
          *
          * @param recipeLogic the recipe logic
          * @param recipe      the original recipe
-         * @return the modified recipe
+         * @return the modified recipe with the max parallel number
          */
-        public @Nullable MBDRecipe applyModifiers(RecipeLogic recipeLogic, @Nullable MBDRecipe recipe) {
-            if (recipe == null || recipeModifiers.isEmpty()) return recipe;
+        public @Nonnull MBDRecipe applyModifiers(RecipeLogic recipeLogic, @Nonnull MBDRecipe recipe) {
+            if (recipeModifiers.isEmpty()) return recipe;
             var contentModifiers = new ArrayList<Pair<ContentModifier, IO>>();
             var durationModifiers = new ArrayList<ContentModifier>();
 
             for (var modifier : recipeModifiers) {
-                var or = new HashMap<String, List<RecipeCondition>>();
-                var success = true;
-                for (RecipeCondition condition : modifier.recipeConditions) {
-                    if (condition.isOr()) {
-                        or.computeIfAbsent(condition.getType(), type -> new ArrayList<>()).add(condition);
-                    } else if (condition.test(recipe, recipeLogic) == condition.isReverse()) {
-                        success = false;
-                        break;
+                if (checkConditions(recipeLogic, recipe, modifier)) {
+                    if (!modifier.contentModifier.isIdentity() && modifier.targetContent != IO.NONE) {
+                        contentModifiers.add(Pair.of(modifier.contentModifier, modifier.targetContent));
                     }
-                }
-                for (List<RecipeCondition> conditions : or.values()) {
-                    MBDRecipe finalRecipe = recipe;
-                    if (conditions.stream().allMatch(condition -> condition.test(finalRecipe, recipeLogic) == condition.isReverse())) {
-                        success = false;
-                        break;
+                    if (!modifier.durationModifier.isIdentity()) {
+                        durationModifiers.add(modifier.durationModifier);
                     }
-                }
-                if (success) {
-                    contentModifiers.add(Pair.of(modifier.contentModifier, modifier.targetContent));
-                    durationModifiers.add(modifier.durationModifier);
                 }
             }
             if (!contentModifiers.isEmpty()) {
@@ -177,9 +168,49 @@ public class RecipeModifier implements IConfigurable, IPersistedSerializable {
                 if (!outputModifiers.isEmpty()) {
                     recipe = recipe.copy(outputModifiers.stream().reduce(ContentModifier::merge).orElseThrow(), false, IO.OUT);
                 }
+            }
+            if (!durationModifiers.isEmpty()) {
+                if (contentModifiers.isEmpty()) {
+                    recipe = recipe.copy();
+                }
                 recipe.duration = durationModifiers.stream().reduce(ContentModifier::merge).orElseThrow().apply(recipe.duration).intValue();
             }
             return recipe;
+        }
+
+        /**
+         * Get the max parallel number of the recipe.
+         */
+        public int getMaxParallel(RecipeLogic recipeLogic, @Nonnull MBDRecipe recipe) {
+            if (recipeModifiers.isEmpty()) return 1;
+            var maxParallel = 1;
+            for (var modifier : recipeModifiers) {
+                if (modifier.maxParallel > maxParallel && checkConditions(recipeLogic, recipe, modifier)) {
+                    maxParallel = Math.max(maxParallel, modifier.maxParallel);
+                }
+            }
+            return maxParallel;
+        }
+
+        private boolean checkConditions(RecipeLogic recipeLogic, @Nonnull MBDRecipe recipe, RecipeModifier modifier) {
+            var or = new HashMap<String, List<RecipeCondition>>();
+            var success = true;
+            for (RecipeCondition condition : modifier.recipeConditions) {
+                if (condition.isOr()) {
+                    or.computeIfAbsent(condition.getType(), type -> new ArrayList<>()).add(condition);
+                } else if (condition.test(recipe, recipeLogic) == condition.isReverse()) {
+                    success = false;
+                    break;
+                }
+            }
+            for (List<RecipeCondition> conditions : or.values()) {
+                MBDRecipe finalRecipe = recipe;
+                if (conditions.stream().allMatch(condition -> condition.test(finalRecipe, recipeLogic) == condition.isReverse())) {
+                    success = false;
+                    break;
+                }
+            }
+            return success;
         }
     }
 }

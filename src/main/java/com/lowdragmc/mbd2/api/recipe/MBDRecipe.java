@@ -463,37 +463,37 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
 
     /**
      * Accurate parallel, always look for the maximum parallel value within maxParallel.
-     * @param machine recipe holder
+     * @param recipeCapabilityHolder recipe capability holder
      * @param recipe current recipe
      * @param maxParallel max parallel limited
      * @param modifyDuration should multiply the duration
      * @return modified recipe and parallel amount
      */
-    public static Pair<MBDRecipe, Integer> accurateParallel(IMachine machine, @Nonnull MBDRecipe recipe, int maxParallel, boolean modifyDuration) {
+    public static Pair<MBDRecipe, Integer> accurateParallel(IRecipeCapabilityHolder recipeCapabilityHolder, @Nonnull MBDRecipe recipe, int maxParallel, boolean modifyDuration) {
         if (maxParallel == 1) {
             return Pair.of(recipe, 1);
         }
-        var parallel = tryParallel(machine, recipe, 1, maxParallel, modifyDuration);
+        var parallel = tryParallel(recipeCapabilityHolder, recipe, 1, maxParallel, modifyDuration);
         return parallel == null ? Pair.of(recipe, 1) : parallel;
     }
 
     @Nullable
-    private static Pair<MBDRecipe, Integer> tryParallel(IMachine machine, MBDRecipe original, int min, int max, boolean modifyDuration) {
+    private static Pair<MBDRecipe, Integer> tryParallel(IRecipeCapabilityHolder recipeCapabilityHolder, MBDRecipe original, int min, int max, boolean modifyDuration) {
         if (min > max) return null;
 
         int mid = (min + max) / 2;
 
         var copied = original.copy(ContentModifier.multiplier(mid), modifyDuration);
-        if (!copied.matchRecipe(machine).isSuccess() || !copied.matchTickRecipe(machine).isSuccess()) {
+        if (!copied.matchRecipe(recipeCapabilityHolder).isSuccess() || !copied.matchTickRecipe(recipeCapabilityHolder).isSuccess()) {
             // tried too many
-            return tryParallel(machine, original, min, mid - 1, modifyDuration);
+            return tryParallel(recipeCapabilityHolder, original, min, mid - 1, modifyDuration);
         } else {
             // at max parallels
             if (mid == max) {
                 return Pair.of(copied, mid);
             }
             // matches, but try to do more
-            var tryMore = tryParallel(machine, original, mid + 1, max, modifyDuration);
+            var tryMore = tryParallel(recipeCapabilityHolder, original, mid + 1, max, modifyDuration);
             return tryMore != null ? tryMore : Pair.of(copied, mid);
         }
     }

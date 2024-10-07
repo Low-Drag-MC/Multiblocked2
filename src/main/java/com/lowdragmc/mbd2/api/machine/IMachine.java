@@ -5,6 +5,7 @@ import com.lowdragmc.mbd2.api.capability.recipe.IRecipeCapabilityHolder;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
+import com.mojang.datafixers.util.Pair;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -195,13 +196,50 @@ public interface IMachine extends IRecipeCapabilityHolder {
     RecipeLogic getRecipeLogic();
 
     /**
+     * do not override it.
+     * <br> implement {@link #getModifiedRecipe(MBDRecipe)} for recipe modification.
+     * <br> implement {@link #getMaxParallel(MBDRecipe)} for parallel recipe.
+     */
+    @Nullable
+    default MBDRecipe doModifyRecipe(@Nonnull MBDRecipe recipe) {
+        recipe = getModifiedRecipe(recipe);
+        if (recipe == null) {
+            return null;
+        }
+        return applyParallel(recipe, getMaxParallel(recipe));
+    }
+
+    /**
      * Override it to modify recipe on the fly e.g. applying overclock, change chance, etc
      * @param recipe recipe from detected from MBDRecipe
      * @return modified recipe.
      *         null -- this recipe is unavailable
      */
     @Nullable
-    default MBDRecipe doModifyRecipe(MBDRecipe recipe) {
+    default MBDRecipe getModifiedRecipe(@Nonnull MBDRecipe recipe) {
+        return recipe;
+    }
+
+    /**
+     * Get the max parallel.
+     */
+    default int getMaxParallel(@Nonnull MBDRecipe recipe) {
+        return 1;
+    }
+
+    /**
+     * Apply parallel to the recipe.
+     * @param recipe the recipe to apply parallel
+     * @param maxParallel the max parallel
+     * @return the modified recipe
+     */
+    @Nonnull
+    default MBDRecipe applyParallel(@Nonnull MBDRecipe recipe, int maxParallel) {
+        // apply parallel here
+        if (maxParallel > 1) {
+            var result = MBDRecipe.accurateParallel(this, recipe, maxParallel, false);
+            return result.getFirst();
+        }
         return recipe;
     }
 

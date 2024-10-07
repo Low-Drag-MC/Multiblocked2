@@ -438,29 +438,18 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
 
     @Nullable
     @Override
-    public MBDRecipe doModifyRecipe(MBDRecipe recipe) {
-        recipe = getDefinition().machineSettings().recipeModifiers().applyModifiers(getRecipeLogic(), recipe);
-        return applyParallel(IMachine.super.doModifyRecipe(recipe));
+    public MBDRecipe getModifiedRecipe(@Nonnull MBDRecipe recipe) {
+        return getDefinition().machineSettings().recipeModifiers().applyModifiers(getRecipeLogic(), recipe);
+    }
+
+    @Override
+    public int getMaxParallel(@Nonnull MBDRecipe recipe) {
+        return getDefinition().machineSettings().recipeModifiers().getMaxParallel(getRecipeLogic(), recipe);
     }
 
     @Override
     public boolean alwaysTryModifyRecipe() {
-        return getDefinition().machineSettings().maxParallel().isEnable() || !getDefinition().machineSettings().recipeModifiers().recipeModifiers.isEmpty();
-    }
-
-    public MBDRecipe applyParallel(MBDRecipe recipe) {
-        if (recipe != null) {
-            // apply parallel here
-            var maxParallel = getDefinition().machineSettings().maxParallel();
-            if (maxParallel.isEnable()) {
-                var parallel = maxParallel.getMaxParallel();
-                if (parallel > 1) {
-                    var result = MBDRecipe.accurateParallel(this, recipe, parallel, maxParallel.isModifyDuration());
-                    return result.getFirst();
-                }
-            }
-        }
-        return recipe;
+        return !getDefinition().machineSettings().recipeModifiers().recipeModifiers.isEmpty();
     }
 
     @Override

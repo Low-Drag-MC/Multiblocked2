@@ -12,10 +12,12 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 
@@ -98,13 +100,31 @@ public interface IMultiController extends IMachine {
      *         null -- this recipe is unavailable
      */
     @Nullable
-    default MBDRecipe doModifyRecipe(MBDRecipe recipe) {
-        if (recipe == null) return null;
+    default MBDRecipe getModifiedRecipe(@Nonnull MBDRecipe recipe) {
         for (var part : getParts()) {
             recipe = part.modifyControllerRecipe(recipe, getRecipeLogic());
             if (recipe == null) return null;
         }
         return recipe;
+    }
+
+    @Override
+    default int getMaxParallel(@NotNull MBDRecipe recipe) {
+        var maxParallel = IMachine.super.getMaxParallel(recipe);
+        for (var part : getParts()) {
+            maxParallel = Math.max(part.getMaxControllerParallel(recipe, getRecipeLogic()), maxParallel);
+        }
+        return maxParallel;
+    }
+
+    @Override
+    default boolean alwaysTryModifyRecipe() {
+        for (var part : getParts()) {
+            if (part.alwaysTryModifyControllerRecipe()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

@@ -19,6 +19,10 @@ public class ContentModifier implements IConfigurable {
     @NumberRange(range = {0, Double.MAX_VALUE}, wheel = 1f)
     private double addition;
 
+    public boolean isIdentity() {
+        return multiplier == 1 && addition == 0;
+    }
+
     public static ContentModifier of(double multiplier, double addition) {
         return new ContentModifier(multiplier, addition);
     }
