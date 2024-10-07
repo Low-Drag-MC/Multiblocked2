@@ -1,18 +1,32 @@
 package com.lowdragmc.mbd2.common.machine.definition.config;
 
+import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib.gui.editor.configurator.*;
+import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
+import com.lowdragmc.lowdraglib.gui.widget.SearchComponentWidget;
+import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
+import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
 import com.lowdragmc.mbd2.api.block.RotationState;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.core.Direction;
-import net.minecraft.world.level.block.SoundType;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraftforge.common.util.ForgeSoundType;
+import net.minecraftforge.registries.ForgeRegistries;
+
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 @Getter
 @Accessors(fluent = true)
@@ -20,6 +34,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 public class ConfigBlockProperties implements IPersistedSerializable {
     @Getter
     @Setter
+    @Accessors(fluent = true)
     public static class RenderTypes implements IPersistedSerializable {
         @Configurable(name = "config.block_properties.render_types.solid")
         private boolean solid;
@@ -105,10 +120,9 @@ public class ConfigBlockProperties implements IPersistedSerializable {
     @Builder.Default
     private float explosionResistance = 6.0f;
 
-    @Configurable(name = "config.block_properties.sound", tips = {"config.block_properties.sound.tooltip",
-            "config.require_restart"})
+    @Configurable(name = "config.block_properties.block_sound", subConfigurable = true)
     @Builder.Default
-    private Sound sound = Sound.STONE;
+    private BlockSound blockSound = new BlockSound();
 
     @Configurable(name = "config.block_properties.transparent", tips = "config.block_properties.transparent.tooltip")
     @Builder.Default
@@ -139,7 +153,7 @@ public class ConfigBlockProperties implements IPersistedSerializable {
         properties = properties.jumpFactor(jumpFactor);
         properties = properties.destroyTime(destroyTime);
         properties = properties.explosionResistance(explosionResistance);
-        properties = properties.sound(sound.soundType);
+        properties = properties.sound(blockSound.createSoundType());
         // check dynamic shape
         VoxelShape shape = null;
         for (var state : stateMachine.states.values()) {
@@ -157,115 +171,121 @@ public class ConfigBlockProperties implements IPersistedSerializable {
         return properties;
     }
 
-    public enum Sound {
-        EMPTY(SoundType.EMPTY),
-        WOOD(SoundType.WOOD),
-        GRAVEL(SoundType.GRAVEL),
-        GRASS(SoundType.GRASS),
-        LILY_PAD(SoundType.LILY_PAD),
-        STONE(SoundType.STONE),
-        METAL(SoundType.METAL),
-        GLASS(SoundType.GLASS),
-        WOOL(SoundType.WOOL),
-        SAND(SoundType.SAND),
-        SNOW(SoundType.SNOW),
-        POWDER_SNOW(SoundType.POWDER_SNOW),
-        LADDER(SoundType.LADDER),
-        ANVIL(SoundType.ANVIL),
-        SLIME_BLOCK(SoundType.SLIME_BLOCK),
-        HONEY_BLOCK(SoundType.HONEY_BLOCK),
-        WET_GRASS(SoundType.WET_GRASS),
-        CORAL_BLOCK(SoundType.CORAL_BLOCK),
-        BAMBOO(SoundType.BAMBOO),
-        BAMBOO_SAPLING(SoundType.BAMBOO_SAPLING),
-        SCAFFOLDING(SoundType.SCAFFOLDING),
-        SWEET_BERRY_BUSH(SoundType.SWEET_BERRY_BUSH),
-        CROP(SoundType.CROP),
-        HARD_CROP(SoundType.HARD_CROP),
-        VINE(SoundType.VINE),
-        NETHER_WART(SoundType.NETHER_WART),
-        LANTERN(SoundType.LANTERN),
-        STEM(SoundType.STEM),
-        NYLIUM(SoundType.NYLIUM),
-        FUNGUS(SoundType.FUNGUS),
-        ROOTS(SoundType.ROOTS),
-        SHROOMLIGHT(SoundType.SHROOMLIGHT),
-        WEEPING_VINES(SoundType.WEEPING_VINES),
-        TWISTING_VINES(SoundType.TWISTING_VINES),
-        SOUL_SAND(SoundType.SOUL_SAND),
-        SOUL_SOIL(SoundType.SOUL_SOIL),
-        BASALT(SoundType.BASALT),
-        WART_BLOCK(SoundType.WART_BLOCK),
-        NETHERRACK(SoundType.NETHERRACK),
-        NETHER_BRICKS(SoundType.NETHER_BRICKS),
-        NETHER_SPROUTS(SoundType.NETHER_SPROUTS),
-        NETHER_ORE(SoundType.NETHER_ORE),
-        BONE_BLOCK(SoundType.BONE_BLOCK),
-        NETHERITE_BLOCK(SoundType.NETHERITE_BLOCK),
-        ANCIENT_DEBRIS(SoundType.ANCIENT_DEBRIS),
-        LODESTONE(SoundType.LODESTONE),
-        CHAIN(SoundType.CHAIN),
-        NETHER_GOLD_ORE(SoundType.NETHER_GOLD_ORE),
-        GILDED_BLACKSTONE(SoundType.GILDED_BLACKSTONE),
-        CANDLE(SoundType.CANDLE),
-        AMETHYST(SoundType.AMETHYST),
-        AMETHYST_CLUSTER(SoundType.AMETHYST_CLUSTER),
-        SMALL_AMETHYST_BUD(SoundType.SMALL_AMETHYST_BUD),
-        MEDIUM_AMETHYST_BUD(SoundType.MEDIUM_AMETHYST_BUD),
-        LARGE_AMETHYST_BUD(SoundType.LARGE_AMETHYST_BUD),
-        TUFF(SoundType.TUFF),
-        CALCITE(SoundType.CALCITE),
-        DRIPSTONE_BLOCK(SoundType.DRIPSTONE_BLOCK),
-        POINTED_DRIPSTONE(SoundType.POINTED_DRIPSTONE),
-        COPPER(SoundType.COPPER),
-        CAVE_VINES(SoundType.CAVE_VINES),
-        SPORE_BLOSSOM(SoundType.SPORE_BLOSSOM),
-        AZALEA(SoundType.AZALEA),
-        FLOWERING_AZALEA(SoundType.FLOWERING_AZALEA),
-        MOSS_CARPET(SoundType.MOSS_CARPET),
-        PINK_PETALS(SoundType.PINK_PETALS),
-        MOSS(SoundType.MOSS),
-        BIG_DRIPLEAF(SoundType.BIG_DRIPLEAF),
-        SMALL_DRIPLEAF(SoundType.SMALL_DRIPLEAF),
-        ROOTED_DIRT(SoundType.ROOTED_DIRT),
-        HANGING_ROOTS(SoundType.HANGING_ROOTS),
-        AZALEA_LEAVES(SoundType.AZALEA_LEAVES),
-        SCULK_SENSOR(SoundType.SCULK_SENSOR),
-        SCULK_CATALYST(SoundType.SCULK_CATALYST),
-        SCULK(SoundType.SCULK),
-        SCULK_VEIN(SoundType.SCULK_VEIN),
-        SCULK_SHRIEKER(SoundType.SCULK_SHRIEKER),
-        GLOW_LICHEN(SoundType.GLOW_LICHEN),
-        DEEPSLATE(SoundType.DEEPSLATE),
-        DEEPSLATE_BRICKS(SoundType.DEEPSLATE_BRICKS),
-        DEEPSLATE_TILES(SoundType.DEEPSLATE_TILES),
-        POLISHED_DEEPSLATE(SoundType.POLISHED_DEEPSLATE),
-        FROGLIGHT(SoundType.FROGLIGHT),
-        FROGSPAWN(SoundType.FROGSPAWN),
-        MANGROVE_ROOTS(SoundType.MANGROVE_ROOTS),
-        MUDDY_MANGROVE_ROOTS(SoundType.MUDDY_MANGROVE_ROOTS),
-        MUD(SoundType.MUD),
-        MUD_BRICKS(SoundType.MUD_BRICKS),
-        PACKED_MUD(SoundType.PACKED_MUD),
-        HANGING_SIGN(SoundType.HANGING_SIGN),
-        NETHER_WOOD_HANGING_SIGN(SoundType.NETHER_WOOD_HANGING_SIGN),
-        BAMBOO_WOOD_HANGING_SIGN(SoundType.BAMBOO_WOOD_HANGING_SIGN),
-        BAMBOO_WOOD(SoundType.BAMBOO_WOOD),
-        NETHER_WOOD(SoundType.NETHER_WOOD),
-        CHERRY_WOOD(SoundType.CHERRY_WOOD),
-        CHERRY_SAPLING(SoundType.CHERRY_SAPLING),
-        CHERRY_LEAVES(SoundType.CHERRY_LEAVES),
-        CHERRY_WOOD_HANGING_SIGN(SoundType.CHERRY_WOOD_HANGING_SIGN),
-        CHISELED_BOOKSHELF(SoundType.CHISELED_BOOKSHELF),
-        SUSPICIOUS_SAND(SoundType.SUSPICIOUS_SAND),
-        SUSPICIOUS_GRAVEL(SoundType.SUSPICIOUS_GRAVEL),
-        DECORATED_POT(SoundType.DECORATED_POT),
-        DECORATED_POT_CRACKED(SoundType.DECORATED_POT_CRACKED);
+    @Getter
+    @Setter
+    @Accessors(fluent = true)
+    public static class BlockSound implements IPersistedSerializable, IConfigurable {
+        @Configurable(name = "config.block_properties.block_sound.volume", tips = "config.require_restart")
+        @NumberRange(range = {0, Float.MAX_VALUE})
+        private float volumeIn = 1;
+        @Configurable(name = "config.block_properties.block_sound.pitch", tips = "config.require_restart")
+        @NumberRange(range = {0, Float.MAX_VALUE})
+        private float pitchIn = 1;
+        @Persisted
+        private ResourceLocation breakSound = SoundEvents.STONE_BREAK.getLocation();
+        @Persisted
+        private ResourceLocation stepSound = SoundEvents.STONE_STEP.getLocation();
+        @Persisted
+        private ResourceLocation placeSound = SoundEvents.STONE_PLACE.getLocation();
+        @Persisted
+        private ResourceLocation hitSound = SoundEvents.STONE_HIT.getLocation();
+        @Persisted
+        private ResourceLocation fallSound = SoundEvents.STONE_FALL.getLocation();
 
-        public final SoundType soundType;
+        // runtime
+        private SoundEvent breakSoundEvent;
+        private SoundEvent stepSoundEvent;
+        private SoundEvent placeSoundEvent;
+        private SoundEvent hitSoundEvent;
+        private SoundEvent fallSoundEvent;
 
-        Sound(SoundType soundType) {
-            this.soundType = soundType;
+        public ForgeSoundType createSoundType() {
+            return new ForgeSoundType(1.0f, 1.0f,
+                    this::getBreakSoundEvent,
+                    this::getStepSoundEvent,
+                    this::getPlaceSoundEvent,
+                    this::getHitSoundEvent,
+                    this::getFallSoundEvent);
+        }
+
+        public SoundEvent getBreakSoundEvent() {
+            if (breakSoundEvent == null) {
+                breakSoundEvent = Optional.ofNullable(ForgeRegistries.SOUND_EVENTS.getValue(breakSound)).orElse(SoundEvents.EMPTY);
+            }
+            return breakSoundEvent;
+        }
+
+        public SoundEvent getStepSoundEvent() {
+            if (stepSoundEvent == null) {
+                stepSoundEvent = Optional.ofNullable(ForgeRegistries.SOUND_EVENTS.getValue(stepSound)).orElse(SoundEvents.EMPTY);
+            }
+            return stepSoundEvent;
+        }
+
+        public SoundEvent getPlaceSoundEvent() {
+            if (placeSoundEvent == null) {
+                placeSoundEvent = Optional.ofNullable(ForgeRegistries.SOUND_EVENTS.getValue(placeSound)).orElse(SoundEvents.EMPTY);
+            }
+            return placeSoundEvent;
+        }
+
+        public SoundEvent getHitSoundEvent() {
+            if (hitSoundEvent == null) {
+                hitSoundEvent = Optional.ofNullable(ForgeRegistries.SOUND_EVENTS.getValue(hitSound)).orElse(SoundEvents.EMPTY);
+            }
+            return hitSoundEvent;
+        }
+
+        public SoundEvent getFallSoundEvent() {
+            if (fallSoundEvent == null) {
+                fallSoundEvent = Optional.ofNullable(ForgeRegistries.SOUND_EVENTS.getValue(fallSound)).orElse(SoundEvents.EMPTY);
+            }
+            return fallSoundEvent;
+        }
+
+        @Override
+        public void buildConfigurator(ConfiguratorGroup father) {
+            IConfigurable.super.buildConfigurator(father);
+            father.addConfigurators(
+                    createSoundConfigurator("config.block_properties.block_sound.break", this::breakSound, this::breakSound),
+                    createSoundConfigurator("config.block_properties.block_sound.step", this::stepSound, this::stepSound),
+                    createSoundConfigurator("config.block_properties.block_sound.place", this::placeSound, this::placeSound),
+                    createSoundConfigurator("config.block_properties.block_sound.hit", this::hitSound, this::hitSound),
+                    createSoundConfigurator("config.block_properties.block_sound.fall", this::fallSound, this::fallSound)
+            );
+        }
+
+        public Configurator createSoundConfigurator(String name, Consumer<ResourceLocation> setter, Supplier<ResourceLocation> getter) {
+            var typeGroup = new WidgetGroup(0, 0, 180, 10);
+            typeGroup.addWidget(new ImageWidget(0, 0, 180, 10, ColorPattern.T_GRAY.rectTexture().setRadius(5)));
+            var searchComponent = new SearchComponentWidget<>(3, 0, 180 - 3, 10, new SearchComponentWidget.IWidgetSearch<ResourceLocation>() {
+                @Override
+                public void search(String word, Consumer<ResourceLocation> find) {
+                    for (var key : ForgeRegistries.SOUND_EVENTS.getKeys()) {
+                        if (key.toString().contains(word.toLowerCase())) {
+                            find.accept(key);
+                        }
+                    }
+                }
+
+                @Override
+                public String resultDisplay(ResourceLocation value) {
+                    return value.toString();
+                }
+
+                @Override
+                public void selectResult(ResourceLocation value) {
+                    setter.accept(value);
+                }
+            });
+            searchComponent.setShowUp(true);
+            searchComponent.setCapacity(5);
+            var textFieldWidget = searchComponent.textFieldWidget;
+            textFieldWidget.setClientSideWidget();
+            textFieldWidget.setCurrentString(getter.get().toString());
+            textFieldWidget.setBordered(false);
+            typeGroup.addWidget(searchComponent);
+            return new WrapperConfigurator(name, typeGroup);
         }
     }
 }

@@ -1,5 +1,5 @@
 # ChangeLog
 
-* remove dynamic shape, auto setup instead
-* add transparent option for glass-like block
-* fix mek chemical filter doesn't work
+* add block condition
+* rework parallel for more flexibility (move to recipe modifiers)
+* improve block sound for more flexibility
