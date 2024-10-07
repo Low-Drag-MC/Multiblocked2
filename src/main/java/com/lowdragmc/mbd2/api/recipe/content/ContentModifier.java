@@ -12,6 +12,8 @@ import java.math.BigInteger;
 @Getter
 @Setter
 public class ContentModifier implements IConfigurable {
+    public static final ContentModifier IDENTITY = ContentModifier.identity();
+
     @Configurable(name="content_modifier.multiplier", tips="content_modifier.multiplier.tips")
     @NumberRange(range = {0, Double.MAX_VALUE}, wheel = 1f)
     private double multiplier;
@@ -33,6 +35,10 @@ public class ContentModifier implements IConfigurable {
 
     public static ContentModifier addition(double addition) {
         return new ContentModifier(1, addition);
+    }
+
+    public static ContentModifier identity() {
+        return new ContentModifier(1, 0);
     }
 
     public ContentModifier(double multiplier, double addition) {

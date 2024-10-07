@@ -6,6 +6,7 @@ import com.lowdragmc.mbd2.api.pattern.MultiblockState;
 import com.lowdragmc.mbd2.api.pattern.MultiblockWorldSavedData;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
+import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -109,10 +110,10 @@ public interface IMultiController extends IMachine {
     }
 
     @Override
-    default int getMaxParallel(@NotNull MBDRecipe recipe) {
+    default ContentModifier getMaxParallel(@NotNull MBDRecipe recipe) {
         var maxParallel = IMachine.super.getMaxParallel(recipe);
         for (var part : getParts()) {
-            maxParallel = Math.max(part.getMaxControllerParallel(recipe, getRecipeLogic()), maxParallel);
+            maxParallel = maxParallel.merge(part.getMaxControllerParallel(recipe, getRecipeLogic()));
         }
         return maxParallel;
     }

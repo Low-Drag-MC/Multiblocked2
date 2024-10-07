@@ -9,6 +9,7 @@ import com.lowdragmc.mbd2.api.machine.IMultiController;
 import com.lowdragmc.mbd2.api.machine.IMultiPart;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
+import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigPartSettings;
 import com.lowdragmc.mbd2.common.trait.ICapabilityProviderTrait;
@@ -183,11 +184,11 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
     }
 
     @Override
-    public int getMaxControllerParallel(@NotNull MBDRecipe recipe, RecipeLogic controllerRecipeLogic) {
+    public ContentModifier getMaxControllerParallel(@NotNull MBDRecipe recipe, RecipeLogic controllerRecipeLogic) {
         if (getDefinition().partSettings() != null) {
             return getDefinition().partSettings().recipeModifiers().getMaxParallel(controllerRecipeLogic, recipe);
         }
-        return 1;
+        return ContentModifier.IDENTITY;
     }
 
     @Override

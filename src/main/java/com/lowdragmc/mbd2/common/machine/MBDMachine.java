@@ -20,6 +20,7 @@ import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
+import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.common.gui.factory.MachineUIFactory;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigMachineSettings;
@@ -443,7 +444,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
     }
 
     @Override
-    public int getMaxParallel(@Nonnull MBDRecipe recipe) {
+    public ContentModifier getMaxParallel(@Nonnull MBDRecipe recipe) {
         return getDefinition().machineSettings().recipeModifiers().getMaxParallel(getRecipeLogic(), recipe);
     }
 

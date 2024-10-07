@@ -35,9 +35,9 @@ public class RecipeModifier implements IConfigurable, IPersistedSerializable {
     @Configurable(name = "config.recipe.duration_modifier", subConfigurable = true, tips = {"config.recipe.duration_modifier.tooltip"}, collapse = false)
     public final ContentModifier durationModifier = ContentModifier.of(1, 0);
     public final List<RecipeCondition> recipeConditions = new ArrayList<>();
-    @Configurable(name = "config.machine_settings.max_parallel", tips = "config.machine_settings.max_parallel.tooltip")
+    @Configurable(name = "config.machine_settings.max_parallel", subConfigurable = true, tips = "config.machine_settings.max_parallel.tooltip", collapse = false)
     @NumberRange(range = {1, Integer.MAX_VALUE})
-    private int maxParallel = 1;
+    private ContentModifier maxParallel = ContentModifier.identity();
 
     @Override
     public CompoundTag serializeNBT() {
@@ -119,7 +119,7 @@ public class RecipeModifier implements IConfigurable, IPersistedSerializable {
 
         @Override
         public void buildConfigurator(ConfiguratorGroup father) {
-            var modifiers = new ArrayConfiguratorGroup<>("config.recipe.recipe_modifiers", false,
+            var modifiers = new ArrayConfiguratorGroup<>("config.recipe.recipe_modifiers", true,
                     () -> recipeModifiers, (getter, setter) -> {
                 var recipeModifier = getter.get();
                 var group = new ConfiguratorGroup("config.recipe.content_modifier", false);
@@ -163,17 +163,17 @@ public class RecipeModifier implements IConfigurable, IPersistedSerializable {
                 var inputModifiers = contentModifiers.stream().filter(pair -> pair.getSecond() == IO.IN || pair.getSecond() == IO.BOTH).map(Pair::getFirst).toList();
                 var outputModifiers = contentModifiers.stream().filter(pair -> pair.getSecond() == IO.OUT || pair.getSecond() == IO.BOTH).map(Pair::getFirst).toList();
                 if (!inputModifiers.isEmpty()) {
-                    recipe = recipe.copy(inputModifiers.stream().reduce(ContentModifier::merge).orElseThrow(), false, IO.IN);
+                    recipe = recipe.copy(inputModifiers.stream().reduce(ContentModifier.IDENTITY, ContentModifier::merge), false, IO.IN);
                 }
                 if (!outputModifiers.isEmpty()) {
-                    recipe = recipe.copy(outputModifiers.stream().reduce(ContentModifier::merge).orElseThrow(), false, IO.OUT);
+                    recipe = recipe.copy(outputModifiers.stream().reduce(ContentModifier.IDENTITY, ContentModifier::merge), false, IO.OUT);
                 }
             }
             if (!durationModifiers.isEmpty()) {
                 if (contentModifiers.isEmpty()) {
                     recipe = recipe.copy();
                 }
-                recipe.duration = durationModifiers.stream().reduce(ContentModifier::merge).orElseThrow().apply(recipe.duration).intValue();
+                recipe.duration = durationModifiers.stream().reduce(ContentModifier.IDENTITY, ContentModifier::merge).apply(recipe.duration).intValue();
             }
             return recipe;
         }
@@ -181,12 +181,12 @@ public class RecipeModifier implements IConfigurable, IPersistedSerializable {
         /**
          * Get the max parallel number of the recipe.
          */
-        public int getMaxParallel(RecipeLogic recipeLogic, @Nonnull MBDRecipe recipe) {
-            if (recipeModifiers.isEmpty()) return 1;
-            var maxParallel = 1;
+        public ContentModifier getMaxParallel(RecipeLogic recipeLogic, @Nonnull MBDRecipe recipe) {
+            if (recipeModifiers.isEmpty()) return ContentModifier.IDENTITY;
+            var maxParallel = ContentModifier.IDENTITY;
             for (var modifier : recipeModifiers) {
-                if (modifier.maxParallel > maxParallel && checkConditions(recipeLogic, recipe, modifier)) {
-                    maxParallel = Math.max(maxParallel, modifier.maxParallel);
+                if (!modifier.maxParallel.isIdentity() && checkConditions(recipeLogic, recipe, modifier)) {
+                    maxParallel = maxParallel.merge(modifier.maxParallel);
                 }
             }
             return maxParallel;

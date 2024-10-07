@@ -4,6 +4,7 @@ import com.lowdragmc.mbd2.api.capability.MBDCapabilities;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeCapabilityHolder;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
+import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -115,8 +116,8 @@ public interface IMultiPart extends IMachine {
     /**
      * Get the max parallel for controller recipe handling.
      */
-    default int getMaxControllerParallel(@Nonnull MBDRecipe recipe, RecipeLogic controllerRecipeLogic) {
-        return 1;
+    default ContentModifier getMaxControllerParallel(@Nonnull MBDRecipe recipe, RecipeLogic controllerRecipeLogic) {
+        return ContentModifier.IDENTITY;
     }
 
     /**

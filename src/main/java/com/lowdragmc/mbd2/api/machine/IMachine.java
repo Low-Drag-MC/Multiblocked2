@@ -5,6 +5,7 @@ import com.lowdragmc.mbd2.api.capability.recipe.IRecipeCapabilityHolder;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
+import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -206,7 +207,7 @@ public interface IMachine extends IRecipeCapabilityHolder {
         if (recipe == null) {
             return null;
         }
-        return applyParallel(recipe, getMaxParallel(recipe));
+        return applyParallel(recipe, getMaxParallel(recipe).apply(1).intValue());
     }
 
     /**
@@ -223,8 +224,8 @@ public interface IMachine extends IRecipeCapabilityHolder {
     /**
      * Get the max parallel.
      */
-    default int getMaxParallel(@Nonnull MBDRecipe recipe) {
-        return 1;
+    default ContentModifier getMaxParallel(@Nonnull MBDRecipe recipe) {
+        return ContentModifier.IDENTITY;
     }
 
     /**
