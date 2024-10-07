@@ -1,7 +1,6 @@
 package com.lowdragmc.mbd2.common.item;
 
 import com.lowdragmc.lowdraglib.Platform;
-import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.factory.HeldItemUIFactory;
 import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceBorderTexture;

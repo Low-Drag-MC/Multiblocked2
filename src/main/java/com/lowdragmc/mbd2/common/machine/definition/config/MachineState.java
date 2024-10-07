@@ -44,7 +44,8 @@ public class MachineState implements IConfigurable, IPersistedSerializable, Comp
 
     @Configurable(name = "config.machine_state.shape", subConfigurable = true, tips =
             {"config.machine_state.shape.tooltip.0", "config.machine_state.shape.tooltip.1",
-                    "config.machine_state.shape.tooltip.2", "config.machine_state.shape.tooltip.3"})
+                    "config.machine_state.shape.tooltip.2", "config.machine_state.shape.tooltip.3",
+                    "config.require_restart"})
     protected final ToggleShape shape;
 
     @Configurable(name = "config.machine_state.light", subConfigurable = true, tips =

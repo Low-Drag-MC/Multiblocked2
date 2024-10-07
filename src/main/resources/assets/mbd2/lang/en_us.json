@@ -58,6 +58,9 @@
     "recipe.condition.rain.tooltip": "Rain Level: from %d to %d",
     "recipe.condition.thunder": "thunder level",
     "recipe.condition.thunder.tooltip": "Thunder Level: from %d to %d",
+
+    "config.require_restart": "§cYou need to restart the game to apply the changes.§r",
+
     "config.recipe.condition.reverse": "reverse",
     "config.recipe.condition.reverse.tooltip": "check reversed condition instead",
     "config.recipe.condition.biome.tooltip": "biome registry name",

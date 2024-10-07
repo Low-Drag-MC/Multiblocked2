@@ -8,8 +8,11 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
 @Getter
 @Accessors(fluent = true)
@@ -28,7 +31,9 @@ public class ConfigBlockProperties implements IPersistedSerializable {
         private boolean translucent;
     }
 
-    @Configurable(name = "config.block_properties.render_types", subConfigurable = true, tips = "config.block_properties.render_types.tooltip")
+    @Configurable(name = "config.block_properties.render_types", subConfigurable = true, tips = {
+            "config.block_properties.render_types.tooltip",
+            "config.require_restart"})
     @Builder.Default
     private final RenderTypes renderTypes = new RenderTypes();
 
@@ -36,64 +41,72 @@ public class ConfigBlockProperties implements IPersistedSerializable {
     @Builder.Default
     private boolean useAO = true;
 
-    @Configurable(name = "config.block_properties.rotation_state", tips = "config.block_properties.rotation_state.tooltip")
+    @Configurable(name = "config.block_properties.rotation_state", tips = {"config.block_properties.rotation_state.tooltip",
+            "config.require_restart"})
     @Builder.Default
     private RotationState rotationState = RotationState.NON_Y_AXIS;
 
-    @Configurable(name = "config.block_properties.has_collision", tips = "config.block_properties.has_collision.tooltip")
+    @Configurable(name = "config.block_properties.has_collision", tips = {"config.block_properties.has_collision.tooltip",
+            "config.require_restart"})
     @Builder.Default
     private boolean hasCollision = true;
 
-    @Configurable(name = "config.block_properties.can_occlude", tips = "config.block_properties.can_occlude.tooltip")
+    @Configurable(name = "config.block_properties.can_occlude", tips = {"config.block_properties.can_occlude.tooltip",
+            "config.require_restart"})
     @Builder.Default
     private boolean canOcclude = true;
 
-    @Configurable(name = "config.block_properties.dynamic_shape", tips = "config.block_properties.dynamic_shape.tooltip")
-    @Builder.Default
-    private boolean dynamicShape = false;
-
-    @Configurable(name = "config.block_properties.ignited_by_lava", tips = "config.block_properties.ignited_by_lava.tooltip")
+    @Configurable(name = "config.block_properties.ignited_by_lava", tips = {"config.block_properties.ignited_by_lava.tooltip",
+            "config.require_restart"})
     @Builder.Default
     private boolean ignitedByLava = false;
 
-    @Configurable(name = "config.block_properties.is_air", tips = "config.block_properties.is_air.tooltip")
+    @Configurable(name = "config.block_properties.is_air", tips = {"config.block_properties.is_air.tooltip", "config.require_restart"})
     @Builder.Default
     private boolean isAir = false;
 
-    @Configurable(name = "config.block_properties.is_suffocating", tips = "config.block_properties.is_suffocating.tooltip")
+    @Configurable(name = "config.block_properties.is_suffocating", tips = {"config.block_properties.is_suffocating.tooltip",
+            "config.require_restart"})
     @Builder.Default
     private boolean isSuffocating = true;
 
-    @Configurable(name = "config.block_properties.emissive", tips = "config.block_properties.emissive.tooltip")
+    @Configurable(name = "config.block_properties.emissive", tips = {"config.block_properties.emissive.tooltip",
+            "config.require_restart"})
     @Builder.Default
     private boolean emissive = false;
 
-    @Configurable(name = "config.block_properties.friction", tips = "config.block_properties.friction.tooltip")
+    @Configurable(name = "config.block_properties.friction", tips = {"config.block_properties.friction.tooltip",
+            "config.require_restart"})
     @NumberRange(range = {0, Float.MAX_VALUE})
     @Builder.Default
     private float friction = 0.6f;
 
-    @Configurable(name = "config.block_properties.speed_factor", tips = "config.block_properties.speed_factor.tooltip")
+    @Configurable(name = "config.block_properties.speed_factor", tips = {"config.block_properties.speed_factor.tooltip",
+            "config.require_restart"})
     @NumberRange(range = {0, Float.MAX_VALUE})
     @Builder.Default
     private float speedFactor = 1.0f;
 
-    @Configurable(name = "config.block_properties.jump_factor", tips = "config.block_properties.jump_factor.tooltip")
+    @Configurable(name = "config.block_properties.jump_factor", tips = {"config.block_properties.jump_factor.tooltip",
+            "config.require_restart"})
     @NumberRange(range = {0, Float.MAX_VALUE})
     @Builder.Default
     private float jumpFactor = 1.0f;
 
-    @Configurable(name = "config.block_properties.destroy_time", tips = "config.block_properties.destroy_time.tooltip")
+    @Configurable(name = "config.block_properties.destroy_time", tips = {"config.block_properties.destroy_time.tooltip",
+            "config.require_restart"})
     @NumberRange(range = {0, Float.MAX_VALUE})
     @Builder.Default
     private float destroyTime = 1.5f;
 
-    @Configurable(name = "config.block_properties.explosion_resistance", tips = "config.block_properties.explosion_resistance.tooltip")
+    @Configurable(name = "config.block_properties.explosion_resistance", tips = {"config.block_properties.explosion_resistance.tooltip",
+            "config.require_restart"})
     @NumberRange(range = {0, Float.MAX_VALUE})
     @Builder.Default
     private float explosionResistance = 6.0f;
 
-    @Configurable(name = "config.block_properties.sound", tips = "config.block_properties.sound.tooltip")
+    @Configurable(name = "config.block_properties.sound", tips = {"config.block_properties.sound.tooltip",
+            "config.require_restart"})
     @Builder.Default
     private Sound sound = Sound.STONE;
 
@@ -102,15 +115,12 @@ public class ConfigBlockProperties implements IPersistedSerializable {
     private boolean transparent = false;
 
 
-    public BlockBehaviour.Properties apply(StateMachine stateMachine, BlockBehaviour.Properties properties) {
+    public BlockBehaviour.Properties apply(StateMachine<?> stateMachine, BlockBehaviour.Properties properties) {
         if (hasCollision) {
             properties = properties.noOcclusion();
         }
         if (!canOcclude) {
             properties = properties.noOcclusion();
-        }
-        if (dynamicShape) {
-            properties = properties.dynamicShape();
         }
         if (ignitedByLava) {
             properties = properties.ignitedByLava();
@@ -130,6 +140,20 @@ public class ConfigBlockProperties implements IPersistedSerializable {
         properties = properties.destroyTime(destroyTime);
         properties = properties.explosionResistance(explosionResistance);
         properties = properties.sound(sound.soundType);
+        // check dynamic shape
+        VoxelShape shape = null;
+        for (var state : stateMachine.states.values()) {
+            var stateShape = state.getShape(Direction.NORTH);
+            if (shape == null) {
+                shape = stateShape;
+            } else if (shape != stateShape) {
+                properties.dynamicShape();
+                break;
+            }
+        }
+        if (shape != Shapes.block() || !shape.isEmpty()) {
+            properties.dynamicShape();
+        }
         return properties;
     }
 

@@ -48,12 +48,14 @@ public class ConfigItemProperties implements IConfigurable, IPersistedSerializab
     @Builder.Default
     private ToggleRenderer renderer = new ToggleRenderer();
 
-    @Configurable(name = "config.item_properties.max_stack_size", tips = "config.item_properties.max_stack_size.tooltip")
+    @Configurable(name = "config.item_properties.max_stack_size", tips = {"config.item_properties.max_stack_size.tooltip",
+            "config.require_restart"})
     @NumberRange(range = {1, 64})
     @Builder.Default
     private int maxStackSize = 64;
 
-    @Configurable(name = "config.item_properties.rarity", tips = "config.item_properties.rarity.tooltip")
+    @Configurable(name = "config.item_properties.rarity", tips = {"config.item_properties.rarity.tooltip",
+            "config.require_restart"})
     @Builder.Default
     private Rarity rarity = Rarity.COMMON;
 
