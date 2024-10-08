@@ -55,7 +55,7 @@ public interface IContentSerializer<T> {
         if (!content.slotName.isEmpty()) {
             buf.writeUtf(content.slotName);
         }
-        buf.writeBoolean(content.uiName != null);
+        buf.writeBoolean(!content.uiName.isEmpty());
         if (!content.uiName.isEmpty()) {
             buf.writeUtf(content.uiName);
         }

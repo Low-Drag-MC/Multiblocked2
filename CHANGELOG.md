@@ -1,5 +1,6 @@
 # ChangeLog
 
-* add block condition
-* rework parallel for more flexibility (move to recipe modifiers)
-* improve block sound for more flexibility
+* fix recipe serialization bug while joining the world
+* fix in-world preview not disappearing after a timeout (thanks to @andriihorpenko)
+* Enhanced auto build feature to support fluid placement (thanks to @andriihorpenko)
+
