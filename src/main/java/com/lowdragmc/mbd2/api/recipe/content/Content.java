@@ -24,7 +24,10 @@ public class Content {
     @Configurable(name = "editor.machine.recipe_type.content.chance", tips = "editor.machine.recipe_type.content.chance.tooltip")
     @NumberRange(range = {0f, 1f})
     public float chance;
-    @Configurable(name = "editor.machine.recipe_type.content.tier_chance_boost", tips = "editor.machine.recipe_type.content.tier_chance_boost.tooltip")
+    @Configurable(name = "editor.machine.recipe_type.content.tier_chance_boost", tips = {
+            "editor.machine.recipe_type.content.tier_chance_boost.tooltip.0",
+            "editor.machine.recipe_type.content.tier_chance_boost.tooltip.1"
+            })
     @NumberRange(range = {0f, 1f})
     public float tierChanceBoost;
     @Configurable(name = "editor.machine.recipe_type.content.slot_name", tips = "editor.machine.recipe_type.content.slot_name.tooltip")

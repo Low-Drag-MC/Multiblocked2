@@ -64,7 +64,7 @@ public interface IMultiPart extends IMachine {
      * <br>
      * For self recipe logic, use {@link IRecipeCapabilityHolder#getRecipeCapabilitiesProxy()} to get recipe handlers.
      */
-    List<IRecipeHandlerTrait> getRecipeHandlers();
+    List<IRecipeHandlerTrait<?>> getRecipeHandlers();
 
     /**
      * Called when controller recipe logic status changed

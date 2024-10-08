@@ -10,6 +10,7 @@ import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
 import com.lowdragmc.mbd2.api.blockentity.ProxyPartBlockEntity;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeCapabilityHolder;
+import com.lowdragmc.mbd2.api.capability.recipe.RecipeHandlerSlotsProxy;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
 import com.lowdragmc.mbd2.api.machine.IMultiPart;
@@ -24,6 +25,7 @@ import com.lowdragmc.mbd2.client.renderer.MultiblockInWorldPreviewRenderer;
 import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.event.*;
 import com.lowdragmc.mbd2.config.ConfigHolder;
+import it.unimi.dsi.fastutil.longs.Long2ObjectArrayMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.longs.LongSets;
@@ -262,8 +264,10 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
         if (isFormed()) {
             var capabilitiesProxy = getRecipeCapabilitiesProxy();
             Map<Long, IO> ioMap = getMultiblockState().getMatchContext().getOrCreate("ioMap", Long2ObjectMaps::emptyMap);
+            Map<Long, Set<String>> slots = getMultiblockState().getMatchContext().getOrDefault("slots", Long2ObjectMaps.emptyMap());
             for (IMultiPart part : getParts()) {
                 IO io = ioMap.getOrDefault(part.getPos().asLong(), IO.BOTH);
+                Set<String> slotNames = slots.getOrDefault(part.getPos().asLong(), Collections.emptySet());
                 if (io == IO.NONE) continue;
                 for (var handler : part.getRecipeHandlers()) {
                     // If IO not compatible
@@ -272,7 +276,13 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
                     if (!capabilitiesProxy.contains(handlerIO, handler.getRecipeCapability())) {
                         capabilitiesProxy.put(handlerIO, handler.getRecipeCapability(), new ArrayList<>());
                     }
-                    capabilitiesProxy.get(handlerIO, handler.getRecipeCapability()).add(handler);
+                    if (slotNames.isEmpty()) {
+                        capabilitiesProxy.get(handlerIO, handler.getRecipeCapability()).add(handler);
+                    } else {
+                        var mergedSlots = new HashSet<>(slotNames);
+                        mergedSlots.addAll(handler.getSlotNames());
+                        capabilitiesProxy.get(handlerIO, handler.getRecipeCapability()).add(new RecipeHandlerSlotsProxy<>(handler, mergedSlots));
+                    }
                 }
             }
         }
@@ -340,7 +350,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
         for (IMultiPart part : parts) {
             part.removedFromController(this);
         }
-        parts.clear();
+        this.parts.clear();
         updatePartPositions();
         // refresh traits
         initCapabilitiesProxy();
@@ -352,7 +362,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
                 proxyPartBlockEntity.restoreOriginalBlock();
             }
         }
-        renderingDisabledPositions.clear();
+        this.renderingDisabledPositions.clear();
         // post event
         MinecraftForge.EVENT_BUS.post(new MachineStructureInvalidEvent(this).postGraphEvent());
     }

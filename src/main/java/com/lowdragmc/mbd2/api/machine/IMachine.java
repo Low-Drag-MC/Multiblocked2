@@ -304,4 +304,9 @@ public interface IMachine extends IRecipeCapabilityHolder {
     default int getMachineLevel() {
         return 0;
     }
+
+    @Override
+    default int getChanceTier() {
+        return getMachineLevel();
+    }
 }

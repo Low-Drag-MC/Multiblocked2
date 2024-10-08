@@ -13,6 +13,7 @@ import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigPartSettings;
 import com.lowdragmc.mbd2.common.trait.ICapabilityProviderTrait;
+import com.lowdragmc.mbd2.common.trait.ITrait;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -79,9 +80,14 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
      * For self recipe logic, use {@link IRecipeCapabilityHolder#getRecipeCapabilitiesProxy()} to get recipe handlers.
      */
     @Override
-    public List<IRecipeHandlerTrait> getRecipeHandlers() {
-        return getAdditionalTraits().stream().filter(IRecipeHandlerTrait.class::isInstance).map(IRecipeHandlerTrait.class::cast)
-                .toList();
+    public List<IRecipeHandlerTrait<?>> getRecipeHandlers() {
+        var handlers = new ArrayList<IRecipeHandlerTrait<?>>();
+        for (ITrait additionalTrait : getAdditionalTraits()) {
+            if (additionalTrait instanceof IRecipeHandlerTrait<?> recipeHandlerTrait) {
+                handlers.add(recipeHandlerTrait);
+            }
+        }
+        return handlers;
     }
 
     /**

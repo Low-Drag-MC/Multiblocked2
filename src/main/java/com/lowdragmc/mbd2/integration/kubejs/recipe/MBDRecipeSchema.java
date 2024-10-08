@@ -14,6 +14,7 @@ import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.capability.recipe.FluidRecipeCapability;
 import com.lowdragmc.mbd2.common.capability.recipe.ForgeEnergyRecipeCapability;
 import com.lowdragmc.mbd2.common.capability.recipe.ItemRecipeCapability;
+import com.lowdragmc.mbd2.common.recipe.*;
 import com.lowdragmc.mbd2.integration.botania.BotaniaManaRecipeCapability;
 import com.lowdragmc.mbd2.integration.create.CreateStressRecipeCapability;
 import com.lowdragmc.mbd2.integration.gtm.GTMEnergyRecipeCapability;
@@ -32,6 +33,8 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.block.Block;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -52,7 +55,6 @@ public interface MBDRecipeSchema {
         public int priority;
         public boolean isFuel;
         // runtime
-        @Setter
         public boolean perTick;
         @Setter
         public String slotName;
@@ -108,6 +110,11 @@ public interface MBDRecipeSchema {
         }
 
         //////////////// state machine ////////////////
+        public MBDRecipeJS perTick(boolean perTick) {
+            this.perTick = perTick;
+            return this;
+        }
+
         public MBDRecipeJS perTick(RecipeBuilder builder) {
             var lastPerTick = this.perTick;
             this.perTick = true;
@@ -309,6 +316,40 @@ public interface MBDRecipeSchema {
             return this;
         }
 
+        public MBDRecipeJS dimension(ResourceLocation dimension) {
+            addCondition(new DimensionCondition(dimension));
+            return this;
+        }
+
+        public MBDRecipeJS biome(ResourceLocation biome) {
+            addCondition(new BiomeCondition(biome));
+            return this;
+        }
+
+        public MBDRecipeJS machineLevel(int level) {
+            addCondition(new MachineLevelCondition(level));
+            return this;
+        }
+
+        public MBDRecipeJS positionY(int min, int max) {
+            addCondition(new PositionYCondition(min, max));
+            return this;
+        }
+
+        public MBDRecipeJS raining(int min, int max) {
+            addCondition(new RainingCondition(min, max));
+            return this;
+        }
+
+        public MBDRecipeJS thundering(int min, int max) {
+            addCondition(new ThunderCondition(min, max));
+            return this;
+        }
+
+        public MBDRecipeJS blocksInStructure(int min, int max, Block... blocks) {
+            addCondition(new BlockCondition(min, max, blocks));
+            return this;
+        }
 
         @Override
         public void deserialize(boolean merge) {
