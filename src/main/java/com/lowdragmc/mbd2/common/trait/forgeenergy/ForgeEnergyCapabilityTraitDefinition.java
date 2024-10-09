@@ -96,7 +96,7 @@ public class ForgeEnergyCapabilityTraitDefinition extends SimpleCapabilityTraitD
                 energyBar.setProgressSupplier(() -> forgeEnergyTrait.storage.getEnergyStored() * 1d / forgeEnergyTrait.storage.getMaxEnergyStored());
                 energyBar.setDynamicHoverTips(value -> LocalizationUtils.format(
                         "config.definition.trait.forge_energy_storage.ui_container_hover",
-                        forgeEnergyTrait.storage.getMaxEnergyStored() * value, forgeEnergyTrait.storage.getMaxEnergyStored()));
+                        Math.round(forgeEnergyTrait.storage.getMaxEnergyStored() * value), forgeEnergyTrait.storage.getMaxEnergyStored()));
             });
             WidgetUtils.widgetByIdForEach(group, "^%s_text$".formatted(prefix), TextTextureWidget.class, energyBarText -> {
                 energyBarText.setText(() -> Component.literal(forgeEnergyTrait.storage.getEnergyStored() + "/" + forgeEnergyTrait.storage.getMaxEnergyStored() + " FE"));

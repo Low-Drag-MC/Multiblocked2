@@ -83,7 +83,7 @@ public class MekHeatCapabilityTraitDefinition extends SimpleCapabilityTraitDefin
                 energyBar.setProgressSupplier(() -> Math.max(heatTrait.container.getTotalTemperature(), 0) / heatTrait.container.getTotalHeatCapacity());
                 energyBar.setDynamicHoverTips(value -> LocalizationUtils.format(
                         "config.definition.trait.gtm_energy_container.ui_container_hover",
-                        heatTrait.container.getTotalHeatCapacity() * value, heatTrait.container.getTotalHeatCapacity()));
+                        Math.round(heatTrait.container.getTotalHeatCapacity() * value), heatTrait.container.getTotalHeatCapacity()));
             });
             WidgetUtils.widgetByIdForEach(group, "^%s_text$".formatted(prefix), TextTextureWidget.class, energyBarText -> {
                 energyBarText.setText(() -> Component.literal(heatTrait.container.getTotalTemperature() + " heat"));

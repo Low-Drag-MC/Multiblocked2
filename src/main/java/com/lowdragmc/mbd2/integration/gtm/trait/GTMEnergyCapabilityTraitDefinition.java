@@ -110,7 +110,7 @@ public class GTMEnergyCapabilityTraitDefinition extends SimpleCapabilityTraitDef
                 energyBar.setProgressSupplier(() -> energyTrait.container.getEnergyStored() * 1d / energyTrait.container.getEnergyCapacity());
                 energyBar.setDynamicHoverTips(value -> LocalizationUtils.format(
                         "config.definition.trait.gtm_energy_container.ui_container_hover",
-                        energyTrait.container.getEnergyCapacity() * value, energyTrait.container.getEnergyCapacity()));
+                        Math.round(energyTrait.container.getEnergyCapacity() * value), energyTrait.container.getEnergyCapacity()));
             });
             WidgetUtils.widgetByIdForEach(group, "^%s_text$".formatted(prefix), TextTextureWidget.class, energyBarText -> {
                 energyBarText.setText(() -> Component.literal(energyTrait.container.getEnergyStored() + "/" + energyTrait.container.getEnergyCapacity() + " eu"));

@@ -87,7 +87,7 @@ public class BotaniaManaCapabilityTraitDefinition extends SimpleCapabilityTraitD
                 energyBar.setProgressSupplier(() -> manaTrait.storage.getCurrentMana() * 1d / manaTrait.storage.getMaxMana());
                 energyBar.setDynamicHoverTips(progress -> LocalizationUtils.format(
                         "config.definition.trait.botania_mana_storage.ui_container_hover",
-                        manaTrait.storage.getMaxMana() * progress, manaTrait.storage.getMaxMana()));
+                        Math.round(manaTrait.storage.getMaxMana() * progress), manaTrait.storage.getMaxMana()));
             });
             WidgetUtils.widgetByIdForEach(group, "^%s_text$".formatted(prefix), TextTextureWidget.class, energyBarText -> {
                 energyBarText.setText(() -> Component.literal(manaTrait.storage.getCurrentMana() + "/" + manaTrait.storage.getMaxMana() + " mana"));
