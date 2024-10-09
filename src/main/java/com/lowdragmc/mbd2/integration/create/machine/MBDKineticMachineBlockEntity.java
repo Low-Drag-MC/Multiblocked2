@@ -136,7 +136,7 @@ public class MBDKineticMachineBlockEntity extends KineticBlockEntity implements 
     public void onSpeedChanged(float previousSpeed) {
         super.onSpeedChanged(previousSpeed);
         if (!level.isClientSide && !definition.kineticMachineSettings.isGenerator) {
-            if (speed > definition.kineticMachineSettings.maxRPM) {
+            if (Math.abs(speed) > definition.kineticMachineSettings.maxRPM) {
                 // over speed
                 this.level.destroyBlock(this.worldPosition, true);
             }

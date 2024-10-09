@@ -38,15 +38,16 @@ public class EntityHandlerTrait extends RecipeCapabilityTrait<EntityIngredient> 
     @Override
     public void serverTick() {
         if (getHandlerIO() == IO.IN && getMachine().getOffsetTimer() % 20 == 0) {
-            var area = getDefinition().getArea(getMachine().getFrontFacing().orElse(null));
-            area = area.move(getMachine().getPos());
             if (entitiesLock.tryLock()) {
+                var area = getDefinition().getArea(getMachine().getFrontFacing().orElse(null));
+                area = area.move(getMachine().getPos());
                 var detected = getMachine().getLevel().getEntities(null, area);
                 if (detected.size() != entities.size() || !new HashSet<>(detected).containsAll(entities)) {
                     entities.clear();
                     entities.addAll(detected);
                     notifyListeners();
                 }
+                entitiesLock.unlock();
             }
         }
     }
