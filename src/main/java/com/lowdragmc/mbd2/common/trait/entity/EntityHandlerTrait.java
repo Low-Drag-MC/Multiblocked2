@@ -6,8 +6,12 @@ import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.ingredient.EntityIngredient;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.RecipeCapabilityTrait;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -41,7 +45,7 @@ public class EntityHandlerTrait extends RecipeCapabilityTrait<EntityIngredient> 
             if (entitiesLock.tryLock()) {
                 var area = getDefinition().getArea(getMachine().getFrontFacing().orElse(null));
                 area = area.move(getMachine().getPos());
-                var detected = getMachine().getLevel().getEntities(null, area);
+                var detected = getMachine().getLevel().getEntities((Entity)null, area, Entity::isAlive);
                 if (detected.size() != entities.size() || !new HashSet<>(detected).containsAll(entities)) {
                     entities.clear();
                     entities.addAll(detected);
@@ -56,27 +60,28 @@ public class EntityHandlerTrait extends RecipeCapabilityTrait<EntityIngredient> 
     public List<EntityIngredient> handleRecipeInner(IO io, MBDRecipe recipe, List<EntityIngredient> left, @Nullable String slotName, boolean simulate) {
         if (io != getHandlerIO()) return left;
         if (io == IO.OUT) {
-            if (simulate) return null;
-            // spawn entities
-            var area = getDefinition().getArea(getMachine().getFrontFacing().orElse(null));
-            area = area.move(getMachine().getPos());
-            for (EntityIngredient entityIngredient : left) {
-                for (EntityType<?> type : entityIngredient.getTypes()) {
-                    var entity = type.create(getMachine().getLevel());
-                    if (entity != null) {
-                        if (entityIngredient.getNbt() != null) {
-                            var tag = entity.serializeNBT();
-                            tag.merge(entityIngredient.getNbt());
-                            entity.load(tag);
+            if (!simulate && getMachine().getLevel() instanceof ServerLevel serverLevel) {
+                // spawn entities
+                var area = getDefinition().getArea(getMachine().getFrontFacing().orElse(null));
+                area = area.move(getMachine().getPos());
+                for (EntityIngredient entityIngredient : left) {
+                    for (EntityType<?> type : entityIngredient.getTypes()) {
+                        var pos = new Vec3((area.minX + Math.random() * area.getXsize()),
+                                (area.minY + Math.random() * area.getYsize()),
+                                (area.minZ + Math.random() * area.getZsize()));
+                        var entity = type.spawn(serverLevel, new BlockPos((int) pos.x, (int) pos.y, (int) pos.z), MobSpawnType.SPAWNER);
+                        if (entity != null) {
+                            if (entityIngredient.getNbt() != null) {
+                                var tag = entity.serializeNBT();
+                                tag.merge(entityIngredient.getNbt());
+                                entity.load(tag);
+                            }
+                            entity.moveTo(pos);
                         }
-                        entity.moveTo(
-                                area.minX + Math.random() * area.getXsize(),
-                                area.minY + Math.random() * area.getYsize(),
-                                area.minZ + Math.random() * area.getZsize()
-                        );
                     }
                 }
             }
+            return null;
         } else if (io == IO.IN) {
             entitiesLock.lock();
             var entityList = simulate ? new ArrayList<>(entities) : entities;
@@ -91,7 +96,7 @@ public class EntityHandlerTrait extends RecipeCapabilityTrait<EntityIngredient> 
                     if (matchCount >= ingredient.getCount()) {
                         break;
                     }
-                    if (types.contains(entity.getType())) {
+                    if (entity.isAlive() && types.contains(entity.getType())) {
                         var nbt = ingredient.getNbt();
                         if (nbt != null && !nbt.isEmpty()) {
                             var held = entity.serializeNBT();
@@ -110,7 +115,7 @@ public class EntityHandlerTrait extends RecipeCapabilityTrait<EntityIngredient> 
                     iterator.remove();
                 }
                 if (!simulate) {
-                    toKilled.forEach(Entity::kill);
+                    toKilled.forEach(entity -> entity.remove(Entity.RemovalReason.DISCARDED));
                 }
                 entityList.removeAll(toKilled);
             }

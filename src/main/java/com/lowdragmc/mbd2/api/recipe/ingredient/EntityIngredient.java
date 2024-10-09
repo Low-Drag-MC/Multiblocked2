@@ -89,7 +89,7 @@ public class EntityIngredient implements Predicate<Collection<Entity>> {
         int matches = 0;
         var types = Arrays.stream(getTypes()).collect(Collectors.toSet());
         for (var entity : entities) {
-            if (types.contains(entity.getType())) {
+            if (entity.isAlive() && types.contains(entity.getType())) {
                 if (nbt != null && !nbt.isEmpty()) {
                     var held = entity.serializeNBT();
                     var copied = nbt.copy();
