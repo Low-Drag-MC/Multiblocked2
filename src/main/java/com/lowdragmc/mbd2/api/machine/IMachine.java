@@ -6,7 +6,6 @@ import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
-import com.mojang.datafixers.util.Pair;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -72,7 +71,11 @@ public interface IMachine extends IRecipeCapabilityHolder {
      * Mark the machine as dirty.
      */
     default void markDirty() {
-        getHolder().setChanged();
+        var level = getLevel();
+        // make sure mark dirty in the server thread.
+        if (level != null && !level.isClientSide && level.getServer() != null) {
+            level.getServer().execute(() -> getHolder().setChanged());
+        }
     }
 
     /**
