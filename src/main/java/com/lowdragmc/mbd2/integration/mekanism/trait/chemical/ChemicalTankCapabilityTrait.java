@@ -54,7 +54,7 @@ public abstract class ChemicalTankCapabilityTrait<CHEMICAL extends Chemical<CHEM
         if (storages.length > 0) {
             var stack = getDefinition().recipeCapability.createDefaultContent();
             stack.setAmount(getDefinition().getCapacity() / 2);
-            storages[0].setStack(stack);
+            storages[0].setStackUnchecked(stack);
         }
     }
 
