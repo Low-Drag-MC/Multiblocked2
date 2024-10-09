@@ -25,7 +25,7 @@ import com.lowdragmc.mbd2.common.item.MBDMachineItem;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.machine.MBDPartMachine;
 import com.lowdragmc.mbd2.common.machine.definition.config.*;
-import com.lowdragmc.mbd2.common.trait.ITraitUIProvider;
+import com.lowdragmc.mbd2.common.trait.IUIProviderTrait;
 import com.lowdragmc.mbd2.utils.WidgetUtils;
 import lombok.Getter;
 import lombok.Setter;
@@ -266,7 +266,7 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
         WidgetUtils.widgetByIdForEach(ui, "ui:fuel_bar", ProgressWidget.class,
                 progressWidget -> progressWidget.setProgressSupplier(() -> machine.getRecipeLogic().getFuelProgressPercent()));
         for (var traitDefinition : machineSettings.traitDefinitions()) {
-            if (traitDefinition instanceof ITraitUIProvider provider) {
+            if (traitDefinition instanceof IUIProviderTrait provider) {
                 var trait = machine.getTraitByDefinition(traitDefinition);
                 if (trait != null)
                     provider.initTraitUI(trait, ui);

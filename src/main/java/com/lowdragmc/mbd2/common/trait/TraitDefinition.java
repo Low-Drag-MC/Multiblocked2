@@ -6,17 +6,17 @@ import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.syncdata.IAutoPersistedSerializable;
-import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
+import com.lowdragmc.mbd2.common.gui.editor.machine.MachineTraitPanel;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
-import com.lowdragmc.mbd2.integration.ldlib.MBDLDLibPlugin;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 import javax.annotation.Nullable;
-import java.lang.reflect.InvocationTargetException;
 
 public abstract class TraitDefinition implements IConfigurable, IAutoPersistedSerializable {
     public static CompoundTag serializeDefinition(TraitDefinition definition) {
@@ -71,5 +71,12 @@ public abstract class TraitDefinition implements IConfigurable, IAutoPersistedSe
     @Override
     public String getTranslateKey() {
         return "config.definition.%s.%s.name".formatted(this.group(), this.name());
+    }
+
+    /**
+     * Additional rendering after world rendering in trait panel for definition settings.
+     */
+    @OnlyIn(Dist.CLIENT)
+    public void renderAfterWorldInTraitPanel(MachineTraitPanel panel) {
     }
 }

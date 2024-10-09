@@ -7,7 +7,7 @@ import com.lowdragmc.lowdraglib.gui.texture.*;
 import com.lowdragmc.lowdraglib.gui.widget.*;
 import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
 import com.lowdragmc.mbd2.common.gui.editor.MachineProject;
-import com.lowdragmc.mbd2.common.trait.ITraitUIProvider;
+import com.lowdragmc.mbd2.common.trait.IUIProviderTrait;
 import com.lowdragmc.mbd2.utils.WidgetUtils;
 import net.minecraft.world.item.Items;
 
@@ -78,12 +78,12 @@ public class TraitUIFloatView extends FloatViewWidget {
             });
             // add traits
             project.getDefinition().machineSettings().traitDefinitions()
-                    .stream().filter(ITraitUIProvider.class::isInstance).map(ITraitUIProvider.class::cast)
+                    .stream().filter(IUIProviderTrait.class::isInstance).map(IUIProviderTrait.class::cast)
                     .forEach(this::addUITrait);
         }
     }
 
-    public void addUITrait(ITraitUIProvider provider) {
+    public void addUITrait(IUIProviderTrait provider) {
         addButton(new ImageWidget(0, 0, 18, 18, provider.getDefinition().getIcon()),
                 provider.getDefinition()::getName, () -> {
                     if (getEditor().getCurrentProject() instanceof MachineProject project) {

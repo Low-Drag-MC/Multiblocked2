@@ -329,6 +329,11 @@
     "config.definition.trait.forge_energy_storage.fancy_renderer": "Fancy Forge Storage Renderer",
     "config.definition.trait.forge_energy_storage.fancy_renderer.tooltip": "Allow you render stored energy in the world. (e.g. Energy Container).",
 
+    "config.definition.trait.entity_handler.name": "Entity Handler",
+    "config.definition.trait.entity_handler.area": "Area",
+    "config.definition.trait.entity_handler.area.tooltip.0": "If it's input, the detection area of the entity.",
+    "config.definition.trait.entity_handler.area.tooltip.1": "If it's output, the random spawn area of the entity.",
+
     "config.definition.trait.botania_mana_storage.name": "Botania Mana Storage",
     "config.definition.trait.botania_mana_storage.capacity": "Capacity",
     "config.definition.trait.botania_mana_storage.ui_container_hover": "Stored: %d / %d Mana",
@@ -504,13 +509,21 @@
     "recipe.capability.item.ingredient.candidates": "Ingredient Candidates",
     "recipe.capability.item.ingredient.values.type": "values type",
     "recipe.capability.item.ingredient.values.item": "item",
-    "recipe.capability.item.ingredient.values.tag": "tag",
+    "recipe.capability.item.ingredient.values.tag": "item tag",
 
     "recipe.capability.fluid.name": "Fluid Capability",
     "recipe.capability.fluid.ingredient.amount": "Fluid Amount",
     "recipe.capability.fluid.ingredient.candidates": "Fluid Candidates",
     "recipe.capability.fluid.ingredient.values.fluid": "fluid",
-    "recipe.capability.fluid.ingredient.values.tag": "tag",
+    "recipe.capability.fluid.ingredient.values.tag": "entity tag",
+
+    "recipe.capability.entity.name": "Entity Capability",
+    "recipe.capability.entity.ingredient.count": "Entity Count",
+    "recipe.capability.entity.ingredient.candidates": "Entity Candidates",
+    "recipe.capability.entity.ingredient.values.entity": "entity type",
+    "recipe.capability.entity.ingredient.values.tag": "entity tag",
+    "ldlib.gui.editor.register.widget.container.entity_preview": "Entity Preview Slot",
+
 
     "recipe.capability.forge_energy.name": "Forge Energy Capability",
     "recipe.capability.forge_energy.energy": "Energy",

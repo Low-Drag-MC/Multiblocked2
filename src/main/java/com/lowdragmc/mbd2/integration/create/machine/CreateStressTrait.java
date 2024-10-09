@@ -42,6 +42,11 @@ public class CreateStressTrait implements IRecipeCapabilityTrait<Float> {
         public String group() {
             return "trait";
         }
+
+        @Override
+        public boolean allowMultiple() {
+            return false;
+        }
     };
 
     @Getter

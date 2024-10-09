@@ -8,6 +8,7 @@ import com.lowdragmc.mbd2.common.machine.MBDMachine;
  * A trait that represent a capability / behaviour / function a machine has, e.g. item container, energy storage, fluid tank, etc.
  * <br/>
  * To provide capability behavior in the world see {@link ICapabilityProviderTrait}. For recipe handling, see {@link IRecipeCapabilityTrait}.
+ * To provide UI representation, see {@link IUIProviderTrait}.
  */
 public interface ITrait {
     /**

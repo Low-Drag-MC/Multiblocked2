@@ -1,12 +1,11 @@
 package com.lowdragmc.mbd2.common.trait;
 
-import com.lowdragmc.lowdraglib.gui.widget.Widget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 
 /**
  * A trait that have UI representation.
  */
-public interface ITraitUIProvider {
+public interface IUIProviderTrait {
 
     /**
      * Get the trait definition.

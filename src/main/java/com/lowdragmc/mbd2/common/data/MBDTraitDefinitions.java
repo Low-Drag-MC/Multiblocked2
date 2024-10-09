@@ -7,6 +7,7 @@ import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.event.MBDRegistryEvent;
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
+import com.lowdragmc.mbd2.common.trait.entity.EntityHandlerTraitDefinition;
 import com.lowdragmc.mbd2.common.trait.fluid.FluidTankCapabilityTraitDefinition;
 import com.lowdragmc.mbd2.common.trait.forgeenergy.ForgeEnergyCapabilityTraitDefinition;
 import com.lowdragmc.mbd2.common.trait.item.ItemSlotCapabilityTraitDefinition;
@@ -23,6 +24,7 @@ public class MBDTraitDefinitions {
         register(ItemSlotCapabilityTraitDefinition.class);
         register(FluidTankCapabilityTraitDefinition.class);
         register(ForgeEnergyCapabilityTraitDefinition.class);
+        register(EntityHandlerTraitDefinition.class);
         // Register the mod capabilities
         if (MBD2.isBotaniaLoaded()) {
             register(BotaniaManaCapabilityTraitDefinition.class);

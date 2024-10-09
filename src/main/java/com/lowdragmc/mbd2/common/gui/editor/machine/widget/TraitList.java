@@ -16,6 +16,7 @@ import com.lowdragmc.mbd2.common.gui.editor.MachineProject;
 import com.lowdragmc.mbd2.common.gui.editor.machine.MachineScenePanel;
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 import com.lowdragmc.mbd2.integration.ldlib.MBDLDLibPlugin;
+import lombok.Getter;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
@@ -25,6 +26,7 @@ import java.lang.reflect.InvocationTargetException;
 public class TraitList extends DraggableScrollableWidgetGroup {
     private final MachineEditor editor;
     @Nullable
+    @Getter
     private TraitDefinition selected;
 
     public TraitList(MachineEditor editor, Size size) {

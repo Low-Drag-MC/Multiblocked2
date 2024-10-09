@@ -196,11 +196,11 @@ public class FluidIngredient implements Predicate<FluidStack> {
         throw new JsonParseException("A fluid ingredient entry needs either a tag or a fluid");
     }
 
-    public static interface Value {
-        public Collection<Fluid> getStacks();
+    public interface Value {
+        Collection<Fluid> getStacks();
 
-        public JsonObject serialize();
-        public Value copy();
+        JsonObject serialize();
+        Value copy();
     }
 
     public static class TagValue

@@ -119,7 +119,7 @@ public class MachineScenePanel extends WidgetGroup {
      * <br/> e.g. <br/>
      * shape frame lines.
      */
-    private void renderAfterWorld(SceneWidget sceneWidget) {
+    public void renderAfterWorld(SceneWidget sceneWidget) {
         if (previewMachine == null) return;
         var drawFrameLines = drawShapeFrameLines || drawRenderingBoxFrameLines;
         var poseStack = new PoseStack();
