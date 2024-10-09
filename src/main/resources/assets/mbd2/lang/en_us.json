@@ -171,6 +171,8 @@
     "config.machine_settings.max_parallel.tooltip": "The value is he maximum number of parallel that can be processed. Do not set it too high.",
     "config.machine_settings.modify_duration": "Modify Duration",
     "config.machine_settings.modify_duration.tooltip": "Whether modify the duration of the recipe.",
+    "config.machine_settings.recipe_damping_value": "Recipe Damping Value",
+    "config.machine_settings.recipe_damping_value.tooltip": "if the recipe handling is waiting, damping value is the decreased ticks of the current progress.",
 
     "config.definition.id.tooltip": "The unique identifier of the definition.",
     "config.definition.block_properties": "Block Properties",

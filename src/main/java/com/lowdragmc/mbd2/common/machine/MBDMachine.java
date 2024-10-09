@@ -200,6 +200,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
         var hasLightChanged = definition.stateMachine().getState(newValue).getLightLevel() != definition.stateMachine().getState(oldValue).getLightLevel();
         // notify the light engine to update the light value
         if (hasLightChanged) {
+            // TODO it doesnt save the light value to the chunk?
             var profilerfiller = getLevel().getProfiler();
             var level = getLevel();
             var pos = getPos();
@@ -437,6 +438,12 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
         return getDefinition().machineSettings().hasRecipeLogic() && getRecipeType() != MBDRecipeType.DUMMY;
     }
 
+    /**
+     * Override it to modify recipe on the fly e.g. applying overclock, change chance, etc
+     * @param recipe recipe from detected from MBDRecipe
+     * @return modified recipe.
+     *         null -- this recipe is unavailable
+     */
     @Nullable
     @Override
     public MBDRecipe getModifiedRecipe(@Nonnull MBDRecipe recipe) {
@@ -448,9 +455,23 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
         return getDefinition().machineSettings().recipeModifiers().getMaxParallel(getRecipeLogic(), recipe);
     }
 
+    /**
+     * Always try {@link #doModifyRecipe(MBDRecipe)} before setting up recipe.
+     * @return true - will map {@link RecipeLogic#getLastOriginRecipe()} to the latest recipe for next round when finishing.
+     * false - keep using the {@link RecipeLogic#getLastRecipe()}, which is already modified.
+     */
     @Override
     public boolean alwaysTryModifyRecipe() {
         return !getDefinition().machineSettings().recipeModifiers().recipeModifiers.isEmpty();
+    }
+
+    /**
+     * if the recipe handling is waiting, damping value is the decreased ticks of the current progress.
+     * @return damping value in tick.
+     */
+    @Override
+    public int getRecipeDampingValue() {
+        return getDefinition().machineSettings().recipeDampingValue();
     }
 
     @Override

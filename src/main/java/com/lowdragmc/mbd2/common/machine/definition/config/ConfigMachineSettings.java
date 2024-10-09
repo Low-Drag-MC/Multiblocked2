@@ -2,7 +2,6 @@ package com.lowdragmc.mbd2.common.machine.definition.config;
 
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.ArrayConfiguratorGroup;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.SelectorConfigurator;
@@ -11,7 +10,6 @@ import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleParallelValue;
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 import com.lowdragmc.mbd2.utils.FileUtils;
 import lombok.Builder;
@@ -54,6 +52,11 @@ public class ConfigMachineSettings implements IPersistedSerializable, IConfigura
     @Builder.Default
     @Getter
     protected final RecipeModifier.RecipeModifiers recipeModifiers = new RecipeModifier.RecipeModifiers();
+    @Getter
+    @Builder.Default
+    @Configurable(name = "config.machine_settings.recipe_damping_value", tips = "config.machine_settings.recipe_damping_value.tooltip")
+    @NumberRange(range = {0, Integer.MAX_VALUE})
+    protected int recipeDampingValue = 2;
     @Singular
     @NonNull
     @Getter
