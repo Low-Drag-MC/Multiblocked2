@@ -7,4 +7,5 @@
 * add block tag predicate
 * fluid/item/entity tag configurators use the search component instead
 * add machine data condition
+* add zh_cn translation (thanks to @FalAut)
 
