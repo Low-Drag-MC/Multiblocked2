@@ -8,9 +8,11 @@ import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeSerializer;
 import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
+import com.lowdragmc.mbd2.api.recipe.ingredient.EntityIngredient;
 import com.lowdragmc.mbd2.api.recipe.ingredient.FluidIngredient;
 import com.lowdragmc.mbd2.api.recipe.ingredient.SizedIngredient;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
+import com.lowdragmc.mbd2.common.capability.recipe.EntityRecipeCapability;
 import com.lowdragmc.mbd2.common.capability.recipe.FluidRecipeCapability;
 import com.lowdragmc.mbd2.common.capability.recipe.ForgeEnergyRecipeCapability;
 import com.lowdragmc.mbd2.common.capability.recipe.ItemRecipeCapability;
@@ -31,11 +33,14 @@ import dev.latvian.mods.kubejs.util.ListJS;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.block.Block;
 
+import javax.annotation.Nullable;
 import java.util.*;
 import java.util.function.Consumer;
 
@@ -159,6 +164,7 @@ public interface MBDRecipeSchema {
         //////////////// ingredients ////////////////
         public MBDRecipeJS inputs(RecipeCapability<?> capability, Object... obj) {
             inputs.computeIfAbsent(capability, c -> new ArrayList<>()).addAll(Arrays.stream(obj)
+                    .filter(Objects::nonNull)
                     .map(capability::of)
                     .map(o -> new Content(o, perTick, chance, tierChanceBoost, slotName, uiName)).toList());
             save();
@@ -167,6 +173,7 @@ public interface MBDRecipeSchema {
 
         public MBDRecipeJS outputs(RecipeCapability<?> capability, Object... obj) {
             outputs.computeIfAbsent(capability, c -> new ArrayList<>()).addAll(Arrays.stream(obj)
+                    .filter(Objects::nonNull)
                     .map(capability::of)
                     .map(o -> new Content(o, perTick, chance, tierChanceBoost, slotName, uiName)).toList());
             save();
@@ -185,7 +192,15 @@ public interface MBDRecipeSchema {
             return inputs(FluidRecipeCapability.CAP, Arrays.stream(fluids).map(FluidIngredientJS::ingredient).toArray());
         }
 
-        public MBDRecipeJS outputFluids(FluidIngredientJS... fluids) {
+        public MBDRecipeJS outputFluids(EntityIngredientJS... entities) {
+            return outputs(EntityRecipeCapability.CAP, Arrays.stream(entities).map(EntityIngredientJS::ingredient).toArray());
+        }
+
+        public MBDRecipeJS inputEntities(EntityIngredientJS... entities) {
+            return inputs(EntityRecipeCapability.CAP, Arrays.stream(entities).map(EntityIngredientJS::ingredient).toArray());
+        }
+
+        public MBDRecipeJS outputEntities(FluidIngredientJS... fluids) {
             return outputs(FluidRecipeCapability.CAP, Arrays.stream(fluids).map(FluidIngredientJS::ingredient).toArray());
         }
 
@@ -378,6 +393,35 @@ public interface MBDRecipeSchema {
             );
         }
 
+    }
+
+    record EntityIngredientJS(@Nullable EntityIngredient ingredient) {
+        public static EntityIngredientJS of(Object object) {
+            if (object instanceof EntityIngredientJS entityIngredientJS) {
+                return entityIngredientJS;
+            } else if (object instanceof EntityIngredient entityIngredient) {
+                return new EntityIngredientJS(entityIngredient);
+            } else if (object instanceof JsonElement json) {
+                return new EntityIngredientJS(EntityIngredient.fromJson(json));
+            } else if (object instanceof EntityType<?> entityType) {
+                return new EntityIngredientJS(EntityIngredient.of(1, entityType));
+            }
+            if (object instanceof CharSequence) {
+                var str = object.toString();
+                // parse "Nx ID"
+                int x = str.indexOf('x');
+                if (x > 0 && x < str.length() - 2 && str.charAt(x + 1) == ' ') {
+                    try {
+                        var entityType = BuiltInRegistries.ENTITY_TYPE.get(new ResourceLocation(str.substring(x + 2)));
+                        var amount = Integer.parseInt(str.substring(0, x));
+                        return new EntityIngredientJS(EntityIngredient.of(amount, entityType));
+                    } catch (Exception ignore) {
+                        throw new IllegalStateException("Invalid chemical input: " + str);
+                    }
+                }
+            }
+            return new EntityIngredientJS(null);
+        }
     }
 
     record FluidIngredientJS(FluidIngredient ingredient) implements InputFluid, OutputFluid {

@@ -74,6 +74,7 @@ public class EntityTypeConfigurator extends ValueConfigurator<EntityType<?>> imp
     public void search(String word, Consumer<EntityType<?>> find) {
         var wordLower = word.toLowerCase();
         for (var entry : BuiltInRegistries.ENTITY_TYPE.entrySet()) {
+            if (Thread.currentThread().isInterrupted()) return;
             var entityType = entry.getValue();
             var id = entry.getKey().location();
             if (id.toString().contains(wordLower)) {

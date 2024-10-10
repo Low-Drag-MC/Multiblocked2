@@ -14,10 +14,8 @@ import com.lowdragmc.lowdraglib.utils.Size;
 import com.lowdragmc.lowdraglib.utils.TagOrCycleFluidTransfer;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
-import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.api.recipe.content.SerializerFluidIngredient;
 import com.lowdragmc.mbd2.api.recipe.ingredient.FluidIngredient;
-import com.lowdragmc.mbd2.utils.TagUtil;
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.nbt.CompoundTag;
@@ -25,9 +23,9 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.tags.TagKey;
-import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.Arrays;
 import java.util.List;
@@ -149,16 +147,21 @@ public class FluidRecipeCapability extends RecipeCapability<FluidIngredient> {
                             Fluids.WATER, true));
                 } else if (value instanceof FluidIngredient.TagValue tagValue) {
                     // tag value
-                    var configurator = new StringConfigurator(TAG_TYPE, () -> tagValue.getTag().location().toString(), tag -> {
-                        if (ResourceLocation.isValidResourceLocation(tag)) {
-                            var itemTag = TagUtil.optionalTag(tagValue.getTag().registry(), new ResourceLocation(tag));
-                            tagValue.setTag(itemTag);
-                            fluidStorage.updateStacks(value.getStacks().stream().map(f -> FluidStack.create(f, 1)).toList());
-                            setter.accept(value);
-                        }
-                    }, FluidTags.LAVA.location().toString(), false);
-                    configurator.setResourceLocation(true);
-                    valueGroup.addConfigurators(configurator);
+                    valueGroup.addConfigurators(new SearchComponentConfigurator<>(TAG_TYPE,
+                            () -> tagValue.getTag().location(), tagKey -> {
+                        tagValue.setTag(FluidTags.create(tagKey));
+                        fluidStorage.updateStacks(value.getStacks().stream().map(f -> FluidStack.create(f, 1)).toList());
+                        setter.accept(value);
+                    }, FluidTags.LAVA.location(), true, (word, find) -> {
+                        var tags = ForgeRegistries.FLUIDS.tags();
+                        if (tags == null) return;
+                        for (var tag : tags) {
+                            if (Thread.currentThread().isInterrupted()) return;
+                            var tagKey = tag.getKey().location();
+                            if (tagKey.toString().toLowerCase().contains(word.toLowerCase())) {
+                                find.accept(tagKey);
+                            }
+                        }}, ResourceLocation::toString));
                 }
                 valueGroup.addConfigurators(new WrapperConfigurator("ldlib.gui.editor.group.preview", tank));
             });

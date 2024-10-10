@@ -60,6 +60,8 @@
     "recipe.condition.thunder.tooltip": "Thunder Level: from %d to %d",
     "recipe.condition.machine_level": "machine level",
     "recipe.condition.machine_level.tooltip": "The machine level >= %d",
+    "recipe.condition.machine_custom_data": "machine custom data",
+    "recipe.condition.machine_custom_data.tooltip": "machine data: %d",
     "recipe.condition.block": "block",
     "recipe.condition.block.tooltip": "blocks [%s] count in the structure from %d to %d",
 
@@ -78,6 +80,8 @@
     "config.recipe.condition.block.blocks": "block filters",
     "config.recipe.condition.machine_level.level": "machine level",
     "config.recipe.condition.machine_level.level.tooltip": "The machine level of the machine.",
+    "config.recipe.condition.machine_custom_data.data": "machine data",
+    "config.recipe.condition.machine_custom_data.data.tooltip": "The machine custom data of the machine.",
 
     "config.block_properties.render_types": "Render Types",
     "config.block_properties.render_types.tooltip": "The render type of the block.",
@@ -493,6 +497,8 @@
     "config.predicate.blockstates": "blockstates",
     "config.predicate.blockstates.tooltip": "match any one of states.",
     "config.predicate.add_predicate": "add predicate",
+    "config.predicate.tags": "tags",
+    "config.predicate.tags.tooltip": "match any one of block tags.",
 
     "editor.machine.recipe_type_ui_view.progress": "Progress Bar",
     "editor.machine.recipe_type_ui_view.fuel_progress": "Fuel Bar",

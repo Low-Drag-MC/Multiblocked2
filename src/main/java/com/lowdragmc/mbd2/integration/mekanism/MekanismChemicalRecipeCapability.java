@@ -2,15 +2,12 @@ package com.lowdragmc.mbd2.integration.mekanism;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.NumberConfigurator;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.WrapperConfigurator;
+import com.lowdragmc.lowdraglib.gui.editor.configurator.SearchComponentConfigurator;
 import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
-import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
-import com.lowdragmc.lowdraglib.gui.widget.SearchComponentWidget;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.lowdraglib.jei.IngredientIO;
@@ -179,54 +176,33 @@ public class MekanismChemicalRecipeCapability<CHEMICAL extends Chemical<CHEMICAL
 
     @Override
     public void createContentConfigurator(ConfiguratorGroup father, Supplier<STACK> supplier, Consumer<STACK> onUpdate) {
-        var searchHandler = new SearchComponentWidget.IWidgetSearch<CHEMICAL>() {
-
-            @Override
-            public String resultDisplay(CHEMICAL value) {
-                if (value.isEmptyType()) {
-                    return "empty";
-                }
-                var key = registry.get().getKey(value);
-                return key == null ? "empty" : key.toString();
+        father.addConfigurators(new SearchComponentConfigurator<>("recipe.capability.mek_chemical.type",
+                () -> supplier.get().getType(), value -> onUpdate.accept(createStack.apply(value, Math.max(1, supplier.get().getAmount()))),
+                empty, true, (word, find) -> {
+            var lowerCase = word.toLowerCase();
+            if ("empty".contains(lowerCase)) {
+                find.accept(empty);
+                return;
             }
-
-            @Override
-            public void selectResult(CHEMICAL value) {
-                onUpdate.accept(createStack.apply(value, Math.max(1, supplier.get().getAmount())));
-            }
-
-            @Override
-            public void search(String word, Consumer<CHEMICAL> find) {
-                var lowerCase = word.toLowerCase();
-                if ("empty".contains(lowerCase)) {
-                    find.accept(empty);
-                    return;
-                }
-                var words = lowerCase.split(" ");
-                for (var entry : registry.get().getEntries()) {
-                    var key = entry.getKey();
-                    var chemical = entry.getValue();
-                    for (String s : words) {
-                        if (key.toString().toLowerCase().contains(s) ||
-                                LocalizationUtils.format(chemical.getTranslationKey()).toLowerCase().contains(s)) {
-                            find.accept(chemical);
-                            break;
-                        }
+            var words = lowerCase.split(" ");
+            for (var entry : registry.get().getEntries()) {
+                var key = entry.getKey();
+                var chemical = entry.getValue();
+                for (String s : words) {
+                    if (key.toString().toLowerCase().contains(s) ||
+                            LocalizationUtils.format(chemical.getTranslationKey()).toLowerCase().contains(s)) {
+                        find.accept(chemical);
+                        break;
                     }
                 }
             }
-        };
-        var typeGroup = new WidgetGroup(0, 0, 180, 10);
-        typeGroup.addWidget(new ImageWidget(0, 0, 180, 10, ColorPattern.T_GRAY.rectTexture().setRadius(5)));
-        var searchComponent = new SearchComponentWidget<>(3, 0, 180 - 3, 10, searchHandler);
-        searchComponent.setShowUp(true);
-        searchComponent.setCapacity(5);
-        var textFieldWidget = searchComponent.textFieldWidget;
-        textFieldWidget.setClientSideWidget();
-        textFieldWidget.setCurrentString(searchHandler.resultDisplay(supplier.get().getType()));
-        textFieldWidget.setBordered(false);
-        typeGroup.addWidget(searchComponent);
-        father.addConfigurators(new WrapperConfigurator("recipe.capability.mek_chemical.type", typeGroup));
+        }, value -> {
+            if (value.isEmptyType()) {
+                return "empty";
+            }
+            var key = registry.get().getKey(value);
+            return key == null ? "empty" : key.toString();
+        }));
         father.addConfigurators(new NumberConfigurator("recipe.capability.mek_chemical.amount",
                 () -> supplier.get().getAmount(),
                 number -> onUpdate.accept(createStack.apply(supplier.get().getType(), number.longValue())), 1, true).setRange(1, Long.MAX_VALUE));

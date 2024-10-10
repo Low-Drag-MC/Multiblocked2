@@ -39,6 +39,7 @@ public class MBDKubeJSPlugin extends KubeJSPlugin {
     public void registerTypeWrappers(ScriptType type, TypeWrappers typeWrappers) {
         super.registerTypeWrappers(type, typeWrappers);
         typeWrappers.registerSimple(MBDRecipeSchema.FluidIngredientJS.class, MBDRecipeSchema.FluidIngredientJS::of);
+        typeWrappers.registerSimple(MBDRecipeSchema.EntityIngredientJS.class, MBDRecipeSchema.EntityIngredientJS::of);
     }
 
     @Override

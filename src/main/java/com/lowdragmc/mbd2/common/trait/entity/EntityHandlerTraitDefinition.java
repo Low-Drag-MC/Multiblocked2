@@ -27,6 +27,8 @@ import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.AABB;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import org.lwjgl.opengl.GL11;
 
 import javax.annotation.Nullable;
@@ -79,6 +81,7 @@ public class EntityHandlerTraitDefinition extends RecipeCapabilityTraitDefinitio
     }
 
     @Override
+    @OnlyIn(Dist.CLIENT)
     public void renderAfterWorldInTraitPanel(MachineTraitPanel panel) {
         super.renderAfterWorldInTraitPanel(panel);
         var poseStack = new PoseStack();

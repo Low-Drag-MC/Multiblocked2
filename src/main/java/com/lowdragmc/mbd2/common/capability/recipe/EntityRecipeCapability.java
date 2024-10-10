@@ -10,12 +10,14 @@ import com.lowdragmc.mbd2.api.recipe.content.SerializerEntityIngredient;
 import com.lowdragmc.mbd2.api.recipe.ingredient.EntityIngredient;
 import com.lowdragmc.mbd2.common.gui.recipe.ingredient.entity.EntityPreviewWidget;
 import com.lowdragmc.mbd2.common.gui.recipe.ingredient.entity.EntityTypeConfigurator;
-import com.lowdragmc.mbd2.utils.TagUtil;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.EntityTypeTags;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.Arrays;
 import java.util.List;
@@ -110,16 +112,21 @@ public class EntityRecipeCapability extends RecipeCapability<EntityIngredient> {
                             EntityType.PIG, true));
                 } else if (value instanceof EntityIngredient.TagValue tagValue) {
                     // tag value
-                    var configurator = new StringConfigurator(TAG_TYPE, () -> tagValue.getTag().location().toString(), tag -> {
-                        if (ResourceLocation.isValidResourceLocation(tag)) {
-                            var entityTypeTag = TagUtil.optionalTag(tagValue.getTag().registry(), new ResourceLocation(tag));
-                            tagValue.setTag(entityTypeTag);
-                            preview.setEntityIngredient(EntityIngredient.of(value.getTypes().stream(), 1, supplier.get().getNbt()));
-                            setter.accept(value);
-                        }
-                    }, EntityTypeTags.SKELETONS.location().toString(), false);
-                    configurator.setResourceLocation(true);
-                    valueGroup.addConfigurators(configurator);
+                    valueGroup.addConfigurators(new SearchComponentConfigurator<>(TAG_TYPE,
+                            () -> tagValue.getTag().location(), tagKey -> {
+                        tagValue.setTag(TagKey.create(Registries.ENTITY_TYPE, tagKey));
+                        preview.setEntityIngredient(EntityIngredient.of(value.getTypes().stream(), 1, supplier.get().getNbt()));
+                        setter.accept(value);
+                    }, EntityTypeTags.SKELETONS.location(), true, (word, find) -> {
+                        var tags = ForgeRegistries.ENTITY_TYPES.tags();
+                        if (tags == null) return;
+                        for (var tag : tags) {
+                            if (Thread.currentThread().isInterrupted()) return;
+                            var tagKey = tag.getKey().location();
+                            if (tagKey.toString().toLowerCase().contains(word.toLowerCase())) {
+                                find.accept(tagKey);
+                            }
+                        }}, ResourceLocation::toString));
                 }
                 valueGroup.addConfigurators(new WrapperConfigurator("ldlib.gui.editor.group.preview", preview));
             });

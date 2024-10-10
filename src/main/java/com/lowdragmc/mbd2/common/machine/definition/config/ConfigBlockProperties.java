@@ -1,12 +1,8 @@
 package com.lowdragmc.mbd2.common.machine.definition.config;
 
-import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.*;
-import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
-import com.lowdragmc.lowdraglib.gui.widget.SearchComponentWidget;
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
 import com.lowdragmc.mbd2.api.block.RotationState;
@@ -256,36 +252,16 @@ public class ConfigBlockProperties implements IPersistedSerializable {
         }
 
         public Configurator createSoundConfigurator(String name, Consumer<ResourceLocation> setter, Supplier<ResourceLocation> getter) {
-            var typeGroup = new WidgetGroup(0, 0, 180, 10);
-            typeGroup.addWidget(new ImageWidget(0, 0, 180, 10, ColorPattern.T_GRAY.rectTexture().setRadius(5)));
-            var searchComponent = new SearchComponentWidget<>(3, 0, 180 - 3, 10, new SearchComponentWidget.IWidgetSearch<ResourceLocation>() {
-                @Override
-                public void search(String word, Consumer<ResourceLocation> find) {
-                    for (var key : ForgeRegistries.SOUND_EVENTS.getKeys()) {
-                        if (key.toString().contains(word.toLowerCase())) {
-                            find.accept(key);
-                        }
+            return new SearchComponentConfigurator<>(name, getter, setter, SoundEvents.STONE_PLACE.getLocation(), true, (word, find) -> {
+                for (var key : ForgeRegistries.SOUND_EVENTS.getKeys()) {
+                    if (Thread.currentThread().isInterrupted()) {
+                        return;
+                    }
+                    if (key.toString().contains(word.toLowerCase())) {
+                        find.accept(key);
                     }
                 }
-
-                @Override
-                public String resultDisplay(ResourceLocation value) {
-                    return value.toString();
-                }
-
-                @Override
-                public void selectResult(ResourceLocation value) {
-                    setter.accept(value);
-                }
-            });
-            searchComponent.setShowUp(true);
-            searchComponent.setCapacity(5);
-            var textFieldWidget = searchComponent.textFieldWidget;
-            textFieldWidget.setClientSideWidget();
-            textFieldWidget.setCurrentString(getter.get().toString());
-            textFieldWidget.setBordered(false);
-            typeGroup.addWidget(searchComponent);
-            return new WrapperConfigurator(name, typeGroup);
+            }, Object::toString);
         }
     }
 }

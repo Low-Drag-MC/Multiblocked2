@@ -18,7 +18,6 @@ import com.lowdragmc.mbd2.core.mixins.IngredientAccessor;
 import com.lowdragmc.mbd2.core.mixins.ItemValueAccessor;
 import com.lowdragmc.mbd2.core.mixins.StrictNBTIngredientAccessor;
 import com.lowdragmc.mbd2.core.mixins.TagValueAccessor;
-import com.lowdragmc.mbd2.utils.TagUtil;
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.nbt.CompoundTag;
@@ -33,6 +32,7 @@ import net.minecraft.world.item.alchemy.PotionUtils;
 import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraftforge.common.crafting.StrictNBTIngredient;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.Arrays;
 import java.util.List;
@@ -193,16 +193,21 @@ public class ItemRecipeCapability extends RecipeCapability<Ingredient> {
                                     Items.IRON_INGOT, true));
                         } else if (value instanceof TagValueAccessor tagValue) {
                             // tag value
-                            var configurator = new StringConfigurator(TAG_TYPE, () -> tagValue.getTag().location().toString(), tag -> {
-                                if (ResourceLocation.isValidResourceLocation(tag)) {
-                                    var itemTag = TagUtil.optionalTag(tagValue.getTag().registry(), new ResourceLocation(tag));
-                                    tagValue.setTag(itemTag);
-                                    itemHandler.updateStacks(List.of(value.getItems().stream().toList()));
-                                    setter.accept(value);
-                                }
-                            }, ItemTags.COALS.location().toString(), false);
-                            configurator.setResourceLocation(true);
-                            valueGroup.addConfigurators(configurator);
+                            valueGroup.addConfigurators(new SearchComponentConfigurator<>(TAG_TYPE,
+                                    () -> tagValue.getTag().location(), tagKey -> {
+                                tagValue.setTag(ItemTags.create(tagKey));
+                                itemHandler.updateStacks(List.of(value.getItems().stream().toList()));
+                                setter.accept(value);
+                            }, ItemTags.COALS.location(), true, (word, find) -> {
+                                var tags = ForgeRegistries.ITEMS.tags();
+                                if (tags == null) return;
+                                for (var tag : tags) {
+                                    if (Thread.currentThread().isInterrupted()) return;
+                                    var tagKey = tag.getKey().location();
+                                    if (tagKey.toString().toLowerCase().contains(word.toLowerCase())) {
+                                        find.accept(tagKey);
+                                    }
+                                }}, ResourceLocation::toString));
                         }
                         valueGroup.addConfigurators(new WrapperConfigurator("ldlib.gui.editor.group.preview", slot));
                     });

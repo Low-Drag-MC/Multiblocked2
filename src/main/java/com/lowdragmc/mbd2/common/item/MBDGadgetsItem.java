@@ -209,6 +209,7 @@ public class MBDGadgetsItem extends Item implements HeldItemUIFactory.IHeldItemU
                         if (Platform.getMinecraftServer() != null) {
                             var recipeManager = Platform.getMinecraftServer().getRecipeManager();
                             for (MBDRecipeType recipeType : MBDRegistries.RECIPE_TYPES) {
+                                if (Thread.currentThread().isInterrupted()) return;
                                 for (var recipe : recipeManager.getAllRecipesFor(recipeType)) {
                                     if (recipe.id.toString().contains(word.toLowerCase())) {
                                         find.accept(recipe.id);
