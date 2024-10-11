@@ -1,6 +1,8 @@
 package com.lowdragmc.mbd2.api.pattern;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.lowdragmc.lowdraglib.Platform;
+import com.lowdragmc.lowdraglib.async.AsyncThreadData;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
 import com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine;
@@ -122,9 +124,7 @@ public class MultiblockWorldSavedData extends SavedData {
 
     private void searchingTask() {
         try {
-            if (serverLevel.getServer().isCurrentlySaving() || serverLevel.getServer().isStopped() || !serverLevel.getServer().isRunning()) {
-                return;
-            }
+            if (Platform.isServerNotSafe()) return;
             IN_SERVICE.set(true);
             for (var controller : controllers) {
                 controller.asyncCheckPattern(periodID);
@@ -145,6 +145,7 @@ public class MultiblockWorldSavedData extends SavedData {
         if (executorService != null) {
             executorService.shutdownNow();
         }
+        AsyncThreadData
         executorService = null;
     }
 

@@ -13,9 +13,11 @@ import com.lowdragmc.mbd2.api.pattern.MultiblockState;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
+import net.minecraft.ChatFormatting;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -134,6 +136,18 @@ public class MBDGadgetsItem extends Item implements HeldItemUIFactory.IHeldItemU
                     for (MBDRecipeType recipeType : MBDRegistries.RECIPE_TYPES) {
                         for (MBDRecipe mbdRecipe : recipeManager.getAllRecipesFor(recipeType)) {
                             if (Objects.equals(mbdRecipe.id, recipe)) {
+                                if (machine.getRecipeType() != recipeType) {
+                                    serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.warning.recipe_type",
+                                            Component.literal("id").withStyle(style ->
+                                                    style.withColor(ChatFormatting.YELLOW)
+                                                            .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                                                                    Component.literal(machine.getRecipeType().toString())))),
+                                            Component.literal("id").withStyle(style ->
+                                                    style.withColor(ChatFormatting.YELLOW)
+                                                            .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                                                                    Component.literal(mbdRecipe.id.toString()))))
+                                    ));
+                                }
                                 var result = mbdRecipe.matchRecipe(machine);
                                 if (result.isSuccess()) {
                                     result = mbdRecipe.matchTickRecipe(machine);
@@ -142,7 +156,11 @@ public class MBDGadgetsItem extends Item implements HeldItemUIFactory.IHeldItemU
                                     }
                                 }
                                 if (result.isSuccess()) {
-                                    serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.raw.success", mbdRecipe.id));
+                                    serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.raw.success",
+                                            Component.literal("id").withStyle(style ->
+                                                    style.withColor(ChatFormatting.YELLOW)
+                                                            .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                                                            Component.literal(mbdRecipe.id.toString()))))));
                                     var modifiedRecipe = machine.doModifyRecipe(mbdRecipe);
                                     if (modifiedRecipe == mbdRecipe) {
                                         serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.modified.empty"));
@@ -170,7 +188,11 @@ public class MBDGadgetsItem extends Item implements HeldItemUIFactory.IHeldItemU
                                     isUsed = true;
                                     return InteractionResult.SUCCESS;
                                 } else {
-                                    serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.raw.failure.0", mbdRecipe.id));
+                                    serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.raw.failure.0",
+                                            Component.literal("id").withStyle(style ->
+                                                    style.withColor(ChatFormatting.YELLOW)
+                                                            .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                                                                    Component.literal(mbdRecipe.id.toString()))))));
                                     if (result.reason() != null) {
                                         serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.failure.reason").append(result.reason().get()));
                                     }

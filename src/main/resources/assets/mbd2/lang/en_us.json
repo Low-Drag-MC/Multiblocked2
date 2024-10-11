@@ -7,6 +7,7 @@
     "item.mbd2.mbd_gadgets.recipe_debugger.tooltip.0": "Open UI to set a test recipe.",
     "item.mbd2.mbd_gadgets.recipe_debugger.tooltip.1": "Right click on the machine to check whether the recipe can be processed (with failure reason).",
     "item.mbd2.mbd_gadgets.recipe_debugger.tooltip.2": "Current Recipe: %s",
+    "item.mbd2.mbd_gadgets.recipe_debugger.warning.recipe_type": "§cWarning§r: machine's recipe type (%d) is not equal to the recipe's recipe type (%d).",
     "item.mbd2.mbd_gadgets.recipe_debugger.raw.success": "Raw Recipe (%s) can be processed.",
     "item.mbd2.mbd_gadgets.recipe_debugger.modified.has": "Machine will modify the recipe.",
     "item.mbd2.mbd_gadgets.recipe_debugger.modified.empty": "Machine won't modify the raw recipe.",

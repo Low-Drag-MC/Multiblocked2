@@ -4,12 +4,17 @@ import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
 import com.lowdragmc.mbd2.api.pattern.MultiblockState;
 import com.lowdragmc.mbd2.api.pattern.MultiblockWorldSavedData;
+import com.lowdragmc.mbd2.common.item.MBDGadgetsItem;
 import com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine;
 import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.event.level.LevelEvent;
+import net.minecraftforge.event.server.ServerStoppingEvent;
+import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -28,16 +33,19 @@ public class ForgeCommonEventListener {
 
     @SubscribeEvent
     public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
-        // on multiblock ui click
         if (event.getLevel() instanceof ServerLevel serverLevel) {
             var pos = event.getPos();
-            if (!event.getEntity().isCrouching()) {
+            if (!event.getEntity().isCrouching() &&
+                    !(event.getEntity().getItemInHand(event.getHand()).getItem() instanceof MBDGadgetsItem)) {
+                // on multiblock ui click
                 for (var state : MultiblockWorldSavedData.getOrCreate(serverLevel).getControllerInPos(pos)) {
                     if (state.getController() instanceof MBDMultiblockMachine machine) {
                         if (machine.getDefinition().machineSettings().hasUI() &&
                                 machine.getDefinition().multiblockSettings().showUIWhenClickStructure()) {
                             machine.openUI(event.getEntity());
-                            event.setCanceled(true);
+                            event.setUseBlock(Event.Result.ALLOW);
+                            event.setUseItem(Event.Result.DENY);
+                            // event.setCanceled(true);
                             return;
                         }
                     }
@@ -86,6 +94,24 @@ public class ForgeCommonEventListener {
             }
         }
 
+    }
+
+    @SubscribeEvent
+    public static void onWorldUnLoad(LevelEvent.Unload event) {
+        LevelAccessor world = event.getLevel();
+        if (!world.isClientSide() && world instanceof ServerLevel serverLevel) {
+            MultiblockWorldSavedData.getOrCreate(serverLevel).releaseExecutorService();
+        }
+    }
+
+    @SubscribeEvent
+    public static void onServerStopping(ServerStoppingEvent event) {
+        var levels = event.getServer().getAllLevels();
+        for (var level : levels) {
+            if (!level.isClientSide()) {
+                MultiblockWorldSavedData.getOrCreate(level).releaseExecutorService();
+            }
+        }
     }
 
 }
