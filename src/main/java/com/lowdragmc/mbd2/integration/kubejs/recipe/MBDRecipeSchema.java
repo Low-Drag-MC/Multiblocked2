@@ -19,6 +19,7 @@ import com.lowdragmc.mbd2.common.capability.recipe.ItemRecipeCapability;
 import com.lowdragmc.mbd2.common.recipe.*;
 import com.lowdragmc.mbd2.integration.botania.BotaniaManaRecipeCapability;
 import com.lowdragmc.mbd2.integration.create.CreateStressRecipeCapability;
+import com.lowdragmc.mbd2.integration.embers.EmbersEmberRecipeCapability;
 import com.lowdragmc.mbd2.integration.gtm.GTMEnergyRecipeCapability;
 import com.lowdragmc.mbd2.integration.mekanism.MekanismChemicalRecipeCapability;
 import com.lowdragmc.mbd2.integration.mekanism.MekanismHeatRecipeCapability;
@@ -237,35 +238,49 @@ public interface MBDRecipeSchema {
         }
 
         public MBDRecipeJS outputAura(int aura) {
-            if (!MBD2.isBotaniaLoaded()) {
+            if (!MBD2.isNaturesAuraLoaded()) {
                 throw new IllegalStateException("Try to add a aura ingredient while the nature's aura is not loaded!");
             }
             return outputs(NaturesAuraRecipeCapability.CAP, aura);
         }
 
+        public MBDRecipeJS inputEmber(double ember) {
+            if (!MBD2.isEmbersLoaded()) {
+                throw new IllegalStateException("Try to add a ember ingredient while the embers is not loaded!");
+            }
+            return inputs(EmbersEmberRecipeCapability.CAP, ember);
+        }
+
+        public MBDRecipeJS outputEmber(double ember) {
+            if (!MBD2.isEmbersLoaded()) {
+                throw new IllegalStateException("Try to add a ember ingredient while the embers is not loaded!");
+            }
+            return outputs(EmbersEmberRecipeCapability.CAP, ember);
+        }
+
         public MBDRecipeJS inputPNCPressure(float pressure) {
-            if (!MBD2.isNaturesAuraLoaded()) {
+            if (!MBD2.isPneumaticCraftLoaded()) {
                 throw new IllegalStateException("Try to add a pressure ingredient while the pneumatic craft is not loaded!");
             }
             return inputs(PNCPressureAirRecipeCapability.CAP, new PressureAir(false, pressure));
         }
 
         public MBDRecipeJS outputPNCPressure(float pressure) {
-            if (!MBD2.isBotaniaLoaded()) {
+            if (!MBD2.isPneumaticCraftLoaded()) {
                 throw new IllegalStateException("Try to add a pressure ingredient while the pneumatic craft is not loaded!");
             }
             return outputs(PNCPressureAirRecipeCapability.CAP, new PressureAir(false, pressure));
         }
 
         public MBDRecipeJS inputPNCAir(int air) {
-            if (!MBD2.isNaturesAuraLoaded()) {
+            if (!MBD2.isPneumaticCraftLoaded()) {
                 throw new IllegalStateException("Try to add a air ingredient while the pneumatic craft is not loaded!");
             }
             return inputs(PNCPressureAirRecipeCapability.CAP, new PressureAir(true, air));
         }
 
         public MBDRecipeJS outputPNCAir(int air) {
-            if (!MBD2.isBotaniaLoaded()) {
+            if (!MBD2.isPneumaticCraftLoaded()) {
                 throw new IllegalStateException("Try to add a air ingredient while the pneumatic craft is not loaded!");
             }
             return outputs(PNCPressureAirRecipeCapability.CAP, new PressureAir(true, air));

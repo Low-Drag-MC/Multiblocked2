@@ -51,6 +51,11 @@ public class PNCPressureAirHandlerTraitDefinition extends RecipeCapabilityTraitD
     }
 
     @Override
+    public boolean allowMultiple() {
+        return false;
+    }
+
+    @Override
     public void createTraitUITemplate(WidgetGroup ui) {
         var prefix = uiPrefixName();
         var pressureBar = new ProgressWidget(ProgressWidget.JEIProgress, 0, 0, 100, 15, new ProgressTexture(

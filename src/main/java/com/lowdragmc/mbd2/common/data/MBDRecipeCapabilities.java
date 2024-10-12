@@ -9,6 +9,7 @@ import com.lowdragmc.mbd2.common.capability.recipe.ForgeEnergyRecipeCapability;
 import com.lowdragmc.mbd2.common.capability.recipe.ItemRecipeCapability;
 import com.lowdragmc.mbd2.common.event.MBDRegistryEvent;
 import com.lowdragmc.mbd2.integration.create.CreateStressRecipeCapability;
+import com.lowdragmc.mbd2.integration.embers.EmbersEmberRecipeCapability;
 import com.lowdragmc.mbd2.integration.gtm.GTMEnergyRecipeCapability;
 import com.lowdragmc.mbd2.integration.mekanism.MekanismChemicalRecipeCapability;
 import com.lowdragmc.mbd2.integration.mekanism.MekanismHeatRecipeCapability;
@@ -46,6 +47,9 @@ public class MBDRecipeCapabilities {
         }
         if (MBD2.isPneumaticCraftLoaded()) {
             MBDRegistries.RECIPE_CAPABILITIES.register(PNCPressureAirRecipeCapability.CAP.name, PNCPressureAirRecipeCapability.CAP);
+        }
+        if (MBD2.isEmbersLoaded()) {
+            MBDRegistries.RECIPE_CAPABILITIES.register(EmbersEmberRecipeCapability.CAP.name, EmbersEmberRecipeCapability.CAP);
         }
         ModLoader.get().postEvent(new MBDRegistryEvent.RecipeCapability());
         MBDRegistries.RECIPE_CAPABILITIES.freeze();

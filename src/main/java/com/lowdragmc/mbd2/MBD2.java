@@ -60,6 +60,10 @@ public class MBD2 {
         return LDLib.isModLoaded("pneumaticcraft");
     }
 
+    public static boolean isEmbersLoaded() {
+        return LDLib.isModLoaded("embers");
+    }
+
     public static boolean isGTMLoaded() {
         return LDLib.isModLoaded("gtceu");
     }

@@ -54,6 +54,22 @@ public class PNCPressureAirHandlerTrait extends RecipeCapabilityTrait<PressureAi
             var iterator = left.iterator();
             while (iterator.hasNext()) {
                 var pressureAir = iterator.next();
+                var air = pressureAir.value();
+                if (!pressureAir.isAir()) {
+                    air = handler.baseVolume * air;
+                }
+                var leftAir = handler.getAir();
+                if (air > leftAir) {
+                    // can't drain all the air out
+                    continue;
+                }
+                handler.addAir((int) -air);
+                iterator.remove();
+            }
+        } else if (io == IO.OUT) {
+            var iterator = left.iterator();
+            while (iterator.hasNext()) {
+                var pressureAir = iterator.next();
                 var pressure = pressureAir.value();
                 if (pressureAir.isAir()) {
                     pressure = pressure / handler.getBaseVolume();
@@ -65,22 +81,6 @@ public class PNCPressureAirHandlerTrait extends RecipeCapabilityTrait<PressureAi
                 }
                 var air = (int) (pressure * handler.getBaseVolume());
                 handler.addAir(air);
-                iterator.remove();
-            }
-        } else if (io == IO.OUT) {
-            var iterator = left.iterator();
-            while (iterator.hasNext()) {
-                var pressureAir = iterator.next();
-                var air = pressureAir.value();
-                if (!pressureAir.isAir()) {
-                    air = handler.baseVolume * air;
-                }
-                var leftAir = handler.getAir();
-                if (air > leftAir) {
-                    // can't drain all the air out
-                    continue;
-                }
-                handler.addAir((int) -air);
                 iterator.remove();
             }
         }

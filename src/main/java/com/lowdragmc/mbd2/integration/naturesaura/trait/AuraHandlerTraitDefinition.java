@@ -47,6 +47,11 @@ public class AuraHandlerTraitDefinition extends RecipeCapabilityTraitDefinition<
     }
 
     @Override
+    public boolean allowMultiple() {
+        return false;
+    }
+
+    @Override
     public void createTraitUITemplate(WidgetGroup ui) {
         var text = new TextTextureWidget(0, 0, 100, 10,
                 LocalizationUtils.format("recipe.capability.natures_aura.aura", 0))

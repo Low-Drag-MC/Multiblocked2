@@ -356,6 +356,12 @@
     "config.definition.trait.pneumatic_pressure_air_handler.max_pressure": "Max Pressure",
     "config.definition.trait.pneumatic_pressure_air_handler.ui_container_hover": "Stored: %d / %d pressure",
 
+    "config.definition.trait.embers_ember_capability.name": "Embers ember capability",
+    "config.definition.trait.embers_ember_capability.capacity": "Capacity",
+    "config.definition.trait.embers_ember_capability.ui_container_hover": "Stored: %d / %d ember",
+    "config.definition.trait.embers_ember_capability.fancy_renderer": "Embers Ember Storage Renderer",
+    "config.definition.trait.embers_ember_capability.fancy_renderer.tooltip": "Allow you render stored energy in the world. (e.g. Energy Container).",
+
     "config.definition.trait.gtm_energy_container.name": "GTM Energy Container",
     "config.definition.trait.gtm_energy_container.capacity": "Capacity",
     "config.definition.trait.gtm_energy_container.explosion_machine": "Explosion Machine",
@@ -558,6 +564,9 @@
     "recipe.capability.pneumatic_pressure_air.type.pressure": "pressure",
     "recipe.capability.pneumatic_pressure_air.type.tooltip": "pressure = air * volume",
     "recipe.capability.pneumatic_pressure_air.value": "Value",
+
+    "recipe.capability.embers_ember.name": "Embers Ember Capability",
+    "recipe.capability.embers_ember.ember": "Ember",
 
     "recipe.capability.gtm_energy.name": "GTM Energy Capability",
     "recipe.capability.gtm_energy.energy": "Energy",

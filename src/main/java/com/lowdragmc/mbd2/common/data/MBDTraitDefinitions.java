@@ -12,6 +12,7 @@ import com.lowdragmc.mbd2.common.trait.fluid.FluidTankCapabilityTraitDefinition;
 import com.lowdragmc.mbd2.common.trait.forgeenergy.ForgeEnergyCapabilityTraitDefinition;
 import com.lowdragmc.mbd2.common.trait.item.ItemSlotCapabilityTraitDefinition;
 import com.lowdragmc.mbd2.integration.botania.trait.BotaniaManaCapabilityTraitDefinition;
+import com.lowdragmc.mbd2.integration.embers.trait.EmbersEmberCapabilityTraitDefinition;
 import com.lowdragmc.mbd2.integration.gtm.trait.GTMEnergyCapabilityTraitDefinition;
 import com.lowdragmc.mbd2.integration.mekanism.trait.chemical.ChemicalTankCapabilityTraitDefinition;
 import com.lowdragmc.mbd2.integration.mekanism.trait.heat.MekHeatCapabilityTraitDefinition;
@@ -46,6 +47,9 @@ public class MBDTraitDefinitions {
         }
         if (MBD2.isPneumaticCraftLoaded()) {
             register(PNCPressureAirHandlerTraitDefinition.class);
+        }
+        if (MBD2.isEmbersLoaded()) {
+            register(EmbersEmberCapabilityTraitDefinition.class);
         }
         ModLoader.get().postEvent(new MBDRegistryEvent.Trait());
         MBDRegistries.TRAIT_DEFINITIONS.freeze();
