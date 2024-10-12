@@ -19,7 +19,7 @@ import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
 import com.lowdragmc.mbd2.common.gui.editor.machine.MachineEventsPanel;
 import com.lowdragmc.mbd2.common.machine.definition.config.event.MachineEvent;
-import com.lowdragmc.mbd2.common.machine.definition.config.event.graphprocess.MachineEventGraphProcessor;
+import com.lowdragmc.mbd2.common.graphprocessor.MachineEventGraphProcessor;
 import com.lowdragmc.mbd2.integration.ldlib.MBDLDLibPlugin;
 import lombok.Getter;
 import net.minecraft.nbt.CompoundTag;

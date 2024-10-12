@@ -347,6 +347,10 @@
     "config.definition.trait.botania_mana_storage.fancy_renderer": "Fancy Botania Mana Renderer",
     "config.definition.trait.botania_mana_storage.fancy_renderer.tooltip": "Allow you render stored mana in the world. (e.g. Mana Storage).",
 
+    "config.definition.trait.aura_handler.name": "Aura Handler",
+    "config.definition.trait.aura_handler.radius": "Radius",
+    "config.definition.trait.aura_handler.radius.tooltip": "The radius of the aura area.",
+
     "config.definition.trait.gtm_energy_container.name": "GTM Energy Container",
     "config.definition.trait.gtm_energy_container.capacity": "Capacity",
     "config.definition.trait.gtm_energy_container.explosion_machine": "Explosion Machine",
@@ -540,6 +544,9 @@
     "recipe.capability.botania_mana.name": "Botania Mana Capability",
     "recipe.capability.botania_mana.mana": "Mana",
 
+    "recipe.capability.natures_aura.name": "Nature's Aura Capability",
+    "recipe.capability.natures_aura.aura": "Nature's Aura: %s",
+
     "recipe.capability.gtm_energy.name": "GTM Energy Capability",
     "recipe.capability.gtm_energy.energy": "Energy",
 
@@ -664,6 +671,10 @@
     "MachineEvent.Multiblock.MachineStructureInvalidEvent.tips": "The event will be triggered when the multiblock structure is invalid.",
     "MachineEvent.MachineOnLoadEvent": "On Load Event",
     "MachineEvent.MachineOnLoadEvent.tips": "The event will be triggered when the machine is loaded.",
+    "MachineEvent.MachineRecipeModifyEvent.Before": "Before Recipe Modify Event",
+    "MachineEvent.MachineRecipeModifyEvent.Before.tips": "The event will be triggered before the recipe is modified by the recipe modifiers. Cancel the event will stop the modification.",
+    "MachineEvent.MachineRecipeModifyEvent.After": "After Recipe Modify Event",
+    "MachineEvent.MachineRecipeModifyEvent.After.tips": "The event will be triggered after the recipe is modified by the recipe modifiers.",
     "MachineEvent.MachineCustomDataUpdateEvent": "On Custom Data Update Event (client)",
     "MachineEvent.MachineCustomDataUpdateEvent.tips": "The event will be triggered when the custom is updated from the server side.",
     "MachineEvent.MachineTickEvent": "Machine Tick Event",
@@ -674,6 +685,7 @@
     "MachineEvent.Multiblock.MachineUseCatalystEvent.tips": "The event will be triggered while using catalyst to form the stucture. Cancel the event will stop the forming.",
     "graph_processor.node.mbd2.recipe_logic.status.tips": "The status of the recipe logic will be one of the following: §cIDLE§r, §cWORKING§r, §cWAITING§r, §cSUSPENDING§r.",
     "graph_processor.node.mbd2.machine": "Machine",
+    "graph_processor.node.mbd2.machine.recipe": "Machine Recipe",
     "graph_processor.node.mbd2.machine.geckolib": "Geckolib",
     "graph_processor.node.mbd2.machine.photon": "Photon",
     "graph_processor.node.mbd2.machine.photon.identifier": "fx with the same identifier will be replaced.",

@@ -1,4 +1,4 @@
-package com.lowdragmc.mbd2.common.machine.definition.config.event.graphprocess;
+package com.lowdragmc.mbd2.common.graphprocessor;
 
 import com.lowdragmc.lowdraglib.gui.graphprocessor.data.BaseGraph;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.widget.GraphViewWidget;

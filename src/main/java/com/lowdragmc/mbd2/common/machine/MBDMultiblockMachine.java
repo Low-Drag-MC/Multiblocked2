@@ -135,7 +135,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
         } else {
             setMachineState("base");
         }
-        MinecraftForge.EVENT_BUS.post(new MachineRecipeStatusChangedEvent(this, oldStatus, newStatus).postGraphEvent());
+        MinecraftForge.EVENT_BUS.post(new MachineRecipeStatusChangedEvent(this, oldStatus, newStatus).postCustomEvent());
     }
 
     @Override
@@ -331,7 +331,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
         // refresh traits
         initCapabilitiesProxy();
         // post event
-        MinecraftForge.EVENT_BUS.post(new MachineStructureFormedEvent(this).postGraphEvent());
+        MinecraftForge.EVENT_BUS.post(new MachineStructureFormedEvent(this).postCustomEvent());
     }
 
     /**
@@ -363,7 +363,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
         }
         this.renderingDisabledPositions.clear();
         // post event
-        MinecraftForge.EVENT_BUS.post(new MachineStructureInvalidEvent(this).postGraphEvent());
+        MinecraftForge.EVENT_BUS.post(new MachineStructureInvalidEvent(this).postCustomEvent());
     }
 
     /**
@@ -444,7 +444,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
     public boolean onCatalystUsed(Player player, InteractionHand hand, ItemStack held) {
         var catalyst = getDefinition().multiblockSettings().catalyst();
         var event = new MachineUseCatalystEvent(this, held);
-        MinecraftForge.EVENT_BUS.post(event.postGraphEvent());
+        MinecraftForge.EVENT_BUS.post(event.postCustomEvent());
         if (event.isCanceled()) {
             return false;
         }

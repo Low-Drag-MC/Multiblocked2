@@ -143,7 +143,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
             additionalTrait.onMachineLoad();
         }
         if (getLevel() instanceof ServerLevel serverLevel) {
-            serverLevel.getServer().tell(new TickTask(0, () -> MinecraftForge.EVENT_BUS.post(new MachineOnLoadEvent(this).postGraphEvent())));
+            serverLevel.getServer().tell(new TickTask(0, () -> MinecraftForge.EVENT_BUS.post(new MachineOnLoadEvent(this).postCustomEvent())));
         }
     }
 
@@ -181,7 +181,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
     public void setMachineState(String newState) {
         if (machineState.equals(newState)) return;
         if (definition.stateMachine().hasState(newState)) {
-            var event = new MachineStateChangedEvent(this, machineState, newState).postGraphEvent();
+            var event = new MachineStateChangedEvent(this, machineState, newState).postCustomEvent();
             MinecraftForge.EVENT_BUS.post(event);
             if (!event.isCanceled()) {
                 var oldState = machineState;
@@ -193,7 +193,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
     }
 
     public void updateCustomData(CompoundTag newValue, CompoundTag oldValue) {
-        MinecraftForge.EVENT_BUS.post(new MachineCustomDataUpdateEvent(this, newValue, oldValue).postGraphEvent());
+        MinecraftForge.EVENT_BUS.post(new MachineCustomDataUpdateEvent(this, newValue, oldValue).postCustomEvent());
     }
 
     public void updateState(String newValue, String oldValue) {
@@ -340,7 +340,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
             case WAITING -> setMachineState("waiting");
             case SUSPEND -> setMachineState("suspend");
         }
-        MinecraftForge.EVENT_BUS.post(new MachineRecipeStatusChangedEvent(this, oldStatus, newStatus).postGraphEvent());
+        MinecraftForge.EVENT_BUS.post(new MachineRecipeStatusChangedEvent(this, oldStatus, newStatus).postCustomEvent());
     }
 
     /**
@@ -417,7 +417,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
      * Server tick. will be called on server side per tick.
      */
     public void serverTick() {
-        var event = new MachineTickEvent(this).postGraphEvent();
+        var event = new MachineTickEvent(this).postCustomEvent();
         MinecraftForge.EVENT_BUS.post(event);
         if (!event.isCanceled()) {
             if (runRecipeLogic()) {
@@ -436,6 +436,21 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
      */
     public boolean runRecipeLogic() {
         return getDefinition().machineSettings().hasRecipeLogic() && getRecipeType() != MBDRecipeType.DUMMY;
+    }
+
+    @Nullable
+    @Override
+    public MBDRecipe doModifyRecipe(@NotNull MBDRecipe recipe) {
+        var before = new MachineRecipeModifyEvent.Before(this, recipe);
+        MinecraftForge.EVENT_BUS.post(before.postCustomEvent());
+        recipe = before.getRecipe();
+        if (before.isCanceled() || recipe == null) {
+            return recipe;
+        }
+        recipe = IMachine.super.doModifyRecipe(recipe);
+        var after = new MachineRecipeModifyEvent.After(this, recipe);
+        MinecraftForge.EVENT_BUS.post(after.postCustomEvent());
+        return after.getRecipe();
     }
 
     /**
@@ -477,7 +492,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
     @Override
     public boolean beforeWorking(MBDRecipe recipe) {
         var event = new MachineBeforeRecipeWorkingEvent(this, recipe);
-        MinecraftForge.EVENT_BUS.post(event.postGraphEvent());
+        MinecraftForge.EVENT_BUS.post(event.postCustomEvent());
         if (event.isCanceled()) {
             return false;
         }
@@ -487,7 +502,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
     @Override
     public boolean onWorking() {
         var event = new MachineOnRecipeWorkingEvent(this, recipeLogic.getLastRecipe(), recipeLogic.getProgress());
-        MinecraftForge.EVENT_BUS.post(event.postGraphEvent());
+        MinecraftForge.EVENT_BUS.post(event.postCustomEvent());
         if (event.isCanceled()) {
             return true;
         }
@@ -496,13 +511,13 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
 
     @Override
     public void onWaiting() {
-        MinecraftForge.EVENT_BUS.post(new MachineOnRecipeWaitingEvent(this, recipeLogic.getLastRecipe()).postGraphEvent());
+        MinecraftForge.EVENT_BUS.post(new MachineOnRecipeWaitingEvent(this, recipeLogic.getLastRecipe()).postCustomEvent());
         IMachine.super.onWaiting();
     }
 
     @Override
     public void afterWorking() {
-        MinecraftForge.EVENT_BUS.post(new MachineAfterRecipeWorkingEvent(this, recipeLogic.getLastRecipe()).postGraphEvent());
+        MinecraftForge.EVENT_BUS.post(new MachineAfterRecipeWorkingEvent(this, recipeLogic.getLastRecipe()).postCustomEvent());
         IMachine.super.afterWorking();
     }
 
@@ -511,7 +526,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
      */
     @OnlyIn(Dist.CLIENT)
     public void clientTick() {
-        MinecraftForge.EVENT_BUS.post(new MachineClientTickEvent(this).postGraphEvent());
+        MinecraftForge.EVENT_BUS.post(new MachineClientTickEvent(this).postCustomEvent());
         for (ITrait trait : additionalTraits) {
             trait.clientTick();
         }
@@ -527,7 +542,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
      * Called when neighbors changed.
      */
     public void onNeighborChanged(Block block, BlockPos fromPos, boolean isMoving) {
-        MinecraftForge.EVENT_BUS.post(new MachineNeighborChangedEvent(this, block, fromPos).postGraphEvent());
+        MinecraftForge.EVENT_BUS.post(new MachineNeighborChangedEvent(this, block, fromPos).postCustomEvent());
     }
 
     /**
@@ -535,7 +550,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
      * it won't be called when machine added by {@link Level#setBlock(BlockPos, BlockState, int, int)}
      */
     public void onMachinePlaced(LivingEntity player, ItemStack stack) {
-        MinecraftForge.EVENT_BUS.post(new MachinePlacedEvent(this, player, stack).postGraphEvent());
+        MinecraftForge.EVENT_BUS.post(new MachinePlacedEvent(this, player, stack).postCustomEvent());
     }
 
     /**
@@ -559,14 +574,14 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
         for (ITrait additionalTrait : additionalTraits) {
             additionalTrait.onMachineRemoved();
         }
-        MinecraftForge.EVENT_BUS.post(new MachineRemovedEvent(this).postGraphEvent());
+        MinecraftForge.EVENT_BUS.post(new MachineRemovedEvent(this).postCustomEvent());
     }
 
     /**
      * On machine broken and drops items.
      */
     public void onDrops(Entity entity, List<ItemStack> drops) {
-        MinecraftForge.EVENT_BUS.post(new MachineDropsEvent(this, entity, drops).postGraphEvent());
+        MinecraftForge.EVENT_BUS.post(new MachineDropsEvent(this, entity, drops).postCustomEvent());
     }
 
     /**
@@ -575,7 +590,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
     public InteractionResult onUse(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
         var event = new MachineRightClickEvent(this, player, hand, hit);
         event.setInteractionResult(InteractionResult.PASS);
-        MinecraftForge.EVENT_BUS.post(event.postGraphEvent());
+        MinecraftForge.EVENT_BUS.post(event.postCustomEvent());
         return event.getInteractionResult();
     }
 
@@ -592,7 +607,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
     public InteractionResult openUI(Player player) {
         if (player instanceof ServerPlayer serverPlayer) {
             var event = new MachineOpenUIEvent(this, player);
-            MinecraftForge.EVENT_BUS.post(event.postGraphEvent());
+            MinecraftForge.EVENT_BUS.post(event.postCustomEvent());
             if (event.isCanceled()) {
                 return InteractionResult.PASS;
             }

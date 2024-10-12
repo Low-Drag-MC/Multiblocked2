@@ -12,6 +12,7 @@ import com.lowdragmc.mbd2.integration.create.CreateStressRecipeCapability;
 import com.lowdragmc.mbd2.integration.gtm.GTMEnergyRecipeCapability;
 import com.lowdragmc.mbd2.integration.mekanism.MekanismChemicalRecipeCapability;
 import com.lowdragmc.mbd2.integration.mekanism.MekanismHeatRecipeCapability;
+import com.lowdragmc.mbd2.integration.naturesaura.NaturesAuraRecipeCapability;
 import net.minecraftforge.fml.ModLoader;
 
 public class MBDRecipeCapabilities {
@@ -38,6 +39,9 @@ public class MBDRecipeCapabilities {
         }
         if (MBD2.isCreateLoaded()) {
              MBDRegistries.RECIPE_CAPABILITIES.register(CreateStressRecipeCapability.CAP.name, CreateStressRecipeCapability.CAP);
+        }
+        if (MBD2.isNaturesAuraLoaded()) {
+            MBDRegistries.RECIPE_CAPABILITIES.register(NaturesAuraRecipeCapability.CAP.name, NaturesAuraRecipeCapability.CAP);
         }
         ModLoader.get().postEvent(new MBDRegistryEvent.RecipeCapability());
         MBDRegistries.RECIPE_CAPABILITIES.freeze();

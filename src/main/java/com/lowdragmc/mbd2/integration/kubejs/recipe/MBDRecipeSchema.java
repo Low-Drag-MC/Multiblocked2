@@ -22,6 +22,7 @@ import com.lowdragmc.mbd2.integration.create.CreateStressRecipeCapability;
 import com.lowdragmc.mbd2.integration.gtm.GTMEnergyRecipeCapability;
 import com.lowdragmc.mbd2.integration.mekanism.MekanismChemicalRecipeCapability;
 import com.lowdragmc.mbd2.integration.mekanism.MekanismHeatRecipeCapability;
+import com.lowdragmc.mbd2.integration.naturesaura.NaturesAuraRecipeCapability;
 import dev.latvian.mods.kubejs.fluid.FluidLike;
 import dev.latvian.mods.kubejs.fluid.FluidStackJS;
 import dev.latvian.mods.kubejs.fluid.InputFluid;
@@ -224,6 +225,20 @@ public interface MBDRecipeSchema {
                 throw new IllegalStateException("Try to add a mana ingredient while the botania is not loaded!");
             }
             return outputs(BotaniaManaRecipeCapability.CAP, mana);
+        }
+
+        public MBDRecipeJS inputAura(int aura) {
+            if (!MBD2.isNaturesAuraLoaded()) {
+                throw new IllegalStateException("Try to add a aura ingredient while the nature's aura is not loaded!");
+            }
+            return inputs(NaturesAuraRecipeCapability.CAP, aura);
+        }
+
+        public MBDRecipeJS outputAura(int aura) {
+            if (!MBD2.isBotaniaLoaded()) {
+                throw new IllegalStateException("Try to add a aura ingredient while the nature's aura is not loaded!");
+            }
+            return outputs(NaturesAuraRecipeCapability.CAP, aura);
         }
 
         public MBDRecipeJS inputHeat(double heat) {

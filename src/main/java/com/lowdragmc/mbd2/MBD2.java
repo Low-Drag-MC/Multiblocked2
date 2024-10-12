@@ -52,6 +52,10 @@ public class MBD2 {
         return LDLib.isModLoaded("botania");
     }
 
+    public static boolean isNaturesAuraLoaded() {
+        return LDLib.isModLoaded("naturesaura");
+    }
+
     public static boolean isGTMLoaded() {
         return LDLib.isModLoaded("gtceu");
     }

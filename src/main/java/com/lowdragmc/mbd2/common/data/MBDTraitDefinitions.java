@@ -15,6 +15,7 @@ import com.lowdragmc.mbd2.integration.botania.trait.BotaniaManaCapabilityTraitDe
 import com.lowdragmc.mbd2.integration.gtm.trait.GTMEnergyCapabilityTraitDefinition;
 import com.lowdragmc.mbd2.integration.mekanism.trait.chemical.ChemicalTankCapabilityTraitDefinition;
 import com.lowdragmc.mbd2.integration.mekanism.trait.heat.MekHeatCapabilityTraitDefinition;
+import com.lowdragmc.mbd2.integration.naturesaura.trait.AuraHandlerTraitDefinition;
 import net.minecraftforge.fml.ModLoader;
 
 public class MBDTraitDefinitions {
@@ -38,6 +39,9 @@ public class MBDTraitDefinitions {
             register(ChemicalTankCapabilityTraitDefinition.Pigment.class);
             register(ChemicalTankCapabilityTraitDefinition.Slurry.class);
             register(MekHeatCapabilityTraitDefinition.class);
+        }
+        if (MBD2.isNaturesAuraLoaded()) {
+            register(AuraHandlerTraitDefinition.class);
         }
         ModLoader.get().postEvent(new MBDRegistryEvent.Trait());
         MBDRegistries.TRAIT_DEFINITIONS.freeze();

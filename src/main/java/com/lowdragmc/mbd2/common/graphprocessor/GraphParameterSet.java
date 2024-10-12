@@ -1,4 +1,4 @@
-package com.lowdragmc.mbd2.common.machine.definition.config.event.graphprocess;
+package com.lowdragmc.mbd2.common.graphprocessor;
 
 import com.lowdragmc.lowdraglib.gui.graphprocessor.data.parameter.ExposedParameter;
 
@@ -9,7 +9,7 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD})
-public @interface GraphParameterGet {
+public @interface GraphParameterSet {
     /**
      * The display name of the parameter
      */

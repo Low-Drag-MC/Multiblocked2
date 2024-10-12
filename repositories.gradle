@@ -25,6 +25,9 @@ repositories {
         name "firstdarkdev"
         url "https://maven.firstdarkdev.xyz/snapshots"
     }
+    maven { // blood magic
+        url "https://tehnut.info/maven/"
+    }
     maven { // Flywheel
         url = "https://maven.tterrag.com/"
         content {

@@ -90,15 +90,14 @@ public abstract class RecipeCapability<T> {
      */
     public abstract void createContentConfigurator(ConfiguratorGroup father, Supplier<T> supplier, Consumer<T> onUpdate);
 
-     //TODO
+    /**
+     * Get the error info for the left content.
+     */
+    public abstract Component getLeftErrorInfo(List<T> left);
+
+    //TODO
     public double calculateAmount(List<T> left) {
         return 1;
     }
 
-    /**
-     * Get the error info for the left content.
-     */
-    public Component getLeftErrorInfo(List<T> left) {
-        return Component.literal(left.toString());
-    }
 }

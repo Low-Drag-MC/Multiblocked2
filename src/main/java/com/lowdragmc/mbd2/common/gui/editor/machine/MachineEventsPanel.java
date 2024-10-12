@@ -3,11 +3,10 @@ package com.lowdragmc.mbd2.common.gui.editor.machine;
 import com.lowdragmc.lowdraglib.gui.editor.ui.ConfigPanel;
 import com.lowdragmc.lowdraglib.gui.editor.ui.MenuPanel;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.data.BaseGraph;
-import com.lowdragmc.lowdraglib.gui.graphprocessor.widget.GraphViewWidget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
 import com.lowdragmc.mbd2.common.gui.editor.MachineProject;
-import com.lowdragmc.mbd2.common.machine.definition.config.event.graphprocess.MachineEventGraphView;
+import com.lowdragmc.mbd2.common.graphprocessor.MachineEventGraphView;
 import lombok.Getter;
 
 import javax.annotation.Nullable;

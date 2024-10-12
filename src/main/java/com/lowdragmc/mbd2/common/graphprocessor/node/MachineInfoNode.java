@@ -1,4 +1,4 @@
-package com.lowdragmc.mbd2.common.machine.definition.config.event.graphprocess.node;
+package com.lowdragmc.mbd2.common.graphprocessor.node;
 
 import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.graphprocessor.annotation.InputPort;

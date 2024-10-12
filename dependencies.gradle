@@ -64,4 +64,16 @@ dependencies {
     implementation fg.deobf("dev.latvian.mods:kubejs-forge:${kubejs_version}") { transitive = false }
     implementation fg.deobf("dev.latvian.mods:rhino-forge:${rhino_version}")
     implementation fg.deobf("dev.architectury:architectury-forge:${architectury_version}")
+
+    // Nature's Aura
+    implementation fg.deobf("maven.modrinth:natures-aura:${natures_aura_version}")
+
+    // Pneumaticcraft
+    implementation fg.deobf("me.desht.pneumaticcraft:pneumaticcraft-repressurized:${pneumaticcraft_version}")
+
+    // Blood Magic
+//    implementation fg.deobf("com.wayoftime.bloodmagic:BloodMagic:${blood_magic_version}")
+
+    // Embers Rekindled
+    implementation fg.deobf("maven.modrinth:embers:${embers_rekindled_version}")
 }
