@@ -15,8 +15,8 @@ import java.util.Optional;
 
 @Getter
 public class MachineRecipeModifyEvent extends MachineEvent {
-    @GraphParameterGet
-    @GraphParameterSet
+    @GraphParameterGet(identity = "recipe.in")
+    @GraphParameterSet(identity = "recipe.out")
     @Setter
     public MBDRecipe recipe;
 
@@ -28,13 +28,13 @@ public class MachineRecipeModifyEvent extends MachineEvent {
     @Override
     public void bindParameters(Map<String, ExposedParameter> exposedParameters) {
         super.bindParameters(exposedParameters);
-        Optional.ofNullable(exposedParameters.get("recipe")).ifPresent(p -> p.setValue(recipe));
+        Optional.ofNullable(exposedParameters.get("recipe.in")).ifPresent(p -> p.setValue(recipe));
     }
 
     @Override
     public void gatherParameters(Map<String, ExposedParameter> exposedParameters) {
         super.gatherParameters(exposedParameters);
-        this.recipe = Optional.ofNullable(exposedParameters.get("recipe"))
+        this.recipe = Optional.ofNullable(exposedParameters.get("recipe.out"))
                 .map(ExposedParameter::getValue)
                 .filter(MBDRecipe.class::isInstance)
                 .map(MBDRecipe.class::cast)

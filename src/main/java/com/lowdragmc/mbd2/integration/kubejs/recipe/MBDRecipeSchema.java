@@ -23,6 +23,8 @@ import com.lowdragmc.mbd2.integration.gtm.GTMEnergyRecipeCapability;
 import com.lowdragmc.mbd2.integration.mekanism.MekanismChemicalRecipeCapability;
 import com.lowdragmc.mbd2.integration.mekanism.MekanismHeatRecipeCapability;
 import com.lowdragmc.mbd2.integration.naturesaura.NaturesAuraRecipeCapability;
+import com.lowdragmc.mbd2.integration.pneumaticcraft.PNCPressureAirRecipeCapability;
+import com.lowdragmc.mbd2.integration.pneumaticcraft.PressureAir;
 import dev.latvian.mods.kubejs.fluid.FluidLike;
 import dev.latvian.mods.kubejs.fluid.FluidStackJS;
 import dev.latvian.mods.kubejs.fluid.InputFluid;
@@ -241,6 +243,34 @@ public interface MBDRecipeSchema {
             return outputs(NaturesAuraRecipeCapability.CAP, aura);
         }
 
+        public MBDRecipeJS inputPNCPressure(float pressure) {
+            if (!MBD2.isNaturesAuraLoaded()) {
+                throw new IllegalStateException("Try to add a pressure ingredient while the pneumatic craft is not loaded!");
+            }
+            return inputs(PNCPressureAirRecipeCapability.CAP, new PressureAir(false, pressure));
+        }
+
+        public MBDRecipeJS outputPNCPressure(float pressure) {
+            if (!MBD2.isBotaniaLoaded()) {
+                throw new IllegalStateException("Try to add a pressure ingredient while the pneumatic craft is not loaded!");
+            }
+            return outputs(PNCPressureAirRecipeCapability.CAP, new PressureAir(false, pressure));
+        }
+
+        public MBDRecipeJS inputPNCAir(int air) {
+            if (!MBD2.isNaturesAuraLoaded()) {
+                throw new IllegalStateException("Try to add a air ingredient while the pneumatic craft is not loaded!");
+            }
+            return inputs(PNCPressureAirRecipeCapability.CAP, new PressureAir(true, air));
+        }
+
+        public MBDRecipeJS outputPNCAir(int air) {
+            if (!MBD2.isBotaniaLoaded()) {
+                throw new IllegalStateException("Try to add a air ingredient while the pneumatic craft is not loaded!");
+            }
+            return outputs(PNCPressureAirRecipeCapability.CAP, new PressureAir(true, air));
+        }
+
         public MBDRecipeJS inputHeat(double heat) {
             if (!MBD2.isMekanismLoaded()) {
                 throw new IllegalStateException("Try to add a heat ingredient while the mekanism is not loaded!");
@@ -378,6 +408,11 @@ public interface MBDRecipeSchema {
 
         public MBDRecipeJS blocksInStructure(int min, int max, Block... blocks) {
             addCondition(new BlockCondition(min, max, blocks));
+            return this;
+        }
+
+        public MBDRecipeJS machineData(CompoundTag data) {
+            addCondition(new MachineCustomDataCondition(data));
             return this;
         }
 

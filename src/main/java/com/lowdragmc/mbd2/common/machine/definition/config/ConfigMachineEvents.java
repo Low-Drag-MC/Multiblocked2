@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.common.machine.definition.config;
 
+import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
@@ -84,8 +85,12 @@ public class ConfigMachineEvents implements IConfigurable, IPersistedSerializabl
             if (clazz != null) {
                 var parameters = MachineEvent.getExposedParameters(clazz);
                 var graph = new BaseGraph(parameters);
-                graph.deserializeNBT(eventGraphsTag.getCompound(name));
-                eventGraphs.put(clazz, graph);
+                try {
+                    graph.deserializeNBT(eventGraphsTag.getCompound(name));
+                    eventGraphs.put(clazz, graph);
+                } catch (Exception e) {
+                    LDLib.LOGGER.error("Failed to deserialize event graph for %s".formatted(name), e);
+                }
             }
         }
     }

@@ -42,9 +42,13 @@ public class MachineEvent extends Event implements ILDLRegister {
         for (var field : clazz.getFields()) {
             if (field.isAnnotationPresent(GraphParameterGet.class)) {
                 var annotation = field.getAnnotation(GraphParameterGet.class);
+                var identity = field.getName();
                 var displayName = field.getName();
                 var type = field.getType();
                 List<String> tips = null;
+                if (!annotation.identity().isEmpty()) {
+                    identity = annotation.identity();
+                }
                 if (!annotation.displayName().isEmpty()) {
                     displayName = annotation.displayName();
                 }
@@ -54,16 +58,20 @@ public class MachineEvent extends Event implements ILDLRegister {
                 if (annotation.tips().length > 0) {
                     tips = Arrays.asList(annotation.tips());
                 }
-                parameters.add(new ExposedParameter<>(field.getName(), type)
+                parameters.add(new ExposedParameter<>(identity, type)
                         .setTips(tips)
                         .setAccessor(ExposedParameter.ParameterAccessor.Get)
                         .setDisplayName(displayName));
             }
             if (field.isAnnotationPresent(GraphParameterSet.class)) {
                 var annotation = field.getAnnotation(GraphParameterSet.class);
+                var identity = field.getName();
                 var displayName = field.getName();
                 var type = field.getType();
                 List<String> tips = null;
+                if (!annotation.identity().isEmpty()) {
+                    identity = annotation.identity();
+                }
                 if (!annotation.displayName().isEmpty()) {
                     displayName = annotation.displayName();
                 }
@@ -73,7 +81,7 @@ public class MachineEvent extends Event implements ILDLRegister {
                 if (annotation.tips().length > 0) {
                     tips = Arrays.asList(annotation.tips());
                 }
-                parameters.add(new ExposedParameter<>(field.getName(), type)
+                parameters.add(new ExposedParameter<>(identity, type)
                         .setTips(tips)
                         .setAccessor(ExposedParameter.ParameterAccessor.Set)
                         .setDisplayName(displayName));

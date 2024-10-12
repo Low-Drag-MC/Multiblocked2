@@ -22,7 +22,7 @@ import lombok.Setter;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Items;
 
-@LDLRegister(name = "aura_handler", group = "trait")
+@LDLRegister(name = "aura_handler", group = "trait", modID = "naturesaura")
 public class AuraHandlerTraitDefinition extends RecipeCapabilityTraitDefinition<Integer> implements IUIProviderTrait {
 
     @Getter

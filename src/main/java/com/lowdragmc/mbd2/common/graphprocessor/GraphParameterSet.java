@@ -11,6 +11,10 @@ import java.lang.annotation.Target;
 @Target({ElementType.FIELD})
 public @interface GraphParameterSet {
     /**
+     * The identity name of the parameter
+     */
+    String identity() default "";
+    /**
      * The display name of the parameter
      */
     String displayName() default "";

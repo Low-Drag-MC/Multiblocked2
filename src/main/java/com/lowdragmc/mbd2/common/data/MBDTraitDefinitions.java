@@ -16,6 +16,7 @@ import com.lowdragmc.mbd2.integration.gtm.trait.GTMEnergyCapabilityTraitDefiniti
 import com.lowdragmc.mbd2.integration.mekanism.trait.chemical.ChemicalTankCapabilityTraitDefinition;
 import com.lowdragmc.mbd2.integration.mekanism.trait.heat.MekHeatCapabilityTraitDefinition;
 import com.lowdragmc.mbd2.integration.naturesaura.trait.AuraHandlerTraitDefinition;
+import com.lowdragmc.mbd2.integration.pneumaticcraft.trait.PNCPressureAirHandlerTraitDefinition;
 import net.minecraftforge.fml.ModLoader;
 
 public class MBDTraitDefinitions {
@@ -42,6 +43,9 @@ public class MBDTraitDefinitions {
         }
         if (MBD2.isNaturesAuraLoaded()) {
             register(AuraHandlerTraitDefinition.class);
+        }
+        if (MBD2.isPneumaticCraftLoaded()) {
+            register(PNCPressureAirHandlerTraitDefinition.class);
         }
         ModLoader.get().postEvent(new MBDRegistryEvent.Trait());
         MBDRegistries.TRAIT_DEFINITIONS.freeze();

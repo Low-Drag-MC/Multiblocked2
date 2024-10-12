@@ -351,6 +351,11 @@
     "config.definition.trait.aura_handler.radius": "Radius",
     "config.definition.trait.aura_handler.radius.tooltip": "The radius of the aura area.",
 
+    "config.definition.trait.pneumatic_pressure_air_handler.name": "Pressure Air Handler",
+    "config.definition.trait.pneumatic_pressure_air_handler.volume": "volume",
+    "config.definition.trait.pneumatic_pressure_air_handler.max_pressure": "Max Pressure",
+    "config.definition.trait.pneumatic_pressure_air_handler.ui_container_hover": "Stored: %d / %d pressure",
+
     "config.definition.trait.gtm_energy_container.name": "GTM Energy Container",
     "config.definition.trait.gtm_energy_container.capacity": "Capacity",
     "config.definition.trait.gtm_energy_container.explosion_machine": "Explosion Machine",
@@ -546,6 +551,13 @@
 
     "recipe.capability.natures_aura.name": "Nature's Aura Capability",
     "recipe.capability.natures_aura.aura": "Nature's Aura: %s",
+
+    "recipe.capability.pneumatic_pressure_air.name": "Pneumatic Pressure Air Capability",
+    "recipe.capability.pneumatic_pressure_air.type": "Type",
+    "recipe.capability.pneumatic_pressure_air.type.air": "air",
+    "recipe.capability.pneumatic_pressure_air.type.pressure": "pressure",
+    "recipe.capability.pneumatic_pressure_air.type.tooltip": "pressure = air * volume",
+    "recipe.capability.pneumatic_pressure_air.value": "Value",
 
     "recipe.capability.gtm_energy.name": "GTM Energy Capability",
     "recipe.capability.gtm_energy.energy": "Energy",

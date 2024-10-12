@@ -18,8 +18,8 @@ import java.util.Optional;
 public class MachineDropsEvent extends MachineEvent {
     @GraphParameterGet
     public final Entity entity;
-    @GraphParameterGet
-    @GraphParameterSet
+    @GraphParameterGet(identity = "drops.in")
+    @GraphParameterSet(identity = "drops.out")
     public List<ItemStack> drops;
 
     public MachineDropsEvent(MBDMachine machine, Entity entity, List<ItemStack> drops) {
@@ -32,13 +32,13 @@ public class MachineDropsEvent extends MachineEvent {
     public void bindParameters(Map<String, ExposedParameter> exposedParameters) {
         super.bindParameters(exposedParameters);
         Optional.ofNullable(exposedParameters.get("entity")).ifPresent(p -> p.setValue(entity));
-        Optional.ofNullable(exposedParameters.get("drops")).ifPresent(p -> p.setValue(drops));
+        Optional.ofNullable(exposedParameters.get("drops.in")).ifPresent(p -> p.setValue(drops));
     }
 
     @Override
     public void gatherParameters(Map<String, ExposedParameter> exposedParameters) {
         super.gatherParameters(exposedParameters);
-        Optional.ofNullable(exposedParameters.get("drops")).ifPresent(p -> {
+        Optional.ofNullable(exposedParameters.get("drops.out")).ifPresent(p -> {
             if (p.getValue() instanceof List list) {
                 if (list.isEmpty()) {
                     drops.clear();

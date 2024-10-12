@@ -56,6 +56,10 @@ public class MBD2 {
         return LDLib.isModLoaded("naturesaura");
     }
 
+    public static boolean isPneumaticCraftLoaded() {
+        return LDLib.isModLoaded("pneumaticcraft");
+    }
+
     public static boolean isGTMLoaded() {
         return LDLib.isModLoaded("gtceu");
     }
