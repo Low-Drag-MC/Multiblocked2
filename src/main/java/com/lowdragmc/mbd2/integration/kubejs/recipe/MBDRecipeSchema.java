@@ -192,16 +192,16 @@ public interface MBDRecipeSchema {
             return inputs(FluidRecipeCapability.CAP, Arrays.stream(fluids).map(FluidIngredientJS::ingredient).toArray());
         }
 
-        public MBDRecipeJS outputFluids(EntityIngredientJS... entities) {
+        public MBDRecipeJS outputFluids(FluidIngredientJS... fluids) {
+            return outputs(FluidRecipeCapability.CAP, Arrays.stream(fluids).map(FluidIngredientJS::ingredient).toArray());
+        }
+
+        public MBDRecipeJS outputEntities(EntityIngredientJS... entities) {
             return outputs(EntityRecipeCapability.CAP, Arrays.stream(entities).map(EntityIngredientJS::ingredient).toArray());
         }
 
         public MBDRecipeJS inputEntities(EntityIngredientJS... entities) {
             return inputs(EntityRecipeCapability.CAP, Arrays.stream(entities).map(EntityIngredientJS::ingredient).toArray());
-        }
-
-        public MBDRecipeJS outputEntities(FluidIngredientJS... fluids) {
-            return outputs(FluidRecipeCapability.CAP, Arrays.stream(fluids).map(FluidIngredientJS::ingredient).toArray());
         }
 
         public MBDRecipeJS inputFE(int energy) {
