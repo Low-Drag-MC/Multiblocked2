@@ -138,7 +138,7 @@ public class MultiblockWorldSavedData extends SavedData {
     }
 
     public static boolean isThreadService() {
-        return IN_SERVICE.get();
+        return IN_SERVICE.get() && !Platform.isServerNotSafe();
     }
 
     public void releaseExecutorService() {

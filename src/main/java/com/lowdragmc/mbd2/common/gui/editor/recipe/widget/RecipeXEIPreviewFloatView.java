@@ -16,6 +16,7 @@ import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeSerializer;
 import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
 import com.lowdragmc.mbd2.common.gui.editor.RecipeTypeProject;
+import net.minecraft.nbt.CompoundTag;
 
 public class RecipeXEIPreviewFloatView extends FloatViewWidget {
 
@@ -47,7 +48,7 @@ public class RecipeXEIPreviewFloatView extends FloatViewWidget {
     }
 
     private MBDRecipe recipe;
-    private JsonElement lastData;
+    private CompoundTag lastData;
 
     public void clearRecipe() {
         content.clearAllWidgets();
@@ -58,7 +59,7 @@ public class RecipeXEIPreviewFloatView extends FloatViewWidget {
         if (recipe == null) return;
         if (editor.getCurrentProject() instanceof RecipeTypeProject project) {
             this.recipe = recipe;;
-            lastData = MBDRecipeSerializer.SERIALIZER.toJson(recipe);
+            lastData = MBDRecipeSerializer.SERIALIZER.toNBT(recipe);
             var tag = IConfigurableWidget.serializeNBT(project.getUi(), project.getResources(), true);
             var ui = new WidgetGroup();
             ui.setClientSideWidget();
@@ -91,7 +92,7 @@ public class RecipeXEIPreviewFloatView extends FloatViewWidget {
     public void updateScreen() {
         super.updateScreen();
         if (recipe != null) {
-            var data = MBDRecipeSerializer.SERIALIZER.toJson(recipe);
+            var data = MBDRecipeSerializer.SERIALIZER.toNBT(recipe);
             if (!data.equals(lastData)) {
                 loadRecipe(recipe);
             }

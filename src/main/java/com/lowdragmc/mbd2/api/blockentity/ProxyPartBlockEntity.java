@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib.syncdata.field.FieldManagedStorage;
 import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder;
 import com.lowdragmc.lowdraglib.utils.DummyWorld;
 import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.TickTask;
@@ -31,6 +32,10 @@ public class ProxyPartBlockEntity extends BlockEntity implements IAsyncAutoSyncB
     private final FieldManagedStorage rootStorage = new FieldManagedStorage(this);
 
     protected static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(ProxyPartBlockEntity.class);
+
+    @Getter
+    @Setter
+    private boolean isAsyncSyncing = false;
 
     @Override
     public ManagedFieldHolder getFieldHolder() {

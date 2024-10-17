@@ -163,7 +163,13 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
         if (isFormed()) {
             switch (newStatus) {
                 case WORKING -> setMachineState("working");
-                case IDLE -> setMachineState("formed");
+                case IDLE -> {
+                    if (getDefinition().stateMachine().hasState("formed")) {
+                        setMachineState("formed");
+                    } else {
+                        setMachineState("base");
+                    }
+                }
                 case WAITING -> setMachineState("waiting");
                 case SUSPEND -> setMachineState("suspend");
             }

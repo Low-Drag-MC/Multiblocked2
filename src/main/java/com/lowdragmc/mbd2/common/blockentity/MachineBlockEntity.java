@@ -8,6 +8,7 @@ import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.common.block.MBDMachineBlock;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -33,6 +34,10 @@ public class MachineBlockEntity extends BlockEntity implements IMachineBlockEnti
     private final long offset = MBD2.RND.nextLong();
     @Getter
     private IMachine metaMachine;
+    @Getter
+    @Setter
+    private boolean isAsyncSyncing = false;
+
 
     public MachineBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState blockState, Function<IMachineBlockEntity, IMachine> machineFactory) {
         super(type, pos, blockState);
