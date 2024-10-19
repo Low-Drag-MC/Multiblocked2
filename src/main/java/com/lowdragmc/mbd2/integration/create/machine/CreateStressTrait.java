@@ -55,6 +55,7 @@ public class CreateStressTrait implements IRecipeCapabilityTrait<Float> {
     private final boolean isGenerator;
     @Getter
     private float impact;
+    @Getter
     private float available, lastSpeed;
 
     public CreateStressTrait(MBDMachine machine) {

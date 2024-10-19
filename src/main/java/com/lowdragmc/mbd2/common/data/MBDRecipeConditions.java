@@ -1,8 +1,10 @@
 package com.lowdragmc.mbd2.common.data;
 
+import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.event.MBDRegistryEvent;
 import com.lowdragmc.mbd2.common.recipe.*;
+import com.lowdragmc.mbd2.integration.create.CreateRotationCondition;
 import net.minecraftforge.fml.ModLoader;
 
 public final class MBDRecipeConditions {
@@ -19,6 +21,9 @@ public final class MBDRecipeConditions {
         MBDRegistries.RECIPE_CONDITIONS.register(MachineLevelCondition.INSTANCE.getType(), MachineLevelCondition.class);
         MBDRegistries.RECIPE_CONDITIONS.register(MachineCustomDataCondition.INSTANCE.getType(), MachineCustomDataCondition.class);
         MBDRegistries.RECIPE_CONDITIONS.register(BlockCondition.INSTANCE.getType(), BlockCondition.class);
+        if (MBD2.isCreateLoaded()) {
+            MBDRegistries.RECIPE_CONDITIONS.register(CreateRotationCondition.INSTANCE.getType(), CreateRotationCondition.class);
+        }
         ModLoader.get().postEvent(new MBDRegistryEvent.RecipeCondition());
         MBDRegistries.RECIPE_CONDITIONS.freeze();
     }

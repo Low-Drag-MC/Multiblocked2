@@ -28,7 +28,7 @@ public class MBDKineticMachineBlock extends MBDMachineBlock implements IRotate {
 
     @Override
     public boolean hasShaftTowards(LevelReader world, BlockPos pos, BlockState state, Direction face) {
-        return getDefinition().kineticMachineSettings().hasShaftTowards(face, getFrontFacing(state).orElse(Direction.NORTH));
+        return getDefinition().kineticMachineSettings().hasShaftTowards(face, getRotationFacing(state));
     }
 
     public Direction getRotationFacing(BlockState state) {

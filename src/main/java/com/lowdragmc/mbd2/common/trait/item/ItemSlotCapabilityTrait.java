@@ -15,6 +15,8 @@ import net.minecraft.world.level.block.Block;
 import net.minecraftforge.items.IItemHandler;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -117,15 +119,47 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
                     iterator.remove();
                     continue;
                 }
-                ItemStack output = items[0];
-                if (!output.isEmpty()) {
-                    for (int i = 0; i < capability.getSlots(); i++) {
-                        ItemStack leftStack = capability.insertItem(i, output.copy(), false);
-                        output.setCount(leftStack.getCount());
-                        if (output.isEmpty()) break;
+                if (items.length == 1) {
+                    ItemStack output = items[0];
+                    if (!output.isEmpty()) {
+                        for (int i = 0; i < capability.getSlots(); i++) {
+                            ItemStack leftStack = capability.insertItem(i, output.copy(), false);
+                            output.setCount(leftStack.getCount());
+                            if (output.isEmpty()) break;
+                        }
+                    }
+                    if (output.isEmpty()) iterator.remove();
+                } else { // random output
+                    var shuffledItems = Arrays.asList(items);
+                    Collections.shuffle(shuffledItems);
+                    // find index
+                    var index = -1;
+                    for (int i = 0; i < shuffledItems.size(); i++) {
+                        ItemStack output = shuffledItems.get(i);
+                        if (!output.isEmpty()) {
+                            for (int slot = 0; i < capability.getSlots(); i++) {
+                                ItemStack leftStack = capability.insertItem(slot, output.copy(), true);
+                                output.setCount(leftStack.getCount());
+                                if (output.isEmpty()) break;
+                            }
+                        }
+                        if (output.isEmpty()) {
+                            index = i;
+                            break;
+                        }
+                    }
+                    if (index != -1) {
+                        if (!simulate) {
+                            ItemStack output = shuffledItems.get(index);
+                            for (int slot = 0; slot < capability.getSlots(); slot++) {
+                                ItemStack leftStack = capability.insertItem(slot, output.copy(), false);
+                                output.setCount(leftStack.getCount());
+                                if (output.isEmpty()) break;
+                            }
+                        }
+                        iterator.remove();
                     }
                 }
-                if (output.isEmpty()) iterator.remove();
             }
         }
         return left.isEmpty() ? null : left;

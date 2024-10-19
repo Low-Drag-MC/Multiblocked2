@@ -2,6 +2,7 @@ package com.lowdragmc.mbd2.api.recipe.ingredient;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.mbd2.MBD2;
 import it.unimi.dsi.fastutil.ints.IntList;
 import lombok.Getter;
@@ -130,7 +131,13 @@ public class SizedIngredient extends Ingredient {
         @Override
         public @NotNull SizedIngredient parse(JsonObject json) {
             int amount = json.get("count").getAsInt();
-            Ingredient inner = Ingredient.fromJson(json.get("ingredient"));
+            Ingredient inner;
+            try {
+                inner = Ingredient.fromJson(json.get("ingredient"));
+            } catch (Exception e) {
+                LDLib.LOGGER.error("Failed to parse ingredient from json: " + json, e);
+                inner = Ingredient.EMPTY;
+            }
             return new SizedIngredient(inner, amount);
         }
 

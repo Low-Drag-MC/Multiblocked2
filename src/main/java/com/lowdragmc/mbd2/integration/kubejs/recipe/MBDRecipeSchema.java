@@ -18,6 +18,7 @@ import com.lowdragmc.mbd2.common.capability.recipe.ForgeEnergyRecipeCapability;
 import com.lowdragmc.mbd2.common.capability.recipe.ItemRecipeCapability;
 import com.lowdragmc.mbd2.common.recipe.*;
 import com.lowdragmc.mbd2.integration.botania.BotaniaManaRecipeCapability;
+import com.lowdragmc.mbd2.integration.create.CreateRotationCondition;
 import com.lowdragmc.mbd2.integration.create.CreateStressRecipeCapability;
 import com.lowdragmc.mbd2.integration.embers.EmbersEmberRecipeCapability;
 import com.lowdragmc.mbd2.integration.gtm.GTMEnergyRecipeCapability;
@@ -428,6 +429,14 @@ public interface MBDRecipeSchema {
 
         public MBDRecipeJS machineData(CompoundTag data) {
             addCondition(new MachineCustomDataCondition(data));
+            return this;
+        }
+
+        public MBDRecipeJS rpmRange(float min, float max) {
+            if (!MBD2.isCreateLoaded()) {
+                throw new IllegalStateException("Try to add a rpm condition while the create is not loaded!");
+            }
+            addCondition(new CreateRotationCondition(min, max));
             return this;
         }
 

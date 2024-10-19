@@ -79,10 +79,10 @@ public class ConfigKineticMachineSettings implements IConfigurable, IPersistedSe
     /**
      * Has shaft towards the given face.
      */
-    public boolean hasShaftTowards(Direction towardFace, Direction frontFacing) {
-        if (towardFace.getAxis() == frontFacing.getAxis()) {
+    public boolean hasShaftTowards(Direction towardFace, Direction rotationFacing) {
+        if (towardFace.getAxis() == rotationFacing.getAxis()) {
             if (!hasBackRotation) {
-                return towardFace == frontFacing;
+                return towardFace == rotationFacing;
             }
             return true;
         }
