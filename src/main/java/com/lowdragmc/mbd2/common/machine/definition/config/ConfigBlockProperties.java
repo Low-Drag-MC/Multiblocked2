@@ -1,11 +1,15 @@
 package com.lowdragmc.mbd2.common.machine.definition.config;
 
+import com.lowdragmc.lowdraglib.gui.editor.accessors.EnumAccessor;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.*;
+import com.lowdragmc.lowdraglib.gui.editor.ui.Editor;
 import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
 import com.lowdragmc.mbd2.api.block.RotationState;
+import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
+import com.lowdragmc.mbd2.common.gui.editor.MultiblockMachineProject;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -20,6 +24,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.common.util.ForgeSoundType;
 import net.minecraftforge.registries.ForgeRegistries;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -27,7 +32,7 @@ import java.util.function.Supplier;
 @Getter
 @Accessors(fluent = true)
 @Builder
-public class ConfigBlockProperties implements IPersistedSerializable {
+public class ConfigBlockProperties implements IPersistedSerializable, IConfigurable {
     @Getter
     @Setter
     @Accessors(fluent = true)
@@ -124,6 +129,30 @@ public class ConfigBlockProperties implements IPersistedSerializable {
     @Builder.Default
     private boolean transparent = false;
 
+    @Override
+    public void buildConfigurator(ConfiguratorGroup father) {
+        IConfigurable.super.buildConfigurator(father);
+        var index = 0;
+        if (Editor.INSTANCE instanceof MachineEditor editor && editor.getCurrentProject() instanceof MultiblockMachineProject) {
+            for (Configurator configurator : father.getConfigurators()) {
+                if (configurator.getName().equals("config.block_properties.rotation_state") && configurator instanceof SelectorConfigurator<?> selector) {
+                    father.removeConfigurator(selector);
+                    var newSelector =  new SelectorConfigurator<>(
+                            "config.block_properties.rotation_state",
+                            () -> rotationState,
+                            r -> rotationState = r,
+                            RotationState.NON_Y_AXIS,
+                            true,
+                            List.of(RotationState.NONE, RotationState.NON_Y_AXIS),
+                            EnumAccessor::getEnumName);
+                    newSelector.setTips("config.block_properties.rotation_state.tooltip", "config.require_restart");
+                    father.addConfigurator(index, newSelector);
+                    break;
+                }
+                index++;
+            }
+        }
+    }
 
     public BlockBehaviour.Properties apply(StateMachine<?> stateMachine, BlockBehaviour.Properties properties) {
         if (hasCollision) {

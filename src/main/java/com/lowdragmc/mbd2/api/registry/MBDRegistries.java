@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.editor.runtime.AnnotationDetector;
 import com.lowdragmc.mbd2.MBD2;
+import com.lowdragmc.mbd2.api.block.RotationState;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
@@ -37,7 +38,7 @@ public class MBDRegistries {
                         .shape(Shapes.block())
                         .lightLevel(0)
                         .build())
-                .blockProperties(ConfigBlockProperties.builder().build())
+                .blockProperties(ConfigBlockProperties.builder().rotationState(RotationState.ALL).build())
                 .itemProperties(ConfigItemProperties.builder()
                         .creativeTab(new ToggleCreativeTab())
                         .build())

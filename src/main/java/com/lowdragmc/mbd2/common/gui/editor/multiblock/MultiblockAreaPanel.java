@@ -2,6 +2,7 @@ package com.lowdragmc.mbd2.common.gui.editor.multiblock;
 
 import com.lowdragmc.lowdraglib.client.utils.RenderBufferUtils;
 import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
+import com.lowdragmc.lowdraglib.gui.editor.annotation.ConfigSelector;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
@@ -85,6 +86,7 @@ public class MultiblockAreaPanel extends WidgetGroup {
         @NumberRange(range={0, Integer.MAX_VALUE}, wheel=1)
         private Vector3i controllerOffset = new Vector3i(0, 0, 0);
         @Configurable(name = "editor.machine.multiblock.area_panel.controllerFace", tips="editor.machine.multiblock.area_panel.controllerFace.tips")
+        @ConfigSelector(candidate = {"north", "south", "west", "east"})
         private Direction controllerFace = Direction.NORTH;
 
         private boolean isFromClicked = false;
