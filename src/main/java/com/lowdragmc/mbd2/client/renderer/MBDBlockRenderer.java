@@ -4,7 +4,6 @@ import com.lowdragmc.lowdraglib.client.model.forge.LDLRendererModel;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
-import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 import com.mojang.blaze3d.vertex.PoseStack;
 import lombok.AllArgsConstructor;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -29,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 import static com.lowdragmc.lowdraglib.client.model.forge.LDLRendererModel.RendererBakedModel.*;
 
@@ -37,6 +37,7 @@ import static com.lowdragmc.lowdraglib.client.model.forge.LDLRendererModel.Rende
 public class MBDBlockRenderer implements IRenderer {
 
     protected final BooleanSupplier useAO;
+    protected final Supplier<IRenderer> defaultRenderer;
 
     @Override
     public boolean useAO() {
@@ -77,9 +78,9 @@ public class MBDBlockRenderer implements IRenderer {
             var pos = modelData.get(POS);
             return getMachine(world, pos)
                     .map(machine -> machine.getMachineState().getRealRenderer().getParticleTexture())
-                    .orElseGet(IRenderer.super::getParticleTexture);
+                    .orElseGet(() -> defaultRenderer.get().getParticleTexture());
         }
-        return IRenderer.super.getParticleTexture();
+        return defaultRenderer.get().getParticleTexture();
     }
 
     @Override
@@ -106,7 +107,7 @@ public class MBDBlockRenderer implements IRenderer {
     public boolean shouldRender(BlockEntity blockEntity, Vec3 cameraPos) {
         return getMachine(blockEntity).filter(machine -> !machine.isDisableRendering())
                 .map(machine -> machine.getMachineState().getRealRenderer().shouldRender(blockEntity, cameraPos))
-                .orElseGet(() -> IRenderer.super.shouldRender(blockEntity, cameraPos));
+                .orElseGet(() -> defaultRenderer.get().shouldRender(blockEntity, cameraPos));
     }
 
     @Override

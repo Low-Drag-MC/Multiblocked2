@@ -322,7 +322,7 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
 
     @OnlyIn(Dist.CLIENT)
     public IRenderer createBlockRenderer() {
-        return new MBDBlockRenderer(blockProperties::useAO);
+        return new MBDBlockRenderer(blockProperties::useAO, () -> stateMachine.getRootState().getRealRenderer());
     }
 
     @OnlyIn(Dist.CLIENT)
