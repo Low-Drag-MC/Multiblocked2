@@ -75,7 +75,7 @@ public class BlockPattern {
         BlockPos centerPos = controller.getPos();
         Direction[] facings = controller.hasFrontFacing() ?
                 new Direction[]{controller.getFrontFacing().orElseThrow()} :
-                new Direction[]{Direction.SOUTH, Direction.NORTH, Direction.EAST, Direction.WEST};
+                FACINGS_H;
         for (Direction facing : facings) {
             if (checkPatternAt(worldState, centerPos, facing, savePredicate)) {
                 return true;
