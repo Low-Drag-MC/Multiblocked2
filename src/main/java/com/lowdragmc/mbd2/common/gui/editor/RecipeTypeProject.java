@@ -9,11 +9,8 @@ import com.lowdragmc.lowdraglib.gui.editor.data.resource.EntriesResource;
 import com.lowdragmc.lowdraglib.gui.editor.data.resource.Resource;
 import com.lowdragmc.lowdraglib.gui.editor.data.resource.TexturesResource;
 import com.lowdragmc.lowdraglib.gui.editor.ui.Editor;
-import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceBorderTexture;
-import com.lowdragmc.lowdraglib.gui.texture.UIResourceTexture;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
-import com.lowdragmc.lowdraglib.utils.Size;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.common.gui.editor.recipe.RecipeTypePanel;
@@ -22,14 +19,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
-import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentLinkedDeque;
 
 @Getter
 @LDLRegister(name = "rt", group = "editor.machine")
@@ -69,48 +64,6 @@ public class RecipeTypeProject implements IProject {
 
     protected MBDRecipeType createDefaultRecipeType() {
         return new MBDRecipeType(MBD2.id("recipe_type"));
-    }
-
-    /**
-     * Create definition from project tag for product usage.
-     * @param tag project tag.
-     * @param postTask Called when the mod is loaded completed. To make sure all resources are available.
-     *                 <br/> e.g. items, blocks and other registries are ready.
-     */
-    public static MBDRecipeType createProductFromProject(CompoundTag tag, ConcurrentLinkedDeque<Runnable> postTask) {
-        var registryName = tag.getCompound("recipe_type").getString("registryName");
-        if (!registryName.isEmpty() && ResourceLocation.isValidResourceLocation(registryName)) {
-            var recipeType = new MBDRecipeType(new ResourceLocation(registryName));
-            postTask.add(postLoading(recipeType, tag));
-            return recipeType;
-        } else {
-            return new MBDRecipeType(MBD2.id("recipe_type"));
-        }
-    }
-
-    /**
-     * Post loading task for machine definition.
-     */
-    public static Runnable postLoading(MBDRecipeType recipeType, CompoundTag tag) {
-        return () -> {
-            var texturesResource = new TexturesResource();
-            texturesResource.deserializeNBT(tag.getCompound("resources").getCompound(TexturesResource.RESOURCE_NAME));
-            UIResourceTexture.setCurrentResource(texturesResource, false);
-            recipeType.deserializeNBT(tag.getCompound("recipe_type"));
-            UIResourceTexture.clearCurrentResource();
-            var uiTag = tag.getCompound("ui");
-            var size = uiTag.getCompound("size");
-            recipeType.setUiSize(new Size(size.getInt("width"), size.getInt("height")));
-            recipeType.setUiCreator(recipe -> {
-                var recipeUI = new WidgetGroup();
-                recipeUI.setClientSideWidget();
-                IConfigurableWidget.deserializeNBT(recipeUI, uiTag, texturesResource, false);
-                recipeType.bindXEIRecipeUI(recipeUI, recipe);
-                recipeUI.setSelfPosition(0, 0);
-                recipeUI.setBackground(IGuiTexture.EMPTY);
-                return recipeUI;
-            });
-        };
     }
 
     @Override

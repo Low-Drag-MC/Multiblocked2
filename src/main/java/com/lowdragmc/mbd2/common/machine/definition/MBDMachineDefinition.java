@@ -193,7 +193,7 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
      * @param postTask Called when the mod is loaded completed. To make sure all resources are available.
      *                 <br/> e.g. items, blocks and other registries are ready.
      */
-    public MBDMachineDefinition loadProductiveTag(File file, CompoundTag projectTag, Deque<Runnable> postTask) {
+    public MBDMachineDefinition loadProductiveTag(@Nullable File file, CompoundTag projectTag, Deque<Runnable> postTask) {
         this.projectFile = file;
         var rendererResource = new IRendererResource();
         rendererResource.deserializeNBT(projectTag.getCompound("resources").getCompound(IRendererResource.RESOURCE_NAME));

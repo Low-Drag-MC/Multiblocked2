@@ -16,7 +16,7 @@ public class MBDRecipeTypeAccessor extends CustomObjectAccessor<MBDRecipeType> {
 
     @Override
     public ITypedPayload<?> serialize(AccessorOp accessorOp, MBDRecipeType recipeType) {
-        return StringPayload.of(recipeType.registryName.toString());
+        return StringPayload.of(recipeType.getRegistryName().toString());
     }
 
     @Override

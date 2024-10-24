@@ -46,7 +46,7 @@ public class MBDKubeJSPlugin extends KubeJSPlugin {
     public void registerRecipeSchemas(RegisterRecipeSchemasEvent event) {
         super.registerRecipeSchemas(event);
         for (var recipeType : MBDRegistries.RECIPE_TYPES) {
-            event.register(recipeType.registryName, MBDRecipeSchema.SCHEMA);
+            event.register(recipeType.getRegistryName(), MBDRecipeSchema.SCHEMA);
         }
     }
 

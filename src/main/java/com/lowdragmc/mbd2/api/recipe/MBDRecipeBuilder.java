@@ -377,7 +377,7 @@ public class MBDRecipeBuilder {
 
             @Override
             public ResourceLocation getId() {
-                return new ResourceLocation(id.getNamespace(), recipeType.registryName.getPath() + "/" + id.getPath());
+                return new ResourceLocation(id.getNamespace(), recipeType.getRegistryName().getPath() + "/" + id.getPath());
             }
 
             @Override

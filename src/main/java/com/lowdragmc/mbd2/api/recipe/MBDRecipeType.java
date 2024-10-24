@@ -1,10 +1,13 @@
 package com.lowdragmc.mbd2.api.recipe;
 
+import com.google.common.collect.Queues;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.*;
+import com.lowdragmc.lowdraglib.gui.editor.data.resource.TexturesResource;
 import com.lowdragmc.lowdraglib.gui.editor.runtime.PersistedParser;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
+import com.lowdragmc.lowdraglib.gui.texture.UIResourceTexture;
 import com.lowdragmc.lowdraglib.gui.widget.*;
 import com.lowdragmc.lowdraglib.jei.IngredientIO;
 import com.lowdragmc.lowdraglib.syncdata.ITagSerializable;
@@ -23,10 +26,7 @@ import lombok.experimental.Accessors;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.data.recipes.FinishedRecipe;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.StringTag;
-import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.crafting.Recipe;
@@ -37,6 +37,8 @@ import net.minecraft.world.level.ItemLike;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import javax.annotation.Nullable;
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -57,8 +59,12 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, ITagSerializable<Co
         WidgetGroup create(MBDRecipe recipe);
     }
 
-    @Configurable(name = "recipe_type.registry_name", tips = "recipe_type.registry_name.tooltip")
-    public final ResourceLocation registryName;
+    @Configurable(name = "recipe_type.registry_name", tips = {
+            "recipe_type.registry_name.tooltip",
+            "config.require_restart"
+    })
+    @Getter
+    private ResourceLocation registryName;
     @Setter
     private MBDRecipeBuilder recipeBuilder;
     @Setter
@@ -84,6 +90,10 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, ITagSerializable<Co
     protected Size uiSize = new Size(176, 166);
 
     // run-time
+    @Nullable
+    @Setter
+    @Getter
+    private File projectFile;
     @Getter
     private boolean isProxyRecipesLoaded = false;
     @Getter
@@ -93,6 +103,65 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, ITagSerializable<Co
         this.registryName = registryName;
         recipeBuilder = new MBDRecipeBuilder(registryName, this);
         proxyRecipeTypes.addAll(Arrays.asList(proxyRecipes));
+    }
+
+    public static MBDRecipeType createDefault() {
+        return new MBDRecipeType(MBD2.id("recipe_type"));
+    }
+
+    /**
+     * Create recipeType from project tag for product usage.\
+     * @param file project file.
+     * @param tag project tag.
+     * @param postTask Called when the mod is loaded completed. To make sure all resources are available.
+     *                 <br/> e.g. items, blocks and other registries are ready.
+     */
+    public MBDRecipeType loadProductiveTag(@Nullable File file, CompoundTag tag, Deque<Runnable> postTask) {
+        this.projectFile = file;
+        this.registryName = new ResourceLocation(tag.getCompound("recipe_type").getString("registryName"));
+        postTask.add(() -> {
+            var texturesResource = new TexturesResource();
+            texturesResource.deserializeNBT(tag.getCompound("resources").getCompound(TexturesResource.RESOURCE_NAME));
+            UIResourceTexture.setCurrentResource(texturesResource, false);
+            deserializeNBT(tag.getCompound("recipe_type"));
+            UIResourceTexture.clearCurrentResource();
+            var uiTag = tag.getCompound("ui");
+            var size = uiTag.getCompound("size");
+            setUiSize(new Size(size.getInt("width"), size.getInt("height")));
+            setUiCreator(recipe -> {
+                var recipeUI = new WidgetGroup();
+                recipeUI.setClientSideWidget();
+                IConfigurableWidget.deserializeNBT(recipeUI, uiTag, texturesResource, false);
+                bindXEIRecipeUI(recipeUI, recipe);
+                recipeUI.setSelfPosition(0, 0);
+                recipeUI.setBackground(IGuiTexture.EMPTY);
+                return recipeUI;
+            });
+        });
+        return this;
+    }
+
+    /**
+     * Indicate if the recipe type is created from project file.
+     */
+    public boolean isCreatedFromProjectFile() {
+        return projectFile != null;
+    }
+
+    /**
+     * Reload recipe type from project file
+     */
+    public void reloadFromProjectFile() {
+        if (projectFile != null) {
+            try {
+                var tag = NbtIo.read(projectFile);
+                if (tag != null) {
+                    Deque<Runnable> postTask = Queues.newArrayDeque();
+                    loadProductiveTag(projectFile, tag, postTask);
+                    postTask.forEach(Runnable::run);
+                }
+            } catch (IOException ignored) {}
+        }
     }
 
     @Override

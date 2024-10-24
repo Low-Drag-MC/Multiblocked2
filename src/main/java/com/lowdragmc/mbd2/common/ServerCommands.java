@@ -32,6 +32,18 @@ public class ServerCommands {
                                     return 1;
                                 })
                         )
+                        .then(Commands.literal("reload_recipe_type_projects")
+                                .executes(context -> {
+                                    // reload all recipe types
+                                    for (var recipeType : MBDRegistries.RECIPE_TYPES) {
+                                        if (recipeType.isCreatedFromProjectFile()) {
+                                            recipeType.reloadFromProjectFile();
+                                            context.getSource().sendSystemMessage(Component.literal(recipeType.getProjectFile().getPath() + " reloaded"));
+                                        }
+                                    }
+                                    return 1;
+                                })
+                        )
         );
     }
 }

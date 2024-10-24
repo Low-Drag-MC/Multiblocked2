@@ -67,7 +67,7 @@ public class CreateKineticMachineDefinition extends MBDMachineDefinition {
     }
 
     @Override
-    public MBDMachineDefinition loadProductiveTag(File file, CompoundTag projectTag, Deque<Runnable> postTask) {
+    public MBDMachineDefinition loadProductiveTag(@Nullable File file, CompoundTag projectTag, Deque<Runnable> postTask) {
         super.loadProductiveTag(file, projectTag, postTask);
         kineticMachineSettings.deserializeNBT(projectTag.getCompound("definition").getCompound("kineticMachineSettings"));
         return this;

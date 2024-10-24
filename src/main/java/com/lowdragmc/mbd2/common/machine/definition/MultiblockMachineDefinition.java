@@ -96,7 +96,7 @@ public class MultiblockMachineDefinition extends MBDMachineDefinition {
     }
 
     @Override
-    public MultiblockMachineDefinition loadProductiveTag(File file, CompoundTag projectTag, Deque<Runnable> postTask) {
+    public MultiblockMachineDefinition loadProductiveTag(@Nullable File file, CompoundTag projectTag, Deque<Runnable> postTask) {
         super.loadProductiveTag(file, projectTag, postTask);
         postTask.add(() -> {
             // load multiblock settings

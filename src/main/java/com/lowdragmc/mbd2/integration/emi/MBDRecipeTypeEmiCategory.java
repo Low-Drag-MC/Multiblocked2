@@ -43,7 +43,7 @@ public class MBDRecipeTypeEmiCategory extends EmiRecipeCategory {
     public final MBDRecipeType recipeType;
 
     public MBDRecipeTypeEmiCategory(MBDRecipeType recipeType) {
-        super(recipeType.registryName, IGui2Renderable.toDrawable(recipeType.getIcon(), 16,  16));
+        super(recipeType.getRegistryName(), IGui2Renderable.toDrawable(recipeType.getIcon(), 16,  16));
         this.recipeType = recipeType;
     }
 
@@ -76,6 +76,6 @@ public class MBDRecipeTypeEmiCategory extends EmiRecipeCategory {
 
     @Override
     public Component getName() {
-        return Component.translatable(recipeType.registryName.toLanguageKey());
+        return Component.translatable(recipeType.getRegistryName().toLanguageKey());
     }
 }

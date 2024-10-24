@@ -210,8 +210,8 @@ public class RecipeList extends DraggableScrollableWidgetGroup {
                     })
                     .leaf(Icons.ADD_FILE, "editor.machine.recipe_type.add_recipe_auto_id", () -> {
                         var index = 0;
-                        var path = this.recipeTypePanel.recipeType.registryName.getPath() + "/" + (isFuel ? "fuel/" : "") + "recipe_";
-                        var id = new ResourceLocation(this.recipeTypePanel.recipeType.registryName.getNamespace(), path + index++);
+                        var path = this.recipeTypePanel.recipeType.getRegistryName().getPath() + "/" + (isFuel ? "fuel/" : "") + "recipe_";
+                        var id = new ResourceLocation(this.recipeTypePanel.recipeType.getRegistryName().getNamespace(), path + index++);
                         while (this.recipeTypePanel.recipeType.getBuiltinRecipes().containsKey(id)) {
                             id = new ResourceLocation(id.getNamespace(), path + index++);
                         }

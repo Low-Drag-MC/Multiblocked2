@@ -48,7 +48,7 @@ public class ConfigMachineSettings implements IPersistedSerializable, IConfigura
     private boolean hasRecipeLogic = true;
     @Builder.Default
     @Persisted
-    private ResourceLocation recipeType = MBDRecipeType.DUMMY.registryName;
+    private ResourceLocation recipeType = MBDRecipeType.DUMMY.getRegistryName();
     @Builder.Default
     @Getter
     protected final RecipeModifier.RecipeModifiers recipeModifiers = new RecipeModifier.RecipeModifiers();
@@ -107,7 +107,7 @@ public class ConfigMachineSettings implements IPersistedSerializable, IConfigura
         IConfigurable.super.buildConfigurator(father);
         // add recipe type configurator
         var candidates = new HashSet<ResourceLocation>();
-        candidates.add(MBDRecipeType.DUMMY.registryName);
+        candidates.add(MBDRecipeType.DUMMY.getRegistryName());
         // add all loaded recipe types
         candidates.addAll(MBDRegistries.RECIPE_TYPES.keys());
         // add from files
@@ -122,7 +122,7 @@ public class ConfigMachineSettings implements IPersistedSerializable, IConfigura
         father.addConfigurators(new SelectorConfigurator<>("editor.machine.recipe_type",
                 () -> recipeType,
                 (type) -> recipeType = type,
-                MBDRecipeType.DUMMY.registryName,
+                MBDRecipeType.DUMMY.getRegistryName(),
                 true,
                 candidates.stream().toList(),
                 ResourceLocation::toString));

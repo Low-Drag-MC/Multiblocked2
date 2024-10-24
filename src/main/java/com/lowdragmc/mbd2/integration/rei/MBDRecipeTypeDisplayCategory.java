@@ -40,7 +40,7 @@ public class MBDRecipeTypeDisplayCategory extends ModularUIDisplayCategory<MBDRe
         }
     }
 
-    public static final Function<MBDRecipeType, CategoryIdentifier<MBDRecipeDisplay>> CATEGORIES = Util.memoize(recipeType -> CategoryIdentifier.of(recipeType.registryName));
+    public static final Function<MBDRecipeType, CategoryIdentifier<MBDRecipeDisplay>> CATEGORIES = Util.memoize(recipeType -> CategoryIdentifier.of(recipeType.getRegistryName()));
 
     private final MBDRecipeType recipeType;
     @Getter
@@ -73,7 +73,7 @@ public class MBDRecipeTypeDisplayCategory extends ModularUIDisplayCategory<MBDRe
     @Nonnull
     @Override
     public Component getTitle() {
-        return Component.translatable(recipeType.registryName.toLanguageKey());
+        return Component.translatable(recipeType.getRegistryName().toLanguageKey());
     }
 
     public static void registerDisplays(DisplayRegistry registry) {

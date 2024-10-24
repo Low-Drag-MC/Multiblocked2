@@ -88,7 +88,7 @@ public class MBDRecipeSerializer implements RecipeSerializer<MBDRecipe> {
 
     public JsonObject toJson(@NotNull MBDRecipe recipe) {
         JsonObject json = new JsonObject();
-        json.addProperty("type", recipe.recipeType.registryName.toString());
+        json.addProperty("type", recipe.recipeType.getRegistryName().toString());
         json.addProperty("duration", Math.abs(recipe.duration));
         if (recipe.data != null && !recipe.data.isEmpty()) {
             json.add("data", NBTToJsonConverter.getObject(recipe.data));

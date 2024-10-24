@@ -7,6 +7,7 @@ import com.lowdragmc.mbd2.api.block.ProxyPartBlock;
 import com.lowdragmc.mbd2.api.blockentity.ProxyPartBlockEntity;
 import com.lowdragmc.mbd2.api.capability.MBDCapabilities;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeSerializer;
+import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.recipe.ingredient.SizedIngredient;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.data.MBDRecipeCapabilities;
@@ -84,7 +85,7 @@ public class CommonProxy {
         MBD2.LOGGER.info("Loading recipe types");
         var path = new File(MBD2.getLocation(), "recipe_type");
         //load recipe type
-        FileUtils.loadNBTFiles(path, ".rt", (file, tag) -> event.register(RecipeTypeProject.createProductFromProject(tag, postTask)));
+        FileUtils.loadNBTFiles(path, ".rt", (file, tag) -> event.register(MBDRecipeType.createDefault().loadProductiveTag(file, tag, postTask)));
         ModLoader.get().postEvent(event);
         if (MBD2.isKubeJSLoaded()) {
             KubeJSWrapper.postRecipeTypeEvent();

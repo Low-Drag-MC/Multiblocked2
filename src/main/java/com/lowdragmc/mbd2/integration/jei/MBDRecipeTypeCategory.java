@@ -38,7 +38,7 @@ public class MBDRecipeTypeCategory extends ModularUIRecipeCategory<MBDRecipeType
         }
     }
 
-    public static final Function<MBDRecipeType, RecipeType<RecipeWrapper>> TYPES = Util.memoize(recipeMap -> new RecipeType<>(recipeMap.registryName, RecipeWrapper.class));
+    public static final Function<MBDRecipeType, RecipeType<RecipeWrapper>> TYPES = Util.memoize(recipeMap -> new RecipeType<>(recipeMap.getRegistryName(), RecipeWrapper.class));
 
     private final MBDRecipeType recipeType;
     @Getter
@@ -61,7 +61,7 @@ public class MBDRecipeTypeCategory extends ModularUIRecipeCategory<MBDRecipeType
 
     @Override
     public Component getTitle() {
-        return Component.translatable(recipeType.registryName.toLanguageKey());
+        return Component.translatable(recipeType.getRegistryName().toLanguageKey());
     }
 
     public static void registerRecipes(IRecipeRegistration registration) {
