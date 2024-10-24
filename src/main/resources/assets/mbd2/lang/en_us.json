@@ -68,6 +68,8 @@
     "recipe.condition.create_rpm": "RPM",
     "recipe.condition.create_rpm.tooltip": "RPM range: %d <= Y <= %d",
 
+    "project.reload": " reloaded!",
+    "project.reload.recipe": "§cNOTE:§r You have to execute /reload or re-enter the world to actually reload the built-in recipes.",
     "config.require_restart": "§cYou need to restart the game to apply the changes.§r",
 
     "config.recipe.condition.reverse": "reverse",

@@ -26,7 +26,7 @@ public class ServerCommands {
                                     for (var definition : MBDRegistries.MACHINE_DEFINITIONS) {
                                         if (definition.isCreatedFromProjectFile()) {
                                             definition.reloadFromProjectFile();
-                                            context.getSource().sendSystemMessage(Component.literal(definition.projectFile().getPath() + " reloaded"));
+                                            context.getSource().sendSystemMessage(Component.literal(definition.id().toString()).append(Component.translatable("project.reload")));
                                         }
                                     }
                                     return 1;
@@ -38,7 +38,8 @@ public class ServerCommands {
                                     for (var recipeType : MBDRegistries.RECIPE_TYPES) {
                                         if (recipeType.isCreatedFromProjectFile()) {
                                             recipeType.reloadFromProjectFile();
-                                            context.getSource().sendSystemMessage(Component.literal(recipeType.getProjectFile().getPath() + " reloaded"));
+                                            context.getSource().sendSystemMessage(Component.literal(recipeType.getRegistryName().toString()).append(Component.translatable("project.reload")));
+                                            context.getSource().sendSystemMessage(Component.translatable("project.reload.recipe"));
                                         }
                                     }
                                     return 1;
