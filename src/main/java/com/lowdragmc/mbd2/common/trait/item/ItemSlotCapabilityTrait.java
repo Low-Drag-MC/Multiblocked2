@@ -8,6 +8,10 @@ import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
+import net.minecraft.core.Direction;
+import net.minecraft.world.entity.EntitySelector;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.Ingredient;
@@ -186,6 +190,66 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
     @Override
     public IItemHandler mergeContents(List<IItemHandler> contents) {
         return new ItemHandlerList(contents.toArray(new IItemHandler[0]));
+    }
+
+    //////////////////////////////////////
+    //********     AUTO IO     *********//
+    //////////////////////////////////////
+    @Override
+    public void serverTick() {
+        var timer = getMachine().getOffsetTimer();
+        var autoInput = getDefinition().getAutoInput();
+        var autoOutput = getDefinition().getAutoOutput();
+        if (autoInput.isEnable() && timer % autoInput.getInterval() == 0) {
+            var items = getMachine().getLevel().getEntitiesOfClass(ItemEntity.class,
+                    autoInput.getRotatedRange(getMachine().getFrontFacing().orElse(Direction.NORTH)).move(getMachine().getPos()),
+                            EntitySelector.ENTITY_STILL_ALIVE);
+            var leftCount = autoInput.getSpeed();
+            for (ItemEntity itemEntity : items) {
+                if (leftCount <= 0) break;
+                var stored = itemEntity.getItem().copy();
+                var remaining = stored.copyWithCount(Math.min(leftCount, stored.getCount()));
+                var inserted = 0;
+                for (int i = 0; i < storage.getSlots(); i++) {
+                    var beforeCount = remaining.getCount();
+                    remaining = storage.insertItem(i, remaining, false);
+                    if (remaining.getCount() < beforeCount) {
+                        inserted += beforeCount - remaining.getCount();
+                        if (remaining.isEmpty()) break;
+                    }
+                }
+                if (inserted > 0) {
+                    stored.shrink(inserted);
+                    if (stored.isEmpty()) {
+                        itemEntity.discard();
+                    } else {
+                        itemEntity.setItem(stored);
+                    }
+                }
+                leftCount -= inserted;
+            }
+        }
+        if (autoOutput.isEnable() && timer % autoOutput.getInterval() == 0) {
+            var leftCount = autoOutput.getSpeed();
+            var range = autoOutput.getRotatedRange(getMachine().getFrontFacing().orElse(Direction.NORTH)).move(getMachine().getPos());
+            for (int i = 0; i < storage.getSlots(); i++) {
+                if (leftCount <= 0) break;
+                var stored = storage.getStackInSlot(i);
+                if (stored.isEmpty()) continue;
+                var pop = stored.copyWithCount(Math.min(leftCount, stored.getCount()));
+                leftCount -= pop.getCount();
+                storage.extractItem(i, pop.getCount(), false);
+                // drop items
+                var level = getMachine().getLevel();
+                var d0 = (double) EntityType.ITEM.getHeight() / 2.0D;
+                var x = level.random.nextFloat() * range.getXsize() + range.minX;
+                var y = level.random.nextFloat() * range.getYsize() + range.minY - d0;
+                var z = level.random.nextFloat() * range.getZsize() + range.minZ;
+                var itemEntity = new ItemEntity(level, x, y, z, pop);
+                itemEntity.setDefaultPickUpDelay();
+                level.addFreshEntity(itemEntity);
+            }
+        }
     }
 
 }
