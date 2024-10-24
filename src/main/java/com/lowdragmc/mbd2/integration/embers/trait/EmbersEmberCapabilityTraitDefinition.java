@@ -92,7 +92,7 @@ public class EmbersEmberCapabilityTraitDefinition extends SimpleCapabilityTraitD
                 energyBar.setProgressSupplier(() -> emberTrait.storage.getEmber() / emberTrait.storage.getEmberCapacity());
                 energyBar.setDynamicHoverTips(value -> LocalizationUtils.format(
                         "config.definition.trait.embers_ember_capability.ui_container_hover",
-                        Math.round(emberTrait.storage.getEmber() * value), emberTrait.storage.getEmberCapacity()));
+                        Math.round(emberTrait.storage.getEmberCapacity() * value), emberTrait.storage.getEmberCapacity()));
             });
             WidgetUtils.widgetByIdForEach(group, "^%s_text$".formatted(prefix), TextTextureWidget.class, energyBarText -> {
                 energyBarText.setText(() -> Component.literal(emberTrait.storage.getEmber() + "/" + emberTrait.storage.getEmberCapacity() + " ember"));

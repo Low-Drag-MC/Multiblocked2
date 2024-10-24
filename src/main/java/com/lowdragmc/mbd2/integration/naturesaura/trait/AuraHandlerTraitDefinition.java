@@ -17,6 +17,7 @@ import com.lowdragmc.mbd2.common.trait.RecipeCapabilityTraitDefinition;
 import com.lowdragmc.mbd2.integration.naturesaura.NaturesAuraRecipeCapability;
 import com.lowdragmc.mbd2.utils.WidgetUtils;
 import de.ellpeck.naturesaura.api.aura.chunk.IAuraChunk;
+import de.ellpeck.naturesaura.blocks.ModBlocks;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.network.chat.Component;
@@ -38,7 +39,7 @@ public class AuraHandlerTraitDefinition extends RecipeCapabilityTraitDefinition<
 
     @Override
     public IGuiTexture getIcon() {
-        return new ItemStackTexture(Items.PIG_SPAWN_EGG);
+        return new ItemStackTexture(ModBlocks.NATURE_ALTAR.asItem());
     }
 
     @Override

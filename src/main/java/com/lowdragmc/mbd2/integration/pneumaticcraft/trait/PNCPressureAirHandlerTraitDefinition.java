@@ -79,7 +79,7 @@ public class PNCPressureAirHandlerTraitDefinition extends RecipeCapabilityTraitD
                 energyBar.setProgressSupplier(() -> Math.max(pressureAirHandlerTrait.handler.getPressure(), 0) / pressureAirHandlerTrait.handler.maxPressure());
                 energyBar.setDynamicHoverTips(value -> LocalizationUtils.format(
                         "config.definition.trait.gtm_energy_container.ui_container_hover",
-                        Math.round(pressureAirHandlerTrait.handler.getPressure() * value), pressureAirHandlerTrait.handler.maxPressure()));
+                        Math.round(pressureAirHandlerTrait.handler.maxPressure() * value), pressureAirHandlerTrait.handler.maxPressure()));
             });
             WidgetUtils.widgetByIdForEach(group, "^%s_text$".formatted(prefix), TextTextureWidget.class, energyBarText -> {
                 energyBarText.setText(() -> Component.literal(pressureAirHandlerTrait.handler.getPressure() + " pressure"));
