@@ -47,10 +47,10 @@ public class EmbersEmberCapabilityTrait extends SimpleCapabilityTrait<IEmberCapa
         var required = left.stream().mapToDouble(Double::doubleValue).reduce(0, Double::sum);
         var capability = simulate ? storage.copy() : storage;
         if (io == IO.IN) {
-            var extracted = capability.removeAmount(required, simulate);
+            var extracted = capability.removeAmount(required, !simulate);
             required -= extracted;
         } else {
-            var received = capability.addAmount(required, simulate);
+            var received = capability.addAmount(required, !simulate);
             required -= received;
         }
         return required > 0 ? List.of(required) : null;
