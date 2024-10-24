@@ -214,7 +214,14 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
             level.getChunkSource().getLightEngine().checkBlock(pos);
             profilerfiller.pop();
         }
-        scheduleRenderUpdate();
+        // update sound and renderer
+        if (isRemote()) {
+            var sound = definition.stateMachine().getState(newValue).createMachineSound(getPos(), () -> this.machineState.equals(newValue));
+            if (sound != null) {
+                sound.play();
+            }
+            scheduleRenderUpdate();
+        }
     }
 
     /**

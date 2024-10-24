@@ -1,10 +1,12 @@
 package com.lowdragmc.mbd2.common.machine.definition.config;
 
+import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.gui.editor.accessors.EnumAccessor;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.*;
 import com.lowdragmc.lowdraglib.gui.editor.ui.Editor;
+import com.lowdragmc.lowdraglib.gui.widget.ButtonWidget;
 import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
 import com.lowdragmc.mbd2.api.block.RotationState;
@@ -14,6 +16,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
@@ -281,7 +285,12 @@ public class ConfigBlockProperties implements IPersistedSerializable, IConfigura
         }
 
         public Configurator createSoundConfigurator(String name, Consumer<ResourceLocation> setter, Supplier<ResourceLocation> getter) {
-            return new SearchComponentConfigurator<>(name, getter, setter, SoundEvents.STONE_PLACE.getLocation(), true, (word, find) -> {
+            return new SearchComponentConfigurator<>(name, getter, sound -> {
+                setter.accept(sound);
+                if (LDLib.isClient()) {
+                    Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(ForgeRegistries.SOUND_EVENTS.getValue(sound), 1.0F));
+                }
+            }, SoundEvents.STONE_PLACE.getLocation(), true, (word, find) -> {
                 for (var key : ForgeRegistries.SOUND_EVENTS.getKeys()) {
                     if (Thread.currentThread().isInterrupted()) {
                         return;

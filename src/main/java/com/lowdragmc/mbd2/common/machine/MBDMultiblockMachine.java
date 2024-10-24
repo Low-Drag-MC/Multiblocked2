@@ -95,6 +95,8 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
                         var mwsd = MultiblockWorldSavedData.getOrCreate(serverLevel);
                         mwsd.addMapping(getMultiblockState());
                         mwsd.removeAsyncLogic(this);
+                        // notify recipe logic
+                        notifyRecipeStatusChanged(getRecipeLogic().getStatus(), getRecipeLogic().getStatus());
                     }
                 }));
             }

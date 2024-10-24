@@ -7,14 +7,13 @@ import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib.utils.ShapeUtils;
 import com.lowdragmc.mbd2.MBD2;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleAABB;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleLightValue;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
-import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleShape;
+import com.lowdragmc.mbd2.client.MachineSound;
+import com.lowdragmc.mbd2.common.machine.definition.config.toggle.*;
 import com.lowdragmc.mbd2.integration.geckolib.GeckolibRenderer;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import lombok.*;
 import lombok.experimental.Accessors;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -28,6 +27,7 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.BooleanSupplier;
 
 @Accessors(fluent = true)
 @Getter
@@ -56,7 +56,11 @@ public class MachineState implements IConfigurable, IPersistedSerializable, Comp
             {"config.machine_state.rendering_box.tooltip.0", "config.machine_state.rendering_box.tooltip.1",
                     "config.machine_state.rendering_box.tooltip.2"})
     protected final ToggleAABB renderingBox;
-
+    @Configurable(name = "config.machine_state.machine_sound", subConfigurable = true, tips = {
+            "config.machine_state.machine_sound.tooltip.0", "config.machine_state.machine_sound.tooltip.1",
+            "config.machine_state.machine_sound.tooltip.2",
+    })
+    protected final ToggleMachineSound machineSound = new ToggleMachineSound();
     // runtime
     @Nullable
     private StateMachine<?> stateMachine;
@@ -197,6 +201,19 @@ public class MachineState implements IConfigurable, IPersistedSerializable, Comp
         }
         var value = renderingBox.getValue();
         return (direction == Direction.NORTH || direction == null) ? value : this.renderingBoxCache.computeIfAbsent(direction, dir -> ShapeUtils.rotate(value, dir));
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    @Nullable
+    public MachineSound createMachineSound(BlockPos pos, BooleanSupplier predicate) {
+        if (!machineSound.isEnable()) {
+            if (parent != null) {
+                return parent.createMachineSound(pos, predicate);
+            } else {
+                return null;
+            }
+        }
+        return machineSound.createMachineSound(pos, predicate);
     }
 
     public int getDepth() {

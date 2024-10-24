@@ -169,6 +169,23 @@
     "config.machine_state.rendering_box.tooltip.0": "It's used to define a visible box for BlockEntityRenderer in the world.",
     "config.machine_state.rendering_box.tooltip.1": "Enable - set a separated rendering box for this machine state.",
     "config.machine_state.rendering_box.tooltip.2": "Disable - use the rendering box of root state machine instead.",
+    "config.machine_state.machine_sound": "Machine Sound",
+    "config.machine_state.machine_sound.tooltip.0": "The sound that plays when the machine first enters this state.",
+    "config.machine_state.machine_sound.tooltip.1": "Enable - set a separated sound for this machine state.",
+    "config.machine_state.machine_sound.tooltip.2": "Disable - use the sound of root state machine instead.",
+
+    "config.machine_sound.sound": "Sound",
+    "config.machine_sound.source": "Source",
+    "config.machine_sound.source.tooltip": "The source of the sound.",
+    "config.machine_sound.delay": "delay",
+    "config.machine_sound.delay.tooltip": "The delay of the sound.",
+    "config.machine_sound.volume": "Volume",
+    "config.machine_sound.volume.tooltip": "The volume of the sound.",
+    "config.machine_sound.pitch": "Pitch",
+    "config.machine_sound.pitch.tooltip": "The pitch of the sound.",
+    "config.machine_sound.loop": "Loop",
+    "config.machine_sound.loop.tooltip": "Whether the sound loops.",
+
 
     "config.machine_settings.machine_level": "Machine Level",
     "config.machine_settings.machine_level.tooltip": "The machine level. It can be used for recipe conditions.",
