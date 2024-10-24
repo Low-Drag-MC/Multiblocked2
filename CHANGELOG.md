@@ -1,5 +1,7 @@
 # ChangeLog
 
-* remove the y axis facing options for multiblock controller
-* fix falling particle for the dedicated server
+* fix ember trait doesn't work
+* fix multiblock crash with working recipe while loading world in some cases.
+* add reload recipe type project command
+* add item traits support auto suck from/drop to the world
 

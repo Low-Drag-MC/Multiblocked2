@@ -74,7 +74,7 @@ public class ItemSlotCapabilityTraitDefinition extends SimpleCapabilityTraitDefi
         public int interval = 20;
         @Configurable(name = "config.definition.trait.item_slot.auto_io.speed", tips = "config.definition.trait.item_slot.auto_io.speed.tooltip")
         @NumberRange(range = {1, Integer.MAX_VALUE})
-        public int speed = 1;
+        public int speed = 64;
 
         // runtime
         private final Map<Direction, AABB> rangeCache = new EnumMap<>(Direction.class);
