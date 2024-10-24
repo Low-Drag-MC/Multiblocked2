@@ -70,6 +70,9 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
     protected Set<BlockPos> renderingDisabledPositions = new HashSet<>();
     @Getter
     private final Lock patternLock = new ReentrantLock();
+    // runtime
+    @Getter
+    private boolean isFormedValid = false;
 
     public MBDMultiblockMachine(IMachineBlockEntity machineHolder, MultiblockMachineDefinition definition, Object... args) {
         super(machineHolder, definition, args);
@@ -249,7 +252,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
      */
     @Override
     public boolean runRecipeLogic() {
-        return super.runRecipeLogic() && isFormed();
+        return super.runRecipeLogic() && isFormed() && isFormedValid();
     }
 
     /**
@@ -299,6 +302,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
     @Override
     public void onStructureFormed() {
         setFormed(true);
+        this.isFormedValid = true;
         this.parts.clear();
         this.renderingDisabledPositions.clear();
         // disable rendering for formed parts
@@ -346,6 +350,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
     @Override
     public void onStructureInvalid() {
         setFormed(false);
+        this.isFormedValid = false;
         for (IMultiPart part : parts) {
             part.removedFromController(this);
         }

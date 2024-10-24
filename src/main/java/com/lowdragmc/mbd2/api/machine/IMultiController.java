@@ -83,8 +83,15 @@ public interface IMultiController extends IMachine {
      * <br>
      * NOTE: even machine is formed, it doesn't mean to workable!
      * Its parts maybe invalid due to chunk unload.
+     * <br>
+     * use {@link #isFormedValid()} to check workable.
      */
     boolean isFormed();
+
+    /**
+     * Whether the structure is totally valid and workable.
+     */
+    boolean isFormedValid();
 
     /**
      * Get MultiblockState. It records all structure-related information.
