@@ -25,6 +25,8 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.util.ForgeSoundType;
 import net.minecraftforge.registries.ForgeRegistries;
 
@@ -284,12 +286,11 @@ public class ConfigBlockProperties implements IPersistedSerializable, IConfigura
             );
         }
 
+        @OnlyIn(Dist.CLIENT)
         public Configurator createSoundConfigurator(String name, Consumer<ResourceLocation> setter, Supplier<ResourceLocation> getter) {
             return new SearchComponentConfigurator<>(name, getter, sound -> {
                 setter.accept(sound);
-                if (LDLib.isClient()) {
-                    Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(ForgeRegistries.SOUND_EVENTS.getValue(sound), 1.0F));
-                }
+                Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(ForgeRegistries.SOUND_EVENTS.getValue(sound), 1.0F));
             }, SoundEvents.STONE_PLACE.getLocation(), true, (word, find) -> {
                 for (var key : ForgeRegistries.SOUND_EVENTS.getKeys()) {
                     if (Thread.currentThread().isInterrupted()) {

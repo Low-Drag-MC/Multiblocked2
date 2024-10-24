@@ -67,12 +67,11 @@ public class ToggleMachineSound implements IToggleConfigurable {
         IToggleConfigurable.super.buildConfigurator(father);
     }
 
+    @OnlyIn(Dist.CLIENT)
     public Configurator createSoundConfigurator(String name, Consumer<ResourceLocation> setter, Supplier<ResourceLocation> getter) {
         return new SearchComponentConfigurator<>(name, getter, sound -> {
             setter.accept(sound);
-            if (LDLib.isClient()) {
-                Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(ForgeRegistries.SOUND_EVENTS.getValue(sound), pitch));
-            }
+            Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(ForgeRegistries.SOUND_EVENTS.getValue(sound), pitch));
         }, SoundEvents.STONE_PLACE.getLocation(), true, (word, find) -> {
             for (var key : ForgeRegistries.SOUND_EVENTS.getKeys()) {
                 if (Thread.currentThread().isInterrupted()) {
