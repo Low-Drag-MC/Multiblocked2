@@ -165,7 +165,7 @@ public interface IMachine extends IRecipeCapabilityHolder {
      * You should call it in yourselves {@link BlockEntity#setRemoved()}.
      */
     default void onUnload() {
-
+        getRecipeLogic().inValid();
     }
 
     /**
@@ -174,7 +174,6 @@ public interface IMachine extends IRecipeCapabilityHolder {
      * You should call it in yourselves {@link BlockEntity#clearRemoved()}.
      */
     default void onLoad() {
-        getRecipeLogic().inValid();
     }
 
     //////////////////////////////////////

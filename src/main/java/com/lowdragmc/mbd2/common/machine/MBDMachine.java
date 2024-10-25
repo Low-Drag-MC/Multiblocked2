@@ -129,7 +129,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
     public void onUnload() {
         IMachine.super.onUnload();
         for (ITrait additionalTrait : additionalTraits) {
-            additionalTrait.onMachineLoad();
+            additionalTrait.onMachineUnLoad();
         }
     }
 
