@@ -13,6 +13,7 @@ import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.ICapabilityProviderTrait;
 import com.lowdragmc.mbd2.common.trait.RecipeHandlerTrait;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.EntitySelector;
 import net.minecraft.world.entity.EntityType;
@@ -26,13 +27,20 @@ import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.items.IItemHandler;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Random;
 
 public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait {
     public static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(ItemSlotCapabilityTrait.class);
     private final Random random = new Random();
+
     @Override
-    public ManagedFieldHolder getFieldHolder() { return MANAGED_FIELD_HOLDER; }
+    public ManagedFieldHolder getFieldHolder() {
+        return MANAGED_FIELD_HOLDER;
+    }
 
     @Persisted
     @DescSynced
@@ -128,9 +136,11 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait {
         var autoInput = getDefinition().getAutoInput();
         var autoOutput = getDefinition().getAutoOutput();
         if (autoInput.isEnable() && timer % autoInput.getInterval() == 0) {
-            var items = getMachine().getLevel().getEntitiesOfClass(ItemEntity.class,
+            var items = getMachine().getLevel().getEntitiesOfClass(
+                    ItemEntity.class,
                     autoInput.getRotatedRange(getMachine().getFrontFacing().orElse(Direction.NORTH)).move(getMachine().getPos()),
-                            EntitySelector.ENTITY_STILL_ALIVE);
+                    EntitySelector.ENTITY_STILL_ALIVE
+            );
             var leftCount = autoInput.getSpeed();
             for (ItemEntity itemEntity : items) {
                 if (leftCount <= 0) break;
@@ -175,6 +185,59 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait {
                 var itemEntity = new ItemEntity(level, x, y, z, pop);
                 itemEntity.setDefaultPickUpDelay();
                 level.addFreshEntity(itemEntity);
+            }
+        }
+        var partSettings = getMachine().getDefinition().partSettings();
+        if (partSettings == null) return;
+        var extraActions = partSettings.extraTraitActions();
+        var facing = getMachine().getFrontFacing().orElse(Direction.NORTH);
+        for (var extraAction : extraActions) {
+            if (timer % extraAction.interval() != 0) continue;
+            if (extraAction.getFilter().matcher(getDefinition().getName()).find()) {
+                for (Direction direction : Direction.values()) {
+                    var io = extraAction.capabilityIO().getIO(facing, direction);
+                    var partCapIO = getDefinition().getCapabilityIO().getIO(facing, direction);
+                    if (io.support(partCapIO) && !io.doAny()) continue;
+                    BlockPos targetPos = getMachine().getPos().relative(direction);
+                    var level = getMachine().getLevel();
+                    if (!level.isLoaded(targetPos)) continue;
+                    var blockEntity = level.getBlockEntity(targetPos);
+                    if (blockEntity == null) continue;
+                    blockEntity.getCapability(ForgeCapabilities.ITEM_HANDLER, direction.getOpposite())
+                            .ifPresent((handler) -> {
+                                if (io.doInput()) {
+                                    for (int i = 0; i < handler.getSlots(); i++) {
+                                        ItemStack stackInSlot = handler.getStackInSlot(i);
+                                        if (!stackInSlot.isEmpty()) {
+                                            for (int j = 0; j < storage.getSlots(); j++) {
+                                                ItemStack leftStack = storage.insertItem(j, stackInSlot, true);
+                                                if (leftStack.getCount() < stackInSlot.getCount()) {
+                                                    var stack = handler.extractItem(i, stackInSlot.getCount() - leftStack.getCount(), false);
+                                                    storage.insertItem(j, stack, false);
+                                                    if (stackInSlot.isEmpty()) break;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                if (io.doOutput()) {
+                                    for (int i = 0; i < storage.getSlots(); i++) {
+                                        ItemStack stackInSlot = storage.getStackInSlot(i);
+                                        if (!stackInSlot.isEmpty()) {
+                                            for (int j = 0; j < handler.getSlots(); j++) {
+                                                ItemStack leftStack = handler.insertItem(j, stackInSlot, true);
+                                                if (leftStack.getCount() < stackInSlot.getCount()) {
+                                                    var stack = storage.extractItem(i, stackInSlot.getCount() - leftStack.getCount(), false);
+                                                    handler.insertItem(j, stack, false);
+                                                    storage.onContentsChanged(i);
+                                                    if (stackInSlot.isEmpty()) break;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                }
             }
         }
     }

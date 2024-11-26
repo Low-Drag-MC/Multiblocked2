@@ -26,6 +26,18 @@ public enum IO {
         return "gui.mbd2.io." + name;
     }
 
+    public boolean doAny() {
+        return this != NONE;
+    }
+
+    public boolean doInput() {
+        return this == IN || this == BOTH;
+    }
+
+    public boolean doOutput() {
+        return this == OUT || this == BOTH;
+    }
+
     public boolean support(IO io) {
         if (io == this) return true;
         if (io == NONE) return false;

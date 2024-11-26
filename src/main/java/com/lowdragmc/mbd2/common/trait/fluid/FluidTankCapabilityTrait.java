@@ -15,11 +15,13 @@ import com.lowdragmc.mbd2.common.trait.ICapabilityProviderTrait;
 import com.lowdragmc.mbd2.common.trait.RecipeHandlerTrait;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
 import lombok.Setter;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.minecraftforge.fluids.capability.IFluidHandler.FluidAction;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
@@ -28,8 +30,11 @@ import java.util.List;
 
 public class FluidTankCapabilityTrait extends SimpleCapabilityTrait {
     public static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(FluidTankCapabilityTrait.class);
+
     @Override
-    public ManagedFieldHolder getFieldHolder() { return MANAGED_FIELD_HOLDER; }
+    public ManagedFieldHolder getFieldHolder() {
+        return MANAGED_FIELD_HOLDER;
+    }
 
     @Persisted
     @DescSynced
@@ -95,6 +100,63 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait {
     @Override
     public List<ICapabilityProviderTrait<?>> getCapabilityProviderTraits() {
         return List.of(fluidHandlerCap);
+    }
+
+    @Override
+    public void serverTick() {
+        var timer = getMachine().getOffsetTimer();
+        var partSettings = this.getMachine().getDefinition().partSettings();
+        if (partSettings == null) return;
+        Direction facing = getMachine().getFrontFacing().orElse(Direction.NORTH);
+
+        for (var extraTraitAction : partSettings.extraTraitActions()) {
+            if (timer % extraTraitAction.interval() != 0) continue;
+            if (extraTraitAction.getFilter().matcher(getDefinition().getName()).find()) {
+                for (Direction direction : Direction.values()) {
+                    var io = extraTraitAction.capabilityIO().getIO(facing, direction);
+                    var partCapIO = getDefinition().getCapabilityIO().getIO(facing, direction);
+                    if (io.support(partCapIO) && !io.doAny()) continue;
+                    BlockPos targetPos = getMachine().getPos().relative(direction);
+                    var level = getMachine().getLevel();
+                    if (!level.isLoaded(targetPos)) continue;
+                    var blockEntity = level.getBlockEntity(targetPos);
+                    if (blockEntity == null) continue;
+                    blockEntity.getCapability(ForgeCapabilities.FLUID_HANDLER).ifPresent(handler -> {
+                        if (io.doInput()) {
+                            for (int i = 0; i < handler.getTanks(); i++) {
+                                var fluidInTank = handler.getFluidInTank(i);
+                                if (fluidInTank.isEmpty()) continue;
+                                IFluidHandler inputHandler = fluidHandlerCap.getCapContent(IO.IN);
+                                for (int j = 0; j < inputHandler.getTanks(); j++) {
+                                    var filled = inputHandler.fill(fluidInTank, FluidAction.SIMULATE);
+                                    if (filled > 0) {
+                                        var drain = handler.drain(fluidInTank, FluidAction.EXECUTE);
+                                        inputHandler.fill(drain, FluidAction.EXECUTE);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        if (io.doOutput()) {
+                            IFluidHandler outputHandler = fluidHandlerCap.getCapContent(IO.OUT);
+                            for (int i = 0; i < outputHandler.getTanks(); i++) {
+                                var fluidInTank = outputHandler.getFluidInTank(i);
+                                for (int j = 0; j < handler.getTanks(); j++) {
+                                    var filled = handler.fill(fluidInTank, FluidAction.SIMULATE);
+                                    if (filled > 0) {
+                                        var toDrain = fluidInTank.copy();
+                                        toDrain.setAmount(filled);
+                                        var drain = outputHandler.drain(toDrain, FluidAction.EXECUTE);
+                                        handler.fill(drain, FluidAction.EXECUTE);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        }
     }
 
     public class FluidRecipeHandler extends RecipeHandlerTrait<FluidIngredient> {
