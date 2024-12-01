@@ -30,6 +30,7 @@ public class ClientCommands {
     public static List<LiteralArgumentBuilder<CommandSourceStack>> createClientCommands() {
         return List.of(
                 Commands.literal("mbd2_editor")
+                        .requires(s -> s.hasPermission(2))
                         .executes(context -> {
                             var holder = new IUIHolder() {
                                 @Override

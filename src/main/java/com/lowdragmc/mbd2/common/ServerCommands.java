@@ -18,6 +18,7 @@ public class ServerCommands {
     public static List<LiteralArgumentBuilder<CommandSourceStack>> createServerCommands() {
         return List.of(
                 Commands.literal("mbd2")
+                        .requires(s -> s.hasPermission(2))
                         .then(Commands.literal("reload_machine_projects")
                                 .executes(context -> {
                                     // clear up the catalyst candidates
