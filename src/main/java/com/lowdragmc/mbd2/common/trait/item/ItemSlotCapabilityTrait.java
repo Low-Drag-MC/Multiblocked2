@@ -23,9 +23,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.block.Block;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.items.IItemHandler;
+import net.neoforged.common.capabilities.Capability;
+import net.neoforged.common.capabilities.ForgeCapabilities;
+import net.neoforged.items.IItemHandler;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;

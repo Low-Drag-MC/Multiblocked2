@@ -550,7 +550,7 @@ public interface MBDRecipeSchema {
                 int x = str.indexOf('x');
                 if (x > 0 && x < str.length() - 2 && str.charAt(x + 1) == ' ') {
                     try {
-                        var entityType = BuiltInRegistries.ENTITY_TYPE.get(new ResourceLocation(str.substring(x + 2)));
+                        var entityType = BuiltInRegistries.ENTITY_TYPE.get(ResourceLocation.parse(str.substring(x + 2)));
                         var amount = Integer.parseInt(str.substring(0, x));
                         return new EntityIngredientJS(EntityIngredient.of(amount, entityType));
                     } catch (Exception ignore) {

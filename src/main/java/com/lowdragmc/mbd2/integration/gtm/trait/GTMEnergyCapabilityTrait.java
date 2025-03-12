@@ -15,7 +15,7 @@ import com.lowdragmc.mbd2.integration.gtm.GTMEnergyRecipeCapability;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraftforge.common.capabilities.Capability;
+import net.neoforged.common.capabilities.Capability;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;

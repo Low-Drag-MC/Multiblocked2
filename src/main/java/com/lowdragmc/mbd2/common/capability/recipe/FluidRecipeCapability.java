@@ -1,9 +1,5 @@
 package com.lowdragmc.mbd2.common.capability.recipe;
 
-import com.gregtechceu.gtceu.integration.xei.entry.fluid.FluidEntryList;
-import com.gregtechceu.gtceu.integration.xei.entry.fluid.FluidStackList;
-import com.gregtechceu.gtceu.integration.xei.entry.fluid.FluidTagList;
-import com.gregtechceu.gtceu.integration.xei.handlers.fluid.CycleFluidEntryHandler;
 import com.lowdragmc.lowdraglib.gui.editor.accessors.CompoundTagAccessor;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.*;
 import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
@@ -12,16 +8,18 @@ import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
 import com.lowdragmc.lowdraglib.gui.widget.TankWidget;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
 import com.lowdragmc.lowdraglib.jei.IngredientIO;
-import com.lowdragmc.lowdraglib.side.fluid.FluidStack;
-import com.lowdragmc.lowdraglib.side.fluid.forge.FluidHelperImpl;
 import com.lowdragmc.lowdraglib.utils.CycleFluidStorage;
+import com.lowdragmc.lowdraglib.utils.CycleFluidTransfer;
 import com.lowdragmc.lowdraglib.utils.Size;
 import com.lowdragmc.lowdraglib.utils.TagOrCycleFluidTransfer;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
-import com.lowdragmc.mbd2.api.recipe.content.SerializerFluidIngredient;
-import com.lowdragmc.mbd2.api.recipe.ingredient.FluidIngredient;
+import com.lowdragmc.mbd2.api.recipe.content.SerializerSizedFluidIngredient;
+import com.lowdragmc.mbd2.core.mixins.FluidIngredientAccessor;
+import com.lowdragmc.mbd2.core.mixins.IngredientAccessor;
+import com.lowdragmc.mbd2.core.mixins.SizedFluidIngredientAccessor;
+import com.lowdragmc.mbd2.core.mixins.SizedIngredientAccessor;
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.nbt.CompoundTag;
@@ -29,11 +27,17 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.neoforge.common.crafting.SizedIngredient;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.crafting.DataComponentFluidIngredient;
+import net.neoforged.neoforge.fluids.crafting.FluidIngredient;
+import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient;
 
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -43,7 +47,7 @@ import java.util.stream.Collectors;
  * @date 2023/2/20
  * @implNote FluidRecipeCapability
  */
-public class FluidRecipeCapability extends RecipeCapability<FluidIngredient> {
+public class FluidRecipeCapability extends RecipeCapability<SizedFluidIngredient> {
 
     public static final String FLUID_TYPE = "recipe.capability.fluid.ingredient.values.fluid";
     public static final String TAG_TYPE = "recipe.capability.fluid.ingredient.values.tag";
@@ -51,17 +55,17 @@ public class FluidRecipeCapability extends RecipeCapability<FluidIngredient> {
     public final static FluidRecipeCapability CAP = new FluidRecipeCapability();
 
     protected FluidRecipeCapability() {
-        super("fluid", SerializerFluidIngredient.INSTANCE);
+        super("fluid", SerializerSizedFluidIngredient.INSTANCE);
     }
 
     @Override
-    public FluidIngredient createDefaultContent() {
-        return FluidIngredient.of(1000, Fluids.WATER);
+    public SizedFluidIngredient createDefaultContent() {
+        return SizedFluidIngredient.of(Fluids.WATER, 1000);
     }
 
     @Override
-    public Widget createPreviewWidget(FluidIngredient content) {
-        var storage = new CycleFluidStorage(content.getAmount(), Arrays.stream(content.getStacks()).toList());
+    public Widget createPreviewWidget(SizedFluidIngredient content) {
+        var storage = new CycleFluidStorage(content.amount(), Arrays.stream(content.getFluids()).toList());
         return new TankWidget(storage, 0, 0, false, false).setDrawHoverOverlay(false);
     }
 
@@ -78,68 +82,33 @@ public class FluidRecipeCapability extends RecipeCapability<FluidIngredient> {
     @Override
     public void bindXEIWidget(Widget widget, Content content, IngredientIO ingredientIO) {
         if (widget instanceof TankWidget tankWidget) {
-            var fluidIngredient = of(content.content);
-            Either<List<Pair<TagKey<Fluid>, Long>>, List<FluidStack>> either = null;
-            // if all fluid tags
-            if (Arrays.stream(fluidIngredient.values).allMatch(FluidIngredient.TagValue.class::isInstance)) {
-                either = Either.left(Arrays.stream(fluidIngredient.values)
-                        .map(FluidIngredient.TagValue.class::cast)
-                        .map(FluidIngredient.TagValue::getTag)
-                        .map(tagValue -> new Pair<>(tagValue, fluidIngredient.getAmount())).toList());
-            }
-            if (either == null) {
-                either = Either.right(List.of(fluidIngredient.getStacks()));
-            }
+            var ingredient = of(content.content);
             if (tankWidget.getOverlay() == null || tankWidget.getOverlay() == IGuiTexture.EMPTY) {
                 tankWidget.setOverlay(content.createOverlay());
             } else {
                 var groupTexture = new GuiTextureGroup(tankWidget.getOverlay(), content.createOverlay());
                 tankWidget.setOverlay(groupTexture);
             }
-            tankWidget.setFluidTank(new TagOrCycleFluidTransfer(List.of(either)), 0);
+            tankWidget.setFluidTank(new CycleFluidTransfer(List.of(Arrays.asList(ingredient.getFluids()))), 0);
             tankWidget.setIngredientIO(ingredientIO);
             tankWidget.setAllowClickDrained(false);
             tankWidget.setAllowClickFilled(false);
             tankWidget.setXEIChance(content.chance);
-        } else if (MBD2.isGTMLoaded()) {
-            try {
-                if (widget instanceof com.gregtechceu.gtceu.api.gui.widget.TankWidget tankWidget) {
-                    var fluidIngredient = of(content.content);
-                    var fluidEntries = new ArrayList<FluidEntryList>();
-                    Either<FluidTagList, FluidStackList> either = null;
-                    // if all fluid tags
-                    Arrays.stream(fluidIngredient.values).forEach(value -> {
-                        if (value instanceof FluidIngredient.TagValue tagValue) {
-                            fluidEntries.add(FluidTagList.of(tagValue.getTag(), (int) fluidIngredient.getAmount(), null));
-                        } else {
-                            fluidEntries.add(FluidStackList.of(Arrays.stream(fluidIngredient.getStacks()).map(FluidHelperImpl::toFluidStack).toList()));
-                        }
-                    });
-                    if (tankWidget.getOverlay() == null || tankWidget.getOverlay() == IGuiTexture.EMPTY) {
-                        tankWidget.setOverlay(content.createOverlay());
-                    } else {
-                        var groupTexture = new GuiTextureGroup(tankWidget.getOverlay(), content.createOverlay());
-                        tankWidget.setOverlay(groupTexture);
-                    }
-                    tankWidget.setFluidTank(new CycleFluidEntryHandler(fluidEntries), 0);
-                    tankWidget.setIngredientIO(ingredientIO);
-                    tankWidget.setAllowClickDrained(false);
-                    tankWidget.setAllowClickFilled(false);
-                    tankWidget.setXEIChance(content.chance);
-                }
-            } catch (Exception ignored) {}
         }
     }
 
     @Override
-    public void createContentConfigurator(ConfiguratorGroup father, Supplier<FluidIngredient> supplier, Consumer<FluidIngredient> onUpdate) {
+    public void createContentConfigurator(ConfiguratorGroup father, Supplier<SizedFluidIngredient> supplier, Consumer<SizedFluidIngredient> onUpdate) {
+        BiConsumer<FluidIngredient, Integer> update = (ingredient, amount) -> onUpdate.accept(new SizedFluidIngredient(ingredient, amount));
+        Runnable clearCache = () -> {
+            var ingredient = supplier.get();
+            ((FluidIngredientAccessor)ingredient.ingredient()).setStacks(null);
+            ((SizedFluidIngredientAccessor)(Object)ingredient).setCachedStacks(null);
+        };
         // sized ingredient amount
         father.addConfigurators(new NumberConfigurator("recipe.capability.fluid.ingredient.amount",
-                () -> supplier.get().getAmount(),
-                number -> {
-                    var amount = number.intValue();
-                    onUpdate.accept(supplier.get().copy(amount));
-                }, 1, true).setRange(1, Integer.MAX_VALUE));
+                () -> supplier.get().amount(),
+                number -> update.accept(supplier.get().ingredient(), number.intValue()), 1, true).setRange(1, Integer.MAX_VALUE));
         // fluid ingredient
         var valuesGroup = new ArrayConfiguratorGroup<>("recipe.capability.fluid.ingredient.candidates", false,
                 () -> Arrays.stream(supplier.get().values).collect(Collectors.toList()), (getter, setter) -> {
@@ -234,20 +203,19 @@ public class FluidRecipeCapability extends RecipeCapability<FluidIngredient> {
     }
 
     @Override
-    public Component getLeftErrorInfo(List<FluidIngredient> left) {
+    public Component getLeftErrorInfo(List<SizedFluidIngredient> left) {
         var result = Component.empty();
         for (int i = 0; i < left.size(); i++) {
             var fluidIngredient = left.get(i);
-            result.append(fluidIngredient.getAmount() + "x ");
-            var stacks = fluidIngredient.getStacks();
-            if (stacks.length > 0) {
-                result.append(stacks[0].getDisplayName());
+            result.append(fluidIngredient.amount() + "x ");
+            var fluids = fluidIngredient.getFluids();
+            if (fluids.length > 0) {
+                result.append(fluids[0].getHoverName());
             } else {
                 result.append("Unknown");
             }
-            if (fluidIngredient.getNbt() != null) {
-                result.append(" with NBT");
-                result.append(fluidIngredient.getNbt().toString());
+            if (fluidIngredient.ingredient() instanceof DataComponentFluidIngredient) {
+                result.append(" with DataComponent");
             }
             if (i < left.size() - 1) {
                 result.append(", ");

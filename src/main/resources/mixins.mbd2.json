@@ -9,12 +9,15 @@
   ],
   "mixins": [
     "ChunkMixin",
+    "FluidIngredientAccessor",
     "IngredientAccessor",
     "ItemValueAccessor",
     "LevelMixin",
     "RecipeManagerAccessor",
     "RecipeManagerMixin",
     "ServerChunkProviderMixin",
+    "SizedFluidIngredientAccessor",
+    "SizedIngredientAccessor",
     "StrictNBTIngredientAccessor",
     "TagValueAccessor"
   ],

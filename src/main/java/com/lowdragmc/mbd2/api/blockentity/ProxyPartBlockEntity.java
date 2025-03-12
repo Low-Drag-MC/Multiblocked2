@@ -2,7 +2,9 @@ package com.lowdragmc.mbd2.api.blockentity;
 
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
@@ -12,21 +14,24 @@ import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.neoforge.registries.DeferredHolder;
 
 import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 
 /**
  * @author KilaBash
  * @implNote It is used to replace the non mbd blocks that do not need to be rendered after forming in the multiblock structure,
  * and to restore the original blocks when the structure invalid.
  */
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 public class ProxyPartBlockEntity extends BlockEntity {
     @Getter
     @Setter
     private boolean isAsyncSyncing = false;
 
-    public static RegistryObject<BlockEntityType<ProxyPartBlockEntity>> TYPE;
+    public static DeferredHolder<BlockEntityType<?>, BlockEntityType<ProxyPartBlockEntity>> TYPE;
     public static BlockEntityType<?> TYPE() {
         return TYPE.get();
     }
@@ -70,15 +75,15 @@ public class ProxyPartBlockEntity extends BlockEntity {
             if (originalData != null) {
                 var blockEntity = level.getBlockEntity(worldPosition);
                 if (blockEntity != null) {
-                    blockEntity.load(originalData);
+                    blockEntity.loadWithComponents(originalData, level.registryAccess());
                 }
             }
         }
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag) {
-        super.saveAdditional(tag);
+    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider provider) {
+        super.saveAdditional(tag, provider);
         if (originalState != null) {
             tag.put("originalState", NbtUtils.writeBlockState(originalState));
         }
@@ -93,8 +98,8 @@ public class ProxyPartBlockEntity extends BlockEntity {
     }
 
     @Override
-    public void load(CompoundTag tag) {
-        super.load(tag);
+    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider provider) {
+        super.loadAdditional(tag, provider);
 
         if (tag.contains("originalState")) {
             originalState = NbtUtils.readBlockState(BuiltInRegistries.BLOCK.asLookup(), tag.getCompound("originalState"));
@@ -105,13 +110,13 @@ public class ProxyPartBlockEntity extends BlockEntity {
         }
 
         if (tag.contains("controllerPos")) {
-            controllerPos = NbtUtils.readBlockPos(tag.getCompound("controllerPos"));
+            controllerPos = NbtUtils.readBlockPos(tag, "controllerPos").orElse(BlockPos.ZERO);
         }
 
     }
 
     @Override
-    public CompoundTag getUpdateTag() {
+    public CompoundTag getUpdateTag(HolderLookup.Provider provider) {
         var tag = new CompoundTag();
 
         if (originalState != null) {

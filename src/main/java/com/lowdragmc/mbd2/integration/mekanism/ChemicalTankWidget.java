@@ -44,15 +44,15 @@ import mekanism.common.capabilities.Capabilities;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.material.Fluids;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.capabilities.Capability;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.common.capabilities.Capability;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -339,7 +339,7 @@ public abstract class ChemicalTankWidget<CHEMICAL extends Chemical<CHEMICAL>, ST
     }
 
     @Override
-    public void writeInitialData(FriendlyByteBuf buffer) {
+    public void writeInitialData(RegistryFriendlyByteBuf buffer) {
         buffer.writeBoolean(chemicalHandler != null);
         if (chemicalHandler != null) {
             this.lastTankCapacity = chemicalHandler.getTankCapacity(tank);
@@ -351,7 +351,7 @@ public abstract class ChemicalTankWidget<CHEMICAL extends Chemical<CHEMICAL>, ST
     }
 
     @Override
-    public void readInitialData(FriendlyByteBuf buffer) {
+    public void readInitialData(RegistryFriendlyByteBuf buffer) {
         if (buffer.readBoolean()) {
             this.lastTankCapacity = buffer.readVarLong();
             readUpdateInfo(2, buffer);
@@ -360,7 +360,7 @@ public abstract class ChemicalTankWidget<CHEMICAL extends Chemical<CHEMICAL>, ST
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void readUpdateInfo(int id, FriendlyByteBuf buffer) {
+    public void readUpdateInfo(int id, RegistryFriendlyByteBuf buffer) {
         if (id == 0) {
             this.lastTankCapacity = buffer.readVarLong();
         } else if (id == 1) {
@@ -384,7 +384,7 @@ public abstract class ChemicalTankWidget<CHEMICAL extends Chemical<CHEMICAL>, ST
     }
 
     @Override
-    public void handleClientAction(int id, FriendlyByteBuf buffer) {
+    public void handleClientAction(int id, RegistryFriendlyByteBuf buffer) {
         super.handleClientAction(id, buffer);
         if (id == 1) {
             boolean isFill = buffer.readBoolean();

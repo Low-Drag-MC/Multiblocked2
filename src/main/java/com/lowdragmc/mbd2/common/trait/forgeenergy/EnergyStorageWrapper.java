@@ -1,7 +1,7 @@
 package com.lowdragmc.mbd2.common.trait.forgeenergy;
 
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
-import net.minecraftforge.energy.IEnergyStorage;
+import net.neoforged.energy.IEnergyStorage;
 
 public class EnergyStorageWrapper implements IEnergyStorage {
     private final IEnergyStorage storage;

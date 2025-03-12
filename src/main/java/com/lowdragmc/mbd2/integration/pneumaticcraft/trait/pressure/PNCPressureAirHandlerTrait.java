@@ -18,7 +18,7 @@ import me.desht.pneumaticcraft.api.tileentity.IAirHandler;
 import me.desht.pneumaticcraft.api.tileentity.IAirHandlerMachine;
 import me.desht.pneumaticcraft.common.util.DirectionUtil;
 import net.minecraft.core.Direction;
-import net.minecraftforge.common.capabilities.Capability;
+import net.neoforged.common.capabilities.Capability;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;

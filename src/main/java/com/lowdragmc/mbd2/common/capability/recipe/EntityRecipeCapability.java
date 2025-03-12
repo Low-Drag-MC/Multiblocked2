@@ -10,6 +10,7 @@ import com.lowdragmc.mbd2.api.recipe.content.SerializerEntityIngredient;
 import com.lowdragmc.mbd2.api.recipe.ingredient.EntityIngredient;
 import com.lowdragmc.mbd2.common.gui.recipe.ingredient.entity.EntityPreviewWidget;
 import com.lowdragmc.mbd2.common.gui.recipe.ingredient.entity.EntityTypeConfigurator;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -17,7 +18,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.EntityTypeTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
-import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.Arrays;
 import java.util.List;
@@ -118,11 +118,9 @@ public class EntityRecipeCapability extends RecipeCapability<EntityIngredient> {
                         preview.setEntityIngredient(EntityIngredient.of(value.getTypes().stream(), 1, supplier.get().getNbt()));
                         setter.accept(value);
                     }, EntityTypeTags.SKELETONS.location(), true, (word, find) -> {
-                        var tags = ForgeRegistries.ENTITY_TYPES.tags();
-                        if (tags == null) return;
-                        for (var tag : tags) {
+                        for (var tag : BuiltInRegistries.ENTITY_TYPE.getTagNames().toList()) {
                             if (Thread.currentThread().isInterrupted()) return;
-                            var tagKey = tag.getKey().location();
+                            var tagKey = tag.location();
                             if (tagKey.toString().toLowerCase().contains(word.toLowerCase())) {
                                 find.accept(tagKey);
                             }

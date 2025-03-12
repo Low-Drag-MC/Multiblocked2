@@ -1,16 +1,17 @@
 package com.lowdragmc.mbd2.common.machine.definition.config;
 
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
-import com.lowdragmc.lowdraglib.syncdata.ITagSerializable;
 import lombok.Getter;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.phys.shapes.Shapes;
+import net.neoforged.neoforge.common.util.INBTSerializable;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
-public class StateMachine<T extends MachineState> implements ITagSerializable<CompoundTag> {
+public class StateMachine<T extends MachineState> implements INBTSerializable<CompoundTag> {
     @Getter
     protected final T rootState;
     // runtime
@@ -63,15 +64,15 @@ public class StateMachine<T extends MachineState> implements ITagSerializable<Co
     }
 
     @Override
-    public CompoundTag serializeNBT() {
+    public CompoundTag serializeNBT(HolderLookup.Provider provider) {
         var tag = new CompoundTag();
-        tag.put("root", rootState.serializeNBT());
+        tag.put("root", rootState.serializeNBT(provider));
         return tag;
     }
 
     @Override
-    public void deserializeNBT(CompoundTag tag) {
-        rootState.deserializeNBT(tag.getCompound("root"));
+    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
+        rootState.deserializeNBT(provider, tag.getCompound("root"));
         initStateMachine();
     }
 

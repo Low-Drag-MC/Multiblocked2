@@ -10,13 +10,13 @@ import lombok.Setter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 import java.util.Optional;
 import java.util.function.BooleanSupplier;
@@ -52,7 +52,7 @@ public class ToggleMachineSound implements IToggleConfigurable {
 
     public SoundEvent getSoundEvent() {
         if (soundEvent == null) {
-            soundEvent = Optional.ofNullable(ForgeRegistries.SOUND_EVENTS.getValue(sound)).orElse(SoundEvents.EMPTY);
+            soundEvent = Optional.ofNullable(BuiltInRegistries.SOUND_EVENT.get(sound)).orElse(SoundEvents.EMPTY);
         }
         return soundEvent;
     }
@@ -72,9 +72,12 @@ public class ToggleMachineSound implements IToggleConfigurable {
     public Configurator createSoundConfigurator(String name, Consumer<ResourceLocation> setter, Supplier<ResourceLocation> getter) {
         return new SearchComponentConfigurator<>(name, getter, sound -> {
             setter.accept(sound);
-            Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(ForgeRegistries.SOUND_EVENTS.getValue(sound), pitch));
+            var soundEvent = BuiltInRegistries.SOUND_EVENT.get(sound);
+            if (soundEvent != null) {
+                Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(soundEvent, pitch));
+            }
         }, SoundEvents.STONE_PLACE.getLocation(), true, (word, find) -> {
-            for (var key : ForgeRegistries.SOUND_EVENTS.getKeys()) {
+            for (var key : BuiltInRegistries.SOUND_EVENT.keySet()) {
                 if (Thread.currentThread().isInterrupted()) {
                     return;
                 }

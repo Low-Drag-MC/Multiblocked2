@@ -9,7 +9,7 @@ import com.lowdragmc.mbd2.common.event.MBDRegistryEvent;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
 import com.lowdragmc.mbd2.integration.create.machine.CreateKineticMachineDefinition;
-import net.minecraftforge.fml.ModLoader;
+import net.neoforged.fml.ModLoader;
 
 public class MBDMachineDefinitionTypes {
 
@@ -20,7 +20,7 @@ public class MBDMachineDefinitionTypes {
         if (MBD2.isCreateLoaded()) {
             register(CreateKineticMachineDefinition.class);
         }
-        ModLoader.get().postEvent(new MBDRegistryEvent.MachineDefinitionType());
+        ModLoader.postEvent(new MBDRegistryEvent.MachineDefinitionType());
         MBDRegistries.MACHINE_DEFINITION_TYPES.freeze();
     }
 

@@ -14,18 +14,16 @@ import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.ITrait;
 import com.lowdragmc.mbd2.common.trait.RecipeCapabilityTraitDefinition;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.Tesselator;
-import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.blaze3d.vertex.*;
 import lombok.Getter;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.AABB;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.lwjgl.opengl.GL11;
 
 import javax.annotation.Nullable;
@@ -63,8 +61,8 @@ public class EntityHandlerTraitDefinition extends RecipeCapabilityTraitDefinitio
     }
 
     @Override
-    public void deserializeNBT(CompoundTag tag) {
-        super.deserializeNBT(tag);
+    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
+        super.deserializeNBT(provider, tag);
         areaCache.clear();
     }
 
@@ -77,8 +75,6 @@ public class EntityHandlerTraitDefinition extends RecipeCapabilityTraitDefinitio
     public void renderAfterWorldInTraitPanel(MachineTraitPanel panel) {
         super.renderAfterWorldInTraitPanel(panel);
         var poseStack = new PoseStack();
-        var tessellator = Tesselator.getInstance();
-        var buffer = tessellator.getBuilder();
 
         RenderSystem.enableBlend();
         RenderSystem.disableDepthTest();
@@ -87,7 +83,7 @@ public class EntityHandlerTraitDefinition extends RecipeCapabilityTraitDefinitio
         poseStack.pushPose();
         RenderSystem.disableCull();
         RenderSystem.setShader(GameRenderer::getRendertypeLinesShader);
-        buffer.begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
+        var buffer = Tesselator.getInstance().begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
         RenderSystem.lineWidth(5);
 
         var color = 0xff11aaee;
@@ -96,7 +92,7 @@ public class EntityHandlerTraitDefinition extends RecipeCapabilityTraitDefinitio
                 (float)area.maxX, (float)area.maxY, (float)area.maxZ,
                 ColorUtils.red(color), ColorUtils.green(color), ColorUtils.blue(color), ColorUtils.alpha(color));
 
-        tessellator.end();
+        BufferUploader.drawWithShader(buffer.buildOrThrow());
 
         poseStack.popPose();
         RenderSystem.enableDepthTest();

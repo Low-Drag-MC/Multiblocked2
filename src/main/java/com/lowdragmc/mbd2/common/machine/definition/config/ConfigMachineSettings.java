@@ -8,6 +8,7 @@ import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 import lombok.*;
 import lombok.experimental.Accessors;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 
@@ -77,8 +78,8 @@ public class ConfigMachineSettings implements IPersistedSerializable, IConfigura
     private List<TraitDefinition> traitDefinitions;
 
     @Override
-    public CompoundTag serializeNBT() {
-        var tag = IPersistedSerializable.super.serializeNBT();
+    public CompoundTag serializeNBT(HolderLookup.Provider provider) {
+        var tag = IPersistedSerializable.super.serializeNBT(provider);
         var traits = new ListTag();
         for (var definition : traitDefinitions) {
             traits.add(TraitDefinition.serializeDefinition(definition));
@@ -88,8 +89,8 @@ public class ConfigMachineSettings implements IPersistedSerializable, IConfigura
     }
 
     @Override
-    public void deserializeNBT(CompoundTag tag) {
-        IPersistedSerializable.super.deserializeNBT(tag);
+    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
+        IPersistedSerializable.super.deserializeNBT(provider, tag);
         var traits = tag.getList("traitDefinitions", 10);
         traitDefinitions = new ArrayList<>();
         for (var i = 0; i < traits.size(); i++) {

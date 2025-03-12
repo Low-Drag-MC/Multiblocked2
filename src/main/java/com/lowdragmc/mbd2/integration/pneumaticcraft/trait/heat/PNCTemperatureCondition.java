@@ -1,6 +1,5 @@
 package com.lowdragmc.mbd2.integration.pneumaticcraft.trait.heat;
 
-import com.google.gson.JsonObject;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
@@ -11,13 +10,13 @@ import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import com.lowdragmc.mbd2.integration.pneumaticcraft.PNCHeatRecipeCapability;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import me.desht.pneumaticcraft.common.core.ModItems;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import me.desht.pneumaticcraft.common.registry.ModItems;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.GsonHelper;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -25,6 +24,12 @@ import java.util.ArrayList;
 @Getter
 @NoArgsConstructor
 public class PNCTemperatureCondition extends RecipeCondition {
+    public static final MapCodec<PNCTemperatureCondition> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+            Codec.BOOL.optionalFieldOf("reverse", false).forGetter(val -> val.isReverse),
+            Codec.FLOAT.optionalFieldOf("minTemperature", 0.0f).forGetter(val -> val.minTemperature),
+            Codec.FLOAT.optionalFieldOf("maxTemperature", Float.MAX_VALUE).forGetter(val -> val.maxTemperature)
+    ).apply(instance, PNCTemperatureCondition::new));
+
     public final static PNCTemperatureCondition INSTANCE = new PNCTemperatureCondition();
     @Configurable(name = "config.recipe.condition.temperature.min")
     @NumberRange(range = {-Float.MAX_VALUE, Float.MAX_VALUE})
@@ -34,6 +39,12 @@ public class PNCTemperatureCondition extends RecipeCondition {
     private float maxTemperature;
 
     public PNCTemperatureCondition(float minTemperature, float maxTemperature) {
+        this.minTemperature = minTemperature;
+        this.maxTemperature = maxTemperature;
+    }
+
+    public PNCTemperatureCondition(boolean isReverse, float minTemperature, float maxTemperature) {
+        super(isReverse);
         this.minTemperature = minTemperature;
         this.maxTemperature = maxTemperature;
     }
@@ -51,6 +62,11 @@ public class PNCTemperatureCondition extends RecipeCondition {
     @Override
     public IGuiTexture getIcon() {
         return new ItemStackTexture(ModItems.HEAT_FRAME.get());
+    }
+
+    @Override
+    public MapCodec<? extends RecipeCondition> codec() {
+        return CODEC;
     }
 
     @Override
@@ -77,54 +93,6 @@ public class PNCTemperatureCondition extends RecipeCondition {
             }
         }
         return false;
-    }
-
-    @Nonnull
-    @Override
-    public JsonObject serialize() {
-        JsonObject config = super.serialize();
-        config.addProperty("minTemperature", minTemperature);
-        config.addProperty("maxTemperature", maxTemperature);
-        return config;
-    }
-
-    @Override
-    public RecipeCondition deserialize(@Nonnull JsonObject config) {
-        super.deserialize(config);
-        minTemperature = GsonHelper.getAsFloat(config, "minTemperature", 0);
-        maxTemperature = GsonHelper.getAsFloat(config, "maxTemperature", 1);
-        return this;
-    }
-
-    @Override
-    public RecipeCondition fromNetwork(FriendlyByteBuf buf) {
-        super.fromNetwork(buf);
-        minTemperature = buf.readFloat();
-        maxTemperature = buf.readFloat();
-        return this;
-    }
-
-    @Override
-    public void toNetwork(FriendlyByteBuf buf) {
-        super.toNetwork(buf);
-        buf.writeFloat(minTemperature);
-        buf.writeFloat(maxTemperature);
-    }
-
-    @Override
-    public CompoundTag toNBT() {
-        var tag = super.toNBT();
-        tag.putFloat("minTemperature", minTemperature);
-        tag.putFloat("maxTemperature", maxTemperature);
-        return tag;
-    }
-
-    @Override
-    public RecipeCondition fromNBT(CompoundTag tag) {
-        super.fromNBT(tag);
-        minTemperature = tag.getFloat("minTemperature");
-        maxTemperature = tag.getFloat("maxTemperature");
-        return this;
     }
 
 }

@@ -8,15 +8,14 @@ import com.lowdragmc.mbd2.common.graphprocessor.GraphParameterSet;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraftforge.eventbus.api.Cancelable;
+import net.neoforged.bus.api.ICancellableEvent;
 
 import java.util.Map;
 import java.util.Optional;
 
 @Getter
-@Cancelable
 @LDLRegister(name = "MachineFuelRecipeModifyEvent", group = "MachineEvent")
-public class MachineFuelRecipeModifyEvent extends MachineEvent {
+public class MachineFuelRecipeModifyEvent extends MachineEvent implements ICancellableEvent {
     @GraphParameterGet(identity = "recipe.in")
     @GraphParameterSet(identity = "recipe.out")
     @Setter

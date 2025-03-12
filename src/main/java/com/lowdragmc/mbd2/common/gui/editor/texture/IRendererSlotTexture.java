@@ -15,11 +15,12 @@ import lombok.Setter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 
@@ -65,7 +66,7 @@ public class IRendererSlotTexture implements IGuiTexture {
         pose.translate(8, 8, (float)(150));
 
         try {
-            pose.mulPoseMatrix((new Matrix4f()).scaling(1.0F, -1.0F, 1.0F));
+            pose.mulPose((new Matrix4f()).scaling(1.0F, -1.0F, 1.0F));
             pose.scale(16.0F, 16.0F, 16.0F);
             boolean flag = !renderer.useBlockLight(ItemStack.EMPTY);
             if (flag) {
@@ -78,7 +79,7 @@ public class IRendererSlotTexture implements IGuiTexture {
             }
             renderer.renderItem(
                     Items.RED_STAINED_GLASS.getDefaultInstance(), ItemDisplayContext.GUI, false, pose, buffers, 15728880, OverlayTexture.NO_OVERLAY,
-                    Minecraft.getInstance().getModelManager().getModel(LDLib.location("block/renderer_model")));
+                    Minecraft.getInstance().getModelManager().getModel(ModelResourceLocation.standalone(LDLib.location("block/renderer_model"))));
             CURRENT_MACHINE_DEFINITION = null;
             // flush
             RenderSystem.disableDepthTest();

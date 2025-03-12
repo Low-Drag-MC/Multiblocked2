@@ -27,7 +27,7 @@ public class MBDRecipeAccessor extends CustomObjectAccessor<MBDRecipe> {
     @Override
     public MBDRecipe deserialize(AccessorOp accessorOp, ITypedPayload<?> payload) {
         if (payload instanceof NbtTagPayload nbtTagPayload && nbtTagPayload.getPayload() instanceof CompoundTag tag) {
-            var id = new ResourceLocation(tag.getString("id"));
+            var id = ResourceLocation.parse(tag.getString("id"));
             return MBDRecipeSerializer.SERIALIZER.fromNBT(id, tag.getCompound("recipe"));
         }
         return null;

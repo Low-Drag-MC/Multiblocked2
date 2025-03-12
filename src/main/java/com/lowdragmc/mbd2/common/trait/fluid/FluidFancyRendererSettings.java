@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib.side.fluid.FluidHelper;
 import com.lowdragmc.lowdraglib.side.fluid.FluidStack;
 import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
 import com.lowdragmc.mbd2.api.capability.MBDCapabilities;
+import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.FancyRendererSettings;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -21,8 +22,8 @@ import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Quaternionf;
 
 public class FluidFancyRendererSettings extends FancyRendererSettings {
@@ -52,10 +53,11 @@ public class FluidFancyRendererSettings extends FancyRendererSettings {
         @Override
         @OnlyIn(Dist.CLIENT)
         public void render(BlockEntity blockEntity, float partialTicks, PoseStack poseStack, MultiBufferSource buffer, int combinedLight, int combinedOverlay) {
-            var optional = blockEntity.getCapability(MBDCapabilities.CAPABILITY_MACHINE).resolve();
-            if (optional.isPresent() && optional.get() instanceof MBDMachine machine) {
+            var optional = IMachine.ofMachine(blockEntity).filter(MBDMachine.class::isInstance).map(MBDMachine.class::cast);
+            if (optional.isPresent()) {
+                var machine = optional.get();
                 if (machine.getTraitByDefinition(definition) instanceof FluidTankCapabilityTrait trait) {
-                    FluidStack fluid = trait.storages[0].getFluid();
+                    var fluid = trait.storages[0].getFluid();
                     if (fluid.isEmpty() || trait.storages[0].getCapacity() == 0) return;
 
                     var fluidTexture = FluidHelper.getStillTexture(fluid);

@@ -1,23 +1,22 @@
 package com.lowdragmc.mbd2.common.recipe;
 
-import com.google.gson.JsonObject;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.SelectorConfigurator;
 import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.GsonHelper;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 
@@ -32,11 +31,21 @@ import javax.annotation.Nonnull;
 @Setter
 @NoArgsConstructor
 public class BiomeCondition extends RecipeCondition {
+    public static final MapCodec<BiomeCondition> CODEC = RecordCodecBuilder
+            .mapCodec(instance -> instance.group(
+                            Codec.BOOL.optionalFieldOf("reverse", false).forGetter(val -> val.isReverse),
+                            ResourceLocation.CODEC.fieldOf("biome").forGetter(val -> val.biome)
+                    ).apply(instance, BiomeCondition::new));
 
     public final static BiomeCondition INSTANCE = new BiomeCondition();
-    private ResourceLocation biome = new ResourceLocation("dummy");
+    private ResourceLocation biome = ResourceLocation.parse("dummy");
 
     public BiomeCondition(ResourceLocation biome) {
+        this(false, biome);
+    }
+
+    public BiomeCondition(boolean isReverse, ResourceLocation biome) {
+        super(isReverse);
         this.biome = biome;
     }
 
@@ -58,47 +67,9 @@ public class BiomeCondition extends RecipeCondition {
         return biome.is(this.biome);
     }
 
-    @Nonnull
     @Override
-    public JsonObject serialize() {
-        JsonObject config = super.serialize();
-        config.addProperty("biome", biome.toString());
-        return config;
-    }
-
-    @Override
-    public RecipeCondition deserialize(@Nonnull JsonObject config) {
-        super.deserialize(config);
-        biome = new ResourceLocation(
-                GsonHelper.getAsString(config, "biome", "dummy"));
-        return this;
-    }
-
-    @Override
-    public RecipeCondition fromNetwork(FriendlyByteBuf buf) {
-        super.fromNetwork(buf);
-        biome = new ResourceLocation(buf.readUtf());
-        return this;
-    }
-
-    @Override
-    public void toNetwork(FriendlyByteBuf buf) {
-        super.toNetwork(buf);
-        buf.writeUtf(biome.toString());
-    }
-
-    @Override
-    public CompoundTag toNBT() {
-        var tag = super.toNBT();
-        tag.putString("biome", biome.toString());
-        return tag;
-    }
-
-    @Override
-    public RecipeCondition fromNBT(CompoundTag tag) {
-        super.fromNBT(tag);
-        biome = new ResourceLocation(tag.getString("biome"));
-        return this;
+    public MapCodec<? extends RecipeCondition> codec() {
+        return CODEC;
     }
 
     @Override
@@ -107,7 +78,7 @@ public class BiomeCondition extends RecipeCondition {
         var selector = new SelectorConfigurator<>(getTranslationKey(),
                 () -> this.biome,
                 b -> this.biome = b,
-                new ResourceLocation("dummy"),
+                ResourceLocation.parse("dummy"),
                 true,
                 Minecraft.getInstance().level.registryAccess().registry(Registries.BIOME).get().keySet().stream().toList(),
                 ResourceLocation::toString

@@ -1,90 +1,81 @@
 dependencies {
-    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
-
-    // Apply Mixin AP
-    annotationProcessor "org.spongepowered:mixin:${mixin_version}:processor"
+    implementation "net.neoforged:neoforge:${neo_version}"
 
     // lombok
-    compileOnly 'org.projectlombok:lombok:1.18.24'
-    annotationProcessor 'org.projectlombok:lombok:1.18.24'
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
 
     // LDLib
-    jarJar("com.lowdragmc.ldlib:ldlib-forge-${minecraft_version}:${ldlib_version}") {
-        jarJar.ranged(it, "[${ldlib_version},)")
-    }
-    implementation fg.deobf("com.lowdragmc.ldlib:ldlib-forge-${minecraft_version}:${ldlib_version}") { transitive = false }
-
-    // Architectiry
-//    implementation fg.deobf("me.shedaniel.cloth:cloth-config-forge:${cloth_config_version}")
-//    compileOnly fg.deobf("dev.architectury:architectury-forge:${architectury_version}")
+    implementation("com.lowdragmc.ldlib:ldlib-neoforge-${minecraft_version}:${ldlib_version}") { transitive = false }
 
     // JEI
-    compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}") { transitive = false }
-    compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge-api:${jei_version}") { transitive = false }
-    implementation fg.deobf("mezz.jei:jei-${minecraft_version}-forge:${jei_version}")
+    compileOnly("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}") { transitive = false }
+    compileOnly("mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}") { transitive = false }
+    implementation("mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}")
 
     // REI
-    compileOnly fg.deobf("me.shedaniel:RoughlyEnoughItems-default-plugin-forge:${rei_version}")
-    compileOnly fg.deobf("me.shedaniel:RoughlyEnoughItems-api-forge:${rei_version}")
-    compileOnly fg.deobf("me.shedaniel:RoughlyEnoughItems-forge:${rei_version}")
+    compileOnly("me.shedaniel:RoughlyEnoughItems-default-plugin-neoforge:${rei_version}")
+    compileOnly("me.shedaniel:RoughlyEnoughItems-api-neoforge:${rei_version}")
+    compileOnly("me.shedaniel:RoughlyEnoughItems-neoforge:${rei_version}")
 
     // EMI
-    compileOnly fg.deobf("dev.emi:emi-forge:${emi_version}:api")
-    compileOnly fg.deobf("dev.emi:emi-forge:${emi_version}")
+    compileOnly("dev.emi:emi-neoforge:${emi_version}:api")
+    compileOnly("dev.emi:emi-neoforge:${emi_version}")
 
     // Geckolib
-    implementation fg.deobf("software.bernie.geckolib:geckolib-forge-${minecraft_version}:${geckolib_version}")
+    implementation("software.bernie.geckolib:geckolib-neoforge-${minecraft_version}:${geckolib_version}")
     implementation("com.eliotlash.mclib:mclib:20")
 
     // Photon
-    implementation fg.deobf("com.lowdragmc.photon:photon-forge-${minecraft_version}:${photon_version}") { transitive = false }
+    // TODO
+//    implementation("com.lowdragmc.photon:photon-forge-${minecraft_version}:${photon_version}") { transitive = false }
 
     // Botania
-    compileOnly fg.deobf("vazkii.botania:Botania:${botania_version}:api")
-    implementation fg.deobf("vazkii.botania:Botania:${botania_version}")
-    runtimeOnly fg.deobf("top.theillusivec4.curios:curios-forge:${curios_version}")
-    runtimeOnly fg.deobf("vazkii.patchouli:Patchouli:${patchouli_version}")
+//    compileOnly("vazkii.botania:botania-neoforge-${minecraft_version}:${botania_version}:api")
+    implementation("vazkii.botania:botania-neoforge-${minecraft_version}:${botania_version}")
+    runtimeOnly("top.theillusivec4.curios:curios-neoforge:${curios_version}")
+    runtimeOnly("vazkii.patchouli:Patchouli:${patchouli_version}")
 
     // Mekanism
-    compileOnly fg.deobf("mekanism:Mekanism:${mekanism_version}:api")
-    implementation fg.deobf("mekanism:Mekanism:${mekanism_version}") // Mekanism
-    runtimeOnly fg.deobf("mekanism:Mekanism:${mekanism_version}:additions")// Mekanism: Additions
-    runtimeOnly fg.deobf("mekanism:Mekanism:${mekanism_version}:generators")// Mekanism: Generators
-    runtimeOnly fg.deobf("mekanism:Mekanism:${mekanism_version}:tools")// Mekanism: Tools
+    compileOnly("mekanism:Mekanism:${mekanism_version}:api")
+    implementation("mekanism:Mekanism:${mekanism_version}") // Mekanism
+    runtimeOnly("mekanism:Mekanism:${mekanism_version}:additions")// Mekanism: Additions
+    runtimeOnly("mekanism:Mekanism:${mekanism_version}:generators")// Mekanism: Generators
+    runtimeOnly("mekanism:Mekanism:${mekanism_version}:tools")// Mekanism: Tools
 
     // GTM
-    compileOnly fg.deobf("com.gregtechceu.gtceu:gtceu-${minecraft_version}:${gtm_version}") { transitive = false }
-    compileOnly fg.deobf("com.tterrag.registrate:Registrate:${registrate_version}")
+    // TODO
+//    compileOnly("com.gregtechceu.gtceu:gtceu-${minecraft_version}:${gtm_version}") { transitive = false }
+//    compileOnly("com.tterrag.registrate:Registrate:${registrate_version}")
 
     // Create
-    implementation fg.deobf("com.simibubi.create:create-${minecraft_version}:${create_version}:all") { transitive = false }
-    implementation fg.deobf("dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}")
-    implementation fg.deobf("net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}")
+    implementation("com.simibubi.create:create-${minecraft_version}:${create_version}:all") { transitive = false }
+    implementation("dev.engine-room.flywheel:flywheel-neoforge-${minecraft_version}:${flywheel_version}")
+    implementation("net.createmod.ponder:Ponder-NeoForge-${minecraft_version}:${ponder_version}")
 
     // KubeJS
-    implementation fg.deobf("dev.latvian.mods:kubejs-forge:${kubejs_version}") { transitive = false }
-    implementation fg.deobf("dev.latvian.mods:rhino-forge:${rhino_version}")
-    implementation fg.deobf("dev.architectury:architectury-forge:${architectury_version}")
+    implementation("dev.latvian.mods:kubejs-neoforge:${kubejs_version}") { transitive = false }
+    implementation("dev.latvian.mods:rhino-neoforge:${rhino_version}")
 
     // Nature's Aura
-    implementation fg.deobf("maven.modrinth:natures-aura:${natures_aura_version}")
+    implementation("maven.modrinth:natures-aura:${natures_aura_version}")
 
     // Pneumaticcraft
-    implementation fg.deobf("me.desht.pneumaticcraft:pneumaticcraft-repressurized:${pneumaticcraft_version}")
+    implementation("me.desht.pneumaticcraft:pneumaticcraft-repressurized:${pneumaticcraft_version}")
 
     // Blood Magic
-//    implementation fg.deobf("com.wayoftime.bloodmagic:BloodMagic:${blood_magic_version}")
+//    implementation("com.wayoftime.bloodmagic:BloodMagic:${blood_magic_version}")
 
     // Embers Rekindled
-    implementation fg.deobf("maven.modrinth:embers:${embers_rekindled_version}")
+    // TODO 1.21 not available
+//    implementation("maven.modrinth:embers:${embers_rekindled_version}")
 
     // Mana and Artifice
-//    implementation fg.deobf("maven.modrinth:mana-and-artifice:${mana_and_artifice_version}")
+//    implementation("maven.modrinth:mana-and-artifice:${mana_and_artifice_version}")
 
     // Jade
-    implementation fg.deobf("maven.modrinth:jade:${jade_version}")
+    implementation("maven.modrinth:jade:${jade_version}")
 
     // Ars Nouveau
-    // TODO 1.21
-//    implementation fg.deobf("com.hollingsworth.ars_nouveau:ars_nouveau-${minecraft_version}:${ars_nouveau_version}")
+    implementation("com.hollingsworth.ars_nouveau:ars_nouveau-${minecraft_version}:${ars_nouveau_version}")
 }

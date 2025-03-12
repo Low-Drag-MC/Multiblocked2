@@ -14,8 +14,8 @@ import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
 import lombok.Getter;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -76,14 +76,12 @@ public class ConditionContainer extends WidgetGroup {
         if (container.isMouseOverElement(mouseX, mouseY) && button == 1 && Editor.INSTANCE != null) {
             var menu = TreeBuilder.Menu.start()
                     .branch(Icons.ADD_FILE, "editor.machine.recipe_type.add_condition", m -> {
-                        for (var clazz : MBDRegistries.RECIPE_CONDITIONS.values()) {
-                            var condition = RecipeCondition.create(clazz);
-                            if (condition != null) {
-                                m.leaf(condition.getIcon(), condition.getTranslationKey(), () -> {
-                                    conditions.add(condition);
-                                    reloadConditions();
-                                });
-                            }
+                        for (var conditionInstance : MBDRegistries.RECIPE_CONDITIONS.values()) {
+                            var condition = conditionInstance.copy();
+                            m.leaf(condition.getIcon(), condition.getTranslationKey(), () -> {
+                                conditions.add(condition);
+                                reloadConditions();
+                            });
                         }
                     });
             if (selected != null) {

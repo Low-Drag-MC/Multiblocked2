@@ -22,7 +22,7 @@ public class MBDRecipeTypeAccessor extends CustomObjectAccessor<MBDRecipeType> {
     @Override
     public MBDRecipeType deserialize(AccessorOp accessorOp, ITypedPayload<?> payload) {
         if (payload instanceof StringPayload stringPayload) {
-            return MBDRegistries.RECIPE_TYPES.get(new ResourceLocation(stringPayload.getPayload()));
+            return MBDRegistries.RECIPE_TYPES.get(ResourceLocation.parse(stringPayload.getPayload()));
         }
         return null;
     }

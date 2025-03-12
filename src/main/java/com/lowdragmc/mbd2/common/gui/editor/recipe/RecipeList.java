@@ -18,8 +18,8 @@ import com.lowdragmc.mbd2.api.recipe.content.ContentWidget;
 import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
 import lombok.Setter;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -195,10 +195,10 @@ public class RecipeList extends DraggableScrollableWidgetGroup {
                     .leaf(Icons.ADD_FILE, "editor.machine.recipe_type.add_recipe", () -> {
                         DialogWidget.showStringEditorDialog(this.recipeTypePanel.editor, "editor.machine.recipe_type.add_recipe", "unique_id",
                                 s -> true, s -> {
-                                    if (s == null || !ResourceLocation.isValidResourceLocation(s)) return;
-                                    var id = new ResourceLocation(s);
+                                    if (s == null || !ResourceLocation.isValidPath(s)) return;
+                                    var id = ResourceLocation.parse(s);
                                     if (isFuel) {
-                                        id = new ResourceLocation(id.getNamespace(), "fuel/" + id.getPath());
+                                        id = ResourceLocation.fromNamespaceAndPath(id.getNamespace(), "fuel/" + id.getPath());
                                     }
                                     if (!this.recipeTypePanel.recipeType.getBuiltinRecipes().containsKey(id)) {
                                         addRecipe(this.recipeTypePanel.recipeType.recipeBuilder(id)
@@ -211,9 +211,9 @@ public class RecipeList extends DraggableScrollableWidgetGroup {
                     .leaf(Icons.ADD_FILE, "editor.machine.recipe_type.add_recipe_auto_id", () -> {
                         var index = 0;
                         var path = this.recipeTypePanel.recipeType.getRegistryName().getPath() + "/" + (isFuel ? "fuel/" : "") + "recipe_";
-                        var id = new ResourceLocation(this.recipeTypePanel.recipeType.getRegistryName().getNamespace(), path + index++);
+                        var id = ResourceLocation.fromNamespaceAndPath(this.recipeTypePanel.recipeType.getRegistryName().getNamespace(), path + index++);
                         while (this.recipeTypePanel.recipeType.getBuiltinRecipes().containsKey(id)) {
-                            id = new ResourceLocation(id.getNamespace(), path + index++);
+                            id = ResourceLocation.fromNamespaceAndPath(id.getNamespace(), path + index++);
                         }
                         addRecipe(this.recipeTypePanel.recipeType.recipeBuilder(id)
                                 .isFuel(isFuel)
@@ -226,11 +226,11 @@ public class RecipeList extends DraggableScrollableWidgetGroup {
                     var currentID = selected.getId().toString();
                     DialogWidget.showStringEditorDialog(this.recipeTypePanel.editor, "ldlib.gui.editor.tips.rename", currentID,
                             s -> true, s -> {
-                                if (s == null || !ResourceLocation.isValidResourceLocation(s)) return;
-                                var id = new ResourceLocation(s);
+                                if (s == null || !ResourceLocation.isValidPath(s)) return;
+                                var id = ResourceLocation.parse(s);
                                 var index2 = 0;
                                 while (this.recipeTypePanel.recipeType.getBuiltinRecipes().containsKey(id)) {
-                                    id = new ResourceLocation(id.getNamespace(), id.getPath() + "_" + index2++);
+                                    id = ResourceLocation.fromNamespaceAndPath(id.getNamespace(), id.getPath() + "_" + index2++);
                                 }
                                 if (currentID.equals(id.toString())) return;
                                 var copied = selected.deepCopied(id);
@@ -240,18 +240,18 @@ public class RecipeList extends DraggableScrollableWidgetGroup {
                             });
                 });
                 menu.leaf(Icons.COPY, "ldlib.gui.editor.menu.copy", () -> {
-                    var copiedID = new ResourceLocation(selected.getId().getNamespace(), selected.getId().getPath() + "_copy");
+                    var copiedID = ResourceLocation.fromNamespaceAndPath(selected.getId().getNamespace(), selected.getId().getPath() + "_copy");
                     var index = 0;
                     while (this.recipeTypePanel.recipeType.getBuiltinRecipes().containsKey(copiedID)) {
-                        copiedID = new ResourceLocation(copiedID.getNamespace(), copiedID.getPath() + "_" + index++);
+                        copiedID = ResourceLocation.fromNamespaceAndPath(copiedID.getNamespace(), copiedID.getPath() + "_" + index++);
                     }
                     DialogWidget.showStringEditorDialog(this.recipeTypePanel.editor, "ldlib.gui.editor.menu.copy", copiedID.toString(),
                             s -> true, s -> {
-                                if (s == null || !ResourceLocation.isValidResourceLocation(s)) return;
-                                var id = new ResourceLocation(s);
+                                if (s == null || !ResourceLocation.isValidPath(s)) return;
+                                var id = ResourceLocation.parse(s);
                                 var index2 = 0;
                                 while (this.recipeTypePanel.recipeType.getBuiltinRecipes().containsKey(id)) {
-                                    id = new ResourceLocation(id.getNamespace(), id.getPath() + "_" + index2++);
+                                    id = ResourceLocation.fromNamespaceAndPath(id.getNamespace(), id.getPath() + "_" + index2++);
                                 }
                                 var copied = selected.deepCopied(id);
                                 this.recipeTypePanel.recipeType.getBuiltinRecipes().put(id, copied);

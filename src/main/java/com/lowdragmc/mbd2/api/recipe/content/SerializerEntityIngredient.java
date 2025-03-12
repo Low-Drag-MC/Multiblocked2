@@ -1,9 +1,9 @@
 package com.lowdragmc.mbd2.api.recipe.content;
 
-import com.google.gson.JsonElement;
-import com.lowdragmc.lowdraglib.side.fluid.FluidStack;
 import com.lowdragmc.mbd2.api.recipe.ingredient.EntityIngredient;
-import net.minecraft.network.FriendlyByteBuf;
+import com.mojang.serialization.Codec;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 
@@ -12,26 +12,6 @@ public class SerializerEntityIngredient implements IContentSerializer<EntityIngr
     public static SerializerEntityIngredient INSTANCE = new SerializerEntityIngredient();
 
     private SerializerEntityIngredient() {}
-
-    @Override
-    public void toNetwork(FriendlyByteBuf buf, EntityIngredient content) {
-        content.toNetwork(buf);
-    }
-
-    @Override
-    public EntityIngredient fromNetwork(FriendlyByteBuf buf) {
-        return EntityIngredient.fromNetwork(buf);
-    }
-
-    @Override
-    public EntityIngredient fromJson(JsonElement json) {
-        return EntityIngredient.fromJson(json);
-    }
-
-    @Override
-    public JsonElement toJson(EntityIngredient content) {
-        return content.toJson();
-    }
 
     @Override
     public EntityIngredient of(Object o) {
@@ -50,6 +30,16 @@ public class SerializerEntityIngredient implements IContentSerializer<EntityIngr
     @Override
     public EntityIngredient copyInner(EntityIngredient content) {
         return content.copy();
+    }
+
+    @Override
+    public Codec<EntityIngredient> codec() {
+        return EntityIngredient.CODEC;
+    }
+
+    @Override
+    public StreamCodec<? super RegistryFriendlyByteBuf, EntityIngredient> streamCodec() {
+        return EntityIngredient.STREAM_CODEC;
     }
 
     @Override

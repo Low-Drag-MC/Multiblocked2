@@ -3,7 +3,7 @@ package com.lowdragmc.mbd2.common.trait.item;
 import com.lowdragmc.lowdraglib.misc.ItemStackTransfer;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.items.IItemHandlerModifiable;
+import net.neoforged.items.IItemHandlerModifiable;
 import org.jetbrains.annotations.NotNull;
 
 public class ItemHandlerWrapper implements IItemHandlerModifiable {

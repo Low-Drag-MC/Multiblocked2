@@ -26,10 +26,7 @@ import com.lowdragmc.mbd2.common.gui.editor.MultiblockMachineProject;
 import com.lowdragmc.mbd2.common.gui.editor.multiblock.widget.PatternLayerList;
 import com.lowdragmc.mbd2.common.trait.ITrait;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.Tesselator;
-import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.blaze3d.vertex.*;
 import lombok.Getter;
 import lombok.val;
 import net.minecraft.client.gui.GuiGraphics;
@@ -302,12 +299,10 @@ public class MultiblockPatternPanel extends WidgetGroup {
         RenderSystem.enableDepthTest();
         RenderSystem.defaultBlendFunc();
 
-        var tessellator = Tesselator.getInstance();
-        var buffer = tessellator.getBuilder();
         RenderSystem.enableCull();
 
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        buffer.begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION_COLOR);
+        var buffer = Tesselator.getInstance().begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION_COLOR);
 
         for (var pos : selectedBlocks) {
             RenderBufferUtils.drawCubeFace(poseStack, buffer,
@@ -320,14 +315,14 @@ public class MultiblockPatternPanel extends WidgetGroup {
         if (scene.getHoverPosFace() != null &&
                 gui.getModularUIGui().getDraggingElement() instanceof String key &&
                 project.getPredicateResource().hasResource(key)) {
-            var pos = scene.getHoverPosFace().pos;
+            var pos = scene.getHoverPosFace().pos();
             RenderBufferUtils.drawCubeFace(poseStack, buffer,
                     pos.getX() - 0.002f, pos.getY() - 0.002f, pos.getZ() - 0.002f,
                     pos.getX()  + 1.002f, pos.getY() + 1.002f, pos.getZ() + 1.002f,
                     0.1f, 0.7f, 0.7f, 0.5f, false);
         }
 
-        tessellator.end();
+        BufferUploader.drawWithShader(buffer.buildOrThrow());
     }
 
     /**
@@ -408,7 +403,7 @@ public class MultiblockPatternPanel extends WidgetGroup {
             if (hoverPosFace != null && hoverPosFace.equals(clickPosFace)) {
                 if (button == 0 && gui != null) {
                     // select blocks by click
-                    var pos = new Vector3i(hoverPosFace.pos.getX(), hoverPosFace.pos.getY(), hoverPosFace.pos.getZ());
+                    var pos = new Vector3i(hoverPosFace.pos().getX(), hoverPosFace.pos().getY(), hoverPosFace.pos().getZ());
                     if (isCtrlDown() || isShiftDown()) {
                         if (isBlockSelected(pos)) {
                             removeSelectedBlock(pos);
@@ -449,7 +444,7 @@ public class MultiblockPatternPanel extends WidgetGroup {
             if (hoverPosFace != null && button == 0 &&
                     gui.getModularUIGui().getDraggingElement() instanceof String key &&
                     project.getPredicateResource().hasResource(key)) {
-                var pos = scene.getHoverPosFace().pos;
+                var pos = scene.getHoverPosFace().pos();
                 var holder = project.getBlockPlaceholders()[pos.getX()][pos.getY()][pos.getZ()];
                 holder.getPredicates().clear();
                 holder.getPredicates().add(key);

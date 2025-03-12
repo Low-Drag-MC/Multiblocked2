@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.api.recipe.content;
 
+import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.gui.editor.ui.Editor;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
@@ -8,8 +9,8 @@ import lombok.Getter;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -25,7 +26,7 @@ public class ContentWidget<T> extends WidgetGroup {
         super(x, y, 20, 20);
         this.cap = cap;
         this.content = content;
-        this.lastContentTag = cap.serializer.toNBT(cap.of(content.getContent()));
+        this.lastContentTag = cap.serializer.toNBT(cap.of(content.getContent()), Platform.getFrozenRegistry());
         var contentWidget = cap.createPreviewWidget(cap.of(content.getContent()));
         contentWidget.setSelfPosition(1, 1);
         addWidget(contentWidget);
@@ -35,7 +36,7 @@ public class ContentWidget<T> extends WidgetGroup {
     @OnlyIn(Dist.CLIENT)
     public void updateScreen() {
         super.updateScreen();
-        var currentTag = cap.serializer.toNBT(cap.of(content.getContent()));
+        var currentTag = cap.serializer.toNBT(cap.of(content.getContent()), Platform.getFrozenRegistry());
         if (!currentTag.equals(lastContentTag)) {
             clearAllWidgets();
             lastContentTag = currentTag;

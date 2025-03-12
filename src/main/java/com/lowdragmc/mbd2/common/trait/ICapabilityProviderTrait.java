@@ -2,8 +2,8 @@ package com.lowdragmc.mbd2.common.trait;
 
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import net.minecraft.core.Direction;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.ICapabilityProvider;
+import net.neoforged.common.capabilities.Capability;
+import net.neoforged.common.capabilities.ICapabilityProvider;
 
 import javax.annotation.Nullable;
 import java.util.List;

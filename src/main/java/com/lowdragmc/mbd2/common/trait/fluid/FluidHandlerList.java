@@ -1,7 +1,7 @@
 package com.lowdragmc.mbd2.common.trait.fluid;
 
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.neoforged.fluids.FluidStack;
+import net.neoforged.fluids.capability.IFluidHandler;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;

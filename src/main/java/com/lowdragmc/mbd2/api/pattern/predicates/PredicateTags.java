@@ -15,7 +15,6 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -41,7 +40,7 @@ public class PredicateTags extends SimplePredicate {
         candidates = Suppliers.memoize(() -> Arrays.stream(tagKeys).flatMap(tag -> {
             var opt = BuiltInRegistries.BLOCK.getTag(tag);
             if (opt.isPresent()) {
-                return opt.get().stream().map(Holder::get);
+                return opt.get().stream().map(Holder::value);
             }
             return Arrays.stream(new Block[]{Blocks.BARRIER});
         }).map(BlockInfo::fromBlock).toArray(BlockInfo[]::new));
@@ -54,11 +53,9 @@ public class PredicateTags extends SimplePredicate {
         var tagsConfigurator = new ArrayConfiguratorGroup<>("config.predicate.tags", false,
                 () -> Arrays.stream(tags).toList(), (getter, setter) ->
                 new SearchComponentConfigurator<>("", getter, setter, BlockTags.SAND.location(), true, (word, find) -> {
-                    var tags = ForgeRegistries.BLOCKS.tags();
-                    if (tags == null) return;
-                    for (var tag : tags) {
+                    for (var tag : BuiltInRegistries.BLOCK.getTagNames().toList()) {
                         if (Thread.currentThread().isInterrupted()) return;
-                        var tagKey = tag.getKey().location();
+                        var tagKey = tag.location();
                         if (tagKey.toString().toLowerCase().contains(word.toLowerCase())) {
                             find.accept(tagKey);
                         }

@@ -2,6 +2,7 @@ package com.lowdragmc.mbd2.common.machine.definition;
 
 import com.google.common.collect.Queues;
 import com.lowdragmc.lowdraglib.LDLib;
+import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.client.renderer.impl.UIResourceRenderer;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
@@ -42,6 +43,8 @@ import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.network.chat.Component;
@@ -53,11 +56,10 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.client.event.EntityRenderersEvent;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegisterEvent;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.registries.RegisterEvent;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
@@ -143,7 +145,7 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
                                    @Nullable ConfigMachineSettingsFactory machineSettingsFactory,
                                    @Nullable ConfigRecipeLogicSettings recipeLogicSettings,
                                    @Nullable ConfigPartSettingsFactory partSettingsFactory) {
-        this.id = id == null ? new ResourceLocation("mbd2", "undefined") : id;
+        this.id = id == null ? MBD2.id("undefined") : id;
         this.stateMachine = new StateMachine<>(rootState == null ? createDefaultRootState() : rootState);
         this.blockProperties = blockProperties == null ? ConfigBlockProperties.builder().build() : blockProperties;
         this.itemProperties = itemProperties == null ? ConfigItemProperties.builder().build() : itemProperties;
@@ -189,19 +191,19 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
     }
 
     @Override
-    public CompoundTag serializeNBT() {
-        var tag = IPersistedSerializable.super.serializeNBT();
-        tag.put("stateMachine", stateMachine.serializeNBT());
+    public CompoundTag serializeNBT(HolderLookup.Provider provider) {
+        var tag = IPersistedSerializable.super.serializeNBT(provider);
+        tag.put("stateMachine", stateMachine.serializeNBT(provider));
         return tag;
     }
 
     @Override
-    public void deserializeNBT(CompoundTag tag) {
-        IPersistedSerializable.super.deserializeNBT(tag);
-        stateMachine.deserializeNBT(tag.getCompound("stateMachine"));
+    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
+        IPersistedSerializable.super.deserializeNBT(provider, tag);
+        stateMachine.deserializeNBT(provider, tag.getCompound("stateMachine"));
         if (!tag.contains("recipeLogicSettings")) {
             // compatible with old project
-            recipeLogicSettings.deserializeNBT(tag.getCompound("machineSettings"));
+            recipeLogicSettings.deserializeNBT(provider, tag.getCompound("machineSettings"));
         }
     }
 
@@ -216,35 +218,35 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
     public MBDMachineDefinition loadProductiveTag(@Nullable File file, CompoundTag projectTag, Deque<Runnable> postTask) {
         this.projectFile = file;
         var rendererResource = new IRendererResource();
-        rendererResource.deserializeNBT(projectTag.getCompound("resources").getCompound(IRendererResource.RESOURCE_NAME));
+        rendererResource.deserializeNBT(projectTag.getCompound("resources").getCompound(IRendererResource.RESOURCE_NAME), Platform.getFrozenRegistry());
         UIResourceRenderer.setCurrentResource(rendererResource, false);
         var definitionTag = projectTag.getCompound("definition");
-        id = new ResourceLocation(definitionTag.getString("id"));
-        blockProperties.deserializeNBT(definitionTag.getCompound("blockProperties"));
-        itemProperties.deserializeNBT(definitionTag.getCompound("itemProperties"));
-        stateMachine.deserializeNBT(definitionTag.getCompound("stateMachine"));
+        id = ResourceLocation.parse(definitionTag.getString("id"));
+        blockProperties.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("blockProperties"));
+        itemProperties.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("itemProperties"));
+        stateMachine.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("stateMachine"));
         UIResourceRenderer.clearCurrentResource();
         postTask.add(() -> {
-            machineSettings.deserializeNBT(definitionTag.getCompound("machineSettings"));
+            machineSettings.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("machineSettings"));
             if (definitionTag.contains("recipeLogicSettings")) {
-                recipeLogicSettings.deserializeNBT(definitionTag.getCompound("recipeLogicSettings"));
+                recipeLogicSettings.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("recipeLogicSettings"));
             } else {
                 // compatible with old project
                 var tag = definitionTag.getCompound("machineSettings");
-                recipeLogicSettings.deserializeNBT(tag);
+                recipeLogicSettings.deserializeNBT(Platform.getFrozenRegistry(), tag);
                 recipeLogicSettings.setEnable(tag.getBoolean("hasRecipeLogic"));
             }
             if (partSettings != null) {
-                partSettings.deserializeNBT(definitionTag.getCompound("partSettings"));
+                partSettings.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("partSettings"));
             }
-            machineEvents.deserializeNBT(definitionTag.getCompound("machineEvents"));
+            machineEvents.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("machineEvents"));
             if (machineSettings().hasUI()) {
                 var texturesResource = new TexturesResource();
-                texturesResource.deserializeNBT(projectTag.getCompound("resources").getCompound(TexturesResource.RESOURCE_NAME));
+                texturesResource.deserializeNBT(projectTag.getCompound("resources").getCompound(TexturesResource.RESOURCE_NAME), Platform.getFrozenRegistry());
                 var uiTag = projectTag.getCompound("ui");
                 uiCreator = machine -> {
                     var machineUI = new WidgetGroup();
-                    IConfigurableWidget.deserializeNBT(machineUI, uiTag, texturesResource, false);
+                    IConfigurableWidget.deserializeNBT(machineUI, uiTag, texturesResource, false, Platform.getFrozenRegistry());
                     bindMachineUI(machine, machineUI);
                     return machineUI;
                 };
@@ -266,7 +268,7 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
     public void reloadFromProjectFile() {
         if (projectFile != null) {
             try {
-                var tag = NbtIo.read(projectFile);
+                var tag = NbtIo.read(projectFile.toPath());
                 if (tag != null) {
                     Deque<Runnable> postTask = Queues.newArrayDeque();
                     loadProductiveTag(projectFile, tag, postTask);
@@ -306,13 +308,13 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
     }
 
     public void onRegistry(RegisterEvent event) {
-        event.register(ForgeRegistries.BLOCKS.getRegistryKey(), helper -> {
+        event.register(BuiltInRegistries.BLOCK.key(), helper -> {
             MBDMachineDefinition.set(this);
             helper.register(id, block = createBlock());
             MBDMachineDefinition.clear();
         });
-        event.register(ForgeRegistries.ITEMS.getRegistryKey(), helper -> helper.register(id, item = createItem(block)));
-        event.register(ForgeRegistries.BLOCK_ENTITY_TYPES.getRegistryKey(), helper ->
+        event.register(BuiltInRegistries.ITEM.key(), helper -> helper.register(id, item = createItem(block)));
+        event.register(BuiltInRegistries.BLOCK_ENTITY_TYPE.key(), helper ->
                 helper.register(id, blockEntityType = BlockEntityType.Builder.of(this::createBlockEntity, block).build(null)));
     }
 

@@ -135,11 +135,11 @@ public class MachineConfigPanel extends MachineScenePanel {
      * Making scene to be intractable even the float view is hovered.
      */
     @Override
-    public boolean mouseWheelMove(double mouseX, double mouseY, double wheelDelta) {
+    public boolean mouseWheelMove(double mouseX, double mouseY, double wheelDeltaX, double wheelDeltaY) {
         if (getHoverElement(mouseX, mouseY) == floatView) {
-            scene.mouseWheelMove(mouseX, mouseY, wheelDelta);
+            scene.mouseWheelMove(mouseX, mouseY, wheelDeltaX, wheelDeltaY);
         }
-        return super.mouseWheelMove(mouseX, mouseY, wheelDelta);
+        return super.mouseWheelMove(mouseX, mouseY, wheelDeltaX, wheelDeltaY);
     }
 
     public class FloatView extends DraggableScrollableWidgetGroup {

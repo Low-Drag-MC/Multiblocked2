@@ -9,8 +9,7 @@ import com.lowdragmc.mbd2.integration.kubejs.events.MBDClientEvents;
 import com.lowdragmc.mbd2.integration.kubejs.events.MBDServerEvents;
 import lombok.Getter;
 import com.lowdragmc.mbd2.common.graphprocessor.GraphParameterSet;
-import net.minecraftforge.eventbus.api.Cancelable;
-import net.minecraftforge.eventbus.api.Event;
+import net.neoforged.bus.api.Event;
 
 import java.util.*;
 

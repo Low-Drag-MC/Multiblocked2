@@ -9,12 +9,12 @@ import com.lowdragmc.mbd2.common.data.MBDTraitDefinitionTypes;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 import net.minecraft.nbt.NbtIo;
-import net.minecraftforge.eventbus.api.Event;
-import net.minecraftforge.fml.event.IModBusEvent;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.bus.api.Event;
+import net.neoforged.fml.event.IModBusEvent;
 
 import java.io.DataInputStream;
 import java.io.File;
+import java.nio.file.Path;
 
 public class MBDRegistryEvent extends Event implements IModBusEvent {
 
@@ -29,19 +29,23 @@ public class MBDRegistryEvent extends Event implements IModBusEvent {
         /**
          * Register a machine definition from a file.
          */
-        public void registerFromFile(File file) {
-            var type = file.getName().substring(file.getName().lastIndexOf('.') + 1);
+        public void registerFromFile(Path path) {
+            if (path.getFileName() == null) {
+                LDLib.LOGGER.error("error could not find the file name from path {}", path);
+                return;
+            }
+            var type = path.getFileName().toString().substring(path.getFileName().toString().lastIndexOf('.') + 1);
             var definitionType = MBDRegistries.MACHINE_DEFINITION_TYPES.get(type);
             if (definitionType == null) {
-                LDLib.LOGGER.error("error could not find the definition type {} from file {}", type, file);
+                LDLib.LOGGER.error("error could not find the definition type {} from file {}", type, path);
                 return;
             }
             try {
-                var tag = NbtIo.read(file);
+                var tag = NbtIo.read(path);
                 if (tag == null) throw new Exception("tag is null");
                 register(definitionType.creator().get().loadProductiveTag(null, tag, CommonProxy.getPostTask()));
             } catch (Exception e) {
-                LDLib.LOGGER.error("error could not load the project from file {}", file, e);
+                LDLib.LOGGER.error("error could not load the project from file {}", path, e);
             }
         }
 
@@ -75,8 +79,6 @@ public class MBDRegistryEvent extends Event implements IModBusEvent {
          * Register a recipe type.
          */
         public void register(com.lowdragmc.mbd2.api.recipe.MBDRecipeType recipeType) {
-            ForgeRegistries.RECIPE_TYPES.register(recipeType.getRegistryName(), recipeType);
-            ForgeRegistries.RECIPE_SERIALIZERS.register(recipeType.getRegistryName(), new MBDRecipeSerializer());
             MBDRegistries.RECIPE_TYPES.register(recipeType.getRegistryName(), recipeType);
         }
     }
@@ -85,7 +87,7 @@ public class MBDRegistryEvent extends Event implements IModBusEvent {
         /**
          * Register a recipe condition.
          */
-        public void register(String id, Class<? extends com.lowdragmc.mbd2.api.recipe.RecipeCondition> condition) {
+        public void register(String id, com.lowdragmc.mbd2.api.recipe.RecipeCondition condition) {
             MBDRegistries.RECIPE_CONDITIONS.register(id, condition);
         }
     }

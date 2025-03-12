@@ -18,9 +18,11 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -46,8 +48,8 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -178,9 +180,9 @@ public class MBDMachineBlock extends Block implements EntityBlock, IBlockRendere
     }
 
     @Override
-    public boolean canPlaceLiquid(BlockGetter pLevel, BlockPos pPos, BlockState pState, Fluid pFluid) {
+    public boolean canPlaceLiquid(@Nullable Player player, BlockGetter pLevel, BlockPos pPos, BlockState pState, Fluid pFluid) {
         if (getDefinition().blockProperties().canBeWaterlogged()) {
-            return SimpleWaterloggedBlock.super.canPlaceLiquid(pLevel, pPos, pState, pFluid);
+            return SimpleWaterloggedBlock.super.canPlaceLiquid(player, pLevel, pPos, pState, pFluid);
         }
         return false;
     }
@@ -194,9 +196,9 @@ public class MBDMachineBlock extends Block implements EntityBlock, IBlockRendere
     }
 
     @Override
-    public ItemStack pickupBlock(LevelAccessor levelAccessor, BlockPos blockPos, BlockState blockState) {
+    public ItemStack pickupBlock(@Nullable Player player, LevelAccessor levelAccessor, BlockPos blockPos, BlockState blockState) {
         if (getDefinition().blockProperties().canBeWaterlogged()) {
-            return SimpleWaterloggedBlock.super.pickupBlock(levelAccessor, blockPos, blockState);
+            return SimpleWaterloggedBlock.super.pickupBlock(player, levelAccessor, blockPos, blockState);
         }
         return ItemStack.EMPTY;
     }
@@ -226,7 +228,7 @@ public class MBDMachineBlock extends Block implements EntityBlock, IBlockRendere
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, @Nullable BlockGetter level, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         definition.appendHoverText(stack, tooltip);
     }
 
@@ -277,12 +279,19 @@ public class MBDMachineBlock extends Block implements EntityBlock, IBlockRendere
     }
 
     @Override
-    public InteractionResult use(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-        var machine = getMachine(world, pos).orElse(null);
+    public ItemInteractionResult useItemOn(ItemStack item, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        var machine = getMachine(level, pos).orElse(null);
+        if (machine == null) return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        return machine.useItemOn(item, state, level, pos, player, hand, hit);
+    }
+
+    @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+        var machine = getMachine(level, pos).orElse(null);
         if (machine == null) return InteractionResult.PASS;
-        var result = machine.onUse(state, world, pos, player, hand, hit);
+        var result = machine.useWithoutItem(state, level, pos, player, hit);
         if (result != InteractionResult.PASS) return result;
-        if (machine.shouldOpenUI(hand, hit)) {
+        if (machine.shouldOpenUI(hit)) {
             return machine.openUI(player);
         }
         return InteractionResult.PASS;

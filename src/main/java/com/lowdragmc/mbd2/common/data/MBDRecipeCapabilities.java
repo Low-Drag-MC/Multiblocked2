@@ -14,7 +14,7 @@ import com.lowdragmc.mbd2.integration.mekanism.MekanismHeatRecipeCapability;
 import com.lowdragmc.mbd2.integration.naturesaura.NaturesAuraRecipeCapability;
 import com.lowdragmc.mbd2.integration.pneumaticcraft.PNCHeatRecipeCapability;
 import com.lowdragmc.mbd2.integration.pneumaticcraft.PNCPressureAirRecipeCapability;
-import net.minecraftforge.fml.ModLoader;
+import net.neoforged.fml.ModLoader;
 
 public class MBDRecipeCapabilities {
 
@@ -53,7 +53,7 @@ public class MBDRecipeCapabilities {
         if (MBD2.isEmbersLoaded()) {
             MBDRegistries.RECIPE_CAPABILITIES.register(EmbersEmberRecipeCapability.CAP.name, EmbersEmberRecipeCapability.CAP);
         }
-        ModLoader.get().postEvent(new MBDRegistryEvent.RecipeCapability());
+        ModLoader.postEvent(new MBDRegistryEvent.RecipeCapability());
         MBDRegistries.RECIPE_CAPABILITIES.freeze();
     }
 }

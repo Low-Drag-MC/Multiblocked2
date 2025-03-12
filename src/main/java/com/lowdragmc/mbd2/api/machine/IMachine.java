@@ -21,7 +21,8 @@ import java.util.Optional;
 public interface IMachine extends IRecipeCapabilityHolder {
 
     static Optional<IMachine> ofMachine(@Nullable BlockEntity blockEntity) {
-        return blockEntity == null ? Optional.empty() : blockEntity.getCapability(MBDCapabilities.CAPABILITY_MACHINE).resolve();
+        return blockEntity == null ? Optional.empty() : Optional.ofNullable(MBDCapabilities.CAPABILITY_MACHINE.getCapability(
+                blockEntity.getLevel(), blockEntity.getBlockPos(), blockEntity.getBlockState(), blockEntity, null));
     }
 
     static Optional<IMachine> ofMachine(@Nonnull BlockGetter level, @Nonnull BlockPos pos) {

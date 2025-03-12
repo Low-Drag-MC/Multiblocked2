@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib.gui.graphprocessor.data.BaseNode;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeSerializer;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
 
 @LDLRegister(name = "recipe deserialize", group = "graph_processor.node.mbd2.machine.recipe")
 public class RecipeDeserializeNode extends BaseNode {
@@ -23,7 +24,7 @@ public class RecipeDeserializeNode extends BaseNode {
         recipe = null;
         if (in != null) {
             id = in.getId().toString();
-            recipe = MBDRecipeSerializer.SERIALIZER.toNBT(in);
+            recipe = (CompoundTag) MBDRecipeSerializer.CODEC.codec().encodeStart(NbtOps.INSTANCE, in).getOrThrow();
         }
     }
 }

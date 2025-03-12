@@ -30,6 +30,7 @@ public abstract class RecipeManagerMixin {
             at = @At(value = "TAIL"))
     private void mbd2$cloneVanillaRecipes(Map<ResourceLocation, JsonElement> map, ResourceManager resourceManager, ProfilerFiller profiler, CallbackInfo ci) {
         recipes = new HashMap<>(recipes);
+        dev.latvian.mods.kubejs.core.mixin.RecipeManagerMixin
         for (var recipeType : MBDRegistries.RECIPE_TYPES) {
             recipeType.getBuiltinRecipes().forEach((id, recipe) -> recipes.computeIfAbsent(recipeType, type -> new HashMap<>()).put(id, recipe));
         }

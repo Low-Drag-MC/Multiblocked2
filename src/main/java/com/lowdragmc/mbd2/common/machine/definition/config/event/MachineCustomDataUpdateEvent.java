@@ -5,14 +5,13 @@ import com.lowdragmc.lowdraglib.gui.graphprocessor.data.parameter.ExposedParamet
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.graphprocessor.GraphParameterGet;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraftforge.eventbus.api.Cancelable;
+import net.neoforged.bus.api.ICancellableEvent;
 
 import java.util.Map;
 import java.util.Optional;
 
-@Cancelable
 @LDLRegister(name = "MachineCustomDataUpdateEvent", group = "MachineEvent")
-public class MachineCustomDataUpdateEvent extends MachineEvent {
+public class MachineCustomDataUpdateEvent extends MachineEvent implements ICancellableEvent {
     @GraphParameterGet(displayName = "old data")
     public final CompoundTag oldValue;
     @GraphParameterGet(displayName = "new data")

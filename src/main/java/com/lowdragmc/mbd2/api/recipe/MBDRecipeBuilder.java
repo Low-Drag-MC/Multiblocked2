@@ -1,14 +1,10 @@
 package com.lowdragmc.mbd2.api.recipe;
 
-import com.google.gson.JsonObject;
 import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.Platform;
-import com.lowdragmc.lowdraglib.side.fluid.FluidStack;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
-import com.lowdragmc.mbd2.api.recipe.ingredient.FluidIngredient;
-import com.lowdragmc.mbd2.api.recipe.ingredient.SizedIngredient;
 import com.lowdragmc.mbd2.common.capability.recipe.FluidRecipeCapability;
 import com.lowdragmc.mbd2.common.capability.recipe.ItemRecipeCapability;
 import com.lowdragmc.mbd2.common.recipe.*;
@@ -17,23 +13,22 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.data.recipes.FinishedRecipe;
+import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.material.Fluids;
-import org.jetbrains.annotations.Nullable;
+import net.neoforged.neoforge.common.crafting.SizedIngredient;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 @SuppressWarnings("unchecked")
@@ -66,7 +61,7 @@ public class MBDRecipeBuilder {
     @Setter
     public int priority = 0;
     @Setter
-    public BiConsumer<MBDRecipeBuilder, Consumer<FinishedRecipe>> onSave;
+    public BiConsumer<MBDRecipeBuilder, RecipeOutput> onSave;
 
     public MBDRecipeBuilder(ResourceLocation id, MBDRecipeType recipeType) {
         this.id = id;
@@ -150,7 +145,7 @@ public class MBDRecipeBuilder {
     }
 
 
-    public MBDRecipeBuilder inputItems(Ingredient... inputs) {
+    public MBDRecipeBuilder inputItems(SizedIngredient... inputs) {
         return input(ItemRecipeCapability.CAP, inputs);
     }
 
@@ -161,11 +156,11 @@ public class MBDRecipeBuilder {
                 throw new IllegalArgumentException(id + ": input items is empty");
             }
         }
-        return input(ItemRecipeCapability.CAP, Arrays.stream(inputs).map(SizedIngredient::create).toArray(Ingredient[]::new));
+        return input(ItemRecipeCapability.CAP, Arrays.stream(inputs).map(stack -> SizedIngredient.of(stack.getItem(), stack.getCount())).toArray(SizedIngredient[]::new));
     }
 
     public MBDRecipeBuilder inputItems(TagKey<Item> tag, int amount) {
-        return inputItems(SizedIngredient.create(tag, amount));
+        return inputItems(SizedIngredient.of(tag, amount));
     }
 
     public MBDRecipeBuilder inputItems(TagKey<Item> tag) {
@@ -177,7 +172,7 @@ public class MBDRecipeBuilder {
     }
 
     public MBDRecipeBuilder inputItems(Item input) {
-        return inputItems(SizedIngredient.create(new ItemStack(input)));
+        return inputItems(new ItemStack(input));
     }
 
     public MBDRecipeBuilder inputItems(Supplier<? extends Item> input) {
@@ -201,7 +196,7 @@ public class MBDRecipeBuilder {
                 throw new IllegalArgumentException(id + ": output items is empty");
             }
         }
-        return output(ItemRecipeCapability.CAP, Arrays.stream(outputs).map(SizedIngredient::create).toArray(Ingredient[]::new));
+        return output(ItemRecipeCapability.CAP, Arrays.stream(outputs).map(stack -> SizedIngredient.of(stack.getItem(), stack.getCount())).toArray(SizedIngredient[]::new));
     }
 
     public MBDRecipeBuilder outputItems(Item input, int amount) {
@@ -248,22 +243,22 @@ public class MBDRecipeBuilder {
     public MBDRecipeBuilder inputFluids(FluidStack... inputs) {
         return input(FluidRecipeCapability.CAP, Arrays.stream(inputs).map(fluid -> {
             if (!Platform.isForge() && fluid.getFluid() == Fluids.WATER) { // Special case for fabric, because there all fluids have to be tagged as water to function as water when placed.
-                return FluidIngredient.of(fluid);
+                return SizedFluidIngredient.of(fluid);
             } else {
-                return FluidIngredient.of(TagUtil.createFluidTag(BuiltInRegistries.FLUID.getKey(fluid.getFluid()).getPath()), fluid.getAmount());
+                return SizedFluidIngredient.of(TagUtil.createFluidTag(BuiltInRegistries.FLUID.getKey(fluid.getFluid()).getPath()), fluid.getAmount());
             }
-        }).toArray(FluidIngredient[]::new));
+        }).toArray(SizedFluidIngredient[]::new));
     }
 
-    public MBDRecipeBuilder inputFluids(FluidIngredient... inputs) {
+    public MBDRecipeBuilder inputFluids(SizedFluidIngredient... inputs) {
         return input(FluidRecipeCapability.CAP, inputs);
     }
 
     public MBDRecipeBuilder outputFluids(FluidStack... outputs) {
-        return output(FluidRecipeCapability.CAP, Arrays.stream(outputs).map(FluidIngredient::of).toArray(FluidIngredient[]::new));
+        return output(FluidRecipeCapability.CAP, Arrays.stream(outputs).map(SizedFluidIngredient::of).toArray(SizedFluidIngredient[]::new));
     }
 
-    public MBDRecipeBuilder outputFluids(FluidIngredient... outputs) {
+    public MBDRecipeBuilder outputFluids(SizedFluidIngredient... outputs) {
         return output(FluidRecipeCapability.CAP, outputs);
     }
 
@@ -298,30 +293,6 @@ public class MBDRecipeBuilder {
     public MBDRecipeBuilder addData(String key, boolean data) {
         this.data.putBoolean(key, data);
         return this;
-    }
-
-    public MBDRecipeBuilder blastFurnaceTemp(int blastTemp) {
-        return addData("ebf_temp", blastTemp);
-    }
-
-    public MBDRecipeBuilder explosivesAmount(int explosivesAmount) {
-        return addData("explosives_amount", explosivesAmount);
-    }
-
-    public MBDRecipeBuilder explosivesType(ItemStack explosivesType) {
-        return addData("explosives_type", explosivesType.save(new CompoundTag()));
-    }
-
-    public MBDRecipeBuilder solderMultiplier(int multiplier) {
-        return addData("solderMultiplier", multiplier);
-    }
-
-    public MBDRecipeBuilder disableDistilleryRecipes(boolean flag) {
-        return addData("disable_distillery", flag);
-    }
-
-    public MBDRecipeBuilder fusionStartEU(long eu) {
-        return addData("eu_to_start", eu);
     }
 
     //////////////////////////////////////
@@ -368,42 +339,12 @@ public class MBDRecipeBuilder {
         return posY(min, max, false);
     }
 
-    public FinishedRecipe build() {
-        return new FinishedRecipe() {
-            @Override
-            public void serializeRecipeData(JsonObject pJson) {
-                MBDRecipeSerializer.SERIALIZER.toJson(buildRawRecipe());
-            }
-
-            @Override
-            public ResourceLocation getId() {
-                return new ResourceLocation(id.getNamespace(), recipeType.getRegistryName().getPath() + "/" + id.getPath());
-            }
-
-            @Override
-            public RecipeSerializer<?> getType() {
-                return MBDRecipeSerializer.SERIALIZER;
-            }
-
-            @Nullable
-            @Override
-            public JsonObject serializeAdvancement() {
-                return null;
-            }
-
-            @Nullable
-            @Override
-            public ResourceLocation getAdvancementId() {
-                return null;
-            }
-        };
-    }
-
-    public void save(Consumer<FinishedRecipe> consumer) {
+    public void save(RecipeOutput consumer) {
         if (onSave != null) {
             onSave.accept(this, consumer);
         }
-        consumer.accept(build());
+        var location = ResourceLocation.fromNamespaceAndPath(id.getNamespace(), recipeType.getRegistryName().getPath() + "/" + id.getPath());
+        consumer.accept(location, buildRawRecipe(), null);
     }
 
     public MBDRecipe saveAsBuiltinRecipe() {

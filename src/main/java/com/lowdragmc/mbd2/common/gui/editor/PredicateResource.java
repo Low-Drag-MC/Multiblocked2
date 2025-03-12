@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib.gui.editor.ui.ResourcePanel;
 import com.lowdragmc.lowdraglib.gui.editor.ui.resource.ResourceContainer;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
 import com.lowdragmc.mbd2.api.pattern.predicates.SimplePredicate;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import org.jetbrains.annotations.Nullable;
@@ -29,25 +30,25 @@ public class PredicateResource extends Resource<SimplePredicate> {
 
     @Nullable
     @Override
-    public Tag serialize(SimplePredicate predicate) {
-        return SimplePredicate.serializeWrapper(predicate);
+    public Tag serialize(SimplePredicate predicate, HolderLookup.Provider provider) {
+        return SimplePredicate.serializeWrapper(provider, predicate);
     }
 
     @Override
-    public SimplePredicate deserialize(Tag tag) {
+    public SimplePredicate deserialize(Tag tag, HolderLookup.Provider provider) {
         if (tag instanceof CompoundTag compoundTag) {
-            return SimplePredicate.deserializeWrapper(compoundTag);
+            return SimplePredicate.deserializeWrapper(provider, compoundTag);
         }
         return SimplePredicate.ANY;
     }
 
     @Override
-    public void deserializeNBT(CompoundTag nbt) {
+    public void deserializeNBT(CompoundTag nbt, HolderLookup.Provider provider) {
         data.clear();
         data.put("any", SimplePredicate.ANY);
         data.put("air", SimplePredicate.AIR);
         for (String key : nbt.getAllKeys()) {
-            data.put(key, deserialize(nbt.get(key)));
+            data.put(key, deserialize(nbt.get(key), provider));
         }
     }
 }

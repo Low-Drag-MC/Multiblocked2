@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.common.gui.editor;
 
+import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib.gui.editor.data.IProject;
@@ -18,18 +19,24 @@ import com.lowdragmc.mbd2.common.gui.editor.recipe.RecipeTypePanel;
 import com.lowdragmc.mbd2.common.gui.editor.recipe.RecipeXEIUIPanel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Getter
 @LDLRegister(name = "rt", group = "editor.machine")
 @NoArgsConstructor
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 public class RecipeTypeProject implements IProject {
     protected Resources resources;
     protected MBDRecipeType recipeType;
@@ -74,29 +81,31 @@ public class RecipeTypeProject implements IProject {
         return new RecipeTypeProject(new Resources(createResources()), createDefaultRecipeType(), createDefaultUI(), createDefaultUI());
     }
 
-    public CompoundTag serializeNBT() {
+    @Override
+    public CompoundTag serializeNBT(HolderLookup.Provider provider) {
         var tag = new CompoundTag();
-        tag.put("resources", resources.serializeNBT());
-        tag.put("ui", IConfigurableWidget.serializeNBT(this.ui, resources, true));
-        tag.put("fuelUI", IConfigurableWidget.serializeNBT(this.fuelUI, resources, true));
-        tag.put("recipe_type", recipeType.serializeNBT());
+        tag.put("resources", resources.serializeNBT(provider));
+        tag.put("ui", IConfigurableWidget.serializeNBT(this.ui, resources, true, provider));
+        tag.put("fuelUI", IConfigurableWidget.serializeNBT(this.fuelUI, resources, true, provider));
+        tag.put("recipe_type", recipeType.serializeNBT(provider));
         return tag;
     }
 
     @Override
     public Resources loadResources(CompoundTag tag) {
         var resources = new Resources(createResources());
-        resources.deserializeNBT(tag);
+        resources.deserializeNBT(tag, Platform.getFrozenRegistry());
         return resources;
     }
 
-    public void deserializeNBT(CompoundTag tag) {
+    @Override
+    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
         this.resources = loadResources(tag.getCompound("resources"));
         this.ui = new WidgetGroup();
-        IConfigurableWidget.deserializeNBT(this.ui, tag.getCompound("ui"), resources, true);
+        IConfigurableWidget.deserializeNBT(this.ui, tag.getCompound("ui"), resources, true, provider);
         if (tag.contains("fuelUI")) {
             this.fuelUI = new WidgetGroup();
-            IConfigurableWidget.deserializeNBT(this.fuelUI, tag.getCompound("fuelUI"), resources, true);
+            IConfigurableWidget.deserializeNBT(this.fuelUI, tag.getCompound("fuelUI"), resources, true, provider);
             if (this.fuelUI.getBackgroundTexture() == null) {
                 this.fuelUI.setBackground(ResourceBorderTexture.BORDERED_BACKGROUND);
             }
@@ -105,7 +114,7 @@ public class RecipeTypeProject implements IProject {
         }
         this.recipeType = createDefaultRecipeType();
         UIResourceTexture.setCurrentResource((Resource)resources.resources.get(TexturesResource.RESOURCE_NAME), true);
-        this.recipeType.deserializeNBT(tag.getCompound("recipe_type"));
+        this.recipeType.deserializeNBT(provider, tag.getCompound("recipe_type"));
         UIResourceTexture.clearCurrentResource();
     }
 
@@ -115,20 +124,20 @@ public class RecipeTypeProject implements IProject {
     }
 
     @Override
-    public void saveProject(File file) {
+    public void saveProject(Path file) {
         try {
-            NbtIo.write(serializeNBT(), file);
+            NbtIo.write(serializeNBT(Platform.getFrozenRegistry()), file);
         } catch (IOException ignored) { }
     }
 
     @Nullable
     @Override
-    public IProject loadProject(File file) {
+    public IProject loadProject(Path file) {
         try {
             var tag = NbtIo.read(file);
             if (tag != null) {
                 var proj = new RecipeTypeProject();
-                proj.deserializeNBT(tag);
+                proj.deserializeNBT(Platform.getFrozenRegistry(), tag);
                 return proj;
             }
         } catch (IOException ignored) {}

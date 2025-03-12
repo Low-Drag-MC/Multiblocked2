@@ -5,18 +5,38 @@ import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import lombok.Getter;
+import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.util.Mth;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.function.Function;
 
 public class Content {
+    public static final Function<RecipeCapability<?>, Codec<Content>> CODEC = Util.memoize(Content::codec);
+    public static <T> Codec<Content> codec(RecipeCapability<T> capability) {
+        return RecordCodecBuilder.create(instance -> instance.group(
+                        capability.serializer.codec().fieldOf("content").forGetter(val -> capability.of(val.content)),
+                        Codec.BOOL.optionalFieldOf("perTick", false).forGetter(val -> val.perTick),
+                        Codec.FLOAT.validate(value -> DataResult.success(Mth.clamp(value, 0, 1))).optionalFieldOf("chance", 1f).forGetter(val -> val.chance),
+                        Codec.FLOAT.validate(value -> DataResult.success(Mth.clamp(value, 0, 1))).optionalFieldOf("tierChanceBoost", 0f).forGetter(val -> val.tierChanceBoost),
+                        Codec.STRING.optionalFieldOf("slotName", "").forGetter(val -> val.slotName),
+                        Codec.STRING.optionalFieldOf("uiName", "").forGetter(val -> val.uiName)
+                ).apply(instance, Content::new));
+    }
+
     @Getter
     public Object content;
     @Configurable(name = "editor.machine.recipe_type.content.per_tick", tips = "editor.machine.recipe_type.content.per_tick.tooltip")
@@ -115,5 +135,41 @@ public class Content {
         if (perTick) {
             tooltips.add(Component.translatable("mbd2.gui.content.per_tick"));
         }
+    }
+
+    public static StreamCodec<RegistryFriendlyByteBuf, Content> streamCodec(RecipeCapability<?> capability) {
+        return StreamCodec.of((buf, content) -> content.toNetworkContent(capability, buf),
+                buf -> fromNetworkContent(capability, buf));
+    }
+
+    private void toNetworkContent(RecipeCapability capability, RegistryFriendlyByteBuf buf) {
+        capability.serializer.streamCodec().encode(buf, content);
+        buf.writeBoolean(perTick);
+        buf.writeFloat(chance);
+        buf.writeFloat(tierChanceBoost);
+        buf.writeBoolean(!slotName.isEmpty());
+        if (!slotName.isEmpty()) {
+            buf.writeUtf(slotName);
+        }
+        buf.writeBoolean(!uiName.isEmpty());
+        if (!uiName.isEmpty()) {
+            buf.writeUtf(uiName);
+        }
+    }
+
+    private static Content fromNetworkContent(RecipeCapability capability, RegistryFriendlyByteBuf buf) {
+        var content = capability.serializer.streamCodec().decode(buf);
+        var perTick = buf.readBoolean();
+        float chance = buf.readFloat();
+        float tierChanceBoost = buf.readFloat();
+        String slotName = null;
+        if (buf.readBoolean()) {
+            slotName = buf.readUtf();
+        }
+        String uiName = null;
+        if (buf.readBoolean()) {
+            uiName = buf.readUtf();
+        }
+        return new Content(content, perTick, chance, tierChanceBoost, slotName, uiName);
     }
 }

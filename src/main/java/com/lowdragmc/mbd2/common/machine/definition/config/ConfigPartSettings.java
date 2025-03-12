@@ -16,6 +16,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -68,26 +69,26 @@ public class ConfigPartSettings implements IToggleConfigurable, IPersistedSerial
     protected final List<ProxyCapability> proxyControllerCapabilities = new ArrayList<>();
 
     @Override
-    public CompoundTag serializeNBT() {
-        var tag = IPersistedSerializable.super.serializeNBT();
+    public CompoundTag serializeNBT(HolderLookup.Provider provider) {
+        var tag = IPersistedSerializable.super.serializeNBT(provider);
         tag.put("recipeModifiers", recipeModifiers.serializeNBT());
         var proxyCapabilities = new ListTag();
         for (ProxyCapability proxyCapability : proxyControllerCapabilities) {
-            proxyCapabilities.add(proxyCapability.serializeNBT());
+            proxyCapabilities.add(proxyCapability.serializeNBT(provider));
         }
         tag.put("proxyControllerCapabilities", proxyCapabilities);
         return tag;
     }
 
     @Override
-    public void deserializeNBT(CompoundTag tag) {
-        IPersistedSerializable.super.deserializeNBT(tag);
+    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
+        IPersistedSerializable.super.deserializeNBT(provider, tag);
         recipeModifiers.deserializeNBT(tag.getList("recipeModifiers", Tag.TAG_COMPOUND));
         proxyControllerCapabilities.clear();
         var proxyCapabilities = tag.getList("proxyControllerCapabilities", Tag.TAG_COMPOUND);
         for (int i = 0; i < proxyCapabilities.size(); i++) {
             var proxyCapability = new ProxyCapability();
-            proxyCapability.deserializeNBT(proxyCapabilities.getCompound(i));
+            proxyCapability.deserializeNBT(provider, proxyCapabilities.getCompound(i));
             proxyControllerCapabilities.add(proxyCapability);
         }
     }

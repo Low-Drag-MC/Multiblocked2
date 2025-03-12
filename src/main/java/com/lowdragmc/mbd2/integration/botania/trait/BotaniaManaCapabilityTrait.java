@@ -11,7 +11,7 @@ import com.lowdragmc.mbd2.common.trait.*;
 import com.lowdragmc.mbd2.integration.botania.BotaniaManaRecipeCapability;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraftforge.common.capabilities.Capability;
+import net.neoforged.common.capabilities.Capability;
 import org.jetbrains.annotations.Nullable;
 import vazkii.botania.api.BotaniaForgeCapabilities;
 import vazkii.botania.api.mana.ManaPool;

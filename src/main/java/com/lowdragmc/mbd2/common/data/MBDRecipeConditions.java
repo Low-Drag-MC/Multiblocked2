@@ -1,13 +1,14 @@
 package com.lowdragmc.mbd2.common.data;
 
 import com.lowdragmc.mbd2.MBD2;
+import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.event.MBDRegistryEvent;
 import com.lowdragmc.mbd2.common.recipe.*;
 import com.lowdragmc.mbd2.integration.create.CreateRotationCondition;
 import com.lowdragmc.mbd2.integration.mekanism.MEKTemperatureCondition;
 import com.lowdragmc.mbd2.integration.pneumaticcraft.trait.heat.PNCTemperatureCondition;
-import net.minecraftforge.fml.ModLoader;
+import net.neoforged.fml.ModLoader;
 
 public final class MBDRecipeConditions {
 
@@ -15,26 +16,30 @@ public final class MBDRecipeConditions {
 
     public static void init() {
         MBDRegistries.RECIPE_CONDITIONS.unfreeze();
-        MBDRegistries.RECIPE_CONDITIONS.register(BiomeCondition.INSTANCE.getType(), BiomeCondition.class);
-        MBDRegistries.RECIPE_CONDITIONS.register(DimensionCondition.INSTANCE.getType(), DimensionCondition.class);
-        MBDRegistries.RECIPE_CONDITIONS.register(PositionYCondition.INSTANCE.getType(), PositionYCondition.class);
-        MBDRegistries.RECIPE_CONDITIONS.register(RainingCondition.INSTANCE.getType(), RainingCondition.class);
-        MBDRegistries.RECIPE_CONDITIONS.register(ThunderCondition.INSTANCE.getType(), ThunderCondition.class);
-        MBDRegistries.RECIPE_CONDITIONS.register(MachineLevelCondition.INSTANCE.getType(), MachineLevelCondition.class);
-        MBDRegistries.RECIPE_CONDITIONS.register(MachineNBTCondition.INSTANCE.getType(), MachineNBTCondition.class);
-        MBDRegistries.RECIPE_CONDITIONS.register(BlockCondition.INSTANCE.getType(), BlockCondition.class);
-        MBDRegistries.RECIPE_CONDITIONS.register(DayLightCondition.INSTANCE.getType(), DayLightCondition.class);
-        MBDRegistries.RECIPE_CONDITIONS.register(RedstoneSignalCondition.INSTANCE.getType(), RedstoneSignalCondition.class);
+        register(BiomeCondition.INSTANCE);
+        register(DimensionCondition.INSTANCE);
+        register(PositionYCondition.INSTANCE);
+        register(RainingCondition.INSTANCE);
+        register(ThunderCondition.INSTANCE);
+        register(MachineLevelCondition.INSTANCE);
+        register(MachineNBTCondition.INSTANCE);
+        register(BlockCondition.INSTANCE);
+        register(DayLightCondition.INSTANCE);
+        register(RedstoneSignalCondition.INSTANCE);
         if (MBD2.isCreateLoaded()) {
-            MBDRegistries.RECIPE_CONDITIONS.register(CreateRotationCondition.INSTANCE.getType(), CreateRotationCondition.class);
+            register(CreateRotationCondition.INSTANCE);
         }
         if (MBD2.isMekanismLoaded()) {
-            MBDRegistries.RECIPE_CONDITIONS.register(MEKTemperatureCondition.INSTANCE.getType(), MEKTemperatureCondition.class);
+            register(MEKTemperatureCondition.INSTANCE);
         }
         if (MBD2.isPneumaticCraftLoaded()) {
-            MBDRegistries.RECIPE_CONDITIONS.register(PNCTemperatureCondition.INSTANCE.getType(), PNCTemperatureCondition.class);
+            register(PNCTemperatureCondition.INSTANCE);
         }
-        ModLoader.get().postEvent(new MBDRegistryEvent.RecipeCondition());
+        ModLoader.postEvent(new MBDRegistryEvent.RecipeCondition());
         MBDRegistries.RECIPE_CONDITIONS.freeze();
+    }
+
+    public static void register(RecipeCondition recipeCondition) {
+        MBDRegistries.RECIPE_CONDITIONS.register(recipeCondition.getType(), recipeCondition);
     }
 }

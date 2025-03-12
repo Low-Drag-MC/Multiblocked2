@@ -1,6 +1,7 @@
 package com.lowdragmc.mbd2.common.machine.definition;
 
 import com.google.common.base.Suppliers;
+import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
@@ -104,7 +105,7 @@ public class MultiblockMachineDefinition extends MBDMachineDefinition {
         super.loadProductiveTag(file, projectTag, postTask);
         postTask.add(() -> {
             // load multiblock settings
-            multiblockSettings.deserializeNBT(projectTag.getCompound("definition").getCompound("multiblockSettings"));
+            multiblockSettings.deserializeNBT(Platform.getFrozenRegistry(), projectTag.getCompound("definition").getCompound("multiblockSettings"));
             // setup catalyst candidates
             if (multiblockSettings.catalyst().isEnable() && multiblockSettings.catalyst().getCandidates().isEnable()) {
                 for (var block : multiblockSettings.catalyst().getCandidates().getValue()) {
@@ -113,7 +114,7 @@ public class MultiblockMachineDefinition extends MBDMachineDefinition {
             }
             // setup block pattern
             var predicateResource = new PredicateResource();
-            predicateResource.deserializeNBT(projectTag.getCompound("resources").getCompound(PredicateResource.RESOURCE_NAME));
+            predicateResource.deserializeNBT(projectTag.getCompound("resources").getCompound(PredicateResource.RESOURCE_NAME), Platform.getFrozenRegistry());
             var placeholders = MultiblockMachineProject.deserializeBlockPlaceholders(projectTag.getCompound("placeholders"), predicateResource);
             var layerAxis = Direction.Axis.valueOf(projectTag.getString("layer_axis"));
             var aisleLength = switch (layerAxis) {
@@ -133,7 +134,7 @@ public class MultiblockMachineDefinition extends MBDMachineDefinition {
             shapeInfoFactory(Util.memoize(definition -> {
                 var shapeInfos = new ArrayList<>(projectTag.getList("shape_infos", Tag.TAG_COMPOUND).stream()
                         .map(CompoundTag.class::cast)
-                        .map(MultiblockShapeInfo::loadFromTag)
+                        .map(tag -> MultiblockShapeInfo.loadFromTag(Platform.getFrozenRegistry(), tag))
                         .toList());
                 if (shapeInfos.isEmpty()) {
                     // generate builtin shape info from pattern

@@ -6,11 +6,12 @@ import com.lowdragmc.mbd2.common.CommonProxy;
 import com.lowdragmc.mbd2.integration.create.machine.KineticInstanceRenderer;
 import net.createmod.catnip.render.SuperByteBufferCache;
 import net.minecraft.client.renderer.item.ItemProperties;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.client.event.EntityRenderersEvent.RegisterRenderers;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 
 /**
  * @author KilaBash
@@ -19,15 +20,15 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
  */
 @OnlyIn(Dist.CLIENT)
 public class ClientProxy extends CommonProxy {
-    public ClientProxy() {
-        super();
+    public ClientProxy(IEventBus eventBus) {
+        super(eventBus);
         if (MBD2.isCreateLoaded()) {
             SuperByteBufferCache.getInstance().registerCompartment(KineticInstanceRenderer.DIRECTIONAL_PARTIAL);
         }
     }
 
     @SubscribeEvent
-    public void registerRenderers(RegisterRenderers e) {
+    public void registerRenderers(EntityRenderersEvent.RegisterRenderers e) {
         MBDRegistries.FAKE_MACHINE().initRenderer(e);
         MBDRegistries.MACHINE_DEFINITIONS.forEach(definition -> definition.initRenderer(e));
     }

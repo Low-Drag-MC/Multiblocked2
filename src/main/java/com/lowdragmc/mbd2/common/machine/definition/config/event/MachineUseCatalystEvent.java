@@ -5,14 +5,13 @@ import com.lowdragmc.lowdraglib.gui.graphprocessor.data.parameter.ExposedParamet
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.graphprocessor.GraphParameterGet;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.eventbus.api.Cancelable;
+import net.neoforged.bus.api.ICancellableEvent;
 
 import java.util.Map;
 import java.util.Optional;
 
-@Cancelable
 @LDLRegister(name = "MachineUseCatalystEvent", group = "MachineEvent.Multiblock")
-public class MachineUseCatalystEvent extends MachineEvent {
+public class MachineUseCatalystEvent extends MachineEvent implements ICancellableEvent {
     @GraphParameterGet
     public final ItemStack catalyst;
 

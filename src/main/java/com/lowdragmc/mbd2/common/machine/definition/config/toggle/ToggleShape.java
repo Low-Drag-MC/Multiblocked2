@@ -3,18 +3,19 @@ package com.lowdragmc.mbd2.common.machine.definition.config.toggle;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.AABBConfigurator;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.ArrayConfiguratorGroup;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.syncdata.ITagSerializable;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import net.neoforged.neoforge.common.util.INBTSerializable;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class ToggleShape extends ToggleObject<VoxelShape> implements ITagSerializable<CompoundTag> {
+public class ToggleShape extends ToggleObject<VoxelShape> implements INBTSerializable<CompoundTag> {
     public static final AABB BLOCK = new AABB(0, 0, 0, 1, 1, 1);
     private final List<AABB> aabbs = new ArrayList<>();
     // run-time
@@ -68,7 +69,7 @@ public class ToggleShape extends ToggleObject<VoxelShape> implements ITagSeriali
     }
 
     @Override
-    public CompoundTag serializeNBT() {
+    public CompoundTag serializeNBT(HolderLookup.Provider provider) {
         var tag = new CompoundTag();
         tag.putBoolean("enable", enable);
         var shape = new ListTag();
@@ -87,7 +88,7 @@ public class ToggleShape extends ToggleObject<VoxelShape> implements ITagSeriali
     }
 
     @Override
-    public void deserializeNBT(CompoundTag compoundTag) {
+    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag compoundTag) {
         enable = compoundTag.getBoolean("enable");
         this.aabbs.clear();
         var shape = compoundTag.getList("value", Tag.TAG_COMPOUND);

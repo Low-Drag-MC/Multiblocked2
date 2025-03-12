@@ -1,15 +1,14 @@
 package com.lowdragmc.mbd2.api.capability;
 
+import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.machine.IMachine;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.CapabilityManager;
-import net.minecraftforge.common.capabilities.CapabilityToken;
-import net.minecraftforge.common.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.capabilities.BlockCapability;
 
 public class MBDCapabilities {
-    public static final Capability<IMachine> CAPABILITY_MACHINE = CapabilityManager.get(new CapabilityToken<>() {});
-
-    public static void register(RegisterCapabilitiesEvent event) {
-        event.register(IMachine.class);
-    }
+    public static final BlockCapability<IMachine, Void> CAPABILITY_MACHINE =
+            BlockCapability.createVoid(
+                    // Provide a name to uniquely identify the capability.
+                    MBD2.id("machine"),
+                    // Provide the queried type. Here, we want to look up `IItemHandler` instances.
+                    IMachine.class);
 }

@@ -6,8 +6,8 @@ import com.lowdragmc.lowdraglib.jei.IngredientIO;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.api.recipe.content.IContentSerializer;
-import io.netty.buffer.Unpooled;
-import net.minecraft.network.FriendlyByteBuf;
+import com.lowdragmc.mbd2.api.registry.MBDRegistries;
+import com.mojang.serialization.Codec;
 import net.minecraft.network.chat.Component;
 
 import java.util.List;
@@ -18,6 +18,8 @@ import java.util.function.Supplier;
  * Used to detect whether a machine has a certain capability.
  */
 public abstract class RecipeCapability<T> {
+
+    public static final Codec<RecipeCapability<?>> CODEC = MBDRegistries.RECIPE_CAPABILITIES.codec();
 
     public final String name;
     public final IContentSerializer<T> serializer;
@@ -32,9 +34,7 @@ public abstract class RecipeCapability<T> {
      * it's not recommended to use this method directly, use {@link #copyContent(Object)} instead.
      */
     public final T deepCopyContent(Object content) {
-        var buf = new FriendlyByteBuf(Unpooled.buffer());
-        serializer.toNetwork(buf, (T) content);
-        return serializer.fromNetwork(buf);
+        return serializer.deepCopy((T) content);
     }
 
     public final T deepCopyContent(Object content, ContentModifier modifier) {

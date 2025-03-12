@@ -11,7 +11,7 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.ArrayList;
 
 public class ToggleCreativeTab extends ToggleObject<ResourceLocation> {
-    public static final ResourceLocation DEFAULT = new ResourceLocation("redstone_blocks");
+    public static final ResourceLocation DEFAULT = ResourceLocation.parse("redstone_blocks");
     @Getter
     @Setter
     @Persisted

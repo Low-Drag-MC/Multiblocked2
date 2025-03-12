@@ -1,6 +1,5 @@
 package com.lowdragmc.mbd2.common.recipe;
 
-import com.google.gson.JsonObject;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
@@ -8,13 +7,14 @@ import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.GsonHelper;
+import net.minecraft.util.ExtraCodecs;
 
 import javax.annotation.Nonnull;
 
@@ -22,6 +22,10 @@ import javax.annotation.Nonnull;
 @Setter
 @NoArgsConstructor
 public class MachineLevelCondition extends RecipeCondition {
+    public static final MapCodec<MachineLevelCondition> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+            Codec.BOOL.optionalFieldOf("reverse", false).forGetter(val -> val.isReverse),
+            ExtraCodecs.NON_NEGATIVE_INT.fieldOf("level").forGetter(val -> val.level)
+    ).apply(instance, MachineLevelCondition::new));
 
     public final static MachineLevelCondition INSTANCE = new MachineLevelCondition();
     @Configurable(name = "config.recipe.condition.machine_level.level", tips="config.recipe.condition.machine_level.level.tips")
@@ -29,6 +33,11 @@ public class MachineLevelCondition extends RecipeCondition {
     private int level;
 
     public MachineLevelCondition(int level) {
+        this.level = level;
+    }
+
+    public MachineLevelCondition(boolean isReverse, int level) {
+        super(isReverse);
         this.level = level;
     }
 
@@ -48,50 +57,14 @@ public class MachineLevelCondition extends RecipeCondition {
     }
 
     @Override
+    public MapCodec<? extends RecipeCondition> codec() {
+        return CODEC;
+    }
+
+    @Override
     public boolean test(@Nonnull MBDRecipe recipe, @Nonnull RecipeLogic recipeLogic) {
         return recipeLogic.machine.getMachineLevel() >= this.level;
     }
 
-    @Nonnull
-    @Override
-    public JsonObject serialize() {
-        JsonObject config = super.serialize();
-        config.addProperty("level", this.level);
-        return config;
-    }
-
-    @Override
-    public RecipeCondition deserialize(@Nonnull JsonObject config) {
-        super.deserialize(config);
-        this.level = GsonHelper.getAsInt(config, "level");
-        return this;
-    }
-
-    @Override
-    public RecipeCondition fromNetwork(FriendlyByteBuf buf) {
-        super.fromNetwork(buf);
-        level = buf.readVarInt();
-        return this;
-    }
-
-    @Override
-    public void toNetwork(FriendlyByteBuf buf) {
-        super.toNetwork(buf);
-        buf.writeVarInt(level);
-    }
-
-    @Override
-    public CompoundTag toNBT() {
-        var tag = super.toNBT();
-        tag.putInt("level", level);
-        return tag;
-    }
-
-    @Override
-    public RecipeCondition fromNBT(CompoundTag tag) {
-        super.fromNBT(tag);
-        level = tag.getInt("level");
-        return this;
-    }
 
 }

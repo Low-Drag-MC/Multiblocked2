@@ -1,5 +1,6 @@
 repositories {
     mavenLocal()
+    mavenCentral()
     maven { url = "https://api.modrinth.com/maven" } // LazyDFU, Jade
     maven { url = "https://maven.terraformersmc.com/releases/" } // Mod Menu, EMI
     maven { url = "https://maven.shedaniel.me/" } // Cloth Config, REI
@@ -33,9 +34,7 @@ repositories {
         url = "https://maven.tterrag.com/"
         content {
             // need to be specific here due to version overlaps
-            includeGroup("com.jozufozu.flywheel")
             includeGroup("com.tterrag.registrate")
-            includeGroup("com.simibubi.create")
         }
     }
     maven { url = "https://maven.theillusivec4.top/" } // Curios
@@ -66,4 +65,6 @@ repositories {
             includeGroup 'com.gregtechceu.gtceu'
         }
     }
+    maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven" } // NeoForge config api port, needed by ponder
+    maven { url = 'https://maven.minecraftforge.net/' } // TerraBlender
 }

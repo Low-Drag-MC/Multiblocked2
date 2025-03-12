@@ -3,8 +3,8 @@ package com.lowdragmc.mbd2.common.trait.fluid;
 import com.lowdragmc.lowdraglib.misc.FluidStorage;
 import com.lowdragmc.lowdraglib.side.fluid.forge.FluidHelperImpl;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.neoforged.fluids.FluidStack;
+import net.neoforged.fluids.capability.IFluidHandler;
 import org.jetbrains.annotations.NotNull;
 
 public class FluidHandlerWrapper implements IFluidHandler {

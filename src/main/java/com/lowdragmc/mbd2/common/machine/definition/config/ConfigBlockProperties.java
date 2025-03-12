@@ -17,16 +17,16 @@ import lombok.experimental.Accessors;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.util.ForgeSoundType;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.common.util.DeferredSoundType;
 
 import java.util.List;
 import java.util.Optional;
@@ -182,7 +182,7 @@ public class ConfigBlockProperties implements IPersistedSerializable, IConfigura
             properties = properties.replaceable();
         }
         if (noParticleOnBreak) {
-            properties = properties.noParticlesOnBreak();
+            properties = properties.noTerrainParticles();
         }
         if (hasCollision) {
             properties = properties.noOcclusion();
@@ -253,8 +253,8 @@ public class ConfigBlockProperties implements IPersistedSerializable, IConfigura
         private SoundEvent hitSoundEvent;
         private SoundEvent fallSoundEvent;
 
-        public ForgeSoundType createSoundType() {
-            return new ForgeSoundType(1.0f, 1.0f,
+        public DeferredSoundType createSoundType() {
+            return new DeferredSoundType(1.0f, 1.0f,
                     this::getBreakSoundEvent,
                     this::getStepSoundEvent,
                     this::getPlaceSoundEvent,
@@ -264,35 +264,35 @@ public class ConfigBlockProperties implements IPersistedSerializable, IConfigura
 
         public SoundEvent getBreakSoundEvent() {
             if (breakSoundEvent == null) {
-                breakSoundEvent = Optional.ofNullable(ForgeRegistries.SOUND_EVENTS.getValue(breakSound)).orElse(SoundEvents.EMPTY);
+                breakSoundEvent = Optional.ofNullable(BuiltInRegistries.SOUND_EVENT.get(breakSound)).orElse(SoundEvents.EMPTY);
             }
             return breakSoundEvent;
         }
 
         public SoundEvent getStepSoundEvent() {
             if (stepSoundEvent == null) {
-                stepSoundEvent = Optional.ofNullable(ForgeRegistries.SOUND_EVENTS.getValue(stepSound)).orElse(SoundEvents.EMPTY);
+                stepSoundEvent = Optional.ofNullable(BuiltInRegistries.SOUND_EVENT.get(stepSound)).orElse(SoundEvents.EMPTY);
             }
             return stepSoundEvent;
         }
 
         public SoundEvent getPlaceSoundEvent() {
             if (placeSoundEvent == null) {
-                placeSoundEvent = Optional.ofNullable(ForgeRegistries.SOUND_EVENTS.getValue(placeSound)).orElse(SoundEvents.EMPTY);
+                placeSoundEvent = Optional.ofNullable(BuiltInRegistries.SOUND_EVENT.get(placeSound)).orElse(SoundEvents.EMPTY);
             }
             return placeSoundEvent;
         }
 
         public SoundEvent getHitSoundEvent() {
             if (hitSoundEvent == null) {
-                hitSoundEvent = Optional.ofNullable(ForgeRegistries.SOUND_EVENTS.getValue(hitSound)).orElse(SoundEvents.EMPTY);
+                hitSoundEvent = Optional.ofNullable(BuiltInRegistries.SOUND_EVENT.get(hitSound)).orElse(SoundEvents.EMPTY);
             }
             return hitSoundEvent;
         }
 
         public SoundEvent getFallSoundEvent() {
             if (fallSoundEvent == null) {
-                fallSoundEvent = Optional.ofNullable(ForgeRegistries.SOUND_EVENTS.getValue(fallSound)).orElse(SoundEvents.EMPTY);
+                fallSoundEvent = Optional.ofNullable(BuiltInRegistries.SOUND_EVENT.get(fallSound)).orElse(SoundEvents.EMPTY);
             }
             return fallSoundEvent;
         }
@@ -313,9 +313,12 @@ public class ConfigBlockProperties implements IPersistedSerializable, IConfigura
         public Configurator createSoundConfigurator(String name, Consumer<ResourceLocation> setter, Supplier<ResourceLocation> getter) {
             return new SearchComponentConfigurator<>(name, getter, sound -> {
                 setter.accept(sound);
-                Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(ForgeRegistries.SOUND_EVENTS.getValue(sound), 1.0F));
+                var soundEvent = BuiltInRegistries.SOUND_EVENT.get(sound);
+                if (soundEvent != null) {
+                    Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(soundEvent, 1.0F));
+                }
             }, SoundEvents.STONE_PLACE.getLocation(), true, (word, find) -> {
-                for (var key : ForgeRegistries.SOUND_EVENTS.getKeys()) {
+                for (var key : BuiltInRegistries.SOUND_EVENT.keySet()) {
                     if (Thread.currentThread().isInterrupted()) {
                         return;
                     }

@@ -6,8 +6,11 @@ import com.lowdragmc.mbd2.common.CommonProxy;
 import com.lowdragmc.lowdraglib.Platform;
 import lombok.Getter;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.loading.FMLEnvironment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,9 +26,13 @@ public class MBD2 {
     @Getter(lazy = true)
     private static final File location = createDir();
 
-    public MBD2() {
+    public MBD2(IEventBus eventBus, ModContainer modContainer) {
         MBD2.init();
-        DistExecutor.unsafeRunForDist(() -> ClientProxy::new, () -> CommonProxy::new);
+        if (FMLEnvironment.dist == Dist.CLIENT) {
+            new ClientProxy(eventBus);
+        } else {
+            new CommonProxy(eventBus);
+        }
     }
 
     private static File createDir() {
@@ -41,7 +48,7 @@ public class MBD2 {
     }
 
     public static ResourceLocation id(String path) {
-        return new ResourceLocation(MOD_ID, path);
+        return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
     }
 
     public static boolean isGeckolibLoaded() {

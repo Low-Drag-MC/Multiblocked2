@@ -2,7 +2,6 @@ package com.lowdragmc.mbd2.api.pattern;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.lowdragmc.lowdraglib.Platform;
-import com.lowdragmc.lowdraglib.async.AsyncThreadData;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
 import com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine;
@@ -11,6 +10,7 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
@@ -23,7 +23,9 @@ public class MultiblockWorldSavedData extends SavedData {
     @Getter
     private final ServerLevel serverLevel;
     public static MultiblockWorldSavedData getOrCreate(ServerLevel serverLevel) {
-        return serverLevel.getDataStorage().computeIfAbsent(tag -> new MultiblockWorldSavedData(serverLevel, tag), () -> new MultiblockWorldSavedData(serverLevel), "MBD2_multiblock");
+        return serverLevel.getDataStorage().computeIfAbsent(new Factory<>(() -> new MultiblockWorldSavedData(serverLevel),
+                (tag, provider) -> new MultiblockWorldSavedData(serverLevel, tag, provider)),
+                "MBD2_multiblock");
     }
 
     /**
@@ -45,7 +47,7 @@ public class MultiblockWorldSavedData extends SavedData {
         this.structureCachePosMapping = new Long2ObjectOpenHashMap<>();
     }
 
-    private MultiblockWorldSavedData(ServerLevel serverLevel, CompoundTag tag) {
+    private MultiblockWorldSavedData(ServerLevel serverLevel, CompoundTag tag, HolderLookup.Provider provider) {
         this(serverLevel);
     }
 
@@ -75,7 +77,7 @@ public class MultiblockWorldSavedData extends SavedData {
 
     @Nonnull
     @Override
-    public CompoundTag save(@Nonnull CompoundTag compound) {
+    public CompoundTag save(@Nonnull CompoundTag compound, @Nonnull HolderLookup.Provider provider) {
         return compound;
     }
 
@@ -145,7 +147,6 @@ public class MultiblockWorldSavedData extends SavedData {
         if (executorService != null) {
             executorService.shutdownNow();
         }
-        AsyncThreadData
         executorService = null;
     }
 

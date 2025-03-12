@@ -32,7 +32,6 @@ import com.lowdragmc.mbd2.common.trait.ITrait;
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 import com.lowdragmc.mbd2.integration.geckolib.GeckolibRenderer;
 import com.lowdragmc.mbd2.integration.photon.MachineFX;
-import com.lowdragmc.photon.client.fx.FXHelper;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.client.Minecraft;
@@ -47,6 +46,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -59,22 +59,18 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.ICapabilityProvider;
-import net.minecraftforge.common.util.LazyOptional;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.common.NeoForge;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
-import software.bernie.geckolib.core.animation.AnimationController;
 
 import javax.annotation.Nonnull;
 import java.util.*;
 
 @Getter
-public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvider, IUIHolder {
+public class MBDMachine implements IMachine, IEnhancedManaged, IUIHolder.Block {
     protected static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(MBDMachine.class);
 
     @Override
@@ -167,7 +163,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
             additionalTrait.onMachineLoad();
         }
         if (getLevel() instanceof ServerLevel serverLevel) {
-            serverLevel.getServer().tell(new TickTask(0, () -> MinecraftForge.EVENT_BUS.post(new MachineOnLoadEvent(this).postCustomEvent())));
+            serverLevel.getServer().tell(new TickTask(0, () -> NeoForge.EVENT_BUS.post(new MachineOnLoadEvent(this).postCustomEvent())));
         }
     }
 
@@ -205,8 +201,8 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
     public void setMachineState(String newState) {
         if (machineState.equals(newState)) return;
         if (definition.stateMachine().hasState(newState)) {
-            var event = new MachineStateChangedEvent(this, machineState, newState).postCustomEvent();
-            MinecraftForge.EVENT_BUS.post(event);
+            var event = new MachineStateChangedEvent(this, machineState, newState);
+            NeoForge.EVENT_BUS.post(event.postCustomEvent());
             if (!event.isCanceled()) {
                 var oldState = machineState;
                 machineState = newState;
@@ -217,7 +213,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
     }
 
     public void updateCustomData(CompoundTag newValue, CompoundTag oldValue) {
-        MinecraftForge.EVENT_BUS.post(new MachineCustomDataUpdateEvent(this, newValue, oldValue).postCustomEvent());
+        NeoForge.EVENT_BUS.post(new MachineCustomDataUpdateEvent(this, newValue, oldValue).postCustomEvent());
     }
 
     public void updateState(String newValue, String oldValue) {
@@ -368,7 +364,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
             case WAITING -> setMachineState("waiting");
             case SUSPEND -> setMachineState("suspend");
         }
-        MinecraftForge.EVENT_BUS.post(new MachineRecipeStatusChangedEvent(this, oldStatus, newStatus).postCustomEvent());
+        NeoForge.EVENT_BUS.post(new MachineRecipeStatusChangedEvent(this, oldStatus, newStatus).postCustomEvent());
     }
 
     /**
@@ -456,8 +452,8 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
      * Server tick. will be called on server side per tick.
      */
     public void serverTick() {
-        var event = new MachineTickEvent(this).postCustomEvent();
-        MinecraftForge.EVENT_BUS.post(event);
+        var event = new MachineTickEvent(this);
+        NeoForge.EVENT_BUS.post(event.postCustomEvent());
         if (!event.isCanceled()) {
             internalServerTick();
         }
@@ -484,28 +480,28 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
     @Override
     public @Nullable MBDRecipe modifyFuelRecipe(MBDRecipe recipe) {
         var event = new MachineFuelRecipeModifyEvent(this, recipe);
-        MinecraftForge.EVENT_BUS.post(event.postCustomEvent());
+        NeoForge.EVENT_BUS.post(event.postCustomEvent());
         if (event.isCanceled()) return null;
         return event.getRecipe();
     }
 
     @Override
     public void onFuelBurningFinish(@Nullable MBDRecipe recipe) {
-        MinecraftForge.EVENT_BUS.post(new MachineFuelBurningFinishEvent(this, recipe));
+        NeoForge.EVENT_BUS.post(new MachineFuelBurningFinishEvent(this, recipe));
     }
 
     @Nullable
     @Override
     public MBDRecipe doModifyRecipe(@NotNull MBDRecipe recipe) {
         var before = new MachineRecipeModifyEvent.Before(this, recipe);
-        MinecraftForge.EVENT_BUS.post(before.postCustomEvent());
+        NeoForge.EVENT_BUS.post(before.postCustomEvent());
         recipe = before.getRecipe();
         if (before.isCanceled() || recipe == null) {
             return recipe;
         }
         recipe = IMachine.super.doModifyRecipe(recipe);
         var after = new MachineRecipeModifyEvent.After(this, recipe);
-        MinecraftForge.EVENT_BUS.post(after.postCustomEvent());
+        NeoForge.EVENT_BUS.post(after.postCustomEvent());
         return after.getRecipe();
     }
 
@@ -557,7 +553,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
     @Override
     public boolean beforeWorking(MBDRecipe recipe) {
         var event = new MachineBeforeRecipeWorkingEvent(this, recipe);
-        MinecraftForge.EVENT_BUS.post(event.postCustomEvent());
+        NeoForge.EVENT_BUS.post(event.postCustomEvent());
         if (event.isCanceled()) {
             return true;
         }
@@ -567,7 +563,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
     @Override
     public boolean onWorking() {
         var event = new MachineOnRecipeWorkingEvent(this, recipeLogic.getLastRecipe(), recipeLogic.getProgress());
-        MinecraftForge.EVENT_BUS.post(event.postCustomEvent());
+        NeoForge.EVENT_BUS.post(event.postCustomEvent());
         if (event.isCanceled()) {
             return true;
         }
@@ -576,13 +572,13 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
 
     @Override
     public void onWaiting() {
-        MinecraftForge.EVENT_BUS.post(new MachineOnRecipeWaitingEvent(this, recipeLogic.getLastRecipe()).postCustomEvent());
+        NeoForge.EVENT_BUS.post(new MachineOnRecipeWaitingEvent(this, recipeLogic.getLastRecipe()).postCustomEvent());
         IMachine.super.onWaiting();
     }
 
     @Override
     public void afterWorking() {
-        MinecraftForge.EVENT_BUS.post(new MachineAfterRecipeWorkingEvent(this, recipeLogic.getLastRecipe()).postCustomEvent());
+        NeoForge.EVENT_BUS.post(new MachineAfterRecipeWorkingEvent(this, recipeLogic.getLastRecipe()).postCustomEvent());
         IMachine.super.afterWorking();
     }
 
@@ -591,7 +587,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
      */
     @OnlyIn(Dist.CLIENT)
     public void clientTick() {
-        MinecraftForge.EVENT_BUS.post(new MachineClientTickEvent(this).postCustomEvent());
+        NeoForge.EVENT_BUS.post(new MachineClientTickEvent(this).postCustomEvent());
         for (ITrait trait : additionalTraits) {
             trait.clientTick();
         }
@@ -614,8 +610,8 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
     /**
      * Called when neighbors changed.
      */
-    public void onNeighborChanged(Block block, BlockPos fromPos, boolean isMoving) {
-        MinecraftForge.EVENT_BUS.post(new MachineNeighborChangedEvent(this, block, fromPos).postCustomEvent());
+    public void onNeighborChanged(net.minecraft.world.level.block.Block block, BlockPos fromPos, boolean isMoving) {
+        NeoForge.EVENT_BUS.post(new MachineNeighborChangedEvent(this, block, fromPos).postCustomEvent());
         for (ITrait trait : additionalTraits) {
             trait.onNeighborChanged(block, fromPos, isMoving);
         }
@@ -626,7 +622,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
      * it won't be called when machine added by {@link Level#setBlock(BlockPos, BlockState, int, int)}
      */
     public void onMachinePlaced(LivingEntity player, ItemStack stack) {
-        MinecraftForge.EVENT_BUS.post(new MachinePlacedEvent(this, player, stack).postCustomEvent());
+        NeoForge.EVENT_BUS.post(new MachinePlacedEvent(this, player, stack).postCustomEvent());
     }
 
     /**
@@ -722,7 +718,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
         for (ITrait additionalTrait : additionalTraits) {
             additionalTrait.onMachineRemoved();
         }
-        MinecraftForge.EVENT_BUS.post(new MachineRemovedEvent(this).postCustomEvent());
+        NeoForge.EVENT_BUS.post(new MachineRemovedEvent(this).postCustomEvent());
     }
 
     /**
@@ -742,23 +738,31 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
                 drops.add(drop);
             }
         }
-        MinecraftForge.EVENT_BUS.post(new MachineDropsEvent(this, entity, drops).postCustomEvent());
+        NeoForge.EVENT_BUS.post(new MachineDropsEvent(this, entity, drops).postCustomEvent());
+    }
+
+    /**
+     * On use item on the machine.
+     */
+    public ItemInteractionResult useItemOn(ItemStack item, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        //todo event
+        return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
     }
 
     /**
      * On hand is using on the machine.
      */
-    public InteractionResult onUse(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+    public InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player, BlockHitResult hit) {
         var event = new MachineRightClickEvent(this, player, hand, hit);
         event.setInteractionResult(InteractionResult.PASS);
-        MinecraftForge.EVENT_BUS.post(event.postCustomEvent());
+        NeoForge.EVENT_BUS.post(event.postCustomEvent());
         return event.getInteractionResult();
     }
 
     /**
      * Should open UI.
      */
-    public boolean shouldOpenUI(InteractionHand hand, BlockHitResult hit) {
+    public boolean shouldOpenUI(BlockHitResult hit) {
         return getDefinition().machineSettings().hasUI();
     }
 
@@ -768,7 +772,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
     public InteractionResult openUI(Player player) {
         if (player instanceof ServerPlayer serverPlayer) {
             var event = new MachineOpenUIEvent(this, player);
-            MinecraftForge.EVENT_BUS.post(event.postCustomEvent());
+            NeoForge.EVENT_BUS.post(event.postCustomEvent());
             if (event.isCanceled()) {
                 return InteractionResult.PASS;
             }
@@ -876,19 +880,20 @@ public class MBDMachine implements IMachine, IEnhancedManaged, ICapabilityProvid
     @RPCMethod
     public void emitPhotonFx(String identifier, ResourceLocation fxLocation, Vector3f offset, Vector3f rotation, int delay, boolean forcedDeath){
         if (MBD2.isPhotonLoaded()) {
-            if (isRemote()) {
-                var fx = FXHelper.getFX(fxLocation);
-                if (fx != null) {
-                    var machineFX = new MachineFX(fx, identifier, this);
-                    machineFX.setOffset(offset.x, offset.y, offset.z);
-                    machineFX.setRotation(rotation.x, rotation.y, rotation.z);
-                    machineFX.setDelay(delay);
-                    machineFX.setForcedDeath(forcedDeath);
-                    machineFX.start();
-                }
-            } else {
-                rpcToTracking("emitPhotonFx", identifier, fxLocation, offset, rotation, delay, forcedDeath);
-            }
+            // TODO Photon
+//            if (isRemote()) {
+//                var fx = FXHelper.getFX(fxLocation);
+//                if (fx != null) {
+//                    var machineFX = new MachineFX(fx, identifier, this);
+//                    machineFX.setOffset(offset.x, offset.y, offset.z);
+//                    machineFX.setRotation(rotation.x, rotation.y, rotation.z);
+//                    machineFX.setDelay(delay);
+//                    machineFX.setForcedDeath(forcedDeath);
+//                    machineFX.start();
+//                }
+//            } else {
+//                rpcToTracking("emitPhotonFx", identifier, fxLocation, offset, rotation, delay, forcedDeath);
+//            }
         }
     }
 

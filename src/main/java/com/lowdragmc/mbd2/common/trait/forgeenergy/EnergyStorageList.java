@@ -1,6 +1,6 @@
 package com.lowdragmc.mbd2.common.trait.forgeenergy;
 
-import net.minecraftforge.energy.IEnergyStorage;
+import net.neoforged.energy.IEnergyStorage;
 
 import java.util.Arrays;
 

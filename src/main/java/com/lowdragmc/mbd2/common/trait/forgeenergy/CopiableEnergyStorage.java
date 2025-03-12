@@ -5,7 +5,7 @@ import com.lowdragmc.lowdraglib.syncdata.ITagSerializable;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.nbt.Tag;
-import net.minecraftforge.energy.EnergyStorage;
+import net.neoforged.energy.EnergyStorage;
 
 public class CopiableEnergyStorage extends EnergyStorage implements ITagSerializable<Tag>, IContentChangeAware {
     @Getter

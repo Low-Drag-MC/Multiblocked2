@@ -1,6 +1,5 @@
 package com.lowdragmc.mbd2.common.recipe;
 
-import com.google.gson.JsonObject;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
@@ -8,13 +7,15 @@ import com.lowdragmc.lowdraglib.gui.texture.ItemStackTexture;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.GsonHelper;
+import net.minecraft.util.Mth;
 import net.minecraft.world.item.Items;
 
 import javax.annotation.Nonnull;
@@ -23,6 +24,11 @@ import javax.annotation.Nonnull;
 @Setter
 @NoArgsConstructor
 public class RedstoneSignalCondition extends RecipeCondition {
+    public static final MapCodec<RedstoneSignalCondition> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+            Codec.BOOL.optionalFieldOf("reverse", false).forGetter(val -> val.isReverse),
+            Codec.INT.validate(v -> DataResult.success(Mth.clamp(v, 0, 15))).fieldOf("minSignal").forGetter(val -> val.minSignal),
+            Codec.INT.validate(v -> DataResult.success(Mth.clamp(v, 0, 15))).fieldOf("maxSignal").forGetter(val -> val.maxSignal)
+    ).apply(instance, RedstoneSignalCondition::new));
 
     public final static RedstoneSignalCondition INSTANCE = new RedstoneSignalCondition();
     @Configurable(name = "config.recipe.condition.redstone_signal.signal.min")
@@ -33,6 +39,12 @@ public class RedstoneSignalCondition extends RecipeCondition {
     private int maxSignal;
 
     public RedstoneSignalCondition(int minSignal, int maxSignal) {
+        this.minSignal = minSignal;
+        this.maxSignal = maxSignal;
+    }
+
+    public RedstoneSignalCondition(boolean isReverse, int minSignal, int maxSignal) {
+        super(isReverse);
         this.minSignal = minSignal;
         this.maxSignal = maxSignal;
     }
@@ -59,52 +71,8 @@ public class RedstoneSignalCondition extends RecipeCondition {
         return signal >= minSignal && signal <= maxSignal;
     }
 
-    @Nonnull
     @Override
-    public JsonObject serialize() {
-        JsonObject config = super.serialize();
-        config.addProperty("minSignal", minSignal);
-        config.addProperty("maxSignal", maxSignal);
-        return config;
+    public MapCodec<? extends RecipeCondition> codec() {
+        return CODEC;
     }
-
-    @Override
-    public RecipeCondition deserialize(@Nonnull JsonObject config) {
-        super.deserialize(config);
-        minSignal = GsonHelper.getAsInt(config, "minSignal", 0);
-        maxSignal = GsonHelper.getAsInt(config, "maxSignal", 1);
-        return this;
-    }
-
-    @Override
-    public RecipeCondition fromNetwork(FriendlyByteBuf buf) {
-        super.fromNetwork(buf);
-        minSignal = buf.readVarInt();
-        maxSignal = buf.readVarInt();
-        return this;
-    }
-
-    @Override
-    public void toNetwork(FriendlyByteBuf buf) {
-        super.toNetwork(buf);
-        buf.writeVarInt(minSignal);
-        buf.writeVarInt(maxSignal);
-    }
-
-    @Override
-    public CompoundTag toNBT() {
-        var tag = super.toNBT();
-        tag.putInt("minSignal", minSignal);
-        tag.putInt("maxSignal", maxSignal);
-        return tag;
-    }
-
-    @Override
-    public RecipeCondition fromNBT(CompoundTag tag) {
-        super.fromNBT(tag);
-        minSignal = tag.getInt("minSignal");
-        maxSignal = tag.getInt("maxSignal");
-        return this;
-    }
-
 }

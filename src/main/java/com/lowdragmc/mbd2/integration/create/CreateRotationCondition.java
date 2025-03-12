@@ -1,6 +1,5 @@
 package com.lowdragmc.mbd2.integration.create;
 
-import com.google.gson.JsonObject;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
@@ -10,19 +9,27 @@ import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import com.lowdragmc.mbd2.integration.create.machine.CreateRotationTrait;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.simibubi.create.AllBlocks;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.GsonHelper;
 
 import javax.annotation.Nonnull;
 
 @Getter
 @NoArgsConstructor
 public class CreateRotationCondition extends RecipeCondition {
+
+    public static final MapCodec<CreateRotationCondition> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+            Codec.BOOL.optionalFieldOf("reverse", false).forGetter(val -> val.isReverse),
+            Codec.FLOAT.optionalFieldOf("minRPM", 0f).forGetter(val -> val.minRPM),
+            Codec.FLOAT.optionalFieldOf("maxRPM", Float.MAX_VALUE).forGetter(val -> val.maxRPM),
+            Codec.FLOAT.optionalFieldOf("minStress", 0f).forGetter(val -> val.minStress),
+            Codec.FLOAT.optionalFieldOf("maxStress", Float.MAX_VALUE).forGetter(val -> val.maxStress)
+    ).apply(instance, CreateRotationCondition::new));
 
     public final static CreateRotationCondition INSTANCE = new CreateRotationCondition();
     @Configurable(name = "config.recipe.condition.rpm.min")
@@ -39,6 +46,11 @@ public class CreateRotationCondition extends RecipeCondition {
     private float maxStress;
 
     public CreateRotationCondition(float minRPM, float maxRPM, float minStress, float maxStress) {
+        this(false, minRPM, maxRPM, minStress, maxStress);
+    }
+
+    public CreateRotationCondition(boolean isReverse, float minRPM, float maxRPM, float minStress, float maxStress) {
+        super(isReverse);
         this.minRPM = minRPM;
         this.maxRPM = maxRPM;
         this.minStress = minStress;
@@ -61,6 +73,11 @@ public class CreateRotationCondition extends RecipeCondition {
     }
 
     @Override
+    public MapCodec<? extends RecipeCondition> codec() {
+        return CODEC;
+    }
+
+    @Override
     public boolean test(@Nonnull MBDRecipe recipe, @Nonnull RecipeLogic recipeLogic) {
         var proxy = recipeLogic.machine.getRecipeCapabilitiesProxy();
         var inputs = proxy.get(IO.IN, CreateStressRecipeCapability.CAP);
@@ -76,66 +93,6 @@ public class CreateRotationCondition extends RecipeCondition {
             }
         }
         return false;
-    }
-
-    @Nonnull
-    @Override
-    public JsonObject serialize() {
-        JsonObject config = super.serialize();
-        config.addProperty("minRPM", minRPM);
-        config.addProperty("maxRPM", maxRPM);
-        config.addProperty("minStress", minStress);
-        config.addProperty("maxStress", maxStress);
-        return config;
-    }
-
-    @Override
-    public RecipeCondition deserialize(@Nonnull JsonObject config) {
-        super.deserialize(config);
-        minRPM = GsonHelper.getAsFloat(config, "minRPM", 0);
-        maxRPM = GsonHelper.getAsFloat(config, "maxRPM", 1);
-        minStress = GsonHelper.getAsFloat(config, "minStress", 0);
-        maxStress = GsonHelper.getAsFloat(config, "maxStress", 1);
-        return this;
-    }
-
-    @Override
-    public RecipeCondition fromNetwork(FriendlyByteBuf buf) {
-        super.fromNetwork(buf);
-        minRPM = buf.readFloat();
-        maxRPM = buf.readFloat();
-        minStress = buf.readFloat();
-        maxStress = buf.readFloat();
-        return this;
-    }
-
-    @Override
-    public void toNetwork(FriendlyByteBuf buf) {
-        super.toNetwork(buf);
-        buf.writeFloat(minRPM);
-        buf.writeFloat(maxRPM);
-        buf.writeFloat(minStress);
-        buf.writeFloat(maxStress);
-    }
-
-    @Override
-    public CompoundTag toNBT() {
-        var tag = super.toNBT();
-        tag.putFloat("minRPM", minRPM);
-        tag.putFloat("maxRPM", maxRPM);
-        tag.putFloat("minStress", minStress);
-        tag.putFloat("maxStress", maxStress);
-        return tag;
-    }
-
-    @Override
-    public RecipeCondition fromNBT(CompoundTag tag) {
-        super.fromNBT(tag);
-        minRPM = tag.getFloat("minRPM");
-        maxRPM = tag.getFloat("maxRPM");
-        minStress = tag.getFloat("minStress");
-        maxStress = tag.getFloat("maxStress");
-        return this;
     }
 
 }

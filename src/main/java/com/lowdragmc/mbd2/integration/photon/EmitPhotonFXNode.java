@@ -27,8 +27,8 @@ public class EmitPhotonFXNode extends LinearTriggerNode {
 
     @Override
     protected void process() {
-        if (machine != null && identifier != null && fxLocation != null && ResourceLocation.isValidResourceLocation(fxLocation)) {
-            machine.emitPhotonFx(identifier, new ResourceLocation(fxLocation),
+        if (machine != null && identifier != null && fxLocation != null && ResourceLocation.isValidPath(fxLocation)) {
+            machine.emitPhotonFx(identifier, ResourceLocation.parse(fxLocation),
                     offset == null ? new Vector3f(): offset,
                     rotation == null ? new Vector3f(): rotation, delay, forcedDeath);
         }

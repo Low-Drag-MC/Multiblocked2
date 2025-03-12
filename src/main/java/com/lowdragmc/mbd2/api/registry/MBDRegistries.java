@@ -17,9 +17,16 @@ import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleCreative
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 import lombok.Getter;
 import lombok.experimental.Accessors;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.phys.shapes.Shapes;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 public class MBDRegistries {
+    public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(Registries.BLOCK, MBD2.MOD_ID);
+    public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITY_TYPES = DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, MBD2.MOD_ID);
+
     @Getter(lazy = true)
     @Accessors(fluent = true)
     private static final MBDGadgetsItem GADGETS_ITEM = createGadgetsItem();
@@ -51,6 +58,6 @@ public class MBDRegistries {
     public static final MBDRegistry.RL<MBDMachineDefinition> MACHINE_DEFINITIONS = new MBDRegistry.RL<>(MBD2.id("machine_definition"));
     public static final MBDRegistry.RL<MBDRecipeType> RECIPE_TYPES = new MBDRegistry.RL<>(MBD2.id("recipe_type"));
     public static final MBDRegistry.String<RecipeCapability<?>> RECIPE_CAPABILITIES = new MBDRegistry.String<>(MBD2.id("recipe_capability"));
-    public static final MBDRegistry.String<Class<? extends RecipeCondition>> RECIPE_CONDITIONS = new MBDRegistry.String<>(MBD2.id("recipe_condition"));
+    public static final MBDRegistry.String<RecipeCondition> RECIPE_CONDITIONS = new MBDRegistry.String<>(MBD2.id("recipe_condition"));
 
 }

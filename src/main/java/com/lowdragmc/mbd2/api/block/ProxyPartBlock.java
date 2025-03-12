@@ -84,7 +84,7 @@ public class ProxyPartBlock extends Block implements EntityBlock, IBlockRenderer
     public static void replaceOriginalBlock(BlockPos controllerPos, Level level, BlockPos pos) {
         var originalState = level.getBlockState(pos);
         var originalBlockEntity = level.getBlockEntity(pos);
-        var originalData = Optional.ofNullable(originalBlockEntity).map(BlockEntity::saveWithFullMetadata).orElse(null);
+        var originalData = Optional.ofNullable(originalBlockEntity).map(be -> be.saveWithoutMetadata(level.registryAccess())).orElse(null);
         level.setBlockAndUpdate(pos, BLOCK.defaultBlockState());
         if (level.getBlockEntity(pos) instanceof ProxyPartBlockEntity blockEntity) {
             blockEntity.setOriginalData(originalState, originalData, controllerPos);

@@ -6,7 +6,7 @@ import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.api.recipe.content.IContentSerializer;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.util.GsonHelper;
 
 public record PressureAir(boolean isAir, float value) {
@@ -45,13 +45,13 @@ public record PressureAir(boolean isAir, float value) {
         }
 
         @Override
-        public void toNetwork(FriendlyByteBuf buf, PressureAir content) {
+        public void toNetwork(RegistryFriendlyByteBuf buf, PressureAir content) {
             buf.writeBoolean(content.isAir);
             buf.writeFloat(content.value);
         }
 
         @Override
-        public PressureAir fromNetwork(FriendlyByteBuf buf) {
+        public PressureAir fromNetwork(RegistryFriendlyByteBuf buf) {
             return new PressureAir(buf.readBoolean(), buf.readFloat());
         }
 

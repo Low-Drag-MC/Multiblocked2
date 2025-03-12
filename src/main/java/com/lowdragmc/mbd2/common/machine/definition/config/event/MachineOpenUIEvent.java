@@ -6,16 +6,15 @@ import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.graphprocessor.GraphParameterGet;
 import lombok.Getter;
 import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.eventbus.api.Cancelable;
+import net.neoforged.bus.api.ICancellableEvent;
 
 import java.util.Map;
 import java.util.Optional;
 
 
 @Getter
-@Cancelable
 @LDLRegister(name = "MachineOpenUIEvent", group = "MachineEvent")
-public class MachineOpenUIEvent extends MachineEvent {
+public class MachineOpenUIEvent extends MachineEvent implements ICancellableEvent {
     @GraphParameterGet
     public final Player player;
 

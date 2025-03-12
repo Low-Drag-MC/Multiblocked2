@@ -15,6 +15,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
@@ -55,15 +56,15 @@ public class ConfigRecipeLogicSettings implements IToggleConfigurable, IPersiste
     }
 
     @Override
-    public CompoundTag serializeNBT() {
-        var tag = IPersistedSerializable.super.serializeNBT();
+    public CompoundTag serializeNBT(HolderLookup.Provider provider) {
+        var tag = IPersistedSerializable.super.serializeNBT(provider);
         tag.put("recipeModifiers", recipeModifiers.serializeNBT());
         return tag;
     }
 
     @Override
-    public void deserializeNBT(CompoundTag tag) {
-        IPersistedSerializable.super.deserializeNBT(tag);
+    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
+        IPersistedSerializable.super.deserializeNBT(provider, tag);
         recipeModifiers.deserializeNBT(tag.getList("recipeModifiers", Tag.TAG_COMPOUND));
     }
 
@@ -79,8 +80,8 @@ public class ConfigRecipeLogicSettings implements IToggleConfigurable, IPersiste
         var path = new File(MBD2.getLocation(), "recipe_type");
         FileUtils.loadNBTFiles(path, ".rt", (file, tag) -> {
             var recipeType = tag.getCompound("recipe_type").getString("registryName");
-            if (!recipeType.isEmpty() && ResourceLocation.isValidResourceLocation(recipeType)) {
-                candidates.add(new ResourceLocation(recipeType));
+            if (!recipeType.isEmpty() && ResourceLocation.isValidPath(recipeType)) {
+                candidates.add(ResourceLocation.parse(recipeType));
             }
         });
 

@@ -1,6 +1,5 @@
 package com.lowdragmc.mbd2.integration.mekanism;
 
-import com.google.gson.JsonObject;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
 import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
@@ -11,12 +10,12 @@ import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import com.lowdragmc.mbd2.integration.mekanism.trait.heat.MekHeatCapabilityTrait;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.GsonHelper;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -24,6 +23,11 @@ import java.util.ArrayList;
 @Getter
 @NoArgsConstructor
 public class MEKTemperatureCondition extends RecipeCondition {
+    public static final MapCodec<MEKTemperatureCondition> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+            Codec.BOOL.optionalFieldOf("reverse", false).forGetter(val -> val.isReverse),
+            Codec.DOUBLE.optionalFieldOf("minTemperature", 0.0).forGetter(val -> val.minTemperature),
+            Codec.DOUBLE.optionalFieldOf("maxTemperature", Double.MAX_VALUE).forGetter(val -> val.maxTemperature)
+    ).apply(instance, MEKTemperatureCondition::new));
 
     public final static MEKTemperatureCondition INSTANCE = new MEKTemperatureCondition();
     @Configurable(name = "config.recipe.condition.temperature.min")
@@ -35,6 +39,12 @@ public class MEKTemperatureCondition extends RecipeCondition {
 
 
     public MEKTemperatureCondition(double minTemperature, double maxTemperature) {
+        this.minTemperature = minTemperature;
+        this.maxTemperature = maxTemperature;
+    }
+
+    public MEKTemperatureCondition(boolean isReverse, double minTemperature, double maxTemperature) {
+        super(isReverse);
         this.minTemperature = minTemperature;
         this.maxTemperature = maxTemperature;
     }
@@ -52,6 +62,11 @@ public class MEKTemperatureCondition extends RecipeCondition {
     @Override
     public IGuiTexture getIcon() {
         return new ResourceTexture("mbd2:textures/gui/thermometer.png");
+    }
+
+    @Override
+    public MapCodec<? extends RecipeCondition> codec() {
+        return CODEC;
     }
 
     @Override
@@ -80,52 +95,5 @@ public class MEKTemperatureCondition extends RecipeCondition {
         return false;
     }
 
-    @Nonnull
-    @Override
-    public JsonObject serialize() {
-        JsonObject config = super.serialize();
-        config.addProperty("minTemperature", minTemperature);
-        config.addProperty("maxTemperature", maxTemperature);
-        return config;
-    }
-
-    @Override
-    public RecipeCondition deserialize(@Nonnull JsonObject config) {
-        super.deserialize(config);
-        minTemperature = GsonHelper.getAsDouble(config, "minTemperature", 0);
-        maxTemperature = GsonHelper.getAsDouble(config, "maxTemperature", 1);
-        return this;
-    }
-
-    @Override
-    public RecipeCondition fromNetwork(FriendlyByteBuf buf) {
-        super.fromNetwork(buf);
-        minTemperature = buf.readDouble();
-        maxTemperature = buf.readDouble();
-        return this;
-    }
-
-    @Override
-    public void toNetwork(FriendlyByteBuf buf) {
-        super.toNetwork(buf);
-        buf.writeDouble(minTemperature);
-        buf.writeDouble(maxTemperature);
-    }
-
-    @Override
-    public CompoundTag toNBT() {
-        var tag = super.toNBT();
-        tag.putDouble("minTemperature", minTemperature);
-        tag.putDouble("maxTemperature", maxTemperature);
-        return tag;
-    }
-
-    @Override
-    public RecipeCondition fromNBT(CompoundTag tag) {
-        super.fromNBT(tag);
-        minTemperature = tag.getDouble("minTemperature");
-        maxTemperature = tag.getDouble("maxTemperature");
-        return this;
-    }
 
 }

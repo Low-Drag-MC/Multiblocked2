@@ -11,7 +11,7 @@ import com.lowdragmc.mbd2.common.machine.definition.config.StateMachine;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleShape;
 import net.minecraft.world.phys.shapes.Shapes;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.neoforged.bus.api.SubscribeEvent;
 
 public class MBDTest {
 

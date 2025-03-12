@@ -10,13 +10,13 @@ import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.LevelAccessor;
-import net.minecraftforge.event.RegisterCommandsEvent;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
-import net.minecraftforge.event.level.LevelEvent;
-import net.minecraftforge.event.server.ServerStoppingEvent;
-import net.minecraftforge.eventbus.api.Event;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.event.RegisterCommandsEvent;
+import net.neoforged.event.entity.player.PlayerInteractEvent;
+import net.neoforged.event.level.LevelEvent;
+import net.neoforged.event.server.ServerStoppingEvent;
+import net.neoforged.eventbus.api.Event;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.Mod;
 
 /**
  * @author KilaBash

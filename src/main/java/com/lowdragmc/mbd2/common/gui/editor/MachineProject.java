@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.common.gui.editor;
 
+import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.client.renderer.impl.IModelRenderer;
 import com.lowdragmc.lowdraglib.client.renderer.impl.UIResourceRenderer;
@@ -23,20 +24,26 @@ import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.resources.ResourceLocation;
 
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Getter
 @LDLRegister(name = "sm", group = "editor.machine")
 @NoArgsConstructor
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 public class MachineProject implements IProject {
-    public static final IRenderer FURNACE_RENDERER = new IModelRenderer(new ResourceLocation("block/furnace"));
+    public static final IRenderer FURNACE_RENDERER = new IModelRenderer(ResourceLocation.parse("block/furnace"));
 
     protected Resources resources;
     protected MBDMachineDefinition definition;
@@ -98,40 +105,42 @@ public class MachineProject implements IProject {
         return new File(editor.getWorkSpace(), "machine");
     }
 
-    public CompoundTag serializeNBT() {
+    @Override
+    public CompoundTag serializeNBT(HolderLookup.Provider provider) {
         var tag = new CompoundTag();
-        tag.put("resources", resources.serializeNBT());
+        tag.put("resources", resources.serializeNBT(provider));
         UIResourceRenderer.setCurrentResource((Resource<IRenderer>) resources.resources.get(IRendererResource.RESOURCE_NAME), true);
-        tag.put("definition", definition.serializeNBT());
+        tag.put("definition", definition.serializeNBT(provider));
         UIResourceTexture.clearCurrentResource();
-        tag.put("ui", IConfigurableWidget.serializeNBT(this.ui, resources, true));
+        tag.put("ui", IConfigurableWidget.serializeNBT(this.ui, resources, true, provider));
         return tag;
     }
 
     @Override
     public Resources loadResources(CompoundTag tag) {
         var resources = new Resources(createResources());
-        resources.deserializeNBT(tag);
+        resources.deserializeNBT(tag, Platform.getFrozenRegistry());
         return resources;
     }
 
-    public void deserializeNBT(CompoundTag tag) {
+    @Override
+    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
         this.resources = loadResources(tag.getCompound("resources"));
         if (this.definition == null) {
             this.definition = createDefinition();
             this.definition.loadFactory();
         }
         UIResourceRenderer.setCurrentResource((Resource<IRenderer>) resources.resources.get(IRendererResource.RESOURCE_NAME), true);
-        this.definition.deserializeNBT(tag.getCompound("definition"));
+        this.definition.deserializeNBT(provider, tag.getCompound("definition"));
         UIResourceTexture.clearCurrentResource();
         this.ui = new WidgetGroup();
-        IConfigurableWidget.deserializeNBT(this.ui, tag.getCompound("ui"), resources, true);
+        IConfigurableWidget.deserializeNBT(this.ui, tag.getCompound("ui"), resources, true, provider);
     }
 
     @Override
-    public void saveProject(File file) {
+    public void saveProject(Path file) {
         try {
-            NbtIo.write(serializeNBT(), file);
+            NbtIo.write(serializeNBT(Platform.getFrozenRegistry()), file);
         } catch (IOException ignored) { }
     }
 

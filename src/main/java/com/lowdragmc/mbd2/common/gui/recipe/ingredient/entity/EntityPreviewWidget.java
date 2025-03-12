@@ -1,6 +1,7 @@
 package com.lowdragmc.mbd2.common.gui.recipe.ingredient.entity;
 
 import com.lowdragmc.lowdraglib.LDLib;
+import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurableWidget;
@@ -21,12 +22,14 @@ import lombok.experimental.Accessors;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.ForgeSpawnEggItem;
+import net.minecraft.world.item.SpawnEggItem;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.common.DeferredSpawnEggItem;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
@@ -93,7 +96,7 @@ public class EntityPreviewWidget extends Widget implements IRecipeIngredientSlot
                 var entity = entityType.create(dummyWorld);
                 if (entity != null) {
                     if (entityIngredient.getNbt() != null) {
-                        var tag = entity.serializeNBT();
+                        var tag = entity.saveWithoutId(new CompoundTag());
                         tag.merge(entityIngredient.getNbt());
                         entity.load(tag);
                     }
@@ -120,7 +123,7 @@ public class EntityPreviewWidget extends Widget implements IRecipeIngredientSlot
 
     @Override
     public List<Object> getXEIIngredients() {
-        var items = entities.stream().map(Entity::getType).map(ForgeSpawnEggItem::fromEntityType).filter(Objects::nonNull).map(ItemStack::new).toList();
+        var items = entities.stream().map(Entity::getType).map(DeferredSpawnEggItem::deferredOnlyById).filter(Objects::nonNull).map(ItemStack::new).toList();
         if (items.isEmpty()) return Collections.emptyList();
         var realStack = items.get(0);
 
@@ -137,7 +140,7 @@ public class EntityPreviewWidget extends Widget implements IRecipeIngredientSlot
 
     @Override
     public @Nullable Object getXEICurrentIngredient() {
-        var items = entities.stream().map(Entity::getType).map(ForgeSpawnEggItem::fromEntityType).filter(Objects::nonNull).map(ItemStack::new).toList();
+        var items = entities.stream().map(Entity::getType).map(DeferredSpawnEggItem::deferredOnlyById).filter(Objects::nonNull).map(ItemStack::new).toList();
         if (items.isEmpty()) return null;
         var realStack = items.get(0);
         if (LDLib.isJeiLoaded()) {
@@ -213,7 +216,7 @@ public class EntityPreviewWidget extends Widget implements IRecipeIngredientSlot
         Quaternionf quaternionf = (new Quaternionf()).rotateXYZ(0, (float)Math.PI * 2 * offset, (float)Math.PI);
         pGuiGraphics.pose().pushPose();
         pGuiGraphics.pose().translate(x, y, 0);
-        pGuiGraphics.pose().mulPoseMatrix((new Matrix4f()).scaling((float)pScale, (float)pScale, (float)(-pScale)));
+        pGuiGraphics.pose().mulPose((new Matrix4f()).scaling((float)pScale, (float)pScale, (float)(-pScale)));
         pGuiGraphics.pose().translate(0, entity.getBbHeight() / 2, 0);
         pGuiGraphics.pose().mulPose(quaternionf);
         Lighting.setupForEntityInInventory();

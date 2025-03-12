@@ -15,14 +15,15 @@ import lombok.*;
 import lombok.experimental.Accessors;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -83,25 +84,25 @@ public class MachineState implements IConfigurable, IPersistedSerializable, Comp
     }
 
     @Override
-    public CompoundTag serializeNBT() {
-        var tag = IPersistedSerializable.super.serializeNBT();
+    public CompoundTag serializeNBT(HolderLookup.Provider provider) {
+        var tag = IPersistedSerializable.super.serializeNBT(provider);
         tag.putString("name", name);
         var childrenList = new ListTag();
         for (var child : children) {
-            childrenList.add(child.serializeNBT());
+            childrenList.add(child.serializeNBT(provider));
         }
         tag.put("children", childrenList);
         return tag;
     }
 
     @Override
-    public void deserializeNBT(CompoundTag tag) {
-        IPersistedSerializable.super.deserializeNBT(tag);
+    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
+        IPersistedSerializable.super.deserializeNBT(provider, tag);
         var childrenList = tag.getList("children", 10);
         children = new ArrayList<>();
         for (int i = 0; i < childrenList.size(); i++) {
             var child = childrenList.getCompound(i);
-            children.add(createFromTag(child));
+            children.add(createFromTag(provider, child));
         }
         if (this.stateMachine != null) {
             this.stateMachine.initStateMachine();
@@ -228,10 +229,10 @@ public class MachineState implements IConfigurable, IPersistedSerializable, Comp
         return Integer.compare(this.getDepth(), o.getDepth());
     }
 
-    protected MachineState createFromTag(CompoundTag tag) {
+    protected MachineState createFromTag(HolderLookup.Provider provider, CompoundTag tag) {
         var name = tag.getString("name");
         var state = newBuilder().name(name).build();
-        state.deserializeNBT(tag);
+        state.deserializeNBT(provider, tag);
         return state;
     }
 

@@ -281,7 +281,7 @@ public class BlockPattern {
                             if (!player.isCreative()) {
                                 for (int i = 0; i < player.getInventory().items.size(); i++) {
                                     ItemStack itemStack = player.getInventory().items.get(i);
-                                    if (candidates.stream().anyMatch(candidate -> ItemStack.isSameItemSameTags(candidate, itemStack)) && !itemStack.isEmpty() && (itemStack.getItem() instanceof BlockItem || itemStack.getItem() instanceof BucketItem)) {
+                                    if (candidates.stream().anyMatch(candidate -> ItemStack.isSameItemSameComponents(candidate, itemStack)) && !itemStack.isEmpty() && (itemStack.getItem() instanceof BlockItem || itemStack.getItem() instanceof BucketItem)) {
                                         found = itemStack.copy();
                                         foundSlot = i;
                                         break;

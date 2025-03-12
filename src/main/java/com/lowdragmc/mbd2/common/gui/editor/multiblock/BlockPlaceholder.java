@@ -1,23 +1,25 @@
 package com.lowdragmc.mbd2.common.gui.editor.multiblock;
 
+import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
-import com.lowdragmc.lowdraglib.syncdata.ITagSerializable;
 import com.lowdragmc.mbd2.common.gui.editor.PredicateResource;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
+import net.neoforged.neoforge.common.util.INBTSerializable;
 
 import java.util.*;
 
 @Accessors(chain = true)
 @EqualsAndHashCode
-public class BlockPlaceholder implements IConfigurable, ITagSerializable<CompoundTag> {
+public class BlockPlaceholder implements IConfigurable, INBTSerializable<CompoundTag> {
     @EqualsAndHashCode.Exclude
     @Getter
     protected final PredicateResource predicateResource;
@@ -48,12 +50,12 @@ public class BlockPlaceholder implements IConfigurable, ITagSerializable<Compoun
 
     public static BlockPlaceholder fromTag(PredicateResource predicateResource, CompoundTag tag) {
         var holder = new BlockPlaceholder(predicateResource);
-        holder.deserializeNBT(tag);
+        holder.deserializeNBT(Platform.getFrozenRegistry(), tag);
         return holder;
     }
 
     @Override
-    public CompoundTag serializeNBT() {
+    public CompoundTag serializeNBT(HolderLookup.Provider provider) {
         var tag = new CompoundTag();
         var predicatesTag = new ListTag();
         for (var predicate : predicates) {
@@ -66,7 +68,7 @@ public class BlockPlaceholder implements IConfigurable, ITagSerializable<Compoun
     }
 
     @Override
-    public void deserializeNBT(CompoundTag nbt) {
+    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag nbt) {
         this.predicates.clear();
         var predicatesTag = nbt.getList("predicates", Tag.TAG_STRING);
         for (var tag : predicatesTag) {

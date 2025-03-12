@@ -2,6 +2,7 @@ package com.lowdragmc.mbd2.common;
 
 import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.gui.factory.UIFactory;
+import com.lowdragmc.lowdraglib.networking.LDLNetworking;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.block.ProxyPartBlock;
 import com.lowdragmc.mbd2.api.blockentity.ProxyPartBlockEntity;
@@ -28,54 +29,48 @@ import com.lowdragmc.mbd2.test.MBDTest;
 import com.lowdragmc.mbd2.utils.FileUtils;
 import dev.latvian.mods.kubejs.script.ScriptType;
 import lombok.Getter;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.CreativeModeTabs;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
-import net.minecraftforge.common.capabilities.RegisterCapabilitiesEvent;
-import net.minecraftforge.common.crafting.CraftingHelper;
-import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.ModLoader;
-import net.minecraftforge.fml.ModLoadingContext;
-import net.minecraftforge.fml.config.ModConfig;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLConstructModEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegisterEvent;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModLoader;
+import net.neoforged.fml.ModLoadingContext;
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.fml.event.lifecycle.FMLConstructModEvent;
+import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+import net.neoforged.neoforge.registries.NeoForgeRegistries;
+import net.neoforged.neoforge.registries.RegisterEvent;
 
 import java.io.File;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 public class CommonProxy {
-    private static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, MBD2.MOD_ID);
-    private static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITY_TYPES = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, MBD2.MOD_ID);
-
     @Getter
     private static final ConcurrentLinkedDeque<Runnable> postTask = new ConcurrentLinkedDeque<>();
 
 
-    public CommonProxy() {
+    public CommonProxy(IEventBus eventBus) {
         MBD2.getLocation();
-        IEventBus eventBus = FMLJavaModLoadingContext.get().getModEventBus();
+
         eventBus.register(this);
         if (Platform.isDevEnv()) {
             eventBus.register(new MBDTest());
         }
-        MBD2Network.init();
+        eventBus.addListener(MBD2Network::registerPayloads);
         ForgeRegistries.RECIPE_SERIALIZERS.register("mbd_recipe_serializer", MBDRecipeSerializer.SERIALIZER);
         // Register our mod's ForgeConfigSpec so that Forge can create and load the config file for us
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, ConfigHolder.SPEC);
         // Register UI Factory
         UIFactory.register(MachineUIFactory.INSTANCE);
         // Register blocks
-        BLOCKS.register("proxy_part_block", () -> ProxyPartBlock.BLOCK);
-        ProxyPartBlockEntity.TYPE = BLOCK_ENTITY_TYPES.register("proxy_part_block", () -> BlockEntityType.Builder.of(ProxyPartBlockEntity::new, ProxyPartBlock.BLOCK).build(null));
-        BLOCKS.register(eventBus);
-        BLOCK_ENTITY_TYPES.register(eventBus);
+        MBDRegistries.BLOCKS.register("proxy_part_block", () -> ProxyPartBlock.BLOCK);
+        ProxyPartBlockEntity.TYPE = MBDRegistries.BLOCK_ENTITY_TYPES.register("proxy_part_block", () -> BlockEntityType.Builder.of(ProxyPartBlockEntity::new, ProxyPartBlock.BLOCK).build(null));
+        MBDRegistries.BLOCKS.register(eventBus);
+        MBDRegistries.BLOCK_ENTITY_TYPES.register(eventBus);
     }
 
     public void registerRecipeType() {
@@ -85,7 +80,7 @@ public class CommonProxy {
         var path = new File(MBD2.getLocation(), "recipe_type");
         //load recipe type
         FileUtils.loadNBTFiles(path, ".rt", (file, tag) -> event.register(MBDRecipeType.createDefault().loadProductiveTag(file, tag, postTask)));
-        ModLoader.get().postEvent(event);
+        ModLoader.postEvent(event);
         if (MBD2.isKubeJSLoaded()) {
             KubeJSWrapper.postRecipeTypeEvent();
         }
@@ -107,7 +102,7 @@ public class CommonProxy {
             path = new File(MBD2.getLocation(), "kinetic_machine");
             FileUtils.loadNBTFiles(path, ".km", (file, tag) -> event.register(CreateKineticMachineDefinition.createDefault().loadProductiveTag(file, tag, postTask)));
         }
-        ModLoader.get().postEvent(event);
+        ModLoader.postEvent(event);
         if (MBD2.isKubeJSLoaded()) {
             KubeJSWrapper.postMachineEvent();
         }
@@ -169,6 +164,11 @@ public class CommonProxy {
         MBDRegistries.MACHINE_DEFINITIONS.forEach((definition) -> definition.onRegistry(event));
         // register items
         event.register(ForgeRegistries.ITEMS.getRegistryKey(), helper -> helper.register(MBD2.id("mbd_gadgets"), MBDRegistries.GADGETS_ITEM()));
+        // register recipe types
+        event.register(Registries.RECIPE_TYPE, registry -> MBDRegistries.RECIPE_TYPES.forEach((type) ->
+                registry.register(type.getRegistryName(), type)));
+        event.register(Registries.RECIPE_SERIALIZER, registry -> MBDRegistries.RECIPE_TYPES.forEach((type) ->
+                registry.register(type.getRegistryName(), new MBDRecipeSerializer())));
     }
 
     @SubscribeEvent

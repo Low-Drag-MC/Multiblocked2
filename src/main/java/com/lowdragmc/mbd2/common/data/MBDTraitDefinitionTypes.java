@@ -19,7 +19,7 @@ import com.lowdragmc.mbd2.integration.mekanism.trait.heat.MekHeatCapabilityTrait
 import com.lowdragmc.mbd2.integration.naturesaura.trait.AuraHandlerTraitDefinition;
 import com.lowdragmc.mbd2.integration.pneumaticcraft.trait.pressure.PNCPressureAirHandlerTraitDefinition;
 import com.lowdragmc.mbd2.integration.pneumaticcraft.trait.heat.PNCHeatExchangerTraitDefinition;
-import net.minecraftforge.fml.ModLoader;
+import net.neoforged.fml.ModLoader;
 
 public class MBDTraitDefinitionTypes {
 
@@ -53,7 +53,7 @@ public class MBDTraitDefinitionTypes {
         if (MBD2.isEmbersLoaded()) {
             register(EmbersEmberCapabilityTraitDefinition.class);
         }
-        ModLoader.get().postEvent(new MBDRegistryEvent.TraitType());
+        ModLoader.postEvent(new MBDRegistryEvent.TraitType());
         MBDRegistries.TRAIT_DEFINITION_TYPES.freeze();
     }
 

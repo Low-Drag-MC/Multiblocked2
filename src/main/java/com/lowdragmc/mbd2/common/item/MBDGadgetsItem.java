@@ -18,7 +18,7 @@ import com.lowdragmc.mbd2.common.network.MBD2Network;
 import com.lowdragmc.mbd2.common.network.packets.SPatternErrorPosPacket;
 import net.minecraft.ChatFormatting;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.resources.ResourceLocation;
@@ -32,6 +32,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
+import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -64,7 +65,7 @@ public class MBDGadgetsItem extends Item implements HeldItemUIFactory.IHeldItemU
     @Nullable
     public ResourceLocation getRecipe(ItemStack stack) {
         var tag = stack.getTag();
-        return tag != null ? (tag.contains("recipe") ? new ResourceLocation(tag.getString("recipe")) : null) : null;
+        return tag != null ? (tag.contains("recipe") ? ResourceLocation.parse(tag.getString("recipe")) : null) : null;
     }
 
     public void setRecipe(ItemStack stack, ResourceLocation recipe) {
@@ -170,7 +171,7 @@ public class MBDGadgetsItem extends Item implements HeldItemUIFactory.IHeldItemU
                     } else {
                         var error = controller.getMultiblockState().error;
                         if (error != null) {
-                            MBD2Network.NETWORK.sendToPlayer(new SPatternErrorPosPacket(error.getPos()), serverPlayer);
+                            PacketDistributor.sendToPlayer(serverPlayer, new SPatternErrorPosPacket(error.getPos()));
                             serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.multiblock_debugger.failure.error.info", error.getErrorInfo()));
                         } else {
                             serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.multiblock_debugger.failure.no_error"));
@@ -184,8 +185,9 @@ public class MBDGadgetsItem extends Item implements HeldItemUIFactory.IHeldItemU
                     var recipe = getRecipe(stack);
                     var recipeManager = serverPlayer.getServer().getRecipeManager();
                     for (MBDRecipeType recipeType : MBDRegistries.RECIPE_TYPES) {
-                        for (MBDRecipe mbdRecipe : recipeManager.getAllRecipesFor(recipeType)) {
-                            if (Objects.equals(mbdRecipe.id, recipe)) {
+                        for (var holder : recipeManager.getAllRecipesFor(recipeType)) {
+                            if (Objects.equals(holder.id(), recipe)) {
+                                var mbdRecipe = holder.value();
                                 if (machine.getRecipeType() != recipeType) {
                                     serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.warning.recipe_type",
                                             Component.literal("id").withStyle(style ->
@@ -282,9 +284,9 @@ public class MBDGadgetsItem extends Item implements HeldItemUIFactory.IHeldItemU
                             var recipeManager = Platform.getMinecraftServer().getRecipeManager();
                             for (MBDRecipeType recipeType : MBDRegistries.RECIPE_TYPES) {
                                 if (Thread.currentThread().isInterrupted()) return;
-                                for (var recipe : recipeManager.getAllRecipesFor(recipeType)) {
-                                    if (recipe.id.toString().contains(word.toLowerCase())) {
-                                        find.accept(recipe.id);
+                                for (var holder : recipeManager.getAllRecipesFor(recipeType)) {
+                                    if (holder.id().toString().contains(word.toLowerCase())) {
+                                        find.accept(holder.id());
                                     }
                                 }
                             }
@@ -292,13 +294,13 @@ public class MBDGadgetsItem extends Item implements HeldItemUIFactory.IHeldItemU
                     }
 
                     @Override
-                    public void serialize(ResourceLocation value, FriendlyByteBuf buf) {
+                    public void serialize(ResourceLocation value, RegistryFriendlyByteBuf buf) {
                         buf.writeUtf(value.toString());
                     }
 
                     @Override
-                    public ResourceLocation deserialize(FriendlyByteBuf buf) {
-                        return new ResourceLocation(buf.readUtf());
+                    public ResourceLocation deserialize(RegistryFriendlyByteBuf buf) {
+                        return ResourceLocation.parse(buf.readUtf());
                     }
                 }, true);
         var currentRecipe = getRecipe(holder.getHeld());

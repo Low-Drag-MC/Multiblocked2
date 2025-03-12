@@ -6,15 +6,15 @@ import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.graphprocessor.GraphParameterGet;
 import lombok.Getter;
-import net.minecraftforge.eventbus.api.Cancelable;
+import net.neoforged.bus.api.ICancellableEvent;
+import net.neoforged.eventbus.api.Cancelable;
 
 import java.util.Map;
 import java.util.Optional;
 
 @Getter
-@Cancelable
 @LDLRegister(name = "MachineOnRecipeWorkingEvent", group = "MachineEvent")
-public class MachineOnRecipeWorkingEvent extends MachineEvent {
+public class MachineOnRecipeWorkingEvent extends MachineEvent implements ICancellableEvent {
     @GraphParameterGet
     public final MBDRecipe recipe;
     @GraphParameterGet

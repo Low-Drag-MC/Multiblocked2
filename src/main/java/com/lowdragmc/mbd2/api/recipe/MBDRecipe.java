@@ -3,20 +3,20 @@ package com.lowdragmc.mbd2.api.recipe;
 import com.google.common.collect.Table;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.capability.recipe.*;
-import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.mojang.datafixers.util.Pair;
 import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Tuple;
-import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
@@ -36,8 +36,9 @@ import java.util.function.Supplier;
 @SuppressWarnings({"ConstantValue", "rawtypes", "unchecked"})
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
-public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Container> {
+public class MBDRecipe implements Recipe<RecipeInput> {
     public MBDRecipeType recipeType;
+    @Getter
     public final ResourceLocation id;
     public final Map<RecipeCapability<?>, List<Content>> inputs;
     public final Map<RecipeCapability<?>, List<Content>> outputs;
@@ -49,7 +50,15 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
     public boolean isFuel;
     private Boolean hasTick;
 
-    public MBDRecipe(MBDRecipeType recipeType, ResourceLocation id, Map<RecipeCapability<?>, List<Content>> inputs, Map<RecipeCapability<?>, List<Content>> outputs, List<RecipeCondition> conditions, CompoundTag data, int duration, boolean isFuel, int priority) {
+    public MBDRecipe(MBDRecipeType recipeType,
+                     @Nullable ResourceLocation id,
+                     Map<RecipeCapability<?>, List<Content>> inputs,
+                     Map<RecipeCapability<?>, List<Content>> outputs,
+                     List<RecipeCondition> conditions,
+                     CompoundTag data,
+                     int duration,
+                     boolean isFuel,
+                     int priority) {
         this.recipeType = recipeType;
         this.id = id;
         this.inputs = inputs;
@@ -113,11 +122,6 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
     }
 
     @Override
-    public @NotNull ResourceLocation getId() {
-        return id;
-    }
-
-    @Override
     public @NotNull RecipeSerializer<?> getSerializer() {
         return MBDRecipeSerializer.SERIALIZER;
     }
@@ -128,12 +132,12 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
     }
 
     @Override
-    public boolean matches(@NotNull Container pContainer, @NotNull Level pLevel) {
+    public boolean matches(@NotNull RecipeInput pContainer, @NotNull Level pLevel) {
         return false;
     }
 
     @Override
-    public ItemStack assemble(Container inventory, RegistryAccess registryManager) {
+    public ItemStack assemble(RecipeInput container, HolderLookup.Provider provider) {
         return ItemStack.EMPTY;
     }
 
@@ -143,7 +147,7 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
     }
 
     @Override
-    public ItemStack getResultItem(RegistryAccess registryManager) {
+    public ItemStack getResultItem(HolderLookup.Provider provider) {
         return ItemStack.EMPTY;
     }
 

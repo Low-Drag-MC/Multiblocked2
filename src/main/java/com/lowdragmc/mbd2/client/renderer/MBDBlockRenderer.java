@@ -1,12 +1,12 @@
 package com.lowdragmc.mbd2.client.renderer;
 
-import com.lowdragmc.lowdraglib.client.model.forge.LDLRendererModel;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.mojang.blaze3d.vertex.PoseStack;
 import lombok.AllArgsConstructor;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.BakedModel;
@@ -19,8 +19,10 @@ import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.client.model.data.ModelData;
+import net.neoforged.neoforge.common.util.TriState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -40,8 +42,8 @@ public class MBDBlockRenderer implements IRenderer {
     protected final Supplier<IRenderer> defaultRenderer;
 
     @Override
-    public boolean useAO() {
-        return useAO.getAsBoolean();
+    public TriState useAO() {
+        return useAO.getAsBoolean() ? TriState.TRUE : TriState.FALSE;
     }
 
     public Optional<MBDMachine> getMachine(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos) {
@@ -62,24 +64,24 @@ public class MBDBlockRenderer implements IRenderer {
     }
 
     @Override
-    public List<BakedQuad> renderModel(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand) {
+    public List<BakedQuad> renderModel(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand, ModelData modelData, RenderType renderType) {
         return getMachine(level, pos)
                 .filter(machine -> !machine.isDisableRendering())
-                .map(machine -> machine.getMachineState().getRealRenderer().renderModel(level, pos, state, side, rand))
+                .map(machine -> machine.getMachineState().getRealRenderer().renderModel(level, pos, state, side, rand, modelData, renderType))
                 .orElseGet(Collections::emptyList);
     }
 
     @NotNull
     @Override
     public TextureAtlasSprite getParticleTexture() {
-        var modelData = LDLRendererModel.RendererBakedModel.CURRENT_MODEL_DATA.get();
-        if (modelData != null) {
-            var world = modelData.get(WORLD);
-            var pos = modelData.get(POS);
-            return getMachine(world, pos)
-                    .map(machine -> machine.getMachineState().getRealRenderer().getParticleTexture())
-                    .orElseGet(() -> defaultRenderer.get().getParticleTexture());
-        }
+//        var modelData = LDLRendererModel.RendererBakedModel.CURRENT_MODEL_DATA.get();
+//        if (modelData != null) {
+//            var world = modelData.get(WORLD);
+//            var pos = modelData.get(POS);
+//            return getMachine(world, pos)
+//                    .map(machine -> machine.getMachineState().getRealRenderer().getParticleTexture())
+//                    .orElseGet(() -> defaultRenderer.get().getParticleTexture());
+//        }
         return defaultRenderer.get().getParticleTexture();
     }
 

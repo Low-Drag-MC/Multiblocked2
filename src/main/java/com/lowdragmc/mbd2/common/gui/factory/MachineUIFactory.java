@@ -6,10 +6,10 @@ import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import net.minecraft.client.Minecraft;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 public class MachineUIFactory extends UIFactory<MBDMachine> {
     public static final MachineUIFactory INSTANCE  = new MachineUIFactory();
@@ -25,14 +25,14 @@ public class MachineUIFactory extends UIFactory<MBDMachine> {
 
     @OnlyIn(Dist.CLIENT)
     @Override
-    protected MBDMachine readHolderFromSyncData(FriendlyByteBuf syncData) {
+    protected MBDMachine readHolderFromSyncData(RegistryFriendlyByteBuf syncData) {
         var world = Minecraft.getInstance().level;
         if (world == null) return null;
         return IMachine.ofMachine(world, syncData.readBlockPos()).filter(MBDMachine.class::isInstance).map(MBDMachine.class::cast).orElse(null);
     }
 
     @Override
-    protected void writeHolderToSyncData(FriendlyByteBuf syncData, MBDMachine holder) {
+    protected void writeHolderToSyncData(RegistryFriendlyByteBuf syncData, MBDMachine holder) {
         syncData.writeBlockPos(holder.getPos());
     }
 }

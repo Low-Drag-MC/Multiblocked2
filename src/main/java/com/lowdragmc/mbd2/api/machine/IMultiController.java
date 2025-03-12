@@ -1,6 +1,5 @@
 package com.lowdragmc.mbd2.api.machine;
 
-import com.lowdragmc.mbd2.api.capability.MBDCapabilities;
 import com.lowdragmc.mbd2.api.pattern.BlockPattern;
 import com.lowdragmc.mbd2.api.pattern.MultiblockState;
 import com.lowdragmc.mbd2.api.pattern.MultiblockWorldSavedData;
@@ -24,9 +23,7 @@ import java.util.concurrent.locks.Lock;
 public interface IMultiController extends IMachine {
 
     static Optional<IMultiController> ofController(@Nullable BlockEntity blockEntity) {
-        return blockEntity == null ? Optional.empty() : blockEntity.getCapability(MBDCapabilities.CAPABILITY_MACHINE).resolve()
-                .filter(IMultiController.class::isInstance)
-                .map(IMultiController.class::cast);
+        return IMachine.ofMachine(blockEntity).filter(IMultiController.class::isInstance).map(IMultiController.class::cast);
     }
 
     static Optional<IMultiController> ofController(@Nonnull BlockGetter level, @Nonnull BlockPos pos) {

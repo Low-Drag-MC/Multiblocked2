@@ -5,16 +5,15 @@ import com.lowdragmc.lowdraglib.gui.graphprocessor.data.parameter.ExposedParamet
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.graphprocessor.GraphParameterGet;
 import lombok.Getter;
-import net.minecraftforge.eventbus.api.Cancelable;
+import net.neoforged.bus.api.ICancellableEvent;
 
 import java.util.Map;
 import java.util.Optional;
 
 
 @Getter
-@Cancelable
 @LDLRegister(name = "MachineStateChangedEvent", group = "MachineEvent")
-public class MachineStateChangedEvent extends MachineEvent {
+public class MachineStateChangedEvent extends MachineEvent implements ICancellableEvent {
     @GraphParameterGet(displayName = "old state")
     public final String oldState;
     @GraphParameterGet(displayName = "new state")

@@ -23,17 +23,22 @@ import com.lowdragmc.mbd2.common.machine.definition.config.*;
 import com.lowdragmc.mbd2.utils.ControllerBlockInfo;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.io.File;
 import java.util.*;
 
 @Getter
 @LDLRegister(name = "mb", group = "editor.machine")
 @NoArgsConstructor
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 public class MultiblockMachineProject extends MachineProject {
     protected BlockPlaceholder[][][] blockPlaceholders;
     protected Direction.Axis layerAxis = Direction.Axis.Y;
@@ -215,20 +220,21 @@ public class MultiblockMachineProject extends MachineProject {
         return new File(editor.getWorkSpace(), "multiblock");
     }
 
-    public CompoundTag serializeNBT() {
-        var tag = super.serializeNBT();
-        tag.put("placeholders", serializeBlockPlaceholders(blockPlaceholders));
+    @Override
+    public CompoundTag serializeNBT(HolderLookup.Provider provider) {
+        var tag = super.serializeNBT(provider);
+        tag.put("placeholders", serializeBlockPlaceholders(provider, blockPlaceholders));
         tag.putString("layer_axis", layerAxis.name());
         tag.putIntArray("aisle_repetitions", Arrays.stream(aisleRepetitions).flatMapToInt(Arrays::stream).toArray());
         var shapeInfoList = new ListTag();
         for (var shapeInfo : getMultiblockShapeInfos()) {
-            shapeInfoList.add(shapeInfo.serializeNBT());
+            shapeInfoList.add(shapeInfo.serializeNBT(provider));
         }
         tag.put("shape_infos", shapeInfoList);
         return tag;
     }
 
-    public static CompoundTag serializeBlockPlaceholders(BlockPlaceholder[][][] blockPlaceholders){
+    public static CompoundTag serializeBlockPlaceholders(HolderLookup.Provider provider, BlockPlaceholder[][][] blockPlaceholders){
         var placeholders = new ArrayList<BlockPlaceholder>();
         var placeHolderMap = new HashMap<BlockPlaceholder, Integer>();
         var placeHolderIndex = new ArrayList<Integer>();
@@ -250,7 +256,7 @@ public class MultiblockMachineProject extends MachineProject {
         var placeHoldersTag = new CompoundTag();
         var placeHoldersListTag = new ListTag();
         for (BlockPlaceholder placeholder : placeholders) {
-            placeHoldersListTag.add(placeholder.serializeNBT());
+            placeHoldersListTag.add(placeholder.serializeNBT(provider));
         }
         placeHoldersTag.put("holders", placeHoldersListTag);
         placeHoldersTag.putInt("x", blockPlaceholders.length);
@@ -261,8 +267,8 @@ public class MultiblockMachineProject extends MachineProject {
     }
 
     @Override
-    public void deserializeNBT(CompoundTag tag) {
-        super.deserializeNBT(tag);
+    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
+        super.deserializeNBT(provider, tag);
         if (resources.resources.get(PredicateResource.RESOURCE_NAME) instanceof PredicateResource resource) {
             this.predicateResource = resource;
         }
@@ -285,7 +291,8 @@ public class MultiblockMachineProject extends MachineProject {
         }
         this.multiblockShapeInfos.clear();
         var shapeInfoList = tag.getList("shape_infos", Tag.TAG_COMPOUND);
-        this.multiblockShapeInfos.addAll(shapeInfoList.stream().map(CompoundTag.class::cast).map(MultiblockShapeInfo::loadFromTag).toList());
+        this.multiblockShapeInfos.addAll(shapeInfoList.stream().map(CompoundTag.class::cast)
+                .map(infoTag -> MultiblockShapeInfo.loadFromTag(provider, infoTag)).toList());
     }
 
     public static BlockPlaceholder[][][] deserializeBlockPlaceholders(CompoundTag placeHoldersTag, PredicateResource predicateResource) {

@@ -23,6 +23,7 @@ import com.lowdragmc.mbd2.common.machine.definition.config.event.MachineEvent;
 import com.lowdragmc.mbd2.common.graphprocessor.MachineEventGraphProcessor;
 import com.lowdragmc.mbd2.integration.ldlib.MBDLDLibPlugin;
 import lombok.Getter;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 
 import java.util.HashMap;
@@ -58,15 +59,15 @@ public class ConfigMachineEvents implements IConfigurable, IPersistedSerializabl
     }
 
     @Override
-    public CompoundTag serializeNBT() {
-        var tag = IPersistedSerializable.super.serializeNBT();
+    public CompoundTag serializeNBT(HolderLookup.Provider provider) {
+        var tag = IPersistedSerializable.super.serializeNBT(provider);
         var eventGraphsTag = new CompoundTag();
         for (var entry : eventGraphs.entrySet()) {
             if (entry.getKey().isAnnotationPresent(LDLRegister.class)) {
                 var name = entry.getKey().getAnnotation(LDLRegister.class).name();
                 var graph = entry.getValue();
                 if (graph != null) {
-                    eventGraphsTag.put(name, entry.getValue().serializeNBT());
+                    eventGraphsTag.put(name, entry.getValue().serializeNBT(provider));
                 }
             }
         }
@@ -75,10 +76,10 @@ public class ConfigMachineEvents implements IConfigurable, IPersistedSerializabl
     }
 
     @Override
-    public void deserializeNBT(CompoundTag tag) {
+    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
         eventGraphs.clear();
         processorCache.clear();
-        IPersistedSerializable.super.deserializeNBT(tag);
+        IPersistedSerializable.super.deserializeNBT(provider, tag);
         var eventGraphsTag = tag.getCompound("eventGraphs");
         for (String name : eventGraphsTag.getAllKeys()) {
             var clazz = machineEvents.get(name);
@@ -86,7 +87,7 @@ public class ConfigMachineEvents implements IConfigurable, IPersistedSerializabl
                 var parameters = MachineEvent.getExposedParameters(clazz);
                 var graph = new BaseGraph(parameters);
                 try {
-                    graph.deserializeNBT(eventGraphsTag.getCompound(name));
+                    graph.deserializeNBT(provider, eventGraphsTag.getCompound(name));
                     eventGraphs.put(clazz, graph);
                 } catch (Exception e) {
                     LDLib.LOGGER.error("Failed to deserialize event graph for %s".formatted(name), e);

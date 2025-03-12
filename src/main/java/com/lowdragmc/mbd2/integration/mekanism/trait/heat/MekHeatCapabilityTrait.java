@@ -22,7 +22,7 @@ import mekanism.common.util.CapabilityUtils;
 import mekanism.common.util.EnumUtils;
 import mekanism.common.util.WorldUtils;
 import net.minecraft.core.Direction;
-import net.minecraftforge.common.capabilities.Capability;
+import net.neoforged.common.capabilities.Capability;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;

@@ -7,42 +7,40 @@ import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib.gui.widget.SlotWidget;
 import com.lowdragmc.lowdraglib.gui.widget.Widget;
 import com.lowdragmc.lowdraglib.jei.IngredientIO;
-import com.lowdragmc.lowdraglib.misc.ItemStackTransfer;
 import com.lowdragmc.lowdraglib.utils.CycleItemStackHandler;
-import com.lowdragmc.lowdraglib.utils.TagOrCycleItemStackTransfer;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
-import com.lowdragmc.mbd2.api.recipe.content.SerializerIngredient;
-import com.lowdragmc.mbd2.api.recipe.ingredient.SizedIngredient;
-import com.lowdragmc.mbd2.core.mixins.IngredientAccessor;
-import com.lowdragmc.mbd2.core.mixins.ItemValueAccessor;
-import com.lowdragmc.mbd2.core.mixins.StrictNBTIngredientAccessor;
-import com.lowdragmc.mbd2.core.mixins.TagValueAccessor;
-import com.mojang.datafixers.util.Either;
-import com.mojang.datafixers.util.Pair;
+import com.lowdragmc.mbd2.api.recipe.content.SerializerSizedIngredient;
+import com.lowdragmc.mbd2.core.mixins.*;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderSet;
+import net.minecraft.core.component.DataComponentPredicate;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.ItemTags;
-import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.alchemy.PotionUtils;
+import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraftforge.common.crafting.StrictNBTIngredient;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.neoforge.common.crafting.DataComponentIngredient;
+import net.neoforged.neoforge.common.crafting.SizedIngredient;
 
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-public class ItemDurabilityRecipeCapability extends RecipeCapability<Ingredient> {
+public class ItemDurabilityRecipeCapability extends RecipeCapability<SizedIngredient> {
     public static final String VANILLA_TYPE = "recipe.capability.item.ingredient.type.vanilla";
-    public static final String NBT_TYPE = "recipe.capability.item.ingredient.type.nbt";
+    public static final String DATA_COMPONENT_TYPE = "recipe.capability.item.ingredient.type.data_component";
 
     public static final String ITEM_TYPE = "recipe.capability.item.ingredient.values.item";
     public static final String TAG_TYPE = "recipe.capability.item.ingredient.values.tag";
@@ -50,16 +48,16 @@ public class ItemDurabilityRecipeCapability extends RecipeCapability<Ingredient>
     public final static ItemDurabilityRecipeCapability CAP = new ItemDurabilityRecipeCapability();
 
     protected ItemDurabilityRecipeCapability() {
-        super("item_durability", SerializerIngredient.INSTANCE);
+        super("item_durability", SerializerSizedIngredient.INSTANCE);
     }
 
     @Override
-    public Ingredient createDefaultContent() {
-        return SizedIngredient.create(Ingredient.of(Items.FLINT_AND_STEEL));
+    public SizedIngredient createDefaultContent() {
+        return new SizedIngredient(Ingredient.of(Items.FLINT_AND_STEEL), 1);
     }
 
     @Override
-    public Widget createPreviewWidget(Ingredient content) {
+    public Widget createPreviewWidget(SizedIngredient content) {
         var transfer = new CycleItemStackHandler(List.of(Arrays.stream(content.getItems()).filter(ItemStack::isDamageableItem).toList()));
         return new SlotWidget(transfer, 0, 0, 0, false, false)
                 .setItemHook(stack -> {
@@ -89,35 +87,13 @@ public class ItemDurabilityRecipeCapability extends RecipeCapability<Ingredient>
     public void bindXEIWidget(Widget widget, Content content, IngredientIO ingredientIO) {
         if (widget instanceof SlotWidget slotWidget) {
             var ingredient = of(content.content);
-            final int amount;
-            var innerIngredient = ingredient;
-            if (ingredient instanceof SizedIngredient sizedIngredient) {
-                amount = sizedIngredient.getAmount();
-                innerIngredient = sizedIngredient.getInner();
-            } else {
-                amount = 1;
-            }
-            Either<List<Pair<TagKey<Item>, Integer>>, List<ItemStack>> either = null;
-            if (innerIngredient.isVanilla() && innerIngredient instanceof IngredientAccessor vanillaIngredient) {
-                // if all item tags
-                if (Arrays.stream(vanillaIngredient.getValues()).allMatch(Ingredient.TagValue.class::isInstance)) {
-                    either = Either.left(Arrays.stream(vanillaIngredient.getValues())
-                            .map(Ingredient.TagValue.class::cast)
-                            .map(TagValueAccessor.class::cast)
-                            .map(TagValueAccessor::getTag)
-                            .map(tagValue -> new Pair<>(tagValue, amount)).toList());
-                }
-            }
-            if (either == null) {
-                either = Either.right(Arrays.stream(ingredient.getItems()).filter(ItemStack::isDamageableItem).toList());
-            }
             if (slotWidget.getOverlay() == null || slotWidget.getOverlay() == IGuiTexture.EMPTY) {
                 slotWidget.setOverlay(content.createOverlay());
             } else {
                 var groupTexture = new GuiTextureGroup(slotWidget.getOverlay(), content.createOverlay());
                 slotWidget.setOverlay(groupTexture);
             }
-            slotWidget.setHandlerSlot(new TagOrCycleItemStackTransfer(List.of(either)), 0);
+            slotWidget.setHandlerSlot(new CycleItemStackHandler(List.of(Arrays.stream(ingredient.getItems()).toList())), 0);
             slotWidget.setIngredientIO(ingredientIO);
             slotWidget.setCanTakeItems(false);
             slotWidget.setCanPutItems(false);
@@ -131,61 +107,50 @@ public class ItemDurabilityRecipeCapability extends RecipeCapability<Ingredient>
                 stack.setDamageValue((int) (stack.getMaxDamage() * percentage));
                 return stack;
             });
-            slotWidget.setOnAddedTooltips((slot, tooltips) -> tooltips.add(Component.translatable("recipe.capability.item.ingredient.durability.content", amount)));
+            slotWidget.setOnAddedTooltips((slot, tooltips) -> tooltips.add(Component.translatable("recipe.capability.item.ingredient.durability.content", ingredient.count())));
         }
     }
 
     @Override
-    public void createContentConfigurator(ConfiguratorGroup father, Supplier<Ingredient> supplier, Consumer<Ingredient> onUpdate) {
-        // sized ingredient amount
-        father.addConfigurators(new NumberConfigurator("recipe.capability.item.ingredient.durability",
-                () -> supplier.get() instanceof SizedIngredient sizedIngredient ? sizedIngredient.getAmount() : 1,
-                number -> {
-                    var amount = number.intValue();
-                    var ingredient = supplier.get();
-                    if (ingredient instanceof SizedIngredient sizedIngredient) {
-                        onUpdate.accept(SizedIngredient.create(sizedIngredient.getInner(), amount));
-                    } else {
-                        onUpdate.accept(SizedIngredient.create(ingredient, amount));
-                    }
-                }, 1, true).setRange(1, Integer.MAX_VALUE));
-        // inner ingredient type
-        father.addConfigurators(new ConfiguratorSelectorConfigurator<>("recipe.capability.item.ingredient.type", false, () -> {
+    public void createContentConfigurator(ConfiguratorGroup father, Supplier<SizedIngredient> supplier, Consumer<SizedIngredient> onUpdate) {
+        BiConsumer<Ingredient, Integer> update = (ingredient, amount) -> onUpdate.accept(new SizedIngredient(ingredient, amount));
+        Runnable clearCache = () -> {
             var ingredient = supplier.get();
-            if (ingredient instanceof SizedIngredient sizedIngredient) {
-                return sizedIngredient.getInner();
-            }
-            return Ingredient.of(Items.FLINT_AND_STEEL);
-        }, ingredient -> {
-            var current = supplier.get();
-            if (current instanceof SizedIngredient sizedIngredient) {
-                sizedIngredient.updateInnerIngredient(ingredient);
-            } else {
-                onUpdate.accept(SizedIngredient.create(ingredient, 1));
-            }
-        }, Ingredient.of(Items.FLINT_AND_STEEL), true, List.of(
+            ((IngredientAccessor)(Object)ingredient.ingredient()).setItemStacks(null);
+            ((SizedIngredientAccessor)(Object)ingredient).setCachedStacks(null);
+        };
+        // sized ingredient durability
+        father.addConfigurators(new NumberConfigurator("recipe.capability.item.ingredient.durability",
+                () -> supplier.get().count(),
+                number -> update.accept(supplier.get().ingredient(), number.intValue()), 1, true).setRange(1, Integer.MAX_VALUE));
+        // inner ingredient type
+        father.addConfigurators(new ConfiguratorSelectorConfigurator<>("recipe.capability.item.ingredient.type", false, () -> supplier.get().ingredient(), ingredient -> {
+            update.accept(ingredient, supplier.get().count());
+        }, Ingredient.of(Items.IRON_INGOT), true, List.of(
                 // ingredient type candidates
-                Ingredient.of(Items.FLINT_AND_STEEL),
-                StrictNBTIngredient.of(PotionUtils.setPotion(Items.POTION.getDefaultInstance(), Potions.FIRE_RESISTANCE))), ingredient -> {
-            if (ingredient.isVanilla() && ingredient instanceof IngredientAccessor) {
+                Ingredient.of(Items.IRON_INGOT),
+                DataComponentIngredient.of(false, PotionContents.createItemStack(Items.POTION, Potions.FIRE_RESISTANCE))
+        ), ingredient -> {
+            if (!ingredient.isCustom()) {
                 return VANILLA_TYPE;
-            } else if (ingredient instanceof StrictNBTIngredient) {
-                return NBT_TYPE;
+            } else if (ingredient.getCustomIngredient() instanceof DataComponentIngredient) {
+                return DATA_COMPONENT_TYPE;
             }
             return VANILLA_TYPE;
         }, (ingredient, group) -> {
-            if (ingredient.isVanilla() && ingredient instanceof IngredientAccessor vanillaIngredient) {
+            if (!((Object)ingredient instanceof IngredientAccessor vanillaIngredient)) return;
+            if (!ingredient.isCustom()) {
                 // vanilla ingredient
                 var valuesGroup = new ArrayConfiguratorGroup<>("recipe.capability.item.ingredient.candidates", false, () -> {
-                    var values = vanillaIngredient.getValues();
+                    var values = ingredient.getValues();
                     return Arrays.stream(values).collect(Collectors.toList());
                 }, (getter, setter) -> {
                     // check values type
                     return new ConfiguratorSelectorConfigurator<>("recipe.capability.item.ingredient.values.type", false, getter, setter,
-                            new Ingredient.ItemValue(Items.FLINT_AND_STEEL.getDefaultInstance()), true,
+                            new Ingredient.ItemValue(Items.IRON_INGOT.getDefaultInstance()), true,
                             List.of(
                                     // values candidates
-                                    new Ingredient.ItemValue(Items.FLINT_AND_STEEL.getDefaultInstance()),
+                                    new Ingredient.ItemValue(Items.IRON_INGOT.getDefaultInstance()),
                                     new Ingredient.TagValue(ItemTags.COALS)),
                             value -> {
                                 if (value instanceof Ingredient.ItemValue) {
@@ -209,7 +174,7 @@ public class ItemDurabilityRecipeCapability extends RecipeCapability<Ingredient>
                                         itemHandler.updateStacks(List.of(value.getItems().stream().toList()));
                                         setter.accept(value);
                                     },
-                                    Items.FLINT_AND_STEEL, true));
+                                    Items.IRON_INGOT, true));
                         } else if (value instanceof TagValueAccessor tagValue) {
                             // tag value
                             valueGroup.addConfigurators(new SearchComponentConfigurator<>(TAG_TYPE,
@@ -218,11 +183,9 @@ public class ItemDurabilityRecipeCapability extends RecipeCapability<Ingredient>
                                 itemHandler.updateStacks(List.of(value.getItems().stream().toList()));
                                 setter.accept(value);
                             }, ItemTags.COALS.location(), true, (word, find) -> {
-                                var tags = ForgeRegistries.ITEMS.tags();
-                                if (tags == null) return;
-                                for (var tag : tags) {
+                                for (var tag : BuiltInRegistries.ITEM.getTagNames().toList()) {
                                     if (Thread.currentThread().isInterrupted()) return;
-                                    var tagKey = tag.getKey().location();
+                                    var tagKey = tag.location();
                                     if (tagKey.toString().toLowerCase().contains(word.toLowerCase())) {
                                         find.accept(tagKey);
                                     }
@@ -231,98 +194,95 @@ public class ItemDurabilityRecipeCapability extends RecipeCapability<Ingredient>
                         valueGroup.addConfigurators(new WrapperConfigurator("ldlib.gui.editor.group.preview", slot));
                     });
                 }, true);
-                valuesGroup.setAddDefault(() -> new Ingredient.ItemValue(Items.FLINT_AND_STEEL.getDefaultInstance()));
+                valuesGroup.setAddDefault(() -> new Ingredient.ItemValue(Items.IRON_INGOT.getDefaultInstance()));
                 valuesGroup.setOnAdd(value -> {
-                    var values = vanillaIngredient.getValues();
+                    var values = ingredient.getValues();
                     var newValues = Arrays.copyOf(values, values.length + 1);
                     newValues[values.length] = value;
                     vanillaIngredient.setValues(newValues);
-                    vanillaIngredient.setItemStacks(null);
-                    if (supplier.get() instanceof SizedIngredient sizedIngredient) {
-                        sizedIngredient.updateInnerIngredient(ingredient);
-                    }
+                    clearCache.run();
                 });
                 valuesGroup.setOnRemove(value -> {
-                    var values = vanillaIngredient.getValues();
+                    var values = ingredient.getValues();
                     var newValues = Arrays.stream(values).filter(v -> v != value).toArray(Ingredient.Value[]::new);
                     vanillaIngredient.setValues(newValues);
-                    vanillaIngredient.setItemStacks(null);
-                    if (supplier.get() instanceof SizedIngredient sizedIngredient) {
-                        sizedIngredient.updateInnerIngredient(ingredient);
-                    }
+                    clearCache.run();
                 });
                 valuesGroup.setOnUpdate(values -> {
                     vanillaIngredient.setValues(values.toArray(Ingredient.Value[]::new));
-                    vanillaIngredient.setItemStacks(null);
-                    if (supplier.get() instanceof SizedIngredient sizedIngredient) {
-                        sizedIngredient.updateInnerIngredient(ingredient);
-                    }
+                    clearCache.run();
                 });
                 group.addConfigurators(valuesGroup);
-            } else if (ingredient instanceof StrictNBTIngredientAccessor accessor) {
-                // nbt ingredient
-                var itemHandler = new ItemStackTransfer(accessor.getStack());
+            } else if (ingredient.getCustomIngredient() instanceof DataComponentIngredient) {
+                // preview
+                Supplier<DataComponentIngredient> getCustomIngredient = () -> (DataComponentIngredient) ingredient.getCustomIngredient();
+                var itemHandler = new CycleItemStackHandler(List.of(getCustomIngredient.get().getItems().toList()));
                 var slot = new SlotWidget(itemHandler, 0, 0, 0, false, false);
                 slot.setClientSideWidget();
-                Consumer<ItemStack> updateStack = stack -> {
-                    accessor.setStack(stack);
-                    itemHandler.setStackInSlot(0, stack);
-                    ((IngredientAccessor)accessor).setItemStacks(null);
-                    if (supplier.get() instanceof SizedIngredient sizedIngredient) {
-                        sizedIngredient.updateInnerIngredient(ingredient);
-                    }
+                Consumer<DataComponentIngredient> updateCustomIngredient = customIngredient -> {
+                    vanillaIngredient.setCustomIngredient(customIngredient);
+                    clearCache.run();
+                    itemHandler.updateStacks(List.of(customIngredient.getItems().toList()));
                 };
-                group.addConfigurators(new ItemConfigurator("id",
-                        () -> accessor.getStack().getItem(),
-                        item -> {
-                            var last = accessor.getStack();
-                            var tag = last.getTag();
-                            var count = last.getCount();
-                            var newStack = new ItemStack(item, Math.max(count, 1));
-                            newStack.setTag(tag);
-                            updateStack.accept(newStack);
-                        }, Items.AIR, true));
+
+                // strict
+                var strictConfigurator = new BooleanConfigurator("recipe.capability.item.ingredient.data_component.strict",
+                        () -> getCustomIngredient.get().isStrict(),
+                        strict -> {
+                            var previous = getCustomIngredient.get();
+                            updateCustomIngredient.accept(new DataComponentIngredient(previous.items(), previous.components(), strict));
+                        }, true, true);
+                strictConfigurator.setTips("recipe.capability.item.ingredient.data_component.strict.tips");
+
+                // items
+                var itemsConfigurator = new ArrayConfiguratorGroup<>("recipe.capability.item.ingredient.data_component.items", false,
+                        () -> getCustomIngredient.get().items().stream().toList(),
+                        (getter, setter) -> new ItemConfigurator("recipe.capability.item.ingredient.values.item", () -> getter.get().value(), Item::builtInRegistryHolder, Items.POTION, true), true);
+                itemsConfigurator.setAddDefault(() -> Items.POTION.builtInRegistryHolder());
+                itemsConfigurator.setOnAdd(value -> {
+                    var items = getCustomIngredient.get().items().stream().toArray(Holder[]::new);
+                    Holder<Item>[] newItems = Arrays.copyOf(items, items.length + 1);
+                    newItems[items.length] = value;
+                    updateCustomIngredient.accept(new DataComponentIngredient(HolderSet.direct(newItems), getCustomIngredient.get().components(), getCustomIngredient.get().isStrict()));
+                });
+                itemsConfigurator.setOnRemove(value -> {
+                    var items = getCustomIngredient.get().items().stream().filter(item -> !item.equals(value)).toArray(Holder[]::new);
+                    updateCustomIngredient.accept(new DataComponentIngredient(HolderSet.direct(items), getCustomIngredient.get().components(), getCustomIngredient.get().isStrict()));
+                });
+                itemsConfigurator.setOnUpdate(list -> updateCustomIngredient.accept(new DataComponentIngredient(HolderSet.direct(list), getCustomIngredient.get().components(), getCustomIngredient.get().isStrict())));
+
+                // data component
+                Field _x = null;
                 try {
-                    group.addConfigurators(new CompoundTagAccessor().create("ldlib.gui.editor.configurator.nbt",
-                            () -> accessor.getStack().hasTag() ? accessor.getStack().getTag() : new CompoundTag(),
-                            tag -> {
-                                var last = accessor.getStack();
-                                var item = last.getItem();
-                                var count = last.getCount();
-                                var newStack = new ItemStack(item, Math.max(count, 1));
-                                if (tag.isEmpty()) {
-                                    newStack.setTag(null);
-                                } else {
-                                    newStack.setTag(tag);
-                                }
-                                updateStack.accept(newStack);
-                            }, false, RecipeCapability.class.getField("name")));
-                } catch (Exception ignored) {
-                }
-                group.addConfigurators(new WrapperConfigurator("ldlib.gui.editor.group.preview", slot));
+                    _x = RecipeCapability.class.getDeclaredField("name");
+                } catch (NoSuchFieldException ignored) {}
+                var componentConfigurator = new CompoundTagAccessor().create("recipe.capability.item.ingredient.data_component.data_component",
+                        () -> DataComponentPredicate.CODEC.encodeStart(NbtOps.INSTANCE, getCustomIngredient.get().components())
+                                .result().map(CompoundTag.class::cast).orElseGet(CompoundTag::new),
+                        tag -> updateCustomIngredient.accept(new DataComponentIngredient(getCustomIngredient.get().items(),
+                                DataComponentPredicate.CODEC.parse(NbtOps.INSTANCE, tag).result().orElse(DataComponentPredicate.EMPTY),
+                                getCustomIngredient.get().isStrict())), false, _x);
+
+
+                group.addConfigurators(strictConfigurator, itemsConfigurator, componentConfigurator, new WrapperConfigurator("ldlib.gui.editor.group.preview", slot));
             }
         }));
     }
 
     @Override
-    public Component getLeftErrorInfo(List<Ingredient> left) {
+    public Component getLeftErrorInfo(List<SizedIngredient> left) {
         var result = Component.empty();
         for (int i = 0; i < left.size(); i++) {
             var ingredient = left.get(i);
-            var amount = 1;
-            if (ingredient instanceof SizedIngredient sizedIngredient) {
-                amount = sizedIngredient.getAmount();
-                ingredient = sizedIngredient.getInner();
-            }
-            result.append(amount + "x ");
+            result.append(ingredient.count() + "x ");
             var stacks = ingredient.getItems();
             if (stacks.length > 0) {
                 result.append(stacks[0].getDisplayName());
             } else {
                 result.append("Unknown");
             }
-            if (ingredient instanceof StrictNBTIngredient) {
-                result.append(" with NBT");
+            if (ingredient.ingredient().getCustomIngredient() instanceof DataComponentIngredient) {
+                result.append(" with DataComponent");
             }
             if (i < left.size() - 1) {
                 result.append(", ");

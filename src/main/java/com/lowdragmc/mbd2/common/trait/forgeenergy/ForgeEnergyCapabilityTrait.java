@@ -12,9 +12,9 @@ import com.lowdragmc.mbd2.common.trait.*;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.energy.IEnergyStorage;
+import net.neoforged.common.capabilities.Capability;
+import net.neoforged.common.capabilities.ForgeCapabilities;
+import net.neoforged.energy.IEnergyStorage;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;

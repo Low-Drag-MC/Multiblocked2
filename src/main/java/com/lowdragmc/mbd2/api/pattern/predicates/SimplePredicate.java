@@ -31,12 +31,13 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectArrayMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -101,11 +102,11 @@ public class SimplePredicate implements IAutoPersistedSerializable, IConfigurabl
         return IConfigurable.super.name();
     }
 
-    public static CompoundTag serializeWrapper(SimplePredicate predicate) {
-        return predicate.serializeNBT();
+    public static CompoundTag serializeWrapper(HolderLookup.Provider provider, SimplePredicate predicate) {
+        return predicate.serializeNBT(provider);
     }
 
-    public static SimplePredicate deserializeWrapper(CompoundTag tag) {
+    public static SimplePredicate deserializeWrapper(HolderLookup.Provider provider, CompoundTag tag) {
         var type = tag.getString("_type");
         if (type.equals("air")) {
             return AIR;
@@ -116,7 +117,7 @@ public class SimplePredicate implements IAutoPersistedSerializable, IConfigurabl
         var wrapper = MBDLDLibPlugin.REGISTER_PREDICATES.get(type);
         if (wrapper != null) {
             var renderer = wrapper.creator().get();
-            renderer.deserializeNBT(tag);
+            renderer.deserializeNBT(provider, tag);
             renderer.buildPredicate();
             return renderer;
         }
@@ -191,7 +192,7 @@ public class SimplePredicate implements IAutoPersistedSerializable, IConfigurabl
         if (!nbt.isEmpty() && !blockWorldState.world.isClientSide) {
             var te = blockWorldState.getTileEntity();
             if (te != null) {
-                var tag = te.saveWithFullMetadata();
+                var tag = te.saveWithFullMetadata(blockWorldState.world.registryAccess());
                 var merged = tag.copy().merge(nbt);
                 if (!tag.equals(merged)) {
                     blockWorldState.setError(new PatternStringError("The NBT fails to match"));
@@ -202,7 +203,7 @@ public class SimplePredicate implements IAutoPersistedSerializable, IConfigurabl
         if (!controllerNbt.isEmpty() && !blockWorldState.world.isClientSide) {
             var te = blockWorldState.getController().getHolder();
             if (te != null) {
-                var tag = te.saveWithFullMetadata();
+                var tag = te.saveWithFullMetadata(blockWorldState.world.registryAccess());
                 var merged = tag.copy().merge(controllerNbt);
                 if (!tag.equals(merged)) {
                     blockWorldState.setError(new PatternStringError("The Controller NBT fails to match"));

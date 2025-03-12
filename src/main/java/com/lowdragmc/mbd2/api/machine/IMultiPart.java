@@ -1,6 +1,5 @@
 package com.lowdragmc.mbd2.api.machine;
 
-import com.lowdragmc.mbd2.api.capability.MBDCapabilities;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeCapabilityHolder;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
@@ -18,9 +17,7 @@ import java.util.Optional;
 public interface IMultiPart extends IMachine {
 
     static Optional<IMultiPart> ofPart(@Nullable BlockEntity blockEntity) {
-        return blockEntity == null ? Optional.empty() : blockEntity.getCapability(MBDCapabilities.CAPABILITY_MACHINE).resolve()
-                .filter(IMultiPart.class::isInstance)
-                .map(IMultiPart.class::cast);
+        return IMachine.ofMachine(blockEntity).filter(IMultiPart.class::isInstance).map(IMultiPart.class::cast);
     }
 
     static Optional<IMultiPart> ofPart(@Nonnull BlockGetter level, @Nonnull BlockPos pos) {

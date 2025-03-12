@@ -123,10 +123,8 @@ public class MachineScenePanel extends WidgetGroup {
         if (previewMachine == null) return;
         var drawFrameLines = drawShapeFrameLines || drawRenderingBoxFrameLines;
         var poseStack = new PoseStack();
-        var tessellator = Tesselator.getInstance();
-        var buffer = tessellator.getBuilder();
-        var matrix4f = poseStack.last().pose();
-        var normal = poseStack.last().normal();
+        BufferBuilder buffer;
+        var pose = poseStack.last();
         if (drawFrameLines) {
 
             RenderSystem.enableBlend();
@@ -136,11 +134,13 @@ public class MachineScenePanel extends WidgetGroup {
             poseStack.pushPose();
             RenderSystem.disableCull();
             RenderSystem.setShader(GameRenderer::getRendertypeLinesShader);
-            buffer.begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
+            buffer = Tesselator.getInstance().begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
             RenderSystem.lineWidth(5);
+        } else {
+            buffer = null;
         }
 
-        if (drawShapeFrameLines) {
+        if (drawShapeFrameLines && buffer != null) {
             previewMachine.getMachineState().getShape(null).forAllEdges((x0, y0, z0, x1, y1, z1) -> {
                 float f = (float)(x1 - x0);
                 float f1 = (float)(y1 - y0);
@@ -149,12 +149,12 @@ public class MachineScenePanel extends WidgetGroup {
                 f /= f3;
                 f1 /= f3;
                 f2 /= f3;
-                buffer.vertex(matrix4f, (float)(x0), (float)(y0), (float)(z0)).color(-1).normal(normal, f, f1, f2).endVertex();
-                buffer.vertex(matrix4f, (float)(x1), (float)(y1), (float)(z1)).color(-1).normal(normal, f, f1, f2).endVertex();
+                buffer.addVertex(pose, (float)(x0), (float)(y0), (float)(z0)).setColor(-1).setNormal(pose, f, f1, f2);
+                buffer.addVertex(pose, (float)(x1), (float)(y1), (float)(z1)).setColor(-1).setNormal(pose, f, f1, f2);
             });
         }
 
-        if (drawRenderingBoxFrameLines) {
+        if (drawRenderingBoxFrameLines && buffer != null) {
             var aabb = previewMachine.getMachineState().getRenderingBox(null);
             if (aabb != null) {
                 var color = 0xffeedd00;
@@ -166,8 +166,7 @@ public class MachineScenePanel extends WidgetGroup {
         }
 
         if (drawFrameLines) {
-            tessellator.end();
-
+            BufferUploader.drawWithShader(buffer.buildOrThrow());
             poseStack.popPose();
             RenderSystem.enableDepthTest();
             RenderSystem.enableCull();

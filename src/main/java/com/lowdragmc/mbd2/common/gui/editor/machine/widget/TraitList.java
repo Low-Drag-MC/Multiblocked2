@@ -15,8 +15,8 @@ import com.lowdragmc.mbd2.common.gui.editor.MachineProject;
 import com.lowdragmc.mbd2.common.gui.editor.machine.MachineScenePanel;
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 import lombok.Getter;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 import javax.annotation.Nullable;
 

@@ -26,13 +26,13 @@ public class TagUtil {
     }
 
     public static <T> TagKey<T> createTag(Registry<T> registry, String path, boolean vanilla) {
-        if (vanilla) return optionalTag(registry, new ResourceLocation("minecraft", path));
-        return optionalTag(registry, new ResourceLocation("forge", path));
+        if (vanilla) return optionalTag(registry, ResourceLocation.fromNamespaceAndPath("minecraft", path));
+        return optionalTag(registry, ResourceLocation.fromNamespaceAndPath("forge", path));
     }
 
     public static <T> TagKey<T> createTag(ResourceKey<? extends Registry<T>> registryKey, String path, boolean vanilla) {
-        if (vanilla) return optionalTag(registryKey, new ResourceLocation("minecraft", path));
-        return optionalTag(registryKey, new ResourceLocation("forge", path));
+        if (vanilla) return optionalTag(registryKey, ResourceLocation.fromNamespaceAndPath("minecraft", path));
+        return optionalTag(registryKey, ResourceLocation.fromNamespaceAndPath("forge", path));
     }
 
     public static <T> TagKey<T> createModTag(Registry<T> registry, String path) {

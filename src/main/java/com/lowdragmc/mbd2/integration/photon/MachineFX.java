@@ -5,8 +5,8 @@ import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.photon.client.fx.FX;
 import com.lowdragmc.photon.client.fx.FXEffect;
 import com.lowdragmc.photon.client.gameobject.emitter.IParticleEmitter;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Vector3f;
 
 @OnlyIn(Dist.CLIENT)

@@ -8,7 +8,7 @@ import com.lowdragmc.mbd2.common.graphprocessor.GraphParameterGet;
 import com.lowdragmc.mbd2.common.graphprocessor.GraphParameterSet;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraftforge.eventbus.api.Cancelable;
+import net.neoforged.bus.api.ICancellableEvent;
 
 import java.util.Map;
 import java.util.Optional;
@@ -42,8 +42,7 @@ public class MachineRecipeModifyEvent extends MachineEvent {
     }
 
     @LDLRegister(name = "MachineRecipeModifyEvent.Before", group = "MachineEvent")
-    @Cancelable
-    public static class Before extends MachineRecipeModifyEvent {
+    public static class Before extends MachineRecipeModifyEvent implements ICancellableEvent {
         public Before(MBDMachine machine, MBDRecipe recipe) {
             super(machine, recipe);
         }

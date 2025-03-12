@@ -2,20 +2,23 @@ package com.lowdragmc.mbd2.api.pattern;
 
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
-import com.lowdragmc.lowdraglib.syncdata.ITagSerializable;
 import com.lowdragmc.lowdraglib.utils.BlockInfo;
 import com.lowdragmc.lowdraglib.utils.Builder;
 import com.lowdragmc.mbd2.utils.ControllerBlockInfo;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.common.util.INBTSerializable;
 
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -23,7 +26,9 @@ import java.util.function.Supplier;
 
 @Getter
 @Setter
-public class MultiblockShapeInfo implements IConfigurable, ITagSerializable<CompoundTag> {
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
+public class MultiblockShapeInfo implements IConfigurable, INBTSerializable<CompoundTag> {
 
     private BlockInfo[][][] blocks;
     @Configurable(name = "editor.machine.multiblock.multiblock_shape_info.description", tips = "editor.machine.multiblock.multiblock_shape_info.description.tips")
@@ -33,9 +38,9 @@ public class MultiblockShapeInfo implements IConfigurable, ITagSerializable<Comp
 
     }
 
-    public static MultiblockShapeInfo loadFromTag(CompoundTag tag) {
+    public static MultiblockShapeInfo loadFromTag(HolderLookup.Provider provider, CompoundTag tag) {
         var info = new MultiblockShapeInfo();
-        info.deserializeNBT(tag);
+        info.deserializeNBT(provider, tag);
         return info;
     }
 
@@ -53,7 +58,7 @@ public class MultiblockShapeInfo implements IConfigurable, ITagSerializable<Comp
     }
 
     @Override
-    public CompoundTag serializeNBT() {
+    public CompoundTag serializeNBT(HolderLookup.Provider provider) {
         var tag = new CompoundTag();
         tag.putInt("x", blocks.length);
         tag.putInt("y", blocks[0].length);
@@ -68,7 +73,7 @@ public class MultiblockShapeInfo implements IConfigurable, ITagSerializable<Comp
                         controllerTag.putString("facing", facing == null ? Direction.NORTH.getSerializedName() : facing.getSerializedName());
                         blocks.add(controllerTag);
                     } else {
-                        blocks.add(blockInfo.serializeNBT());
+                        blocks.add(blockInfo.serializeNBT(provider));
                     }
                 }
             }
@@ -83,7 +88,7 @@ public class MultiblockShapeInfo implements IConfigurable, ITagSerializable<Comp
     }
 
     @Override
-    public void deserializeNBT(CompoundTag tag) {
+    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
         var x = tag.getInt("x");
         var y = tag.getInt("y");
         var z = tag.getInt("z");
@@ -98,7 +103,7 @@ public class MultiblockShapeInfo implements IConfigurable, ITagSerializable<Comp
                         blocks[i][j][k] = controllerBlockInfo;
                     } else {
                         var blockInfo = new BlockInfo();
-                        blockInfo.deserializeNBT(blockInfoTag);
+                        blockInfo.deserializeNBT(provider, blockInfoTag);
                         blocks[i][j][k] = blockInfo;
                     }
                 }

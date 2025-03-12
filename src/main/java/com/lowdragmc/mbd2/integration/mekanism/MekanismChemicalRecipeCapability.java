@@ -30,10 +30,10 @@ import mekanism.api.chemical.slurry.Slurry;
 import mekanism.api.chemical.slurry.SlurryStack;
 import mekanism.common.registries.MekanismGases;
 import mekanism.common.registries.MekanismInfuseTypes;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.registries.IForgeRegistry;
+import net.neoforged.registries.IForgeRegistry;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -97,7 +97,7 @@ public class MekanismChemicalRecipeCapability<CHEMICAL extends Chemical<CHEMICAL
                                                Supplier<IForgeRegistry<CHEMICAL>> registry,
                                                BiFunction<CHEMICAL, Long, STACK> createStack,
                                                ChemicalTankBuilder<CHEMICAL, STACK, ? extends IChemicalTank<CHEMICAL, STACK>> tankBuilder,
-                                               Function<FriendlyByteBuf, STACK> readFromBuffer, Supplier<ChemicalTankWidget<CHEMICAL, STACK>> createTankWidget) {
+                                               Function<RegistryFriendlyByteBuf, STACK> readFromBuffer, Supplier<ChemicalTankWidget<CHEMICAL, STACK>> createTankWidget) {
         super(name, new ChemicalStackIContentSerializer<>(readFromBuffer, empty, registry, createStack));
         this.empty = empty;
         this.defaultChemical = defaultChemical;
@@ -209,23 +209,23 @@ public class MekanismChemicalRecipeCapability<CHEMICAL extends Chemical<CHEMICAL
     }
 
     private record ChemicalStackIContentSerializer<CHEMICAL extends Chemical<CHEMICAL>, STACK extends ChemicalStack<CHEMICAL>>(
-            Function<FriendlyByteBuf, STACK> readFromBuffer, CHEMICAL empty,
+            Function<RegistryFriendlyByteBuf, STACK> readFromBuffer, CHEMICAL empty,
             Supplier<IForgeRegistry<CHEMICAL>> registry,
             BiFunction<CHEMICAL, Long, STACK> createStack) implements IContentSerializer<STACK> {
 
         @Override
-        public void toNetwork(FriendlyByteBuf buf, STACK content) {
+        public void toNetwork(RegistryFriendlyByteBuf buf, STACK content) {
             content.writeToPacket(buf);
         }
 
         @Override
-        public STACK fromNetwork(FriendlyByteBuf buf) {
+        public STACK fromNetwork(RegistryFriendlyByteBuf buf) {
             return readFromBuffer.apply(buf);
         }
 
         @Override
         public STACK fromJson(JsonElement json) {
-            ResourceLocation type = new ResourceLocation(json.getAsJsonObject().get("type").getAsString());
+            ResourceLocation type = ResourceLocation.parse(json.getAsJsonObject().get("type").getAsString());
             long amount = json.getAsJsonObject().get("amount").getAsLong();
             CHEMICAL chemical = ChemicalUtils.readChemicalFromRegistry(type, empty, registry.get());
             return createStack.apply(chemical, amount);
@@ -249,14 +249,14 @@ public class MekanismChemicalRecipeCapability<CHEMICAL extends Chemical<CHEMICAL
                 int x = str.indexOf('x');
                 if (x > 0 && x < str.length() - 2 && str.charAt(x + 1) == ' ') {
                     try {
-                        var chemical = registry.get().getValue(new ResourceLocation(str.substring(x + 2)));
+                        var chemical = registry.get().getValue(ResourceLocation.parse(str.substring(x + 2)));
                         var amount = Long.parseLong(str.substring(0, x));
                         return createStack.apply(chemical, amount);
                     } catch (Exception ignore) {
                         throw new IllegalStateException("Invalid chemical input: " + str);
                     }
                 } else {
-                    return createStack.apply(registry.get().getValue(new ResourceLocation(str)), 1L);
+                    return createStack.apply(registry.get().getValue(ResourceLocation.parse(str)), 1L);
                 }
             }
             return (STACK) empty.getStack(0);

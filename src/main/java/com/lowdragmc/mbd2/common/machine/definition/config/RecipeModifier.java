@@ -7,7 +7,6 @@ import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorSelectorConfigurator;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
-import com.lowdragmc.lowdraglib.syncdata.ITagSerializable;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
@@ -15,9 +14,12 @@ import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.mojang.datafixers.util.Pair;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
+import net.neoforged.neoforge.common.util.INBTSerializable;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -37,33 +39,29 @@ public class RecipeModifier implements IConfigurable, IPersistedSerializable {
     public final List<RecipeCondition> recipeConditions = new ArrayList<>();
     @Configurable(name = "config.machine_settings.max_parallel", subConfigurable = true, tips = "config.machine_settings.max_parallel.tooltip", collapse = false)
     @NumberRange(range = {1, Integer.MAX_VALUE})
-    private ContentModifier maxParallel = ContentModifier.identity();
+    public final ContentModifier maxParallel = ContentModifier.identity();
 
     @Override
-    public CompoundTag serializeNBT() {
-        var tag = IPersistedSerializable.super.serializeNBT();
+    public CompoundTag serializeNBT(HolderLookup.Provider provider) {
+        var tag = IPersistedSerializable.super.serializeNBT(provider);
         ListTag conditions = new ListTag();
         for (RecipeCondition condition : recipeConditions) {
-            CompoundTag conditionTag = new CompoundTag();
-            conditionTag.putString("type", MBDRegistries.RECIPE_CONDITIONS.getKey(condition.getClass()));
-            conditionTag.put("data", condition.toNBT());
-            conditions.add(conditionTag);
+            conditions.add(RecipeCondition.CODEC.encodeStart(NbtOps.INSTANCE, condition).getOrThrow());
         }
         tag.put("recipeConditions", conditions);
         return tag;
     }
 
     @Override
-    public void deserializeNBT(CompoundTag tag) {
-        IPersistedSerializable.super.deserializeNBT(tag);
+    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
+        IPersistedSerializable.super.deserializeNBT(provider, tag);
         recipeConditions.clear();
         ListTag conditions = tag.getList("recipeConditions", Tag.TAG_COMPOUND);
         for (int i = 0; i < conditions.size(); i++) {
             CompoundTag conditionTag = conditions.getCompound(i);
-            var condition = RecipeCondition.create(MBDRegistries.RECIPE_CONDITIONS.get(conditionTag.getString("type")));
-            if (condition != null) {
-                condition.fromNBT(conditionTag.getCompound("data"));
-                recipeConditions.add(condition);
+            var condition = RecipeCondition.CODEC.parse(NbtOps.INSTANCE, conditionTag).result();
+            if (condition.isPresent()) {
+                recipeConditions.add(condition.get());
             }
         }
     }
@@ -75,9 +73,9 @@ public class RecipeModifier implements IConfigurable, IPersistedSerializable {
                 () -> recipeConditions, (getter, setter) -> new ConfiguratorSelectorConfigurator<>("config.recipe.recipe_condition.type", false,
                 () -> getter.get().getType(), type -> {
             var current = getter.get();
-            var condition = RecipeCondition.create(MBDRegistries.RECIPE_CONDITIONS.get(type));
+            var condition = MBDRegistries.RECIPE_CONDITIONS.get(type);
             if (condition != null) {
-                recipeConditions.set(recipeConditions.indexOf(current), condition);
+                recipeConditions.set(recipeConditions.indexOf(current), condition.copy());
             }
         }, "rain", true, MBDRegistries.RECIPE_CONDITIONS.registry().keySet().stream().toList(),
                 String::toString, (type, container) -> {
@@ -85,7 +83,7 @@ public class RecipeModifier implements IConfigurable, IPersistedSerializable {
             current.buildConfigurator(container);
         }), true);
         conditions.setTips("config.recipe.recipe_conditions.tooltip");
-        conditions.setAddDefault(() -> RecipeCondition.create(MBDRegistries.RECIPE_CONDITIONS.get("rain")));
+        conditions.setAddDefault(() -> MBDRegistries.RECIPE_CONDITIONS.get("rain").copy());
         conditions.setOnAdd(recipeConditions::add);
         conditions.setOnRemove(recipeConditions::remove);
         conditions.setOnUpdate(list -> {
@@ -95,24 +93,24 @@ public class RecipeModifier implements IConfigurable, IPersistedSerializable {
         father.addConfigurators(conditions);
     }
 
-    public static class RecipeModifiers implements ITagSerializable<ListTag>, IConfigurable {
+    public static class RecipeModifiers implements INBTSerializable<ListTag>, IConfigurable {
         public final List<RecipeModifier> recipeModifiers = new ArrayList<>();
 
         @Override
-        public ListTag serializeNBT() {
+        public ListTag serializeNBT(HolderLookup.Provider provider) {
             var modifiers = new ListTag();
             for (RecipeModifier modifier : recipeModifiers) {
-                modifiers.add(modifier.serializeNBT());
+                modifiers.add(modifier.serializeNBT(provider));
             }
             return modifiers;
         }
 
         @Override
-        public void deserializeNBT(ListTag modifiers) {
+        public void deserializeNBT(HolderLookup.Provider provider, ListTag modifiers) {
             recipeModifiers.clear();
             for (int i = 0; i < modifiers.size(); i++) {
                 var modifier = new RecipeModifier();
-                modifier.deserializeNBT(modifiers.getCompound(i));
+                modifier.deserializeNBT(provider, modifiers.getCompound(i));
                 recipeModifiers.add(modifier);
             }
         }
