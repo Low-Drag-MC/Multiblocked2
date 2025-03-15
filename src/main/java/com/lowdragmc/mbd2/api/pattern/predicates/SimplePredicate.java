@@ -80,6 +80,8 @@ public class SimplePredicate implements IAutoPersistedSerializable, IConfigurabl
     public ToggleDirection controllerFront = new ToggleDirection();
     @Configurable(name = "config.block_pattern.predicate.tooltips", tips = "config.block_pattern.predicate.tooltips.tooltip", collapse = false)
     public final List<Component> toolTips = new ArrayList<>();
+    @Configurable(name = "config.block_pattern.predicate.allowOpenUI", tips = "config.block_pattern.predicate.allowOpenUI.tooltip")
+    public boolean allowOpenUI = true;
 
     protected SimplePredicate() {
         this(x -> true, null);
@@ -227,6 +229,9 @@ public class SimplePredicate implements IAutoPersistedSerializable, IConfigurabl
         }
         if (disableRenderFormed) {
             blockWorldState.getMatchContext().getOrCreate("renderMask", LongOpenHashSet::new).add(blockWorldState.getPos().asLong());
+        }
+        if (allowOpenUI) {
+            blockWorldState.getMatchContext().getOrCreate("openUIMask", LongOpenHashSet::new).add(blockWorldState.getPos().asLong());
         }
         return true;
     }
