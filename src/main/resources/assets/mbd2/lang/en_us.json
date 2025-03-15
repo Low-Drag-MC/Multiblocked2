@@ -643,7 +643,7 @@
     "config.block_pattern.predicate.nbt.tooltip": "match nbt.",
     "config.block_pattern.predicate.controller_nbt": "controller NBT",
     "config.block_pattern.predicate.controller_nbt.tooltip": "match controller nbt.",
-    "config.block_pattern.predicate.allowOpenUI": "open UI on right click.",
+    "config.block_pattern.predicate.allowOpenUI": "open UI on right click",
     "config.block_pattern.predicate.allowOpenUI.tooltip.0": "if 'show UI when click structure' is on, should this block be able to open the UI.",
     "config.block_pattern.predicate.allowOpenUI.tooltip.1": "disable if this block has click interaction, and opens the UI instead.",
     "config.predicate.blocks": "blocks",

@@ -80,7 +80,7 @@ public class SimplePredicate implements IAutoPersistedSerializable, IConfigurabl
     public ToggleDirection controllerFront = new ToggleDirection();
     @Configurable(name = "config.block_pattern.predicate.tooltips", tips = "config.block_pattern.predicate.tooltips.tooltip", collapse = false)
     public final List<Component> toolTips = new ArrayList<>();
-    @Configurable(name = "config.block_pattern.predicate.allowOpenUI.0", tips = { "config.block_pattern.predicate.allowOpenUI.tooltip", "config.block_pattern.predicate.allowOpenUI.tooltip.1" })
+    @Configurable(name = "config.block_pattern.predicate.allowOpenUI", tips = { "config.block_pattern.predicate.allowOpenUI.tooltip.0", "config.block_pattern.predicate.allowOpenUI.tooltip.1" })
     public boolean allowOpenUI = true;
 
     protected SimplePredicate() {
