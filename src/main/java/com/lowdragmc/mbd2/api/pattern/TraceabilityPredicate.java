@@ -157,8 +157,8 @@ public class TraceabilityPredicate {
      * Set renderMask.
      */
     public TraceabilityPredicate disableRenderFormed() {
-        common.forEach(predicate -> predicate.disableRenderFormed = true);
-        limited.forEach(predicate -> predicate.disableRenderFormed = true);
+        common.forEach(predicate -> predicate.disableRenderFormed.setEnable(true));
+        limited.forEach(predicate -> predicate.disableRenderFormed.setEnable(true));
         return this;
     }
 
