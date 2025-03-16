@@ -38,6 +38,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
@@ -315,8 +316,8 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
         this.parts.clear();
         this.renderingDisabledPositions.clear();
         // disable rendering for formed parts
-        LongSet disabled = getMultiblockState().getMatchContext().getOrDefault("renderMask", LongSets.EMPTY_SET);
-        for (var pos : disabled) {
+        HashMap<Long, Block> disabled = getMultiblockState().getMatchContext().getOrDefault("renderMask", new HashMap<>());
+        for (var pos : disabled.keySet()) {
             var blockPos = BlockPos.of(pos);
             renderingDisabledPositions.add(blockPos);
             // if it not a part, replace it with the proxy part block
@@ -326,7 +327,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
                     // setup proxy part block with correct machine
                     proxyPartBlockEntity.setControllerData(this.getPos());
                 } else {
-                    ProxyPartBlock.replaceOriginalBlock(this.getPos(), getLevel(), blockPos);
+                    ProxyPartBlock.replaceOriginalBlock(this.getPos(), getLevel(), blockPos, disabled.get(pos));
                 }
             }
         }

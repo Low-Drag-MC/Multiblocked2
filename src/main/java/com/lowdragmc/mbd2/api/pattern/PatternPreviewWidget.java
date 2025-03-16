@@ -239,12 +239,11 @@ public class PatternPreviewWidget extends WidgetGroup {
         Stream<BlockPos> stream = pattern.blockMap.keySet().stream()
                 .filter(pos -> layer == -1 || layer + pattern.minY == pos.getY());
         if (pattern.controllerBase.isFormed()) {
-            LongSet set = pattern.controllerBase.getMultiblockState().getMatchContext().getOrDefault("renderMask",
-                    LongSets.EMPTY_SET);
-            Set<BlockPos> modelDisabled = set.stream().map(BlockPos::of).collect(Collectors.toSet());
+            HashMap modelDisabled = pattern.controllerBase.getMultiblockState().getMatchContext().getOrDefault("renderMask",
+                    new HashMap<>());
             if (!modelDisabled.isEmpty()) {
                 sceneWidget.setRenderedCore(
-                        stream.filter(pos -> !modelDisabled.contains(pos)).collect(Collectors.toList()), null);
+                        stream.filter(pos -> !modelDisabled.containsKey(pos.asLong())).collect(Collectors.toList()), null);
             } else {
                 sceneWidget.setRenderedCore(stream.toList(), null);
             }
@@ -432,12 +431,11 @@ public class PatternPreviewWidget extends WidgetGroup {
             controllerBase.onStructureFormed();
         }
         if (controllerBase.isFormed()) {
-            LongSet set = controllerBase.getMultiblockState().getMatchContext().getOrDefault("renderMask",
-                    LongSets.EMPTY_SET);
-            Set<BlockPos> modelDisabled = set.stream().map(BlockPos::of).collect(Collectors.toSet());
+            HashMap modelDisabled = controllerBase.getMultiblockState().getMatchContext().getOrDefault("renderMask",
+                    new HashMap<>());
             if (!modelDisabled.isEmpty()) {
                 sceneWidget.setRenderedCore(
-                        poses.stream().filter(pos -> !modelDisabled.contains(pos)).collect(Collectors.toList()), null);
+                        poses.stream().filter(pos -> !modelDisabled.containsKey(pos.asLong())).collect(Collectors.toList()), null);
             } else {
                 sceneWidget.setRenderedCore(poses, null);
             }
