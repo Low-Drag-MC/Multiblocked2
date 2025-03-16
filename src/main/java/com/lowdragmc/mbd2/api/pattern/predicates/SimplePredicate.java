@@ -16,6 +16,7 @@ import com.lowdragmc.lowdraglib.gui.widget.SceneWidget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.lowdraglib.syncdata.IAutoPersistedSerializable;
 import com.lowdragmc.lowdraglib.utils.TrackedDummyWorld;
+import com.lowdragmc.mbd2.api.block.ProxyPartBlock;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.pattern.MultiblockState;
 import com.lowdragmc.mbd2.api.pattern.TraceabilityPredicate;
@@ -25,6 +26,7 @@ import com.lowdragmc.lowdraglib.LDLib;
 import com.lowdragmc.lowdraglib.utils.BlockInfo;
 import com.lowdragmc.mbd2.common.gui.editor.MultiblockMachineProject;
 import com.lowdragmc.mbd2.common.gui.editor.multiblock.MultiblockPatternPanel;
+import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleBlock;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleDirection;
 import com.lowdragmc.mbd2.integration.ldlib.MBDLDLibPlugin;
 import it.unimi.dsi.fastutil.longs.Long2ObjectArrayMap;
@@ -34,6 +36,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -68,6 +71,8 @@ public class SimplePredicate implements IAutoPersistedSerializable, IConfigurabl
     public int previewCount = -1;
     @Configurable(name = "config.block_pattern.predicate.disableRenderFormed", tips = "config.block_pattern.predicate.disableRenderFormed.tooltip")
     public boolean disableRenderFormed = false;
+    @Configurable(name = "config.block_pattern.predicate.replaceBlock", tips = "config.block_pattern.predicate.replaceBlock.tooltip")
+    public ToggleBlock replaceBlock = new ToggleBlock();
     @Configurable(name = "config.block_pattern.predicate.io", tips = "config.block_pattern.predicate.io.tooltip")
     public IO io = IO.BOTH;
     @Configurable(name = "config.block_pattern.predicate.slotName", tips = "config.block_pattern.predicate.slotName.tooltip")
@@ -226,7 +231,10 @@ public class SimplePredicate implements IAutoPersistedSerializable, IConfigurabl
             return true;
         }
         if (disableRenderFormed) {
-            blockWorldState.getMatchContext().getOrCreate("renderMask", LongOpenHashSet::new).add(blockWorldState.getPos().asLong());
+            if(replaceBlock.isEnable()) {
+                blockWorldState.getMatchContext().getOrCreate("renderMask", HashMap<Long, Block>::new).put(blockWorldState.getPos().asLong(), replaceBlock.getValue());
+            }
+            else blockWorldState.getMatchContext().getOrCreate("renderMask", HashMap<Long, Block>::new).put(blockWorldState.getPos().asLong(), ProxyPartBlock.BLOCK);
         }
         return true;
     }
