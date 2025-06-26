@@ -4,7 +4,6 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
-import com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
@@ -97,14 +96,13 @@ public class MultiblockWorldSavedData extends SavedData {
 
     /**
      * add a async logic runnable
-     * @param controller controller
+     * @param multiStructure controller
      */
-    public void addAsyncLogic(IMultiController controller) {
-        if (controller instanceof MBDMultiblockMachine machine) {
-            // if it requires catalyst, don't add it to async logic.
-            if (machine.getDefinition().multiblockSettings().catalyst().isEnable()) return;
+    public void addAsyncLogic(IMultiController multiStructure) {
+        if (!multiStructure.supportAsyncPatternChecking()) {
+            return;
         }
-        controllers.add(controller);
+        controllers.add(multiStructure);
         createExecutorService();
     }
 

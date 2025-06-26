@@ -7,6 +7,7 @@ import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
 import com.lowdragmc.mbd2.api.machine.IMultiPart;
+import com.lowdragmc.mbd2.api.machine.IMultiPartMachine;
 import com.lowdragmc.mbd2.api.pattern.BlockPattern;
 import com.lowdragmc.mbd2.api.pattern.MultiblockShapeInfo;
 import com.lowdragmc.mbd2.common.gui.editor.MultiblockMachineProject;
@@ -173,7 +174,7 @@ public class MultiblockMachineDefinition extends MBDMachineDefinition {
                     if (atIndex != -1) {
                         var traitName = id.substring(prefix.length(), atIndex);
                         var uiName = "ui:" + id.substring(atIndex + midTag.length());
-                        for (IMultiPart part : multiblock.getParts()) {
+                        for (IMultiPartMachine part : multiblock.getPartMachines()) {
                             if (part instanceof MBDMachine mbdMachine) {
                                 var trait = mbdMachine.getTraitByName(traitName);
                                 if (trait != null && trait.getDefinition() instanceof IUIProviderTrait provider && uiName.startsWith(provider.uiPrefixName())) {

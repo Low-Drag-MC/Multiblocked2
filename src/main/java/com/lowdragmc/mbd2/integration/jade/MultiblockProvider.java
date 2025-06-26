@@ -1,7 +1,7 @@
 package com.lowdragmc.mbd2.integration.jade;
 
 import com.lowdragmc.mbd2.MBD2;
-import com.lowdragmc.mbd2.api.machine.IMultiController;
+import com.lowdragmc.mbd2.api.machine.IMultiControllerMachine;
 import com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -19,7 +19,7 @@ import java.util.List;
 public class MultiblockProvider implements IBlockComponentProvider {
     @Override
     public void appendTooltip(ITooltip tooltip, BlockAccessor blockAccessor, IPluginConfig config) {
-        IMultiController.ofController(blockAccessor.getBlockEntity()).ifPresent(controller -> {
+        IMultiControllerMachine.ofControllerMachine(blockAccessor.getBlockEntity()).ifPresent(controller -> {
             if (controller.isFormed()) return;
             tooltip.add(Component.translatable("multiblock.unformed"));
             if (controller instanceof MBDMultiblockMachine mbdMachine && mbdMachine.getDefinition().multiblockSettings().catalyst().isEnable()) {

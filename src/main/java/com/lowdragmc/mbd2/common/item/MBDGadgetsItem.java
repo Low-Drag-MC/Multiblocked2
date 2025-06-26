@@ -8,7 +8,7 @@ import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
 import com.lowdragmc.lowdraglib.gui.widget.SearchComponentWidget;
 import com.lowdragmc.mbd2.api.machine.IMachine;
-import com.lowdragmc.mbd2.api.machine.IMultiController;
+import com.lowdragmc.mbd2.api.machine.IMultiControllerMachine;
 import com.lowdragmc.mbd2.api.pattern.MultiblockState;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
@@ -135,7 +135,7 @@ public class MBDGadgetsItem extends Item implements HeldItemUIFactory.IHeldItemU
         var player = context.getPlayer();
         if (player instanceof ServerPlayer serverPlayer && !serverPlayer.isCrouching()) {
             if (isMultiblockBuilder(stack)) {
-                var controller = IMultiController.ofController(player.level(), context.getClickedPos()).orElse(null);
+                var controller = IMultiControllerMachine.ofControllerMachine(player.level(), context.getClickedPos()).orElse(null);
                 if (controller != null) {
                     controller.getPattern().autoBuild(player,
                             new MultiblockState(player.level(), context.getClickedPos()));
@@ -143,7 +143,7 @@ public class MBDGadgetsItem extends Item implements HeldItemUIFactory.IHeldItemU
                     return InteractionResult.SUCCESS;
                 }
             } else if (isMultiblockDebugger(stack)) {
-                var controller = IMultiController.ofController(player.level(), context.getClickedPos()).orElse(null);
+                var controller = IMultiControllerMachine.ofControllerMachine(player.level(), context.getClickedPos()).orElse(null);
                 if (controller != null) {
                     if (controller.isFormed()) {
                         serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.multiblock_debugger.is_formed"));

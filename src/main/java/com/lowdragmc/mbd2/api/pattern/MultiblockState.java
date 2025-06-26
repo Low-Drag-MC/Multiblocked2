@@ -2,7 +2,6 @@ package com.lowdragmc.mbd2.api.pattern;
 
 import com.lowdragmc.mbd2.api.block.ProxyPartBlock;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
-import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
 import com.lowdragmc.mbd2.api.pattern.error.PatternError;
 import com.lowdragmc.mbd2.api.pattern.error.PatternStringError;
@@ -82,9 +81,9 @@ public class MultiblockState {
 
     public IMultiController getController() {
         if (world.isLoaded(controllerPos)) {
-            var machineOptional = IMachine.ofMachine(world, controllerPos);
-            if (machineOptional.isPresent() && machineOptional.get() instanceof IMultiController controller) {
-                return lastController = controller;
+            var machineOptional = IMultiController.ofController(world, controllerPos);
+            if (machineOptional.isPresent()) {
+                return lastController = machineOptional.get();
             }
         } else {
             error = UNLOAD_ERROR;
@@ -171,17 +170,8 @@ public class MultiblockState {
                     // ignore if it's internal structure forming or invaliding
                     return;
                 }
-                IMultiController controller = getController();
+                var controller = getController();
                 if (controller != null) {
-                    // TODO vaBlocks
-//                    if (controller.isFormed() && state.getBlock() instanceof ActiveBlock) {
-//                        LongSet activeBlocks = getMatchContext().getOrDefault("vaBlocks", LongSets.emptySet());
-//                        if (activeBlocks.contains(pos.asLong())) {
-//                            // fine! it's caused by active blocks.
-//                            // speed up here!
-//                            return;
-//                        }
-//                    }
                     if (controller.checkPatternWithLock()) {
                         // refresh structure
                         isInternalStructureForming = true;

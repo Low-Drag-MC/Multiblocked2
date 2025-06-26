@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.common.machine;
 
+import com.google.common.collect.ImmutableList;
 import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib.syncdata.annotation.RequireRerender;
@@ -11,9 +12,7 @@ import com.lowdragmc.mbd2.api.blockentity.ProxyPartBlockEntity;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeCapabilityHolder;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeHandlerSlotsProxy;
-import com.lowdragmc.mbd2.api.machine.IMachine;
-import com.lowdragmc.mbd2.api.machine.IMultiController;
-import com.lowdragmc.mbd2.api.machine.IMultiPart;
+import com.lowdragmc.mbd2.api.machine.*;
 import com.lowdragmc.mbd2.api.pattern.BlockPattern;
 import com.lowdragmc.mbd2.api.pattern.MultiblockState;
 import com.lowdragmc.mbd2.api.pattern.MultiblockWorldSavedData;
@@ -49,7 +48,7 @@ import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class MBDMultiblockMachine extends MBDMachine implements IMultiController {
+public class MBDMultiblockMachine extends MBDMachine implements IMultiControllerMachine {
     protected static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(MBDMultiblockMachine.class, MBDMachine.MANAGED_FIELD_HOLDER);
     @Override
     public ManagedFieldHolder getFieldHolder() {
@@ -136,7 +135,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
      */
     @Override
     public void notifyRecipeStatusChanged(RecipeLogic.Status oldStatus, RecipeLogic.Status newStatus) {
-        IMultiController.super.notifyRecipeStatusChanged(oldStatus, newStatus);
+        IMultiControllerMachine.super.notifyRecipeStatusChanged(oldStatus, newStatus);
         if (isFormed) {
             switch (newStatus) {
                 case WORKING -> setMachineState("working");
@@ -152,19 +151,19 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
 
     @Override
     public @Nullable MBDRecipe getModifiedRecipe(@Nonnull MBDRecipe recipe) {
-        return IMultiController.super.getModifiedRecipe(
+        return IMultiControllerMachine.super.getModifiedRecipe(
                 getDefinition().recipeLogicSettings().recipeModifiers().applyModifiers(getRecipeLogic(), recipe));
     }
 
     @Override
     public ContentModifier getMaxParallel(@Nonnull MBDRecipe recipe) {
         var maxParallel = getDefinition().recipeLogicSettings().recipeModifiers().getMaxParallel(getRecipeLogic(), recipe);
-        return maxParallel.merge(IMultiController.super.getMaxParallel(recipe));
+        return maxParallel.merge(IMultiControllerMachine.super.getMaxParallel(recipe));
     }
 
     @Override
     public boolean alwaysTryModifyRecipe() {
-        return super.alwaysTryModifyRecipe() || IMultiController.super.alwaysTryModifyRecipe();
+        return super.alwaysTryModifyRecipe() || IMultiControllerMachine.super.alwaysTryModifyRecipe();
     }
 
     @Override
@@ -172,7 +171,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
         if (super.beforeWorking(recipe)) {
             return true;
         }
-        return IMultiController.super.beforeWorking(recipe);
+        return IMultiControllerMachine.super.beforeWorking(recipe);
     }
 
     @Override
@@ -180,19 +179,19 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
         if (super.onWorking()) {
             return true;
         }
-        return IMultiController.super.onWorking();
+        return IMultiControllerMachine.super.onWorking();
     }
 
     @Override
     public void onWaiting() {
         super.onWaiting();
-        IMultiController.super.onWaiting();
+        IMultiControllerMachine.super.onWaiting();
     }
 
     @Override
     public void afterWorking() {
         super.afterWorking();
-        IMultiController.super.afterWorking();
+        IMultiControllerMachine.super.afterWorking();
     }
 
     /**
@@ -224,18 +223,22 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
     protected void onPartsUpdated(BlockPos[] newValue, BlockPos[] oldValue) {
         parts.clear();
         for (var pos : newValue) {
-            IMultiPart.ofPart(getLevel(), pos).ifPresent(parts::add);
+            IMultiPartMachine.ofPartMachine(getLevel(), pos).ifPresent(parts::add);
         }
     }
 
     protected void updatePartPositions() {
-        this.partPositions = this.parts.isEmpty() ? new BlockPos[0] : this.parts.stream().map(IMachine::getPos).toArray(BlockPos[]::new);
+        this.partPositions = this.parts.isEmpty() ? new BlockPos[0] : this.parts.stream().map(IMultiPart::getPos).toArray(BlockPos[]::new);
     }
 
     /**
      * Get all parts
      */
     @Override
+    public List<IMultiPartMachine> getPartMachines() {
+        return getParts().stream().map(IMultiPartMachine.class::cast).toList();
+    }
+
     public List<IMultiPart> getParts() {
         // for the client side, when the chunk unloaded
         if (parts.size() != this.partPositions.length) {
@@ -244,7 +247,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
                 IMultiPart.ofPart(getLevel(), pos).ifPresent(parts::add);
             }
         }
-        return this.parts;
+        return ImmutableList.copyOf(parts);
     }
 
     public void setFormed(boolean formed) {
@@ -276,7 +279,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
             var capabilitiesProxy = getRecipeCapabilitiesProxy();
             Map<Long, IO> ioMap = getMultiblockState().getMatchContext().getOrCreate("ioMap", Long2ObjectMaps::emptyMap);
             Map<Long, Set<String>> slots = getMultiblockState().getMatchContext().getOrDefault("slots", Long2ObjectMaps.emptyMap());
-            for (IMultiPart part : getParts()) {
+            for (IMultiPartMachine part : getPartMachines()) {
                 IO io = ioMap.getOrDefault(part.getPos().asLong(), IO.BOTH);
                 Set<String> slotNames = slots.getOrDefault(part.getPos().asLong(), Collections.emptySet());
                 if (io == IO.NONE) continue;
@@ -320,7 +323,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
             var blockPos = BlockPos.of(pos);
             renderingDisabledPositions.add(blockPos);
             // if it not a part, replace it with the proxy part block
-            if (IMultiPart.ofPart(getLevel(), blockPos).isEmpty()) {
+            if (IMultiPartMachine.ofPartMachine(getLevel(), blockPos).isEmpty()) {
                 // do not replace the proxy part block
                 if (getLevel().getBlockEntity(blockPos) instanceof ProxyPartBlockEntity proxyPartBlockEntity) {
                     // setup proxy part block with correct machine
@@ -331,7 +334,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
             }
         }
         Set<IMultiPart> set = getMultiblockState().getMatchContext().getOrCreate("parts", Collections::emptySet);
-        for (IMultiPart part : set) {
+        for (var part : set) {
             if (shouldAddPartToController(part)) {
                 this.parts.add(part);
             }
@@ -365,7 +368,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
         // reset recipe Logic
         getRecipeLogic().resetRecipeLogic();
         // clear parts
-        for (IMultiPart part : parts) {
+        for (var part : parts) {
             part.removedFromController(this);
         }
         this.parts.clear();
@@ -394,12 +397,17 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
      */
     @Override
     public void onPartUnload() {
-        parts.removeIf(IMachine::isInValid);
+        parts.removeIf(IBlockEntityOwner::isInValid);
         getMultiblockState().setError(MultiblockState.UNLOAD_ERROR);
         if (getLevel() instanceof ServerLevel serverLevel) {
             MultiblockWorldSavedData.getOrCreate(serverLevel).addAsyncLogic(this);
         }
         updatePartPositions();
+    }
+
+    @Override
+    public boolean supportAsyncPatternChecking() {
+        return !getDefinition().multiblockSettings().catalyst().isEnable();
     }
 
     /**

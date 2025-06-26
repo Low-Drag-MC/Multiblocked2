@@ -8,7 +8,6 @@ import com.lowdragmc.lowdraglib.gui.widget.*;
 import com.lowdragmc.lowdraglib.jei.IngredientIO;
 import com.lowdragmc.lowdraglib.utils.*;
 import com.lowdragmc.mbd2.MBD2;
-import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
 import com.lowdragmc.mbd2.api.pattern.predicates.SimplePredicate;
 import com.lowdragmc.mbd2.common.block.MBDMachineBlock;
@@ -31,7 +30,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
@@ -302,7 +300,7 @@ public class PatternPreviewWidget extends WidgetGroup {
 
     private void onFormedSwitch(boolean isFormed) {
         MBPattern pattern = patterns[index];
-        IMultiController controllerBase = pattern.controllerBase;
+        var controllerBase = pattern.controllerBase;
         if (isFormed) {
             this.layer = -1;
             loadControllerFormed(pattern.blockMap.keySet(), controllerBase);
@@ -392,9 +390,9 @@ public class PatternPreviewWidget extends WidgetGroup {
                     }
                     BlockState blockState = column[z].getBlockState();
                     BlockPos pos = multiPos.offset(x, y, z);
-                    if (column[z].getBlockEntity(pos) instanceof IMachineBlockEntity holder &&
-                            holder.getMetaMachine() instanceof IMultiController controller) {
-                        holder.getSelf().setLevel(LEVEL);
+                    var controller = IMultiController.ofController(column[z].getBlockEntity(pos)).orElse(null);
+                    if (controller != null) {
+                        controller.getHolder().setLevel(LEVEL);
                         controllerBase = controller;
                     }
                     blockMap.put(pos, BlockInfo.fromBlockState(blockState));
@@ -450,7 +448,7 @@ public class PatternPreviewWidget extends WidgetGroup {
         Map<ItemStackKey, PartInfo> partsMap = new Object2ObjectOpenHashMap<>();
         for (Map.Entry<BlockPos, BlockInfo> entry : blocks.entrySet()) {
             BlockPos pos = entry.getKey();
-            BlockState blockState = ((Level) PatternPreviewWidget.LEVEL).getBlockState(pos);
+            BlockState blockState = PatternPreviewWidget.LEVEL.getBlockState(pos);
             ItemStack itemStack = blockState.getBlock().getCloneItemStack(PatternPreviewWidget.LEVEL, pos, blockState);
 
             if (itemStack.isEmpty() && !blockState.getFluidState().isEmpty()) {

@@ -22,7 +22,7 @@ public class MultiblockInfoNode extends BaseNode {
     protected void process() {
         if (machine instanceof MBDMultiblockMachine multiblock) {
             isFormed = multiblock.isFormed();
-            parts = multiblock.getParts().stream().filter(MBDMachine.class::isInstance).map(MBDMachine.class::cast).toList();
+            parts = multiblock.getPartMachines().stream().filter(MBDMachine.class::isInstance).map(MBDMachine.class::cast).toList();
         }
     }
 }

@@ -8,7 +8,7 @@ import com.lowdragmc.lowdraglib.utils.BlockInfo;
 import com.lowdragmc.lowdraglib.utils.TrackedDummyWorld;
 import com.lowdragmc.mbd2.api.block.RotationState;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
-import com.lowdragmc.mbd2.api.machine.IMultiController;
+import com.lowdragmc.mbd2.api.machine.IMultiControllerMachine;
 import com.lowdragmc.mbd2.common.block.MBDMachineBlock;
 import com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine;
 import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
@@ -126,7 +126,7 @@ public class MultiblockInWorldPreviewRenderer {
         var shapeInfo = shapeInfos[0];
 
         Map<BlockPos, BlockInfo> blockMap = new HashMap<>();
-        IMultiController controllerBase = null;
+        IMultiControllerMachine controllerBase = null;
         LEVEL = new TrackedDummyWorld();
 
         var blocks = shapeInfo.getBlocks();
@@ -224,7 +224,7 @@ public class MultiblockInWorldPreviewRenderer {
                     BlockPos realPos = pos.offset(offset);
 
                     if (column[z].getBlockEntity(realPos) instanceof IMachineBlockEntity holder &&
-                            holder.getMetaMachine() instanceof IMultiController cont) {
+                            holder.getMetaMachine() instanceof IMultiControllerMachine cont) {
                         holder.getSelf().setLevel(LEVEL);
                         controllerBase = cont;
                     } else {

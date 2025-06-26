@@ -9,7 +9,6 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 
-import java.util.*;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -20,15 +19,7 @@ public class Predicates {
     }
 
     public static TraceabilityPredicate states(BlockState... allowedStates) {
-        var candidates = new ArrayList<BlockState>();
-        for (BlockState state : allowedStates) {
-            candidates.add(state);
-            // TODO vaBlocks
-//            if (state.getBlock() instanceof ActiveBlock block) {
-//                candidates.add(block.changeActive(state, !block.isActive(state)));
-//            }
-        }
-        return new TraceabilityPredicate(new PredicateStates(candidates.toArray(BlockState[]::new)));
+        return new TraceabilityPredicate(new PredicateStates(allowedStates));
     }
 
     public static TraceabilityPredicate blocks(Block... blocks) {

@@ -1,7 +1,6 @@
 package com.lowdragmc.mbd2.api.pattern;
 
 import com.lowdragmc.lowdraglib.utils.BlockInfo;
-import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
 import com.lowdragmc.mbd2.api.machine.IMultiPart;
 import com.lowdragmc.mbd2.api.pattern.error.PatternError;
@@ -68,7 +67,7 @@ public class BlockPattern {
     }
 
     public boolean checkPatternAt(MultiblockState worldState, boolean savePredicate) {
-        IMultiController controller = worldState.getController();
+        var controller = worldState.getController();
         if (controller == null) {
             worldState.setError(new PatternStringError("no controller found"));
             return false;
@@ -115,8 +114,9 @@ public class BlockPattern {
                             }
                         }
                         boolean canPartShared = true;
-                        var machineOptional = IMachine.ofMachine(worldState.getTileEntity());
-                        if (machineOptional.isPresent() && machineOptional.orElseThrow() instanceof IMultiPart part) { // add detected parts
+                        var machineOptional = IMultiPart.ofPart(worldState.getTileEntity());
+                        if (machineOptional.isPresent()) { // add detected parts
+                            var part = machineOptional.get();
                             if (!predicate.isAny()) {
                                 if (part.isFormed() && !part.canShared() && !part.hasController(worldState.controllerPos)) { // check part can be shared
                                     canPartShared = false;
@@ -182,7 +182,7 @@ public class BlockPattern {
         Level world = player.level();
         int minZ = -centerOffset[4];
         worldState.clean();
-        IMultiController controller = worldState.getController();
+        var controller = worldState.getController();
         BlockPos centerPos = controller.getPos();
         Direction facing = controller.getFrontFacing().orElse(Direction.NORTH);
         Map<SimplePredicate, Integer> cacheGlobal = worldState.getGlobalCount();
@@ -308,12 +308,7 @@ public class BlockPattern {
                             if (placed && foundSlot >= 0) {
                                 player.getInventory().getItem(foundSlot).shrink(1);
                             }
-                            var machineOptional = IMachine.ofMachine(world, pos);
-                            if (machineOptional.isPresent()) {
-                                blocks.put(pos, machineOptional.orElseThrow());
-                            } else {
-                                blocks.put(pos, world.getBlockState(pos));
-                            }
+                            blocks.put(pos, world.getBlockState(pos));
                         }
                     }
                 }
@@ -324,8 +319,6 @@ public class BlockPattern {
             if (!(block instanceof IMultiController)) {
                 if (block instanceof BlockState state) {
                     world.setBlock(pos, state, 3);
-                } else if (block instanceof IMachine machine) {
-                    world.setBlock(pos, machine.getBlockState(), 3);
                 }
             }
         });

@@ -4,7 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
-import com.lowdragmc.mbd2.api.machine.IMultiController;
+import com.lowdragmc.mbd2.api.machine.IMultiControllerMachine;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
@@ -70,7 +70,7 @@ public class BlockCondition extends RecipeCondition {
     @Override
     public boolean test(@Nonnull MBDRecipe recipe, @Nonnull RecipeLogic recipeLogic) {
         var amount = 0;
-        if (recipeLogic.machine instanceof IMultiController controller) {
+        if (recipeLogic.machine instanceof IMultiControllerMachine controller) {
             var level = controller.getLevel();
             for (var pos : controller.getMultiblockState().getCache()) {
                 if (ArrayUtils.contains(blocks, level.getBlockState(pos).getBlock())) {

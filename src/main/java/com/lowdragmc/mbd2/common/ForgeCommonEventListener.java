@@ -1,7 +1,7 @@
 package com.lowdragmc.mbd2.common;
 
 import com.lowdragmc.mbd2.MBD2;
-import com.lowdragmc.mbd2.api.machine.IMultiController;
+import com.lowdragmc.mbd2.api.machine.IMultiControllerMachine;
 import com.lowdragmc.mbd2.api.pattern.MultiblockState;
 import com.lowdragmc.mbd2.api.pattern.MultiblockWorldSavedData;
 import com.lowdragmc.mbd2.common.item.MBDGadgetsItem;
@@ -74,7 +74,7 @@ public class ForgeCommonEventListener {
                                 }
                                 serverLevel.setBlockAndUpdate(pos, controllerState);
                                 // notify formed
-                                if (!IMultiController.ofController(serverLevel, pos).map(controller -> {
+                                if (!IMultiControllerMachine.ofControllerMachine(serverLevel, pos).map(controller -> {
                                     if (controller instanceof MBDMultiblockMachine machine && machine.checkPatternWithLock()) {
                                         var success = machine.onCatalystUsed(event.getEntity(), event.getHand(), held);
                                         if (success) {

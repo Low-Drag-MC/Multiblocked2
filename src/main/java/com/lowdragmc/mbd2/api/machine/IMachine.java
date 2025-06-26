@@ -10,15 +10,13 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.BlockGetter;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Optional;
 
-public interface IMachine extends IRecipeCapabilityHolder {
+public interface IMachine extends IRecipeCapabilityHolder, IBlockEntityOwner {
 
     static Optional<IMachine> ofMachine(@Nullable BlockEntity blockEntity) {
         return blockEntity == null ? Optional.empty() : blockEntity.getCapability(MBDCapabilities.CAPABILITY_MACHINE).resolve();
@@ -26,45 +24,6 @@ public interface IMachine extends IRecipeCapabilityHolder {
 
     static Optional<IMachine> ofMachine(@Nonnull BlockGetter level, @Nonnull BlockPos pos) {
         return ofMachine(level.getBlockEntity(pos));
-    }
-
-    /**
-     * Get the block entity holder.
-     */
-    BlockEntity getHolder();
-
-    /**
-     * Get the level.
-     */
-    default Level getLevel() {
-        return getHolder().getLevel();
-    }
-
-    /**
-     * Get machine position.
-     */
-    default BlockPos getPos() {
-        return getHolder().getBlockPos();
-    }
-
-    /**
-     * Get the block state.
-     */
-    default BlockState getBlockState() {
-        return getHolder().getBlockState();
-    }
-
-    /**
-     * Get the random offset.
-     */
-    long getOffset();
-
-    /**
-     * Get the offset timer.
-     */
-    default long getOffsetTimer() {
-        var level = getLevel();
-        return level == null ? getOffset() : (level.getGameTime() + getOffset());
     }
 
     /**
@@ -76,13 +35,6 @@ public interface IMachine extends IRecipeCapabilityHolder {
         if (level != null && !level.isClientSide && level.getServer() != null) {
             level.getServer().execute(() -> getHolder().setChanged());
         }
-    }
-
-    /**
-     * Is the machine still valid.
-     */
-    default boolean isInValid() {
-        return getHolder().isRemoved();
     }
 
     /**

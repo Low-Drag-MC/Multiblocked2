@@ -5,14 +5,13 @@ import com.lowdragmc.lowdraglib.syncdata.annotation.RequireRerender;
 import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
 import com.lowdragmc.mbd2.api.capability.recipe.*;
-import com.lowdragmc.mbd2.api.machine.IMultiController;
-import com.lowdragmc.mbd2.api.machine.IMultiPart;
+import com.lowdragmc.mbd2.api.machine.IMultiControllerMachine;
+import com.lowdragmc.mbd2.api.machine.IMultiPartMachine;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigPartSettings;
-import com.lowdragmc.mbd2.common.trait.IAutoIOTrait;
 import com.lowdragmc.mbd2.common.trait.ICapabilityProviderTrait;
 import com.lowdragmc.mbd2.common.trait.IProxyAutoIOTrait;
 import com.lowdragmc.mbd2.common.trait.ITrait;
@@ -29,7 +28,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.annotation.Nonnull;
 import java.util.*;
 
-public class MBDPartMachine extends MBDMachine implements IMultiPart {
+public class MBDPartMachine extends MBDMachine implements IMultiPartMachine {
     protected static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(MBDPartMachine.class, MBDMachine.MANAGED_FIELD_HOLDER);
     @Override
     public ManagedFieldHolder getFieldHolder() {
@@ -68,10 +67,10 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
      * Get all attached controllers
      */
     @Override
-    public List<IMultiController> getControllers() {
-        List<IMultiController> result = new ArrayList<>();
+    public List<IMultiControllerMachine> getControllers() {
+        List<IMultiControllerMachine> result = new ArrayList<>();
         for (var blockPos : controllerPositions) {
-            IMultiController.ofController(getLevel(), blockPos).ifPresent(result::add);
+            IMultiControllerMachine.ofControllerMachine(getLevel(), blockPos).ifPresent(result::add);
         }
         return result;
     }
@@ -101,7 +100,7 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
         var level = getLevel();
         for (BlockPos pos : controllerPositions) {
             if (level instanceof ServerLevel && level.isLoaded(pos)) {
-                IMultiController.ofController(getLevel(), pos).ifPresent(IMultiController::onPartUnload);
+                IMultiControllerMachine.ofControllerMachine(getLevel(), pos).ifPresent(IMultiControllerMachine::onPartUnload);
             }
         }
         controllerPositions.clear();
@@ -111,7 +110,7 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
      * Called when it was added to a multiblock.
      */
     @Override
-    public void removedFromController(IMultiController controller) {
+    public void removedFromController(IMultiControllerMachine controller) {
         controllerPositions.remove(controller.getPos());
         checkDisabledRendering();
         if (!isFormed()) {
@@ -121,7 +120,7 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
     }
 
     @Override
-    public void addedToController(IMultiController controller) {
+    public void addedToController(IMultiControllerMachine controller) {
         controllerPositions.add(controller.getPos());
         checkDisabledRendering();
         if (isFormed()) {
@@ -158,8 +157,8 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
      * Called when controller recipe logic status changed
      */
     @Override
-    public void notifyControllerRecipeStatusChanged(IMultiController controller, RecipeLogic.Status oldStatus, RecipeLogic.Status newStatus) {
-        IMultiPart.super.notifyControllerRecipeStatusChanged(controller, oldStatus, newStatus);
+    public void notifyControllerRecipeStatusChanged(IMultiControllerMachine controller, RecipeLogic.Status oldStatus, RecipeLogic.Status newStatus) {
+        IMultiPartMachine.super.notifyControllerRecipeStatusChanged(controller, oldStatus, newStatus);
         if (isFormed()) {
             switch (newStatus) {
                 case WORKING -> setMachineState("working");
