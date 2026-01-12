@@ -14,7 +14,6 @@ import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import com.simibubi.create.content.kinetics.base.KineticEffectHandler;
 import com.simibubi.create.foundation.utility.CreateLang;
 import lombok.Getter;
-import lombok.Setter;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -34,9 +33,6 @@ import java.util.function.Function;
 public class MBDKineticMachineBlockEntity extends KineticBlockEntity implements IMachineBlockEntity {
     @Getter
     public final MultiManagedStorage rootStorage = new MultiManagedStorage();
-    @Getter
-    @Setter
-    private boolean isAsyncSyncing = false;
     @Getter
     private final long offset = MBD2.RND.nextLong();
     @Getter

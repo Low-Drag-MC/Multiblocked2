@@ -49,4 +49,9 @@ public class SerializerEntityIngredient implements IContentSerializer<EntityIngr
         copy.setCount(modifier.apply(copy.getCount()).intValue());
         return copy;
     }
+
+    @Override
+    public EntityIngredient deepCopyInner(EntityIngredient content) {
+        return content.copy();
+    }
 }

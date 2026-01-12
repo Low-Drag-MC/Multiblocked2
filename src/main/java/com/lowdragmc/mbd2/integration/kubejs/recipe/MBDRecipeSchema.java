@@ -6,6 +6,7 @@ import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeSerializer;
+import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.api.recipe.ingredient.EntityIngredient;
@@ -28,6 +29,7 @@ import com.lowdragmc.mbd2.integration.pneumaticcraft.PNCHeatRecipeCapability;
 import com.lowdragmc.mbd2.integration.pneumaticcraft.PNCPressureAirRecipeCapability;
 import com.lowdragmc.mbd2.integration.pneumaticcraft.PressureAir;
 import com.lowdragmc.mbd2.integration.pneumaticcraft.trait.heat.PNCTemperatureCondition;
+import com.lowdragmc.mbd2.integration.pneumaticcraft.trait.pressure.PNCPressureCondition;
 import dev.latvian.mods.kubejs.fluid.FluidLike;
 import dev.latvian.mods.kubejs.fluid.FluidStackJS;
 import dev.latvian.mods.kubejs.fluid.InputFluid;
@@ -65,6 +67,7 @@ public interface MBDRecipeSchema {
         public int duration = 100;
         public int priority;
         public boolean isFuel;
+        public boolean isXEIHidden;
         // runtime
         public boolean perTick;
         @Setter
@@ -75,6 +78,16 @@ public interface MBDRecipeSchema {
         public float chance = 1;
         @Setter
         public float tierChanceBoost = 0;
+        @Nullable
+        private final MBDRecipeType recipeType;
+
+        public MBDRecipeJS() {
+            this(null);
+        }
+
+        public MBDRecipeJS(@Nullable MBDRecipeType recipeType) {
+            this.recipeType = recipeType;
+        }
 
         //////////////// misc ////////////////
         public MBDRecipeJS duration(int duration) {
@@ -91,6 +104,12 @@ public interface MBDRecipeSchema {
 
         public MBDRecipeJS isFuel(boolean fuel) {
             isFuel = fuel;
+            save();
+            return this;
+        }
+
+        public MBDRecipeJS isXEIHidden(boolean xEIHidden) {
+            isXEIHidden = xEIHidden;
             save();
             return this;
         }
@@ -182,6 +201,18 @@ public interface MBDRecipeSchema {
                     .filter(Objects::nonNull)
                     .map(capability::of)
                     .map(o -> new Content(o, perTick, chance, tierChanceBoost, slotName, uiName)).toList());
+            save();
+            return this;
+        }
+
+        public MBDRecipeJS removeInputs(RecipeCapability<?> capability) {
+            inputs.remove(capability);
+            save();
+            return this;
+        }
+
+        public MBDRecipeJS removeOutputs(RecipeCapability<?> capability) {
+            outputs.remove(capability);
             save();
             return this;
         }
@@ -469,8 +500,19 @@ public interface MBDRecipeSchema {
             return this;
         }
 
+        @Deprecated(forRemoval = true, since = "1.21.0")
         public MBDRecipeJS dayLight(boolean isDay) {
-            addCondition(new DayLightCondition(isDay));
+            addCondition(new DayTimeCondition(isDay));
+            return this;
+        }
+
+        public MBDRecipeJS dayTime(boolean isDay) {
+            addCondition(new DayTimeCondition(isDay));
+            return this;
+        }
+
+        public MBDRecipeJS light(int minSkyLight, int maxSkyLight, int minBlockLight, int maxBlockLight, boolean canSeeSky) {
+            addCondition(new LightCondition(minSkyLight, maxSkyLight, minBlockLight, maxBlockLight, canSeeSky));
             return this;
         }
 
@@ -504,6 +546,25 @@ public interface MBDRecipeSchema {
             return this;
         }
 
+        public MBDRecipeJS pncPressureCondition(boolean isAir, float minPressure, float maxPressure) {
+            if (!MBD2.isPneumaticCraftLoaded()) {
+                throw new IllegalStateException("Try to add a pressure condition while the pneumatic is not loaded!");
+            }
+            addCondition(new PNCPressureCondition(isAir, minPressure, maxPressure));
+            return this;
+        }
+
+        private MBDRecipeType getRecipeType() {
+            if (recipeType == null) {
+                var recipeType = MBDRegistries.RECIPE_TYPES.get(type.schemaType.id);
+                if (recipeType == null) {
+                    throw new IllegalStateException("MBD Recipe type " + type.schemaType.id + " not found!");
+                }
+                return recipeType;
+            }
+            return recipeType;
+        }
+
         @Override
         public void deserialize(boolean merge) {
             super.deserialize(merge);
@@ -518,19 +579,30 @@ public interface MBDRecipeSchema {
             duration = mbdRecipe.duration;
             priority = mbdRecipe.priority;
             isFuel = mbdRecipe.isFuel;
+            isXEIHidden = mbdRecipe.isXEIHidden;
         }
 
         @Override
         public void serialize() {
-            var recipeType = MBDRegistries.RECIPE_TYPES.get(type.schemaType.id);
-            if (recipeType == null) {
-                throw new IllegalStateException("MBD Recipe type " + type.schemaType.id + " not found!");
-            }
             json = MBDRecipeSerializer.SERIALIZER.toJson(
-                    new MBDRecipe(recipeType, getOrCreateId(), inputs, outputs, conditions, data, duration, isFuel, priority)
+                    new MBDRecipe(getRecipeType(), getOrCreateId(), inputs, outputs, conditions, data, duration, isFuel, isXEIHidden, priority)
             );
         }
 
+        public MBDRecipe buildMBDRecipe() {
+            return new MBDRecipe(
+                    getRecipeType(),
+                    getOrCreateId(),
+                    inputs,
+                    outputs,
+                    conditions,
+                    data,
+                    duration,
+                    isFuel,
+                    isXEIHidden,
+                    priority
+            );
+        }
     }
 
     record EntityIngredientJS(@Nullable EntityIngredient ingredient) {

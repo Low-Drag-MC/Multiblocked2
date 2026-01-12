@@ -23,7 +23,7 @@ public class MBDRecipeTypeEmiCategory extends EmiRecipeCategory {
         final MBDRecipe recipe;
 
         public MBDEmiRecipe(MBDRecipeTypeEmiCategory category, MBDRecipe recipe) {
-            super(() -> recipe.recipeType.getUiCreator().create(recipe).setClientSideWidget());
+            super(() -> recipe.recipeType.createRecipeUI(recipe));
             this.category = category;
             this.recipe = recipe;
         }
@@ -51,7 +51,7 @@ public class MBDRecipeTypeEmiCategory extends EmiRecipeCategory {
         for (var recipeType : MBDRegistries.RECIPE_TYPES) {
             if (recipeType.isXEIVisible()) {
                 Minecraft.getInstance().getConnection().getRecipeManager().getAllRecipesFor(recipeType).stream()
-                        .filter(recipe -> !recipe.isFuel)
+                        .filter(recipe -> !recipe.isFuel && !recipe.isXEIHidden)
                         .map(recipe -> new MBDEmiRecipe(CATEGORIES.apply(recipeType), recipe))
                         .forEach(registry::addRecipe);
             }
@@ -61,15 +61,12 @@ public class MBDRecipeTypeEmiCategory extends EmiRecipeCategory {
     public static void registerWorkStations(EmiRegistry registry) {
         for (var mbdRecipeType : MBDRegistries.RECIPE_TYPES) {
             if (mbdRecipeType.isXEIVisible()) {
-                for (var machine : MBDRegistries.MACHINE_DEFINITIONS) {
                     for (var definition : MBDRegistries.MACHINE_DEFINITIONS) {
                         var recipeType = definition.recipeLogicSettings().getRecipeType();
                         if (recipeType == mbdRecipeType) {
-                            registry.addWorkstation(MBDRecipeTypeEmiCategory.CATEGORIES.apply(mbdRecipeType), EmiStack.of(machine.item()));
+                            registry.addWorkstation(MBDRecipeTypeEmiCategory.CATEGORIES.apply(mbdRecipeType), EmiStack.of(definition.item()));
                         }
                     }
-
-                }
             }
         }
     }

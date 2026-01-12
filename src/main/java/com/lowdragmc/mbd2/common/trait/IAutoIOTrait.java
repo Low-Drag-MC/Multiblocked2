@@ -11,7 +11,7 @@ import javax.annotation.Nullable;
  * Auto IO traits are traits that automatically handle the IO of the machine based on the configuration.
  * e.g. Auto extract items from the machine's inventory, auto insert items to the machine's inventory, etc.
  */
-public interface IAutoIOTrait extends ITrait {
+public interface IAutoIOTrait extends IProxyAutoIOTrait {
     /**
      * @return the auto IO configuration of this trait by default.
      *        If the trait does not support / do not have the auto IO, return null instead.
@@ -33,11 +33,4 @@ public interface IAutoIOTrait extends ITrait {
             }
         }
     }
-
-    /**
-     * Handle the auto IO.
-     * @param port port pos.
-     * @param side the side of the port.
-     */
-    void handleAutoIO(BlockPos port, Direction side, IO io);
 }

@@ -1,21 +1,21 @@
 package com.lowdragmc.mbd2.common.trait.item;
 
-import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
-import com.lowdragmc.lowdraglib.client.utils.RenderBufferUtils;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.DefaultValue;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IToggleConfigurable;
-import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib.gui.texture.ItemStackTexture;
-import com.lowdragmc.lowdraglib.gui.widget.SlotWidget;
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
-import com.lowdragmc.lowdraglib.jei.IngredientIO;
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
-import com.lowdragmc.lowdraglib.utils.ColorUtils;
-import com.lowdragmc.lowdraglib.utils.Position;
-import com.lowdragmc.lowdraglib.utils.ShapeUtils;
+import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
+import com.lowdragmc.lowdraglib2.client.utils.RenderBufferUtils;
+import com.lowdragmc.lowdraglib2.gui.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.gui.editor.annotation.DefaultValue;
+import com.lowdragmc.lowdraglib2.gui.editor.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.gui.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib2.gui.editor.configurator.IToggleConfigurable;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture;
+import com.lowdragmc.lowdraglib2.gui.widget.SlotWidget;
+import com.lowdragmc.lowdraglib2.gui.widget.WidgetGroup;
+import com.lowdragmc.lowdraglib2.jei.IngredientIO;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib2.utils.ColorUtils;
+import com.lowdragmc.lowdraglib2.utils.Position;
+import com.lowdragmc.lowdraglib2.utils.ShapeUtils;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.common.gui.editor.machine.MachineTraitPanel;
@@ -40,9 +40,6 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.lwjgl.opengl.GL11;
 
-import java.util.EnumMap;
-import java.util.Map;
-
 @LDLRegister(name = "item_slot", group = "trait", priority = -100)
 @Getter @Setter
 public class ItemSlotCapabilityTraitDefinition extends SimpleCapabilityTraitDefinition {
@@ -55,32 +52,11 @@ public class ItemSlotCapabilityTraitDefinition extends SimpleCapabilityTraitDefi
     private int slotLimit = 64;
     @Configurable(name = "config.definition.trait.item_slot.filter", subConfigurable = true, tips = "config.definition.trait.item_slot.filter.tooltip")
     private final ItemFilterSettings itemFilterSettings = new ItemFilterSettings();
-    @Setter @Getter
-    public static class AutoWorldIO implements IToggleConfigurable {
-        @Persisted
-        public boolean enable;
-        @Configurable(name = "config.definition.trait.item_slot.auto_io.range", tips = "config.definition.trait.item_slot.auto_io.range.tooltip")
-        @DefaultValue(numberValue = {-1, -1, -1, 2, 2, 2})
-        public AABB range = new AABB(-1, -1, -1, 2, 2, 2);
-        @Configurable(name = "config.definition.trait.item_slot.auto_io.interval", tips = "config.definition.trait.item_slot.auto_io.interval.tooltip")
-        @NumberRange(range = {1, Integer.MAX_VALUE})
-        public int interval = 20;
-        @Configurable(name = "config.definition.trait.item_slot.auto_io.speed", tips = "config.definition.trait.item_slot.auto_io.speed.tooltip")
-        @NumberRange(range = {1, Integer.MAX_VALUE})
-        public int speed = 64;
-
-        // runtime
-        private final Map<Direction, AABB> rangeCache = new EnumMap<>(Direction.class);
-
-        public AABB getRotatedRange(Direction direction) {
-            return (direction == Direction.NORTH || direction == null) ? range : this.rangeCache.computeIfAbsent(direction, dir -> ShapeUtils.rotate(range, dir));
-        }
-    }
     @Configurable(name = "config.definition.trait.auto_io", subConfigurable = true, tips = "config.definition.trait.item_slot.auto_io.tooltip")
     private final ToggleAutoIO autoIO = new ToggleAutoIO();
-    @Configurable(name = "config.definition.trait.item_slot.auto_io.input", subConfigurable = true, tips = "config.definition.trait.item_slot.auto_io.input.tooltip")
+    @Configurable(name = "config.definition.trait.auto_world_io.input", subConfigurable = true, tips = "config.definition.trait.auto_world_io.input.tooltip")
     private final AutoWorldIO autoInput = new AutoWorldIO();
-    @Configurable(name = "config.definition.trait.item_slot.auto_io.output", subConfigurable = true, tips = "config.definition.trait.item_slot.auto_io.output.tooltip")
+    @Configurable(name = "config.definition.trait.auto_world_io.output", subConfigurable = true, tips = "config.definition.trait.auto_world_io.output.tooltip")
     private final AutoWorldIO autoOutput = new AutoWorldIO();
     @Configurable(name = "config.definition.trait.item_slot.fancy_renderer", subConfigurable = true, tips = "config.definition.trait.item_slot.fancy_renderer.tooltip")
     private final ItemFancyRendererSettings itemRendererSettings = new ItemFancyRendererSettings(this);
@@ -119,15 +95,13 @@ public class ItemSlotCapabilityTraitDefinition extends SimpleCapabilityTraitDefi
             var prefix = uiPrefixName();
             var guiIO = getGuiIO();
             var ingredientIO = guiIO == IO.IN ? IngredientIO.INPUT : guiIO == IO.OUT ? IngredientIO.OUTPUT : guiIO == IO.BOTH ? IngredientIO.BOTH : IngredientIO.RENDER_ONLY;
-            var canTakeItems = guiIO == IO.BOTH || guiIO == IO.OUT;
-            var canPutItems = guiIO == IO.BOTH || guiIO == IO.IN;
             WidgetUtils.widgetByIdForEach(group, "^%s_[0-9]+$".formatted(prefix), SlotWidget.class, slotWidget -> {
                 var index = WidgetUtils.widgetIdIndex(slotWidget);
                 if (index >= 0 && index < itemSlotTrait.storage.getSlots()) {
                     slotWidget.setHandlerSlot(itemSlotTrait.storage, index);
                     slotWidget.setIngredientIO(ingredientIO);
-                    slotWidget.setCanTakeItems(canTakeItems);
-                    slotWidget.setCanPutItems(canPutItems);
+                    slotWidget.setCanTakeItems(guiIO.support(IO.OUT));
+                    slotWidget.setCanPutItems(guiIO.support(IO.IN));
                 }
             });
         }

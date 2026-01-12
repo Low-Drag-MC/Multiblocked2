@@ -39,6 +39,11 @@ public class SerializerFloat implements IContentSerializer<Float> {
     }
 
     @Override
+    public Float deepCopyInner(Float content) {
+        return content;
+    }
+
+    @Override
     public Codec<Float> codec() {
         return Codec.FLOAT;
     }

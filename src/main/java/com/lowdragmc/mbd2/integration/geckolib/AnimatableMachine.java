@@ -1,7 +1,9 @@
 package com.lowdragmc.mbd2.integration.geckolib;
 
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
+import com.lowdragmc.mbd2.common.machine.definition.config.event.MachineCustomKeyframeEvent;
 import lombok.Getter;
+import net.minecraftforge.common.MinecraftForge;
 import software.bernie.geckolib.core.animatable.GeoAnimatable;
 import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.core.animation.AnimatableManager;
@@ -30,11 +32,12 @@ public class AnimatableMachine implements GeoAnimatable {
                 var stateName = machine.getMachineState().name();
                 var animation = renderer.getRawAnimation(stateName);
                 if (animation != null) {
-                    state.setAndContinue(animation);
+                    return state.setAndContinue(animation);
                 }
             }
             return PlayState.STOP;
         });
+        controller.setCustomInstructionKeyframeHandler(frame -> MinecraftForge.EVENT_BUS.post(new MachineCustomKeyframeEvent(machine, frame).postCustomEvent()));
         for (var animation : renderer.animations) {
             var rawAnimation = renderer.getRawAnimation(animation.getName());
             if (rawAnimation != null) {

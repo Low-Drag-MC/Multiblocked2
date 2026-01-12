@@ -14,6 +14,7 @@ import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigPartSettings;
 import com.lowdragmc.mbd2.common.trait.IAutoIOTrait;
 import com.lowdragmc.mbd2.common.trait.ICapabilityProviderTrait;
+import com.lowdragmc.mbd2.common.trait.IProxyAutoIOTrait;
 import com.lowdragmc.mbd2.common.trait.ITrait;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
@@ -218,7 +219,7 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
                 for (var controller : getControllers()) {
                     if (controller instanceof MBDMultiblockMachine proxyController) {
                         for (var trait : proxyController.getAdditionalTraits()) {
-                            if (trait instanceof IAutoIOTrait autoIOTrait && trait.getDefinition().getName().contains(proxy.traitNameFilter())) {
+                            if (trait instanceof IProxyAutoIOTrait autoIOTrait && trait.getDefinition().getName().contains(proxy.traitNameFilter())) {
                                 for (var side : Direction.values()) {
                                     var io =  proxy.autoIO().getIO(front, side);
                                     if (io != IO.NONE) {

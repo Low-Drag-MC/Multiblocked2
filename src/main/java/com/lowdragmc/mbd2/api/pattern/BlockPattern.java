@@ -11,10 +11,14 @@ import com.lowdragmc.mbd2.api.pattern.predicates.SimplePredicate;
 import com.lowdragmc.mbd2.api.pattern.util.PatternMatchContext;
 import com.lowdragmc.mbd2.api.pattern.util.RelativeDirection;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.stats.Stats;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.BucketItem;
@@ -297,17 +301,25 @@ public class BlockPattern {
                                 }
                             }
                             if (found == null) continue;
-                            boolean placed = false;
                             if (found.getItem() instanceof BlockItem itemBlock) {
                                 BlockPlaceContext context = new BlockPlaceContext(world, player, InteractionHand.MAIN_HAND, found, BlockHitResult.miss(player.getEyePosition(0), Direction.UP, pos));
                                 InteractionResult interactionResult = itemBlock.place(context);
-                                placed = interactionResult != InteractionResult.FAIL;
+                                var placed = interactionResult != InteractionResult.FAIL;
+                                if (placed && foundSlot >= 0) {
+                                    player.getInventory().getItem(foundSlot).shrink(1);
+                                }
                             } else if (found.getItem() instanceof BucketItem itemBucket) {
-                                placed = itemBucket.emptyContents(player, world, pos, null, null);
+                                if (itemBucket.emptyContents(player, world, pos, null, null)) {
+                                    itemBucket.checkExtraContent(player, world, found, pos);
+                                    if (player instanceof ServerPlayer serverPlayer) {
+                                        CriteriaTriggers.PLACED_BLOCK.trigger(serverPlayer, pos, found);
+                                    }
+                                    player.awardStat(Stats.ITEM_USED.get(itemBucket));
+                                    var emptyBucket = BucketItem.getEmptySuccessItem(found, player);
+                                    player.getInventory().setItem(foundSlot, emptyBucket);
+                                }
                             }
-                            if (placed && foundSlot >= 0) {
-                                player.getInventory().getItem(foundSlot).shrink(1);
-                            }
+
                             var machineOptional = IMachine.ofMachine(world, pos);
                             if (machineOptional.isPresent()) {
                                 blocks.put(pos, machineOptional.orElseThrow());

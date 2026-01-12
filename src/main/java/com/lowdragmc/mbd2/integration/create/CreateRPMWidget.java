@@ -14,6 +14,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.neoforged.api.distmarker.Dist;
@@ -23,6 +24,8 @@ import org.jetbrains.annotations.NotNull;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 
+import java.util.function.Supplier;
+
 @LDLRegister(name = "create_rpm", group = "widget.container", modID = "create")
 public class CreateRPMWidget extends Widget implements IConfigurableWidget {
     @Getter
@@ -30,10 +33,58 @@ public class CreateRPMWidget extends Widget implements IConfigurableWidget {
     @Accessors(chain = true)
     public float rpm;
 
+    @Setter
+    @Accessors(chain = true)
+    public Supplier<Float> rpmSupplier;
+
     public CreateRPMWidget() {
         super(0, 0, 100, 16);
     }
 
+    @Override
+    public void writeInitialData(FriendlyByteBuf buffer) {
+        super.writeInitialData(buffer);
+        if (rpmSupplier != null) {
+            rpm = rpmSupplier.get();
+        }
+        buffer.writeFloat(rpm);
+    }
+
+    @Override
+    public void readInitialData(FriendlyByteBuf buffer) {
+        super.readInitialData(buffer);
+        rpm = buffer.readFloat();
+    }
+
+    @Override
+    public void detectAndSendChanges() {
+        super.detectAndSendChanges();
+        if (rpmSupplier != null) {
+            var newRpm = rpmSupplier.get();
+            if (newRpm != rpm) {
+                rpm = newRpm;
+                writeUpdateInfo(-1, buf -> buf.writeFloat(rpm));
+            }
+        }
+    }
+
+    @Override
+    public void readUpdateInfo(int id, FriendlyByteBuf buffer) {
+        if (id == -1) {
+            rpm = buffer.readFloat();
+        } else {
+            super.readUpdateInfo(id, buffer);
+        }
+    }
+
+    @Override
+    public void updateScreen() {
+        super.updateScreen();
+        if (isClientSideWidget && rpmSupplier != null) {
+            rpm = rpmSupplier.get();
+        }
+    }
+    
     @Override
     @OnlyIn(Dist.CLIENT)
     public void drawInBackground(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {

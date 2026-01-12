@@ -9,7 +9,6 @@ import com.lowdragmc.lowdraglib.syncdata.field.FieldManagedStorage;
 import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.machine.IMachine;
-import com.lowdragmc.mbd2.common.machine.definition.config.event.MachineFuelRecipeModifyEvent;
 import com.lowdragmc.mbd2.config.ConfigHolder;
 import lombok.Getter;
 import lombok.Setter;
@@ -66,6 +65,8 @@ public class RecipeLogic implements IEnhancedManaged {
      */
     @Nullable @Getter @Persisted
     protected MBDRecipe lastOriginRecipe;
+    @Getter @Persisted @Setter
+    protected boolean consumeInputsAfterWorking;
     @Persisted
     @Getter @Setter
     protected int progress;
@@ -101,6 +102,7 @@ public class RecipeLogic implements IEnhancedManaged {
         duration = 0;
         fuelTime = 0;
         lastFailedMatches = null;
+        consumeInputsAfterWorking = false;
         setStatus(Status.IDLE);
     }
 
@@ -163,6 +165,13 @@ public class RecipeLogic implements IEnhancedManaged {
         }
     }
 
+    /**
+     * Checks if a matched recipe is available, processes the recipe based on the machine's current state,
+     * and updates the recipe logic if the conditions are met.
+     *
+     * @param match the MBDRecipe object representing the matched recipe to be checked and potentially set up.
+     * @return true if the matched recipe is successfully processed and set up in the machine, false otherwise.
+     */
     protected boolean checkMatchedRecipeAvailable(MBDRecipe match) {
         var modified = machine.doModifyRecipe(match);
         if (modified != null) {
@@ -180,9 +189,31 @@ public class RecipeLogic implements IEnhancedManaged {
         return false;
     }
 
+    /**
+     * Handles the execution of the current recipe in the machine, managing its progression, fuel requirements,
+     * status transitions, and error conditions.
+     * <br>
+     * The method checks if the conditions for the currently assigned recipe are met. If successful, it ensures
+     * that sufficient fuel is available for the recipe. It then processes the recipe logic for the current tick,
+     * updates the machine's status to `WORKING`, and increments the progress. If the machine requests interruption
+     * during processing, the recipe will be interrupted immediately.
+     * <br>
+     * If the conditions check or fuel availability fails, the recipe status is set to {@code WAITING} with an appropriate
+     * explanation, and progress damping may occur. Transitions in machine status trigger pre or post working
+     * operations on the current recipe.
+     * <br>
+     * The method ensures consistent handling of machine state, fuel usage, and recipe progress while accommodating
+     * potential interruptions and waiting states.
+     */
     public void handleRecipeWorking() {
         Status last = this.status;
         assert lastRecipe != null;
+        if (consumeInputsAfterWorking) {
+            if (!lastRecipe.matchRecipe(machine).isSuccess()) {
+                interruptRecipe();
+                return;
+            }
+        }
         var result = lastRecipe.checkConditions(this);
         if (result.isSuccess()) {
             if (handleFuelRecipe()) {
@@ -214,6 +245,11 @@ public class RecipeLogic implements IEnhancedManaged {
         }
     }
 
+    /**
+     * Applies damping to the recipe progress if the machine is in a waiting state and damping is allowed.
+     * This method decreases the `{@code progress} field by a specified damping value retrieved from the machine,
+     * ensuring that the progress does not fall below zero.
+     */
     protected void doDamping() {
         if (progress > 0 && machine.dampingWhenWaiting()) {
             this.progress = Math.max(0, progress - getMachine().getRecipeDampingValue());
@@ -224,6 +260,29 @@ public class RecipeLogic implements IEnhancedManaged {
         return machine.getRecipeType().searchRecipe(getRecipeManager(), this.machine);
     }
 
+
+    /**
+     * Finds and handles an appropriate recipe to process in the machine. The method determines the current state
+     * of recipe processing and either continues handling the last valid recipe or searches for a new recipe.
+     * <br>
+     * The following steps are performed:
+     * <lu>
+     * <li>If the {@code recipeDirty} flag is not set and a valid {@code lastRecipe} exists, checks the recipe's validity
+     * and conditions. If all checks succeed, the recipe is set up for processing.</li>
+     * <li>If no valid {@code lastRecipe} exists or the {@code recipeDirty} flag is set, a new recipe is searched for.
+     * This can involve starting an asynchronous task (if allowed by configuration) or performing a synchronous search.</li>
+     * <li>If an asynchronous task is already in progress, the method checks for its completion:
+     *  <ul>
+     *   <li>If the task is complete and not canceled, filters the resulting recipes for valid matches and processes them.</li>
+     *   <li>If the task encounters errors or is canceled, a new asynchronous task is initiated or a synchronous search is performed.</li>
+     *  </ul>
+     * </li>
+     * <li>The {@code recipeDirty} flag is reset at the end of the method.</li>
+     * </lu>
+     * <br>
+     * This method ensures efficient handling of recipe logic while accommodating async or sync recipe searches
+     * and error handling.
+     */
     public void findAndHandleRecipe() {
         lastFailedMatches = null;
         // try to execute last recipe if possible
@@ -311,16 +370,21 @@ public class RecipeLogic implements IEnhancedManaged {
         return MBDRecipe.ActionResult.SUCCESS;
     }
 
+    /**
+     * Set up a recipe for processing. you can schedule it actively if you want.
+     */
     public void setupRecipe(MBDRecipe recipe) {
         if (handleFuelRecipe()) {
             if (machine.beforeWorking(recipe)) {
                 setStatus(Status.IDLE);
                 progress = 0;
                 duration = 0;
+                consumeInputsAfterWorking = false;
                 return;
             }
             recipe.preWorking(this.machine);
-            if (recipe.handleRecipeIO(IO.IN, this.machine)) {
+            consumeInputsAfterWorking = machine.consumeInputsAfterWorking(recipe);
+            if (consumeInputsAfterWorking || recipe.handleRecipeIO(IO.IN, this.machine)) {
                 recipeDirty = false;
                 lastRecipe = recipe;
                 setStatus(Status.WORKING);
@@ -406,10 +470,16 @@ public class RecipeLogic implements IEnhancedManaged {
     }
 
     public void onRecipeFinish() {
-        machine.afterWorking();
         if (lastRecipe != null) {
+            machine.afterWorking();
+            if (consumeInputsAfterWorking) {
+                lastRecipe.handleRecipeIO(IO.IN, this.machine);
+                consumeInputsAfterWorking = false;
+                machine.onConsumeInputsAfterWorking();
+            }
             lastRecipe.postWorking(this.machine);
             lastRecipe.handleRecipeIO(IO.OUT, this.machine);
+            machine.onRecipeFinish();
             if (machine.alwaysReSearchRecipe()) {
                 markLastRecipeDirty();
             }
@@ -443,12 +513,15 @@ public class RecipeLogic implements IEnhancedManaged {
      * Interrupt current recipe without io.
      */
     public void interruptRecipe(){
-        machine.afterWorking();
         if (lastRecipe != null) {
+            if (!isIdle()) {
+                machine.afterWorking();
+            }
             lastRecipe.postWorking(this.machine);
             setStatus(Status.IDLE);
             progress = 0;
             duration = 0;
+            consumeInputsAfterWorking = false;
         }
     }
 

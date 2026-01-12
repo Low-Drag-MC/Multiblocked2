@@ -11,6 +11,7 @@ import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.api.recipe.content.SerializerInteger;
 import com.lowdragmc.mbd2.common.gui.recipe.CornerNumberWidget;
+import com.lowdragmc.mbd2.utils.EnergyFormattingUtil;
 import net.minecraft.network.chat.Component;
 
 import java.util.List;
@@ -53,12 +54,12 @@ public class ForgeEnergyRecipeCapability extends RecipeCapability<Integer> {
     @Override
     public void bindXEIWidget(Widget widget, Content content, IngredientIO ingredientIO) {
         if (widget instanceof ProgressWidget energyBar) {
-            var energy = of(content.content);
+            var energy = EnergyFormattingUtil.formatExtended(of(content.content));
             if (energyBar.getOverlay() instanceof TextTexture textTexture) {
                 if (content.perTick) {
-                    textTexture.updateText(energy + " FE/t");
+                    textTexture.updateText(energy + "FE/t");
                 } else {
-                    textTexture.updateText(energy + " FE");
+                    textTexture.updateText(energy + "FE");
                 }
             }
         }

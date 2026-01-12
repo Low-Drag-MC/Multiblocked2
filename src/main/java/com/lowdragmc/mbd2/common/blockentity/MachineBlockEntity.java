@@ -26,10 +26,6 @@ public class MachineBlockEntity extends BlockEntity implements IMachineBlockEnti
     private final long offset = MBD2.RND.nextLong();
     @Getter
     private IMachine metaMachine;
-    @Getter
-    @Setter
-    private boolean isAsyncSyncing = false;
-
 
     public MachineBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState blockState, Function<IMachineBlockEntity, IMachine> machineFactory) {
         super(type, pos, blockState);
@@ -45,6 +41,12 @@ public class MachineBlockEntity extends BlockEntity implements IMachineBlockEnti
             machine.detach();
         }
         metaMachine = newMachine;
+    }
+
+    @Override
+    public void onChunkUnloaded() {
+        super.onChunkUnloaded();
+        getMetaMachine().onChunkUnloaded();
     }
 
     @Override

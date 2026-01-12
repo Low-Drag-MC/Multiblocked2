@@ -73,11 +73,12 @@ public class GTMEnergyCapabilityTrait extends SimpleCapabilityTrait implements I
 
     @Override
     public void handleAutoIO(BlockPos port, Direction side, IO io) {
-        if (io == IO.IN) {
+        if (io.support(IO.IN)) {
             Optional.ofNullable(getMachine().getLevel().getBlockEntity(port.relative(side)))
                     .flatMap(be -> be.getCapability(GTCapability.CAPABILITY_ENERGY_CONTAINER, side.getOpposite()).resolve())
                     .ifPresent(source -> container.changeEnergy(source.removeEnergy(container.getEnergyCanBeInserted())));
-        } else {
+        }
+        if (io.support(IO.OUT)){
             Optional.ofNullable(getMachine().getLevel().getBlockEntity(port.relative(side)))
                     .flatMap(be -> be.getCapability(GTCapability.CAPABILITY_ENERGY_CONTAINER, side.getOpposite()).resolve())
                     .ifPresent(target -> {

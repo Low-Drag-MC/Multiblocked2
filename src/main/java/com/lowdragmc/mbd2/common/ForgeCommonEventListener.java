@@ -7,6 +7,8 @@ import com.lowdragmc.mbd2.api.pattern.MultiblockWorldSavedData;
 import com.lowdragmc.mbd2.common.item.MBDGadgetsItem;
 import com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine;
 import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
+import it.unimi.dsi.fastutil.longs.LongSet;
+import it.unimi.dsi.fastutil.longs.LongSets;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.LevelAccessor;
@@ -39,9 +41,11 @@ public class ForgeCommonEventListener {
                     !(event.getEntity().getItemInHand(event.getHand()).getItem() instanceof MBDGadgetsItem)) {
                 // on multiblock ui click
                 for (var state : MultiblockWorldSavedData.getOrCreate(serverLevel).getControllerInPos(pos)) {
+                    LongSet openUIMask = state.getMatchContext().getOrDefault("openUIMask", LongSets.EMPTY_SET);
                     if (state.getController() instanceof MBDMultiblockMachine machine) {
                         if (machine.getDefinition().machineSettings().hasUI() &&
-                                machine.getDefinition().multiblockSettings().showUIWhenClickStructure()) {
+                                machine.getDefinition().multiblockSettings().showUIWhenClickStructure() &&
+                                openUIMask.contains(pos.asLong())) {
                             machine.openUI(event.getEntity());
                             event.setUseBlock(Event.Result.ALLOW);
                             event.setUseItem(Event.Result.DENY);

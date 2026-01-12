@@ -14,27 +14,21 @@ import javax.annotation.Nullable;
 @Setter
 public class AutoIO {
     @Configurable(name = "config.definition.trait.capability_io.front")
-    @ConfigSelector(candidate = {"IN", "OUT", "NONE"})
     private IO frontIO = IO.NONE;
 
     @Configurable(name = "config.definition.trait.capability_io.back")
-    @ConfigSelector(candidate = {"IN", "OUT", "NONE"})
     private IO backIO = IO.NONE;
 
     @Configurable(name = "config.definition.trait.capability_io.left")
-    @ConfigSelector(candidate = {"IN", "OUT", "NONE"})
     private IO leftIO = IO.NONE;
 
     @Configurable(name = "config.definition.trait.capability_io.right")
-    @ConfigSelector(candidate = {"IN", "OUT", "NONE"})
     private IO rightIO = IO.NONE;
 
     @Configurable(name = "config.definition.trait.capability_io.top")
-    @ConfigSelector(candidate = {"IN", "OUT", "NONE"})
     private IO topIO = IO.NONE;
 
     @Configurable(name = "config.definition.trait.capability_io.bottom")
-    @ConfigSelector(candidate = {"IN", "OUT", "NONE"})
     private IO bottomIO = IO.NONE;
 
     @Configurable(name = "config.definition.trait.auto_io.interval", tips = "config.definition.trait.auto_io.interval.tooltip")

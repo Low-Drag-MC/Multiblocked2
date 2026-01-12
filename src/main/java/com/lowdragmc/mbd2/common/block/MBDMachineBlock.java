@@ -138,7 +138,7 @@ public class MBDMachineBlock extends Block implements EntityBlock, IBlockRendere
 
     @Override
     public boolean isCollisionShapeFullBlock(BlockState state, BlockGetter level, BlockPos pos) {
-        return false;
+        return definition.blockProperties().collisionShapeFullBlock();
     }
 
     @Override

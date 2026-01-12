@@ -3,8 +3,8 @@ package com.lowdragmc.mbd2.common.trait.fluid;
 import com.google.common.base.Predicates;
 import com.lowdragmc.lowdraglib.misc.FluidStorage;
 import com.lowdragmc.lowdraglib.misc.FluidTransferList;
-import com.lowdragmc.lowdraglib.side.fluid.FluidStack;
-import com.lowdragmc.lowdraglib.side.fluid.FluidTransferHelper;
+import com.lowdragmc.lowdraglib.side.fluid.*;
+import com.lowdragmc.lowdraglib.side.fluid.forge.FluidHelperImpl;
 import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder;
@@ -18,6 +18,8 @@ import com.lowdragmc.mbd2.common.trait.*;
 import lombok.Setter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.material.Fluids;
 import net.neoforged.common.capabilities.Capability;
 import net.neoforged.common.capabilities.ForgeCapabilities;
@@ -90,6 +92,72 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait implements I
     }
 
     @Override
+    public void serverTick() {
+        IAutoIOTrait.super.serverTick();
+        var timer = getMachine().getOffsetTimer();
+        var autoInput = getDefinition().getAutoInput();
+        var autoOutput = getDefinition().getAutoOutput();
+        var level = getMachine().getLevel();
+        if (autoInput.isEnable() && timer % autoInput.getInterval() == 0) {
+            var leftBlocks = autoInput.getSpeed();
+            var range = autoOutput.getRotatedRange(getMachine().getFrontFacing().orElse(Direction.NORTH)).move(getMachine().getPos());
+            for (int x = (int) Math.round(range.minX); x < (int) Math.round(range.maxX); x++) {
+                if (leftBlocks <= 0) break;
+                for (int y = (int) Math.round(range.minY); y < (int) Math.round(range.maxY); y++) {
+                    if (leftBlocks <= 0) break;
+                    for (int z = (int) Math.round(range.minZ); z < (int) Math.round(range.maxZ); z++) {
+                        if (leftBlocks <= 0) break;
+                        var pos = new BlockPos(x, y, z);
+                        var state = level.getBlockState(pos);
+                        var block = state.getBlock();
+                        if (block instanceof LiquidBlock liquidBlock && state.getFluidState().isSource()) {
+                            var toFilled = FluidStack.create(liquidBlock.getFluid().getSource(), 1000);
+                            for (FluidStorage storage : storages) {
+                                if (storage.fill(toFilled, true) == 1000) {
+                                    storage.fill(toFilled, false);
+                                    leftBlocks--;
+                                    level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (autoOutput.isEnable() && timer % autoOutput.getInterval() == 0) {
+            var leftBlocks = autoOutput.getSpeed();
+            var range = autoOutput.getRotatedRange(getMachine().getFrontFacing().orElse(Direction.NORTH)).move(getMachine().getPos());
+
+            for (int x = (int) Math.round(range.minX); x < (int) Math.round(range.maxX); x++) {
+                if (leftBlocks <= 0 || isEmpty()) break;
+                for (int y = (int) Math.round(range.minY); y < (int) Math.round(range.maxY); y++) {
+                    if (leftBlocks <= 0 || isEmpty()) break;
+                    for (int z = (int) Math.round(range.minZ); z < (int) Math.round(range.maxZ) ; z++) {
+                        if (leftBlocks <= 0 || isEmpty()) break;
+                        var pos = new BlockPos(x, y, z);
+                        var state = level.getBlockState(pos);
+                        for (FluidStorage storage : storages) {
+                            var drained = storage.drain(1000, true);
+                            if (drained.getAmount() == 1000 && drained.getFluid().getFluidType().canBePlacedInLevel(level, pos, FluidHelperImpl.toFluidStack(drained))) {
+                                if (!(state.getFluidState().isSource()) && state.canBeReplaced(drained.getFluid())) {
+                                    if (!level.isClientSide) {
+                                        level.destroyBlock(pos, true);
+                                    }
+                                    level.setBlockAndUpdate(pos, drained.getFluid().defaultFluidState().createLegacyBlock());
+                                    leftBlocks--;
+                                    storage.drain(1000, false);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
     public List<IRecipeHandlerTrait<?>> getRecipeHandlerTraits() {
         return List.of(recipeHandler);
     }
@@ -106,11 +174,12 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait implements I
 
     @Override
     public void handleAutoIO(BlockPos port, Direction side, IO io) {
-        if (io == IO.IN) {
+        if (io.support(IO.IN)) {
             FluidTransferHelper.importToTarget(new FluidTransferList(storages), Integer.MAX_VALUE,
                     getDefinition().getFluidFilterSettings().isEnable() ? getDefinition().getFluidFilterSettings() : Predicates.alwaysTrue(),
                     getMachine().getLevel(), port.relative(side), side.getOpposite());
-        } else if (io == IO.OUT) {
+        }
+        if (io.support(IO.OUT)){
             FluidTransferHelper.exportToTarget(new FluidTransferList(storages), Integer.MAX_VALUE, Predicates.alwaysTrue(),
                     getMachine().getLevel(), port.relative(side), side.getOpposite());
         }

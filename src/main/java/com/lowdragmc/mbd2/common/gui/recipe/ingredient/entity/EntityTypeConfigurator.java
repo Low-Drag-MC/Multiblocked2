@@ -2,8 +2,10 @@ package com.lowdragmc.mbd2.common.gui.recipe.ingredient.entity;
 
 import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.ValueConfigurator;
+import com.lowdragmc.lowdraglib.gui.texture.WidgetTexture;
 import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
 import com.lowdragmc.lowdraglib.gui.widget.SearchComponentWidget;
+import com.lowdragmc.mbd2.api.recipe.ingredient.EntityIngredient;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -28,7 +30,7 @@ public class EntityTypeConfigurator extends ValueConfigurator<EntityType<?>> imp
         if (newValue == null) newValue = defaultValue;
         if (value == newValue) return;
         super.onValueUpdate(newValue);
-        searchComponent.setCurrentString(BuiltInRegistries.ENTITY_TYPE.getKey(value == null ? defaultValue : value).toString());
+        searchComponent.setCurrent(value);
     }
 
     @Override
@@ -50,11 +52,12 @@ public class EntityTypeConfigurator extends ValueConfigurator<EntityType<?>> imp
                     image.setImage(ColorPattern.T_GRAY.rectTexture().setRadius(5));
                 });
         addWidget(searchComponent = new SearchComponentWidget<>(leftWidth + 3, 2, width - leftWidth - 6 - rightWidth, 10, this));
+        searchComponent.setIconProvider(type -> new WidgetTexture(new EntityPreviewWidget(EntityIngredient.of(1, type), 0, 0, 18, 18).setShowAmount(false)));
         searchComponent.setShowUp(true);
         searchComponent.setCapacity(5);
+        searchComponent.setCurrent(value);
         var textFieldWidget = searchComponent.textFieldWidget;
         textFieldWidget.setClientSideWidget();
-        textFieldWidget.setCurrentString(value == null ? BuiltInRegistries.ENTITY_TYPE.getKey(defaultValue) : BuiltInRegistries.ENTITY_TYPE.getKey(value));
         textFieldWidget.setBordered(false);
     }
 

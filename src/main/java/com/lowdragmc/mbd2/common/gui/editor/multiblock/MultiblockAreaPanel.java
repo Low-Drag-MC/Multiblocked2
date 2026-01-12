@@ -28,16 +28,17 @@ import com.lowdragmc.mbd2.common.gui.editor.MultiblockMachineProject;
 import com.lowdragmc.mbd2.utils.ControllerBlockInfo;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
+import com.mojang.datafixers.util.Either;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LiquidBlock;
+import net.minecraftforge.registries.ForgeRegistries;
 import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
 
@@ -48,7 +49,7 @@ public class MultiblockAreaPanel extends WidgetGroup {
     @Getter
     protected final MultiblockMachineProject project;
     @Getter
-    protected final SceneWidget scene;
+    protected final SceneEditorWidget scene;
     @Getter
     protected final MultiblockPatternPanel patternPanel;
     protected final WidgetGroup buttonGroup;
@@ -162,11 +163,12 @@ public class MultiblockAreaPanel extends WidgetGroup {
     }
 
     public MultiblockAreaPanel(MultiblockMachineProject project, MultiblockPatternPanel patternPanel) {
-        super(0, MenuPanel.HEIGHT, Editor.INSTANCE.getSize().getWidth() - ConfigPanel.WIDTH, Editor.INSTANCE.getSize().height - MenuPanel.HEIGHT - 16);
+        super(0, MenuPanel.HEIGHT + 16, Editor.INSTANCE.getSize().getWidth() - ConfigPanel.WIDTH, Editor.INSTANCE.getSize().height - MenuPanel.HEIGHT - 16);
         this.project = project;
         this.patternPanel = patternPanel;
         addWidget(scene = new SceneEditorWidget(0, 0, this.getSize().width, this.getSize().height, null));
         addWidget(buttonGroup = new WidgetGroup(0, 0, this.getSize().width, this.getSize().height));
+        scene.disableTransformGizmo();
         scene.setRenderFacing(false);
         scene.setRenderSelect(false);
         scene.createScene(Minecraft.getInstance().level);
@@ -260,21 +262,21 @@ public class MultiblockAreaPanel extends WidgetGroup {
                         var block = level.getBlockState(blockPos).getBlock();
                         String id;
                         if (block instanceof LiquidBlock liquidBlock) {
-                            var fluid = liquidBlock.fluid.getSource();
-                            id = Optional.of(BuiltInRegistries.FLUID.getKey(fluid)).map(ResourceLocation::toString).orElse("any");
-                            if (!predicateResource.hasResource(id)) {
-                                predicateResource.addResource(id, new PredicateFluids(fluid));
+                            var fluid = liquidBlock.getFluid().getSource();
+                            id = Optional.ofNullable(ForgeRegistries.FLUIDS.getKey(fluid)).map(ResourceLocation::toString).orElse("any");
+                            if (!predicateResource.hasBuiltinResource(id)) {
+                                predicateResource.addBuiltinResource(id, new PredicateFluids(fluid));
                                 addNewResource = true;
                             }
                         } else {
-                            id = block == Blocks.AIR ? "any" : Optional.of(BuiltInRegistries.BLOCK.getKey(block)).map(ResourceLocation::toString).orElse("any");
-                            if (!predicateResource.hasResource(id)) {
-                                predicateResource.addResource(id, new PredicateBlocks(block));
+                            id = block == Blocks.AIR ? "any" : Optional.ofNullable(ForgeRegistries.BLOCKS.getKey(block)).map(ResourceLocation::toString).orElse("any");
+                            if (!predicateResource.hasBuiltinResource(id)) {
+                                predicateResource.addBuiltinResource(id, new PredicateBlocks(block));
                                 addNewResource = true;
                             }
                         }
 
-                        holder = BlockPlaceholder.create(predicateResource, id);
+                        holder = BlockPlaceholder.create(predicateResource, Either.left(id));
                     }
                     blockPlaceholders[x - minX][y - minY][z - minZ] = holder;
                 }
@@ -314,7 +316,7 @@ public class MultiblockAreaPanel extends WidgetGroup {
             var hoverPosFace = scene.getHoverPosFace();
             var clickPosFace = scene.getClickPosFace();
             if (isShiftDown() && hoverPosFace != null && hoverPosFace.equals(clickPosFace)) {
-                var pos = hoverPosFace.pos();
+                var pos = hoverPosFace.pos;
                 if (runtime.isFromClicked) {
                     runtime.setFrom(pos);
                 } else {
@@ -338,6 +340,8 @@ public class MultiblockAreaPanel extends WidgetGroup {
         RenderSystem.disableDepthTest();
         RenderSystem.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
+        var tessellator = Tesselator.getInstance();
+        var buffer = tessellator.getBuilder();
         RenderSystem.disableCull();
 
         var minX = Math.min(runtime.area.from.getX(), runtime.area.to.getX());
@@ -349,7 +353,7 @@ public class MultiblockAreaPanel extends WidgetGroup {
 
         // draw corner blocks
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        var buffer = Tesselator.getInstance().begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION_COLOR);
+        buffer.begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION_COLOR);
 
         var fromColor = 0x8f00ff00;
         var toColor = 0x8fff0000;
@@ -398,11 +402,11 @@ public class MultiblockAreaPanel extends WidgetGroup {
                     controllerPos.getX() + 1, controllerPos.getY() + 1, controllerPos.getZ() + 1
                     , r, g, b, a, false);
         }
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
+        tessellator.end();
 
         // draw the size box
         RenderSystem.setShader(GameRenderer::getRendertypeLinesShader);
-        buffer = Tesselator.getInstance().begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
+        buffer.begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
         RenderSystem.lineWidth(10);
 
         color = 0xffffffff;
@@ -418,7 +422,7 @@ public class MultiblockAreaPanel extends WidgetGroup {
                 controllerPos.getX() + 1, controllerPos.getY() + 1, controllerPos.getZ() + 1,
                 ColorUtils.red(color), ColorUtils.green(color), ColorUtils.blue(color), ColorUtils.alpha(color));
 
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
+        tessellator.end();
 
         RenderSystem.enableDepthTest();
         RenderSystem.enableCull();

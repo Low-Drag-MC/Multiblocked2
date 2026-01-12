@@ -66,9 +66,11 @@ public class MBDBlockRenderer implements IRenderer {
     @Override
     public List<BakedQuad> renderModel(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, @Nullable BlockState state, @Nullable Direction side, RandomSource rand, ModelData modelData, RenderType renderType) {
         return getMachine(level, pos)
-                .filter(machine -> !machine.isDisableRendering())
-                .map(machine -> machine.getMachineState().getRealRenderer().renderModel(level, pos, state, side, rand, modelData, renderType))
-                .orElseGet(Collections::emptyList);
+                .map(machine -> {
+                    if (machine.isDisableRendering()) return Collections.<BakedQuad>emptyList();
+                    return machine.getMachineState().getRealRenderer().renderModel(level, pos, state, side, rand);
+                })
+                .orElseGet(() -> defaultRenderer.get().renderModel(level, pos, state, side, rand));
     }
 
     @NotNull
@@ -92,29 +94,30 @@ public class MBDBlockRenderer implements IRenderer {
                         machine.getDefinition().machineSettings().traitDefinitions().stream()
                                 .map(definition -> definition.getBESRenderer(machine))
                                 .anyMatch(renderer -> renderer.hasTESR(blockEntity))
-        ).orElse(false);
+        ).orElseGet(() -> defaultRenderer.get().hasTESR(blockEntity));
     }
 
     @Override
     public boolean isGlobalRenderer(BlockEntity blockEntity) {
         return getMachine(blockEntity).map(machine ->
+                machine.getMachineState().isGlobalVisible() ||
                 machine.getMachineState().getRealRenderer().isGlobalRenderer(blockEntity) ||
                         machine.getDefinition().machineSettings().traitDefinitions().stream()
                                 .map(definition -> definition.getBESRenderer(machine))
                                 .anyMatch(renderer -> renderer.isGlobalRenderer(blockEntity))
-        ).orElse(false);
+        ).orElseGet(() -> defaultRenderer.get().isGlobalRenderer(blockEntity));
     }
 
     @Override
     public boolean shouldRender(BlockEntity blockEntity, Vec3 cameraPos) {
-        return getMachine(blockEntity).filter(machine -> !machine.isDisableRendering())
-                .map(machine -> machine.getMachineState().getRealRenderer().shouldRender(blockEntity, cameraPos))
+        return getMachine(blockEntity)
+                .map(machine -> !machine.isDisableRendering() && Vec3.atCenterOf(blockEntity.getBlockPos()).closerThan(cameraPos, machine.getMachineState().renderingRadius()))
                 .orElseGet(() -> defaultRenderer.get().shouldRender(blockEntity, cameraPos));
     }
 
     @Override
     public void render(BlockEntity blockEntity, float partialTicks, PoseStack stack, MultiBufferSource buffer, int combinedLight, int combinedOverlay) {
-        getMachine(blockEntity).ifPresent(machine -> {
+        getMachine(blockEntity).ifPresentOrElse(machine -> {
             machine.getMachineState().getRealRenderer().render(blockEntity, partialTicks, stack, buffer, combinedLight, combinedOverlay);
             for (var traitDefinition : machine.getDefinition().machineSettings().traitDefinitions()) {
                 var renderer = traitDefinition.getBESRenderer(machine);
@@ -122,6 +125,6 @@ public class MBDBlockRenderer implements IRenderer {
                     renderer.render(blockEntity, partialTicks, stack, buffer, combinedLight, combinedOverlay);
                 }
             }
-        });
+        }, () -> defaultRenderer.get().render(blockEntity, partialTicks, stack, buffer, combinedLight, combinedOverlay));
     }
 }

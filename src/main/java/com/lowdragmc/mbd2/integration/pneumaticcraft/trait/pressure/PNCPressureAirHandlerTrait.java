@@ -1,14 +1,15 @@
 package com.lowdragmc.mbd2.integration.pneumaticcraft.trait.pressure;
 
-import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced;
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.ICapabilityProviderTrait;
+import com.lowdragmc.mbd2.common.trait.IProxyAutoIOTrait;
 import com.lowdragmc.mbd2.common.trait.RecipeCapabilityTrait;
 import com.lowdragmc.mbd2.integration.pneumaticcraft.PNCPressureAirRecipeCapability;
 import com.lowdragmc.mbd2.integration.pneumaticcraft.PressureAir;
@@ -17,6 +18,7 @@ import me.desht.pneumaticcraft.api.PNCCapabilities;
 import me.desht.pneumaticcraft.api.tileentity.IAirHandler;
 import me.desht.pneumaticcraft.api.tileentity.IAirHandlerMachine;
 import me.desht.pneumaticcraft.common.util.DirectionUtil;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.neoforged.common.capabilities.Capability;
 import org.jetbrains.annotations.Nullable;
@@ -25,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Getter
-public class PNCPressureAirHandlerTrait extends RecipeCapabilityTrait implements IRecipeHandlerTrait<PressureAir> {
+public class PNCPressureAirHandlerTrait extends RecipeCapabilityTrait implements IRecipeHandlerTrait<PressureAir>, IProxyAutoIOTrait {
     public static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(PNCPressureAirHandlerTrait.class);
     @Override
     public ManagedFieldHolder getFieldHolder() { return MANAGED_FIELD_HOLDER; }
@@ -58,6 +60,12 @@ public class PNCPressureAirHandlerTrait extends RecipeCapabilityTrait implements
         return new CopiableAirHandler(getDefinition().getPressureTier(), getDefinition().getVolume(), getDefinition().getMaxPressure());
     }
 
+    @Override
+    public void onNeighborChanged(Block block, BlockPos fromPos, boolean isMoving) {
+        lastFront = null;
+        updateHullAirHandlers();
+    }
+
     protected void updateHullAirHandlers() {
         var front = getMachine().getFrontFacing().orElse(Direction.NORTH);
         if (lastFront == front) return;
@@ -86,9 +94,37 @@ public class PNCPressureAirHandlerTrait extends RecipeCapabilityTrait implements
     }
 
     @Override
+    public void handleAutoIO(BlockPos port, Direction side, IO io) {
+        if (io.support(IO.OUT)) {
+            var lastSides = handler.getSides();
+            var ownTE = getMachine().getLevel().getBlockEntity(port);
+            if (ownTE == null) return; // happens when the chunk loading.
+            handler.setConnectedFaces(List.of(side));
+            handler.tick(getMachine().getLevel().getBlockEntity(port));
+            handler.setConnectedFaces(lastSides);
+        }
+    }
+
+    @Override
     public List<PressureAir> handleRecipeInner(IO io, MBDRecipe recipe, List<PressureAir> left, @Nullable String slotName, boolean simulate) {
         if (!compatibleWith(io)) return left;
         var handler = simulate ? this.handler.copy() : this.handler;
+        // check pressure condition first
+        for (var condition : recipe.conditions) {
+            if (condition instanceof PNCPressureCondition pressureCondition) {
+                if (pressureCondition.isAir()) {
+                    var air = handler.getAir();
+                    if (air < pressureCondition.getMinPressure() || air > pressureCondition.getMaxPressure()) {
+                        return left;
+                    }
+                } else {
+                    var pressure = handler.getPressure();
+                    if (pressure < pressureCondition.getMinPressure() || pressure > pressureCondition.getMaxPressure()) {
+                        return left;
+                    }
+                }
+            }
+        }
         if (io == IO.IN) {
             var iterator = left.iterator();
             while (iterator.hasNext()) {

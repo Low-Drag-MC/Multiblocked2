@@ -141,9 +141,7 @@ public class EntityRecipeCapability extends RecipeCapability<EntityIngredient> {
         valuesGroup.setOnRemove(value -> {
             var entityIngredient = supplier.get();
             var values = entityIngredient.values;
-            var newValues = Arrays.stream(values).filter(v -> v != value).toArray(EntityIngredient.Value[]::new);
-            newValues[values.length] = value;
-            entityIngredient.values = newValues;
+            entityIngredient.values = Arrays.stream(values).filter(v -> v != value).toArray(EntityIngredient.Value[]::new);
             entityIngredient.types = null;
         });
         valuesGroup.setOnUpdate(values -> {

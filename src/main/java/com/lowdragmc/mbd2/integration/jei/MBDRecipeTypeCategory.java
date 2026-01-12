@@ -33,7 +33,7 @@ public class MBDRecipeTypeCategory extends ModularUIRecipeCategory<MBDRecipeType
         public final MBDRecipe recipe;
 
         public RecipeWrapper(MBDRecipe recipe) {
-            super(recipe.recipeType.getUiCreator().create(recipe).setClientSideWidget());
+            super(recipe.recipeType.createRecipeUI(recipe));
             this.recipe = recipe;
         }
     }
@@ -70,7 +70,7 @@ public class MBDRecipeTypeCategory extends ModularUIRecipeCategory<MBDRecipeType
                 registration.addRecipes(MBDRecipeTypeCategory.TYPES.apply(recipeType),
                         Minecraft.getInstance().getConnection().getRecipeManager().getAllRecipesFor(recipeType)
                                 .stream()
-                                .filter(recipe -> !recipe.isFuel)
+                                .filter(recipe -> !recipe.isFuel && !recipe.isXEIHidden)
                                 .map(RecipeWrapper::new)
                                 .collect(Collectors.toList()));
             }

@@ -14,6 +14,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.neoforged.api.distmarker.Dist;
@@ -23,6 +24,8 @@ import org.jetbrains.annotations.NotNull;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 
+import java.util.function.Supplier;
+
 @LDLRegister(name = "create_stress", group = "widget.container", modID = "create")
 public class CreateStressWidget extends Widget implements IConfigurableWidget {
     @Getter
@@ -30,8 +33,56 @@ public class CreateStressWidget extends Widget implements IConfigurableWidget {
     @Accessors(chain = true)
     public float stress;
 
+    @Setter
+    @Accessors(chain = true)
+    public Supplier<Float> stressSupplier;
+
     public CreateStressWidget() {
         super(0, 0, 100, 16);
+    }
+
+    @Override
+    public void writeInitialData(FriendlyByteBuf buffer) {
+        super.writeInitialData(buffer);
+        if (stressSupplier != null) {
+            stress = stressSupplier.get();
+        }
+        buffer.writeFloat(stress);
+    }
+
+    @Override
+    public void readInitialData(FriendlyByteBuf buffer) {
+        super.readInitialData(buffer);
+        stress = buffer.readFloat();
+    }
+
+    @Override
+    public void detectAndSendChanges() {
+        super.detectAndSendChanges();
+        if (stressSupplier != null) {
+            var newStress = stressSupplier.get();
+            if (newStress != stress) {
+                stress = newStress;
+                writeUpdateInfo(-1, buf -> buf.writeFloat(stress));
+            }
+        }
+    }
+
+    @Override
+    public void readUpdateInfo(int id, FriendlyByteBuf buffer) {
+        if (id == -1) {
+            stress = buffer.readFloat();
+        } else {
+            super.readUpdateInfo(id, buffer);
+        }
+    }
+
+    @Override
+    public void updateScreen() {
+        super.updateScreen();
+        if (isClientSideWidget && stressSupplier != null) {
+            stress = stressSupplier.get();
+        }
     }
 
     @Override

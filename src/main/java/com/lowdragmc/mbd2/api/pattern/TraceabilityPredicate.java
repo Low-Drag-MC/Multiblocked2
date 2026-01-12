@@ -184,10 +184,6 @@ public class TraceabilityPredicate {
     }
 
     public boolean test(MultiblockState blockWorldState) {
-        if (blockWorldState.getBlockState().getBlock() == ProxyPartBlock.BLOCK) {
-            blockWorldState.getMatchContext().getOrCreate("renderMask", LongOpenHashSet::new).add(blockWorldState.getPos().asLong());
-            return true;
-        }
         blockWorldState.io = IO.BOTH;
         boolean flag = false;
         for (SimplePredicate predicate : limited) {

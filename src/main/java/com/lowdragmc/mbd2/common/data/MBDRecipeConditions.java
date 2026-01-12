@@ -8,6 +8,7 @@ import com.lowdragmc.mbd2.common.recipe.*;
 import com.lowdragmc.mbd2.integration.create.CreateRotationCondition;
 import com.lowdragmc.mbd2.integration.mekanism.MEKTemperatureCondition;
 import com.lowdragmc.mbd2.integration.pneumaticcraft.trait.heat.PNCTemperatureCondition;
+import com.lowdragmc.mbd2.integration.pneumaticcraft.trait.pressure.PNCPressureCondition;
 import net.neoforged.fml.ModLoader;
 
 public final class MBDRecipeConditions {
@@ -24,7 +25,8 @@ public final class MBDRecipeConditions {
         register(MachineLevelCondition.INSTANCE);
         register(MachineNBTCondition.INSTANCE);
         register(BlockCondition.INSTANCE);
-        register(DayLightCondition.INSTANCE);
+        register(DayTimeCondition.INSTANCE);
+        register(LightCondition.INSTANCE);
         register(RedstoneSignalCondition.INSTANCE);
         if (MBD2.isCreateLoaded()) {
             register(CreateRotationCondition.INSTANCE);
@@ -34,6 +36,7 @@ public final class MBDRecipeConditions {
         }
         if (MBD2.isPneumaticCraftLoaded()) {
             register(PNCTemperatureCondition.INSTANCE);
+            register(PNCPressureCondition.INSTANCE);
         }
         ModLoader.postEvent(new MBDRegistryEvent.RecipeCondition());
         MBDRegistries.RECIPE_CONDITIONS.freeze();

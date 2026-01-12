@@ -29,6 +29,7 @@ import java.util.HashSet;
 public class ConfigRecipeLogicSettings implements IToggleConfigurable, IPersistedSerializable {
     @Builder.Default
     @Setter
+    @Persisted
     @Accessors(fluent = false)
     private boolean enable = true;
     @Builder.Default
@@ -44,12 +45,25 @@ public class ConfigRecipeLogicSettings implements IToggleConfigurable, IPersiste
     protected int recipeDampingValue = 2;
     @Getter
     @Builder.Default
+    @Configurable(name = "config.recipe_logic_settings.consume_inputs_after_working", tips = {
+            "config.recipe_logic_settings.consume_inputs_after_working.tooltip.0",
+            "config.recipe_logic_settings.consume_inputs_after_working.tooltip.1"
+    })
+    protected boolean consumeInputsAfterWorking = false;
+    @Getter
+    @Builder.Default
     @Configurable(name = "config.recipe_logic_settings.always_search_recipe", tips = {
             "config.recipe_logic_settings.always_search_recipe.tooltip.0",
             "config.recipe_logic_settings.always_search_recipe.tooltip.1"
     })
-    @NumberRange(range = {0, Integer.MAX_VALUE})
     protected boolean alwaysSearchRecipe = false;
+    @Getter
+    @Builder.Default
+    @Configurable(name = "config.recipe_logic_settings.always_modify_recipe", tips = {
+            "config.recipe_logic_settings.always_modify_recipe.tooltip.0",
+            "config.recipe_logic_settings.always_modify_recipe.tooltip.1"
+    })
+    protected boolean alwaysModifyRecipe = false;
 
     public MBDRecipeType getRecipeType() {
         return MBDRegistries.RECIPE_TYPES.getOrDefault(recipeType, MBDRecipeType.DUMMY);

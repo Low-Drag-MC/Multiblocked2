@@ -79,11 +79,12 @@ public abstract class ChemicalTankCapabilityTrait<CHEMICAL extends Chemical<CHEM
 
     @Override
     public void handleAutoIO(BlockPos port, Direction side, IO io) {
-        if (io == IO.IN) {
+        if (io.support(IO.IN)) {
             importToTarget(mergeContents(storages), Long.MAX_VALUE,
                     getDefinition().getChemicalFilterSettings().isEnable() ? stack -> getDefinition().getChemicalFilterSettings().test(stack.getType()) : Predicates.alwaysTrue(),
                     getMachine().getLevel(), port.relative(side), side.getOpposite());
-        } else if (io == IO.OUT) {
+        }
+        if (io.support(IO.OUT)){
             exportToTarget(mergeContents(storages), Long.MAX_VALUE, Predicates.alwaysTrue(),
                     getMachine().getLevel(), port.relative(side), side.getOpposite());
         }

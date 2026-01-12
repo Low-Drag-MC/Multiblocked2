@@ -273,5 +273,10 @@ public class MekanismChemicalRecipeCapability<CHEMICAL extends Chemical<CHEMICAL
             copy.setAmount(modifier.apply(copy.getAmount()).longValue());
             return copy;
         }
+
+        @Override
+        public STACK deepCopyInner(STACK content) {
+            return (STACK) content.copy();
+        }
     }
 }

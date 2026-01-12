@@ -11,20 +11,22 @@ import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
 import com.lowdragmc.mbd2.integration.create.machine.CreateKineticMachineDefinition;
 import net.neoforged.fml.ModLoader;
 
+import java.util.function.Supplier;
+
 public class MBDMachineDefinitionTypes {
 
     public static void init() {
         MBDRegistries.MACHINE_DEFINITION_TYPES.unfreeze();
-        register(MBDMachineDefinition.class);
-        register(MultiblockMachineDefinition.class);
+        register(MBDMachineDefinition.class, MBDMachineDefinition::createDefault);
+        register(MultiblockMachineDefinition.class, MultiblockMachineDefinition::createDefault);
         if (MBD2.isCreateLoaded()) {
-            register(CreateKineticMachineDefinition.class);
+            register(CreateKineticMachineDefinition.class, CreateKineticMachineDefinition::createDefault);
         }
         ModLoader.postEvent(new MBDRegistryEvent.MachineDefinitionType());
         MBDRegistries.MACHINE_DEFINITION_TYPES.freeze();
     }
 
-    public static void register(Class<? extends MBDMachineDefinition> clazz) {
+    public static <T extends MBDMachineDefinition> void register(Class<T> clazz, Supplier<T> creator) {
         if (clazz.isAnnotationPresent(LDLRegister.class)) {
             var annotation = clazz.getAnnotation(LDLRegister.class);
             if (!annotation.modID().isEmpty()) {
@@ -33,24 +35,11 @@ public class MBDMachineDefinitionTypes {
                     return;
                 }
             }
-            try {
-                var constructor = clazz.getDeclaredConstructor();
-                constructor.setAccessible(true);
-                MBDRegistries.MACHINE_DEFINITION_TYPES.register(clazz.getAnnotation(LDLRegister.class).name(),
-                        new AnnotationDetector.Wrapper<>(annotation, clazz, () -> {
-                            try {
-                                return constructor.newInstance();
-                            } catch (Exception e) {
-                                throw new RuntimeException(e);
-                            }
-                        }));
-            } catch (NoSuchMethodException e) {
-                MBD2.LOGGER.error("Failed to register machine definition: " + clazz.getName() + " - No default constructor found");
-            }
+            MBDRegistries.MACHINE_DEFINITION_TYPES.register(clazz.getAnnotation(LDLRegister.class).name(),
+                    new AnnotationDetector.Wrapper<>(annotation, clazz, creator));
         } else {
             MBD2.LOGGER.error("Failed to register machine definition: " + clazz.getName() + " - No annotation found");
         }
     }
-
 
 }

@@ -1,6 +1,5 @@
 package com.lowdragmc.mbd2.integration.geckolib;
 
-import lombok.Setter;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 import software.bernie.geckolib.core.animatable.GeoAnimatable;

@@ -70,7 +70,7 @@ public class BotaniaManaCapabilityTrait extends SimpleCapabilityTrait implements
 
     @Override
     public void handleAutoIO(BlockPos port, Direction side, IO io) {
-        if (io == IO.IN) {
+        if (io.support(IO.IN)) {
             Optional.ofNullable(getMachine().getLevel().getBlockEntity(port.relative(side)))
                     .flatMap(be -> be.getCapability(BotaniaForgeCapabilities.MANA_RECEIVER, side.getOpposite()).resolve())
                     .ifPresent(source -> {
@@ -79,7 +79,8 @@ public class BotaniaManaCapabilityTrait extends SimpleCapabilityTrait implements
                         storage.receiveMana(cost);
                         source.receiveMana(-cost);
                     });
-        } else {
+        }
+        if (io.support(IO.OUT)) {
             Optional.ofNullable(getMachine().getLevel().getBlockEntity(port.relative(side)))
                     .flatMap(be -> be.getCapability(BotaniaForgeCapabilities.MANA_RECEIVER, side.getOpposite()).resolve())
                     .ifPresent(target -> {

@@ -35,6 +35,11 @@ public class SerializerDouble implements IContentSerializer<Double> {
     }
 
     @Override
+    public Double deepCopyInner(Double content) {
+        return content;
+    }
+
+    @Override
     public Codec<Double> codec() {
         return Codec.DOUBLE;
     }

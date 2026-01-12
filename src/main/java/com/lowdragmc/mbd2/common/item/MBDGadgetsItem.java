@@ -177,6 +177,8 @@ public class MBDGadgetsItem extends Item implements HeldItemUIFactory.IHeldItemU
                             serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.multiblock_debugger.failure.no_error"));
                         }
                     }
+                } else {
+                    serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.multiblock_debugger.failure.error.not_controller"));
                 }
                 return InteractionResult.SUCCESS;
             } else if (isRecipeDebugger(stack) && getRecipe(stack) != null && serverPlayer.getServer() != null) {

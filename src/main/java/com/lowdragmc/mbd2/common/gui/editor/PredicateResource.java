@@ -1,21 +1,30 @@
 package com.lowdragmc.mbd2.common.gui.editor;
 
-import com.lowdragmc.lowdraglib.gui.editor.data.resource.Resource;
-import com.lowdragmc.lowdraglib.gui.editor.ui.ResourcePanel;
-import com.lowdragmc.lowdraglib.gui.editor.ui.resource.ResourceContainer;
-import com.lowdragmc.lowdraglib.gui.widget.Widget;
+import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.gui.editor.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.gui.editor.data.resource.Resource;
+import com.lowdragmc.lowdraglib2.gui.editor.ui.ResourcePanel;
+import com.lowdragmc.lowdraglib2.gui.editor.ui.resource.ResourceContainer;
+import com.lowdragmc.lowdraglib2.gui.widget.Widget;
 import com.lowdragmc.mbd2.api.pattern.predicates.SimplePredicate;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
+
+import static com.lowdragmc.mbd2.common.gui.editor.PredicateResource.RESOURCE_NAME;
+
+
+@LDLRegister(name = RESOURCE_NAME, group = "resource")
 public class PredicateResource extends Resource<SimplePredicate> {
     public final static String RESOURCE_NAME = "mbd2.gui.editor.group.predicate";
 
     public PredicateResource() {
-        data.put("any", SimplePredicate.ANY);
-        data.put("air", SimplePredicate.AIR);
+        super(new File(LDLib2.getLDLibDir(), "assets/resources/predicates"));
+        addBuiltinResource("any", SimplePredicate.ANY);
+        addBuiltinResource("air", SimplePredicate.AIR);
     }
 
     @Override
@@ -43,12 +52,12 @@ public class PredicateResource extends Resource<SimplePredicate> {
     }
 
     @Override
-    public void deserializeNBT(CompoundTag nbt, HolderLookup.Provider provider) {
-        data.clear();
-        data.put("any", SimplePredicate.ANY);
-        data.put("air", SimplePredicate.AIR);
+    public void deserializeNBT(CompoundTag nbt) {
+        getBuiltinResources().clear();
+        addBuiltinResource("any", SimplePredicate.ANY);
+        addBuiltinResource("air", SimplePredicate.AIR);
         for (String key : nbt.getAllKeys()) {
-            data.put(key, deserialize(nbt.get(key), provider));
+            addBuiltinResource(key, deserialize(nbt.get(key)));
         }
     }
 }

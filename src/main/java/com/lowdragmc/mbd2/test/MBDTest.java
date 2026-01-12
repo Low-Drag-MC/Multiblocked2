@@ -29,12 +29,12 @@ public class MBDTest {
 //                .blockProperties(ConfigBlockProperties.builder().build())
 //                .itemProperties(ConfigItemProperties.builder().build())
 //                .build());
-//        event.registerFromResource(this.getClass(), "mbd2/machine/machine_project_file.sm");
+//        event.registerFromResource(this.getClass(), "single_machine", "mbd2/machine/lq_compressor.sm");
     }
 
     @SubscribeEvent
     public void onRegisterRecipeType(MBDRegistryEvent.MBDRecipeType event) {
-        System.out.println("Registering recipe type");
+//        event.registerFromResource(this.getClass(), "mbd2/recipe_type/lq_compressor.rt");
     }
 
 }

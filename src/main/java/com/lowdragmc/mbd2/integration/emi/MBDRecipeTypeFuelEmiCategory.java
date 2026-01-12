@@ -23,7 +23,7 @@ public class MBDRecipeTypeFuelEmiCategory extends EmiRecipeCategory {
         final MBDRecipe recipe;
 
         public MBDEmiRecipe(MBDRecipeTypeFuelEmiCategory category, MBDRecipe recipe) {
-            super(() -> recipe.recipeType.getFuelUICreator().create(recipe).setClientSideWidget());
+            super(() -> recipe.recipeType.createFuelUI(recipe));
             this.category = category;
             this.recipe = recipe;
         }
@@ -49,9 +49,9 @@ public class MBDRecipeTypeFuelEmiCategory extends EmiRecipeCategory {
 
     public static void registerDisplays(EmiRegistry registry) {
         for (var recipeType : MBDRegistries.RECIPE_TYPES) {
-            if (recipeType.isXEIVisible()) {
+            if (recipeType.isXEIVisible() && recipeType.isRequireFuelForWorking()) {
                 Minecraft.getInstance().getConnection().getRecipeManager().getAllRecipesFor(recipeType).stream()
-                        .filter(recipe -> recipe.isFuel)
+                        .filter(recipe -> recipe.isFuel && !recipe.isXEIHidden)
                         .map(recipe -> new MBDEmiRecipe(CATEGORIES.apply(recipeType), recipe))
                         .forEach(registry::addRecipe);
             }
@@ -60,7 +60,7 @@ public class MBDRecipeTypeFuelEmiCategory extends EmiRecipeCategory {
 
     public static void registerWorkStations(EmiRegistry registry) {
         for (var mbdRecipeType : MBDRegistries.RECIPE_TYPES) {
-            if (mbdRecipeType.isXEIVisible()) {
+            if (mbdRecipeType.isXEIVisible() && mbdRecipeType.isRequireFuelForWorking()) {
                 for (var machine : MBDRegistries.MACHINE_DEFINITIONS) {
                     for (var definition : MBDRegistries.MACHINE_DEFINITIONS) {
                         var recipeType = definition.recipeLogicSettings().getRecipeType();

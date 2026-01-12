@@ -1,8 +1,8 @@
 package com.lowdragmc.mbd2.common.data;
 
-import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.gui.editor.runtime.AnnotationDetector;
+import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.gui.editor.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.gui.editor.runtime.AnnotationDetector;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.event.MBDRegistryEvent;
@@ -11,6 +11,7 @@ import com.lowdragmc.mbd2.common.trait.entity.EntityHandlerTraitDefinition;
 import com.lowdragmc.mbd2.common.trait.fluid.FluidTankCapabilityTraitDefinition;
 import com.lowdragmc.mbd2.common.trait.forgeenergy.ForgeEnergyCapabilityTraitDefinition;
 import com.lowdragmc.mbd2.common.trait.item.ItemSlotCapabilityTraitDefinition;
+import com.lowdragmc.mbd2.integration.ae2.trait.MEInterfaceTraitDefinition;
 import com.lowdragmc.mbd2.integration.botania.trait.BotaniaManaCapabilityTraitDefinition;
 import com.lowdragmc.mbd2.integration.embers.trait.EmbersEmberCapabilityTraitDefinition;
 import com.lowdragmc.mbd2.integration.gtm.trait.GTMEnergyCapabilityTraitDefinition;
@@ -53,6 +54,9 @@ public class MBDTraitDefinitionTypes {
         if (MBD2.isEmbersLoaded()) {
             register(EmbersEmberCapabilityTraitDefinition.class);
         }
+        if (MBD2.isAE2Loaded()) {
+            register(MEInterfaceTraitDefinition.class);
+        }
         ModLoader.postEvent(new MBDRegistryEvent.TraitType());
         MBDRegistries.TRAIT_DEFINITION_TYPES.freeze();
     }
@@ -61,7 +65,7 @@ public class MBDTraitDefinitionTypes {
         if (clazz.isAnnotationPresent(LDLRegister.class)) {
             var annotation = clazz.getAnnotation(LDLRegister.class);
             if (!annotation.modID().isEmpty()) {
-                if (!LDLib.isModLoaded(annotation.modID())) {
+                if (!LDLib2.isModLoaded(annotation.modID())) {
                     MBD2.LOGGER.info("Skipping registration of trait definition: " + clazz.getName() + " - Mod not loaded: " + annotation.modID());
                     return;
                 }

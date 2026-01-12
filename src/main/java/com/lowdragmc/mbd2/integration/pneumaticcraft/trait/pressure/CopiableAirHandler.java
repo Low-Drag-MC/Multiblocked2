@@ -7,7 +7,11 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import me.desht.pneumaticcraft.api.pressure.PressureTier;
 import me.desht.pneumaticcraft.common.capabilities.MachineAirHandler;
+import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 public class CopiableAirHandler extends MachineAirHandler implements ITagSerializable<CompoundTag>, IContentChangeAware {
@@ -16,6 +20,8 @@ public class CopiableAirHandler extends MachineAirHandler implements ITagSeriali
     @Accessors(fluent = true)
     protected final float maxPressure;
     private final PressureTier tier;
+    @Getter
+    private List<Direction> sides = new ArrayList<>();
 
     public CopiableAirHandler(PressureTier tier, int baseVolume, float maxPressure) {
         this(tier, baseVolume, 0, maxPressure);
@@ -30,6 +36,12 @@ public class CopiableAirHandler extends MachineAirHandler implements ITagSeriali
 
     public CopiableAirHandler copy() {
         return new CopiableAirHandler(tier, getBaseVolume(), getPressure(), maxPressure);
+    }
+
+    @Override
+    public void setConnectedFaces(List<Direction> sides) {
+        this.sides = sides;
+        super.setConnectedFaces(sides);
     }
 
     @Override

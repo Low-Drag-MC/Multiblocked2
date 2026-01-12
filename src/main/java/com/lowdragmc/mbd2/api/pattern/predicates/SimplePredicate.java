@@ -16,6 +16,7 @@ import com.lowdragmc.lowdraglib.gui.widget.SceneWidget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.lowdraglib.syncdata.IAutoPersistedSerializable;
 import com.lowdragmc.lowdraglib.utils.TrackedDummyWorld;
+import com.lowdragmc.mbd2.api.block.ProxyPartBlock;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.pattern.MultiblockState;
 import com.lowdragmc.mbd2.api.pattern.TraceabilityPredicate;
@@ -81,6 +82,8 @@ public class SimplePredicate implements IAutoPersistedSerializable, IConfigurabl
     public ToggleDirection controllerFront = new ToggleDirection();
     @Configurable(name = "config.block_pattern.predicate.tooltips", tips = "config.block_pattern.predicate.tooltips.tooltip", collapse = false)
     public final List<Component> toolTips = new ArrayList<>();
+    @Configurable(name = "config.block_pattern.predicate.allowOpenUI", tips = { "config.block_pattern.predicate.allowOpenUI.tooltip.0", "config.block_pattern.predicate.allowOpenUI.tooltip.1" })
+    public boolean allowOpenUI = true;
 
     protected SimplePredicate() {
         this(x -> true, null);
@@ -167,15 +170,19 @@ public class SimplePredicate implements IAutoPersistedSerializable, IConfigurabl
         return result;
     }
 
+    private boolean isProxyBlock(MultiblockState blockWorldState) {
+        return blockWorldState.getBlockState().getBlock() == ProxyPartBlock.BLOCK;
+    }
+
     public boolean test(MultiblockState blockWorldState) {
-        if (predicate.test(blockWorldState)) {
+        if (isProxyBlock(blockWorldState) || predicate.test(blockWorldState)) {
             return checkInnerConditions(blockWorldState);
         }
         return false;
     }
 
     public boolean testLimited(MultiblockState blockWorldState) {
-        if (testGlobal(blockWorldState) && testLayer(blockWorldState)) {
+        if (isProxyBlock(blockWorldState) || testGlobal(blockWorldState) && testLayer(blockWorldState)) {
             return checkInnerConditions(blockWorldState);
         }
         return false;
@@ -228,6 +235,9 @@ public class SimplePredicate implements IAutoPersistedSerializable, IConfigurabl
         }
         if (disableRenderFormed) {
             blockWorldState.getMatchContext().getOrCreate("renderMask", LongOpenHashSet::new).add(blockWorldState.getPos().asLong());
+        }
+        if (allowOpenUI) {
+            blockWorldState.getMatchContext().getOrCreate("openUIMask", LongOpenHashSet::new).add(blockWorldState.getPos().asLong());
         }
         return true;
     }

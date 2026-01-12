@@ -69,14 +69,15 @@ public class ForgeEnergyCapabilityTrait extends SimpleCapabilityTrait implements
 
     @Override
     public void handleAutoIO(BlockPos port, Direction side, IO io) {
-        if (io == IO.IN) {
+        if (io.support(IO.IN)) {
             Optional.ofNullable(getMachine().getLevel().getBlockEntity(port.relative(side)))
                     .flatMap(be -> be.getCapability(ForgeCapabilities.ENERGY, side.getOpposite()).resolve())
                     .ifPresent(source -> source.extractEnergy(
                             storage.receiveEnergy(source.extractEnergy(getDefinition().getMaxReceive(), true),
                                     false),
                             false));
-        } else {
+        }
+        if (io.support(IO.OUT)){
             Optional.ofNullable(getMachine().getLevel().getBlockEntity(port.relative(side)))
                     .flatMap(be -> be.getCapability(ForgeCapabilities.ENERGY, side.getOpposite()).resolve())
                     .ifPresent(target -> target.receiveEnergy(

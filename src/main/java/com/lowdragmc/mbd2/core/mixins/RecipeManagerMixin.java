@@ -32,7 +32,7 @@ public abstract class RecipeManagerMixin {
         recipes = new HashMap<>(recipes);
         dev.latvian.mods.kubejs.core.mixin.RecipeManagerMixin
         for (var recipeType : MBDRegistries.RECIPE_TYPES) {
-            recipeType.getBuiltinRecipes().forEach((id, recipe) -> recipes.computeIfAbsent(recipeType, type -> new HashMap<>()).put(id, recipe));
+            recipeType.onRecipeManagerLoaded(recipes);
         }
     }
 }

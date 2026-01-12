@@ -34,7 +34,7 @@ public class MBDRecipeTypeFuelCategory extends ModularUIRecipeCategory<MBDRecipe
         public final MBDRecipe recipe;
 
         public RecipeWrapper(MBDRecipe recipe) {
-            super(recipe.recipeType.getFuelUICreator().create(recipe).setClientSideWidget());
+            super(recipe.recipeType.createFuelUI(recipe));
             this.recipe = recipe;
         }
     }
@@ -67,11 +67,11 @@ public class MBDRecipeTypeFuelCategory extends ModularUIRecipeCategory<MBDRecipe
 
     public static void registerRecipes(IRecipeRegistration registration) {
         for (var recipeType : MBDRegistries.RECIPE_TYPES) {
-            if (recipeType.isXEIVisible()) {
+            if (recipeType.isXEIVisible() && recipeType.isRequireFuelForWorking()) {
                 registration.addRecipes(MBDRecipeTypeFuelCategory.TYPES.apply(recipeType),
                         Minecraft.getInstance().getConnection().getRecipeManager().getAllRecipesFor(recipeType)
                                 .stream()
-                                .filter(recipe -> recipe.isFuel)
+                                .filter(recipe -> recipe.isFuel && !recipe.isXEIHidden)
                                 .map(RecipeWrapper::new)
                                 .collect(Collectors.toList()));
             }
@@ -80,7 +80,7 @@ public class MBDRecipeTypeFuelCategory extends ModularUIRecipeCategory<MBDRecipe
 
     public static void registerRecipeCatalysts(IRecipeCatalystRegistration registration) {
         for (var mbdRecipeType : MBDRegistries.RECIPE_TYPES) {
-            if (mbdRecipeType.isXEIVisible()) {
+            if (mbdRecipeType.isXEIVisible() && mbdRecipeType.isRequireFuelForWorking()) {
                 for (var definition : MBDRegistries.MACHINE_DEFINITIONS) {
                     var recipeType = definition.recipeLogicSettings().getRecipeType();
                     if (recipeType == mbdRecipeType) {

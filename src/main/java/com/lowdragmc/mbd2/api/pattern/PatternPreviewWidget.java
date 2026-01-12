@@ -489,7 +489,7 @@ public class PatternPreviewWidget extends WidgetGroup {
                         var item = itemStack.copy();
                         item.setCount(amount);
                         return item;
-                    }).filter(item -> !item.isEmpty()).toList();
+                    }).filter(item -> !((ItemStack) item).isEmpty()).toList();
         }
     }
 

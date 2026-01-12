@@ -1,6 +1,6 @@
 package com.lowdragmc.mbd2.common.trait.entity;
 
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder;
+import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
@@ -11,7 +11,6 @@ import com.lowdragmc.mbd2.common.trait.RecipeCapabilityTrait;
 import com.lowdragmc.mbd2.common.trait.RecipeHandlerTrait;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -116,10 +115,8 @@ public class EntityHandlerTrait extends RecipeCapabilityTrait {
                         if (entity.isAlive() && types.contains(entity.getType())) {
                             var nbt = ingredient.getNbt();
                             if (nbt != null && !nbt.isEmpty()) {
-                                var held = entity.saveWithoutId(new CompoundTag());
-                                var copied = nbt.copy();
-                                copied.merge(held);
-                                if (!nbt.equals(copied)) {
+                                var held = entity.serializeNBT();
+                                if (!held.copy().merge(nbt).equals(held)) {
                                     continue;
                                 }
                             }

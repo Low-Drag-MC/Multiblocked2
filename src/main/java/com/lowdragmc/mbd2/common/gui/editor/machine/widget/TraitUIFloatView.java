@@ -56,6 +56,16 @@ public class TraitUIFloatView extends FloatViewWidget {
     public void reloadTrait() {
         traitList.clearAllWidgets();
         if (getEditor().getCurrentProject() instanceof MachineProject project) {
+            // machine name
+            addButton(new ImageWidget(0, 0, 18, 18, new TextTexture("N")),
+                    () -> "editor.machine.name", () -> {
+                        if (WidgetUtils.getFirstWidgetById(project.getUi(), "^ui:machine_name$") == null) {
+                            var name = new TextTextureWidget(5, 5, 100, 18,"editor.machine.name");
+                            name.textureStyle(style -> style.setType(TextTexture.TextType.LEFT));
+                            name.setId("ui:machine_name");
+                            project.getUi().addWidget(name);
+                        }
+                    });
             // add progress bar
             addButton(new ImageWidget(0, 0, 18, 18, new ProgressTexture(
                     new ResourceTexture("mbd2:textures/gui/arrow_bar.png").getSubTexture(0, 0, 1, 0.5),

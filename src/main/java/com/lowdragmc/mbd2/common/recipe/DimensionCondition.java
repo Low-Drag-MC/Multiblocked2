@@ -1,7 +1,7 @@
 package com.lowdragmc.mbd2.common.recipe;
 
 import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.SelectorConfigurator;
+import com.lowdragmc.lowdraglib.gui.editor.configurator.SearchComponentConfigurator;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
@@ -18,6 +18,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 
 import javax.annotation.Nonnull;
+import java.util.function.Consumer;
 
 /**
  * @author KilaBash
@@ -70,16 +71,26 @@ public class DimensionCondition extends RecipeCondition {
     @Override
     public void buildConfigurator(ConfiguratorGroup father) {
         super.buildConfigurator(father);
-        var selector = new SelectorConfigurator<>(getTranslationKey(),
+        var selector = new SearchComponentConfigurator<>(getTranslationKey(),
                 () -> this.dimension,
                 d -> this.dimension = d,
                 ResourceLocation.parse("dummy"),
                 true,
-                Minecraft.getInstance().level.registryAccess().registry(Registries.DIMENSION_TYPE).get().keySet().stream().toList(),
+                this::search,
                 ResourceLocation::toString
         );
         selector.setUp(false);
         selector.setTips("config.recipe.condition.dimension.tooltip");
         father.addConfigurators(selector);
+    }
+
+    protected void search(String word, Consumer<ResourceLocation> find) {
+        var wordLower = word.toLowerCase();
+        for (var biomeEntry : Minecraft.getInstance().level.registryAccess().registry(Registries.DIMENSION_TYPE).get().keySet()) {
+            if (Thread.currentThread().isInterrupted()) return;
+            if (biomeEntry.toString().contains(wordLower)) {
+                find.accept(biomeEntry);
+            }
+        }
     }
 }

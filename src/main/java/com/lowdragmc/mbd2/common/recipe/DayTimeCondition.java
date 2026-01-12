@@ -1,9 +1,9 @@
 package com.lowdragmc.mbd2.common.recipe;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
-import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib.gui.texture.ItemStackTexture;
+import com.lowdragmc.lowdraglib2.gui.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.gui.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
@@ -21,7 +21,7 @@ import javax.annotation.Nonnull;
 @Getter
 @Setter
 @NoArgsConstructor
-public class DayLightCondition extends RecipeCondition {
+public class DayTimeCondition extends RecipeCondition {
 
     public static final MapCodec<DayLightCondition> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             Codec.BOOL.optionalFieldOf("reverse", false).forGetter(val -> val.isReverse),
@@ -33,7 +33,7 @@ public class DayLightCondition extends RecipeCondition {
     @NumberRange(range = {0f, 1f})
     private boolean isDay;
 
-    public DayLightCondition(boolean isDay) {
+    public DayTimeCondition(boolean isDay) {
         this.isDay = isDay;
     }
 
@@ -44,17 +44,17 @@ public class DayLightCondition extends RecipeCondition {
 
     @Override
     public String getType() {
-        return "day_light";
+        return "day_time";
     }
 
     @Override
     public Component getTooltips() {
-        return isDay ? Component.translatable("recipe.condition.day_light.tooltip.true") : Component.translatable("recipe.condition.day_light.tooltip.false");
+        return isDay ? Component.translatable("recipe.condition.day_time.tooltip.true") : Component.translatable("recipe.condition.day_time.tooltip.false");
     }
 
     @Override
     public IGuiTexture getIcon() {
-        return new ItemStackTexture(Items.DAYLIGHT_DETECTOR);
+        return new ItemStackTexture(Items.CLOCK);
     }
 
     @Override

@@ -48,9 +48,11 @@ public interface IMultiController extends IMachine {
     default boolean checkPatternWithLock() {
         var lock = getPatternLock();
         lock.lock();
-        var result = checkPattern();
-        lock.unlock();
-        return result;
+        try {
+            return checkPattern();
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -60,9 +62,11 @@ public interface IMultiController extends IMachine {
     default boolean checkPatternWithTryLock() {
         var lock = getPatternLock();
         if (lock.tryLock()) {
-            var result = checkPattern();
-            lock.unlock();
-            return result;
+            try {
+                return checkPattern();
+            } finally {
+                lock.unlock();
+            }
         } else {
             return false;
         }
@@ -146,14 +150,18 @@ public interface IMultiController extends IMachine {
         if ((getMultiblockState().hasError() || !isFormed()) && (getOffset() + periodID) % 4 == 0 && checkPatternWithTryLock()) { // per second
             if (getLevel() instanceof ServerLevel serverLevel) {
                 serverLevel.getServer().execute(() -> {
-                    getPatternLock().lock();
-                    if (checkPatternWithLock()) { // formed
-                        onStructureFormed();
-                        var mwsd = MultiblockWorldSavedData.getOrCreate(serverLevel);
-                        mwsd.addMapping(getMultiblockState());
-                        mwsd.removeAsyncLogic(this);
+                    var lock = getPatternLock();
+                    lock.lock();
+                    try {
+                        if (checkPattern()) { // formed
+                            onStructureFormed();
+                            var mwsd = MultiblockWorldSavedData.getOrCreate(serverLevel);
+                            mwsd.addMapping(getMultiblockState());
+                            mwsd.removeAsyncLogic(this);
+                        }
+                    } finally {
+                        lock.unlock();
                     }
-                    getPatternLock().unlock();
                 });
             }
         }

@@ -30,7 +30,7 @@ public class MBDRecipeTypeDisplayCategory extends ModularUIDisplayCategory<MBDRe
         private final MBDRecipe recipe;
 
         public MBDRecipeDisplay(MBDRecipe recipe) {
-            super(() -> recipe.recipeType.getUiCreator().create(recipe).setClientSideWidget(), MBDRecipeTypeDisplayCategory.CATEGORIES.apply(recipe.recipeType));
+            super(() -> recipe.recipeType.createRecipeUI(recipe), MBDRecipeTypeDisplayCategory.CATEGORIES.apply(recipe.recipeType));
             this.recipe = recipe;
         }
 
@@ -79,7 +79,7 @@ public class MBDRecipeTypeDisplayCategory extends ModularUIDisplayCategory<MBDRe
     public static void registerDisplays(DisplayRegistry registry) {
         for (var recipeType : MBDRegistries.RECIPE_TYPES) {
             if (recipeType.isXEIVisible()) {
-                registry.registerRecipeFiller(MBDRecipe.class, rt -> rt == recipeType, recipe -> !recipe.isFuel, MBDRecipeDisplay::new);
+                registry.registerRecipeFiller(MBDRecipe.class, rt -> rt == recipeType, recipe -> !recipe.isFuel && !recipe.isXEIHidden, MBDRecipeDisplay::new);
             }
         }
     }

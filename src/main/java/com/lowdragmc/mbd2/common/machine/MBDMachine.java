@@ -13,6 +13,7 @@ import com.lowdragmc.lowdraglib.syncdata.field.FieldManagedStorage;
 import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder;
 import com.lowdragmc.lowdraglib.syncdata.managed.IRef;
 import com.lowdragmc.lowdraglib.syncdata.managed.MultiManagedStorage;
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
 import com.lowdragmc.mbd2.api.capability.recipe.*;
@@ -68,6 +69,7 @@ import org.joml.Vector3f;
 
 import javax.annotation.Nonnull;
 import java.util.*;
+import java.util.List;
 
 @Getter
 public class MBDMachine implements IMachine, IEnhancedManaged, IUIHolder.Block {
@@ -87,6 +89,11 @@ public class MBDMachine implements IMachine, IEnhancedManaged, IUIHolder.Block {
     private final MBDMachineDefinition definition;
     private final IMachineBlockEntity machineHolder;
 
+    @Getter
+    @Setter
+    @Persisted
+    @DescSynced
+    private Component customName = null;
     @Persisted
     @DescSynced
     @UpdateListener(methodName = "updateCustomData")
@@ -143,6 +150,14 @@ public class MBDMachine implements IMachine, IEnhancedManaged, IUIHolder.Block {
         recipeLogic = createRecipeLogic(args);
         // additional traits initialization
         loadAdditionalTraits();
+    }
+
+    @Override
+    public void onChunkUnloaded() {
+        IMachine.super.onChunkUnloaded();
+        for (ITrait additionalTrait : additionalTraits) {
+            additionalTrait.onChunkUnloaded();
+        }
     }
 
     @Override
@@ -293,6 +308,25 @@ public class MBDMachine implements IMachine, IEnhancedManaged, IUIHolder.Block {
         for (var trait : additionalTraits) {
             if (traitDefinition == trait.getDefinition()) {
                 return trait;
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    public ITrait getTraitByName(String name) {
+        for (var trait : additionalTraits) {
+            if (trait.getDefinition().getName().equals(name)) {
+                return trait;
+            }
+        }
+        return null;
+    }
+
+    public <T> T getTraitByName(Class<T> clazz, String name) {
+        for (var trait : additionalTraits) {
+            if (trait.getDefinition().getName().equals(name) && clazz.isInstance(trait)) {
+                return (T) trait;
             }
         }
         return null;
@@ -529,7 +563,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, IUIHolder.Block {
      */
     @Override
     public boolean alwaysTryModifyRecipe() {
-        return !getDefinition().recipeLogicSettings().recipeModifiers().recipeModifiers.isEmpty();
+        return !getDefinition().recipeLogicSettings().recipeModifiers().recipeModifiers.isEmpty() || getDefinition().recipeLogicSettings().alwaysModifyRecipe();
     }
 
     /**
@@ -622,6 +656,9 @@ public class MBDMachine implements IMachine, IEnhancedManaged, IUIHolder.Block {
      * it won't be called when machine added by {@link Level#setBlock(BlockPos, BlockState, int, int)}
      */
     public void onMachinePlaced(LivingEntity player, ItemStack stack) {
+        if (stack.hasCustomHoverName()) {
+            setCustomName(stack.getHoverName());
+        }
         NeoForge.EVENT_BUS.post(new MachinePlacedEvent(this, player, stack).postCustomEvent());
     }
 
@@ -725,7 +762,11 @@ public class MBDMachine implements IMachine, IEnhancedManaged, IUIHolder.Block {
      * Get the drop item when the machine is broken.
      */
     public ItemStack getDropItem() {
-        return getDefinition().asStack();
+        var item = getDefinition().asStack();
+        if (customName != null) {
+            item.setHoverName(customName);
+        }
+        return item;
     }
 
     /**
@@ -737,6 +778,9 @@ public class MBDMachine implements IMachine, IEnhancedManaged, IUIHolder.Block {
             if (!drop.isEmpty()) {
                 drops.add(drop);
             }
+        }
+        for (ITrait trait : getAdditionalTraits()) {
+            trait.onMachineDrop(entity, drops);
         }
         NeoForge.EVENT_BUS.post(new MachineDropsEvent(this, entity, drops).postCustomEvent());
     }
@@ -786,6 +830,12 @@ public class MBDMachine implements IMachine, IEnhancedManaged, IUIHolder.Block {
      */
     public ModularUI createUI(Player entityPlayer) {
         var ui = getDefinition().uiCreator().apply(this);
+        var event = new MachineUIEvent(this, ui, entityPlayer);
+        NeoForge.EVENT_BUS.post(event.postKubeJSEvent());
+        ui = event.getRoot();
+        if (ui == null) {
+            return null;
+        }
         return new ModularUI(ui, this, entityPlayer);
     }
 
@@ -797,7 +847,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, IUIHolder.Block {
     @Override
     public boolean isRemote() {
         var level = getLevel();
-        return level == null ? LDLib.isRemote() : level.isClientSide;
+        return level == null ? LDLib2.isRemote() : level.isClientSide;
     }
 
     @Override
@@ -878,22 +928,22 @@ public class MBDMachine implements IMachine, IEnhancedManaged, IUIHolder.Block {
      * Emit the photon fx.
      */
     @RPCMethod
-    public void emitPhotonFx(String identifier, ResourceLocation fxLocation, Vector3f offset, Vector3f rotation, int delay, boolean forcedDeath){
+    public void emitPhotonFx(String identifier, ResourceLocation fxLocation, Vector3f offset, Vector3f rotation, int delay, boolean forcedDeath, boolean replaceExisting){
         if (MBD2.isPhotonLoaded()) {
-            // TODO Photon
-//            if (isRemote()) {
-//                var fx = FXHelper.getFX(fxLocation);
-//                if (fx != null) {
-//                    var machineFX = new MachineFX(fx, identifier, this);
-//                    machineFX.setOffset(offset.x, offset.y, offset.z);
-//                    machineFX.setRotation(rotation.x, rotation.y, rotation.z);
-//                    machineFX.setDelay(delay);
-//                    machineFX.setForcedDeath(forcedDeath);
-//                    machineFX.start();
-//                }
-//            } else {
-//                rpcToTracking("emitPhotonFx", identifier, fxLocation, offset, rotation, delay, forcedDeath);
-//            }
+            if (isRemote()) {
+                var fx = FXHelper.getFX(fxLocation);
+                if (fx != null) {
+                    var machineFX = new MachineFX(fx, identifier, this);
+                    machineFX.setOffset(offset.x, offset.y, offset.z);
+                    machineFX.setRotation(rotation.x, rotation.y, rotation.z);
+                    machineFX.setDelay(delay);
+                    machineFX.setForcedDeath(forcedDeath);
+                    machineFX.setReplaceExisting(replaceExisting);
+                    machineFX.start();
+                }
+            } else {
+                rpcToTracking("emitPhotonFx", identifier, fxLocation, offset, rotation, delay, forcedDeath, replaceExisting);
+            }
         }
     }
 

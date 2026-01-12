@@ -2,6 +2,7 @@ package com.lowdragmc.mbd2.client.renderer;
 
 
 import com.lowdragmc.lowdraglib.client.scene.WorldSceneRenderer;
+import com.lowdragmc.lowdraglib.client.scene.forge.WorldSceneRendererImpl;
 import com.lowdragmc.lowdraglib.client.utils.RenderUtils;
 import com.lowdragmc.lowdraglib.utils.BlockInfo;
 import com.lowdragmc.lowdraglib.utils.TrackedDummyWorld;
@@ -26,6 +27,7 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Rotation;
@@ -33,8 +35,8 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
@@ -221,7 +223,7 @@ public class MultiblockInWorldPreviewRenderer {
 
                     BlockPos realPos = pos.offset(offset);
 
-                    if (column[z].getBlockEntity(realPos, controller.getLevel().registryAccess()) instanceof IMachineBlockEntity holder &&
+                    if (column[z].getBlockEntity(realPos) instanceof IMachineBlockEntity holder &&
                             holder.getMetaMachine() instanceof IMultiController cont) {
                         holder.getSelf().setLevel(LEVEL);
                         controllerBase = cont;
@@ -243,18 +245,15 @@ public class MultiblockInWorldPreviewRenderer {
     private static BlockPos rotateByFrontAxis(BlockPos pos, Direction front, Rotation rotation) {
         if (front.getAxis() == Direction.Axis.X) {
             return switch (rotation) {
-                default -> new BlockPos(-pos.getX(), pos.getY(), -pos.getZ());
                 case CLOCKWISE_90 -> new BlockPos(-pos.getX(), -front.getAxisDirection().getStep() * pos.getZ(),
                         front.getAxisDirection().getStep() * -pos.getY());
                 case CLOCKWISE_180 -> new BlockPos(-pos.getX(), -pos.getY(), pos.getZ());
                 case COUNTERCLOCKWISE_90 -> new BlockPos(-pos.getX(), front.getAxisDirection().getStep() * pos.getZ(),
                         front.getAxisDirection().getStep() * pos.getY());
+                default -> new BlockPos(-pos.getX(), pos.getY(), -pos.getZ());
             };
         } else if (front.getAxis() == Direction.Axis.Y) {
             return switch (rotation) {
-                default -> new BlockPos(-front.getAxisDirection().getStep() * pos.getX(),
-                        -front.getAxisDirection().getStep() * pos.getZ(),
-                        -pos.getY());
                 case CLOCKWISE_90 -> new BlockPos(pos.getY(),
                         -front.getAxisDirection().getStep() * pos.getZ(),
                         -front.getAxisDirection().getStep() * pos.getX());
@@ -264,15 +263,18 @@ public class MultiblockInWorldPreviewRenderer {
                 case COUNTERCLOCKWISE_90 -> new BlockPos(-pos.getY(),
                         -front.getAxisDirection().getStep() * pos.getZ(),
                         front.getAxisDirection().getStep() * pos.getX());
+                default -> new BlockPos(-front.getAxisDirection().getStep() * pos.getX(),
+                        -front.getAxisDirection().getStep() * pos.getZ(),
+                        -pos.getY());
             };
         } else if (front.getAxis() == Direction.Axis.Z) {
             return switch (rotation) {
-                default -> pos;
                 case CLOCKWISE_90 -> new BlockPos(front.getAxisDirection().getStep() * pos.getY(),
                         -front.getAxisDirection().getStep() * pos.getX(), pos.getZ());
                 case CLOCKWISE_180 -> new BlockPos(-pos.getX(), -pos.getY(), pos.getZ());
                 case COUNTERCLOCKWISE_90 -> new BlockPos(front.getAxisDirection().getStep() * -pos.getY(),
                         front.getAxisDirection().getStep() * pos.getX(), pos.getZ());
+                default -> pos;
             };
         }
         return pos;
@@ -313,11 +315,7 @@ public class MultiblockInWorldPreviewRenderer {
             poseStack.translate(-projectedView.x, -projectedView.y, -projectedView.z);
 
             for (int i = 0; i < RenderType.chunkBufferLayers().size(); i++) {
-                VertexBuffer vertexbuffer = getBUFFERS()[i];
-                // some of stupid mod doesn't check if the buffer is invalid
-                if (vertexbuffer.isInvalid() || vertexbuffer.getFormat() == null) continue;
                 var layer = RenderType.chunkBufferLayers().get(i);
-
                 // render TESR before translucent
                 if (layer == RenderType.translucent() && BLOCK_ENTITIES != null) { // render tesr before translucent
                     var buffers = Minecraft.getInstance().renderBuffers().bufferSource();
@@ -339,6 +337,10 @@ public class MultiblockInWorldPreviewRenderer {
                     }
                     buffers.endBatch();
                 }
+
+                VertexBuffer vertexbuffer = getBUFFERS()[i];
+                // some of stupid mod doesn't check if the buffer is invalid
+                if (vertexbuffer.isInvalid() || vertexbuffer.getFormat() == null) continue;
 
                 // render cache vbo
                 layer.setupRenderState();
@@ -391,11 +393,11 @@ public class MultiblockInWorldPreviewRenderer {
                 shaderInstance.apply();
 
                 RenderSystem.setShaderColor(1, 1, 1, 1);
-                if (layer == RenderType.translucent()) { // SOLID
+                if (layer == RenderType.translucent()) { // TRANSLUCENT
                     RenderSystem.enableBlend();
                     RenderSystem.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
                     RenderSystem.depthMask(false);
-                } else { // TRANSLUCENT
+                } else { // SOLID
                     RenderSystem.enableDepthTest();
                     RenderSystem.disableBlend();
                     RenderSystem.depthMask(true);
@@ -427,24 +429,25 @@ public class MultiblockInWorldPreviewRenderer {
             var dispatcher = Minecraft.getInstance().getBlockRenderer();
             ModelBlockRenderer.enableCaching();
             PoseStack poseStack = new PoseStack();
+            var randomSource = RandomSource.createNewThreadLocalInstance();
             for (int i = 0; i < RenderType.chunkBufferLayers().size(); i++) {
                 if (Thread.interrupted())
                     return;
                 var layer = RenderType.chunkBufferLayers().get(i);
-                var buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
+                var buffer = new BufferBuilder(layer.bufferSize());
+                buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
                 renderBlocks(level, poseStack, dispatcher, layer, new WorldSceneRenderer.VertexConsumerWrapper(buffer),
-                        renderedBlocks);
-                var data = buffer.build();
+                        renderedBlocks, randomSource);
+                var builder = buffer.end();
                 var vertexBuffer = getBUFFERS()[i];
                 Runnable toUpload = () -> {
                     if (!vertexBuffer.isInvalid()) {
                         vertexBuffer.bind();
-                        vertexBuffer.upload(data);
+                        vertexBuffer.upload(builder);
                         VertexBuffer.unbind();
                     }
                 };
                 CompletableFuture.runAsync(toUpload, runnable -> {
-                    Objects.requireNonNull(runnable);
                     RenderSystem.recordRenderCall(runnable::run);
                 });
 
@@ -476,7 +479,7 @@ public class MultiblockInWorldPreviewRenderer {
 
     private static void renderBlocks(TrackedDummyWorld level, PoseStack poseStack, BlockRenderDispatcher dispatcher,
                                      RenderType layer, WorldSceneRenderer.VertexConsumerWrapper wrapperBuffer,
-                                     Collection<BlockPos> renderedBlocks) {
+                                     Collection<BlockPos> renderedBlocks, RandomSource randomSource) {
         for (BlockPos pos : renderedBlocks) {
             BlockState state = level.getBlockState(pos);
             FluidState fluidState = state.getFluidState();
@@ -486,7 +489,7 @@ public class MultiblockInWorldPreviewRenderer {
             if (block == Blocks.AIR) continue;
 
             // render blocks
-            if (state.getRenderShape() != INVISIBLE && ItemBlockRenderTypes.getRenderLayers(state).contains(layer)) {
+            if (state.getRenderShape() != INVISIBLE && WorldSceneRendererImpl.canRenderInLayer(dispatcher, state, pos, level, layer, randomSource)) {
                 poseStack.pushPose();
                 poseStack.translate(pos.getX(), pos.getY(), pos.getZ());
 
@@ -495,7 +498,7 @@ public class MultiblockInWorldPreviewRenderer {
                 poseStack.translate(-0.5, -0.5, -0.5);
 
                 level.setRenderFilter(p -> p.equals(pos));
-                WorldSceneRenderer.renderBlocksForge(dispatcher, state, pos, level, poseStack, wrapperBuffer, level.random, layer);
+                WorldSceneRendererImpl.renderBlocksForge(dispatcher, state, pos, level, poseStack, wrapperBuffer, randomSource, layer);
                 level.setRenderFilter(p -> true);
                 poseStack.popPose();
             }
@@ -507,7 +510,7 @@ public class MultiblockInWorldPreviewRenderer {
                 dispatcher.renderLiquid(pos, level, wrapperBuffer, state, fluidState);
             }
 
-            wrapperBuffer.clearOffset();
+            wrapperBuffer.clerOffset();
             wrapperBuffer.clearColor();
         }
     }

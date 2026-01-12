@@ -9,6 +9,7 @@ import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -161,6 +162,15 @@ public interface IMachine extends IRecipeCapabilityHolder {
     }
 
     /**
+     * on machine chunk unloaded.
+     * <br>
+     * You should call it in yourselves {@link BlockEntity#onChunkUnloaded()}.
+     */
+    default void onChunkUnloaded() {
+        getRecipeLogic().inValid();
+    }
+
+    /**
      * on machine invalid in the chunk.
      * <br>
      * You should call it in yourselves {@link BlockEntity#setRemoved()}.
@@ -301,6 +311,20 @@ public interface IMachine extends IRecipeCapabilityHolder {
     }
 
     /**
+     * Called in {@link RecipeLogic#onRecipeFinish()} when {@code ConsumeInputsAfterWorking} enabled and handled, before outputs are produced
+     */
+    default void onConsumeInputsAfterWorking() {
+
+    }
+
+    /**
+     * Called in {@link RecipeLogic#onRecipeFinish()} after outputs are produced
+     */
+    default void onRecipeFinish() {
+
+    }
+
+    /**
      * Whether progress decrease when machine is waiting for pertick ingredients. (e.g. lack of EU)
      */
     default boolean dampingWhenWaiting() {
@@ -333,6 +357,16 @@ public interface IMachine extends IRecipeCapabilityHolder {
     }
 
     /**
+     * Whether the inputs will be consumed after working?
+     * @return false - it will be consumed before working.
+     * true - it will be consumed after working (before output). During processing, if the inputs do not match the current recipe anymore,
+     * the current recipe process will be discarded.
+     */
+    default boolean consumeInputsAfterWorking(MBDRecipe recipe) {
+        return false;
+    }
+
+    /**
      * Get the machine level. it will be used for recipe condition {@link com.lowdragmc.mbd2.common.recipe.MachineLevelCondition} an so on.
      */
     default int getMachineLevel() {
@@ -343,4 +377,9 @@ public interface IMachine extends IRecipeCapabilityHolder {
     default int getChanceTier() {
         return getMachineLevel();
     }
+
+    default @Nullable Component getCustomName() {
+        return null;
+    }
+
 }

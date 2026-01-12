@@ -17,6 +17,7 @@ import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
 import com.lowdragmc.mbd2.common.gui.editor.MachineProject;
 import com.lowdragmc.mbd2.common.gui.editor.machine.MachineConfigPanel;
+import com.mojang.datafixers.util.Either;
 import com.simibubi.create.Create;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -52,7 +53,7 @@ public class CraeteKinecticMachineProject extends MachineProject {
     protected Map<String, Resource<?>> createResources() {
         var resources = super.createResources();
         if (resources.get(IRendererResource.RESOURCE_NAME) instanceof IRendererResource rendererResource) {
-            rendererResource.addResource("shaft", new IModelRenderer(Create.asResource("block/shaft")));
+            rendererResource.addResource(Either.left("shaft"), new IModelRenderer(Create.asResource("block/shaft")));
         }
         return resources;
     }

@@ -177,9 +177,7 @@ public class FluidRecipeCapability extends RecipeCapability<SizedFluidIngredient
         valuesGroup.setOnRemove(value -> {
             var fluidIngredient = supplier.get();
             var values = fluidIngredient.values;
-            var newValues = Arrays.stream(values).filter(v -> v != value).toArray(FluidIngredient.Value[]::new);
-            newValues[values.length] = value;
-            fluidIngredient.values = newValues;
+            fluidIngredient.values = Arrays.stream(values).filter(v -> v != value).toArray(FluidIngredient.Value[]::new);
             fluidIngredient.stacks = null;
         });
         valuesGroup.setOnUpdate(values -> {

@@ -43,4 +43,9 @@ public class SerializerInteger implements IContentSerializer<Integer> {
     public StreamCodec<? super RegistryFriendlyByteBuf, Integer> streamCodec() {
         return ByteBufCodecs.VAR_INT;
     }
+
+    @Override
+    public Integer deepCopyInner(Integer content) {
+        return content;
+    }
 }

@@ -2,6 +2,7 @@ package com.lowdragmc.mbd2.common.gui.editor.recipe;
 
 import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
 import com.lowdragmc.lowdraglib.gui.editor.Icons;
+import com.lowdragmc.lowdraglib.gui.editor.configurator.BooleanConfigurator;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.NumberConfigurator;
 import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
 import com.lowdragmc.lowdraglib.gui.texture.ProgressTexture;
@@ -40,7 +41,7 @@ public class RecipeList extends DraggableScrollableWidgetGroup {
         this.recipeTypePanel = recipeTypePanel;
         this.isFuel = isFuel;
         setYScrollBarWidth(4).setYBarStyle(null, ColorPattern.T_WHITE.rectTexture().setRadius(2).transform(-0.5f, 0));
-        this.recipeTypePanel.recipeType.getBuiltinRecipes().values().stream().filter(recipe -> recipe.isFuel() == isFuel).forEach(this::addRecipe);
+        this.recipeTypePanel.recipeType.getBuiltinRecipes().values().stream().filter(recipe -> recipe.isFuel == isFuel).forEach(this::addRecipe);
     }
 
     public void addRecipe(MBDRecipe recipe) {
@@ -91,14 +92,19 @@ public class RecipeList extends DraggableScrollableWidgetGroup {
             durationWidget.setRange(1, Integer.MAX_VALUE);
             durationWidget.setTips(isFuel ? "recipe.duration.fuel.tooltip" : "recipe.duration.common.tooltip");
             durationWidget.init(100);
-            durationWidget.setSelfPosition((w - 200) / 2, h / 2 - 7);
+            durationWidget.setSelfPosition((w - 300) / 2, h / 2 - 7);
             container.addWidget(durationWidget);
             var priorityWidget = new NumberConfigurator("recipe.priority", () -> recipe.priority, v -> recipe.priority = v.intValue(), 0, true);
             priorityWidget.setRange(Integer.MIN_VALUE, Integer.MAX_VALUE);
             priorityWidget.setTips( "recipe.priority.tooltip");
             priorityWidget.init(100);
-            priorityWidget.setSelfPosition((w - 200) / 2 + 100, h / 2 - 7);
+            priorityWidget.setSelfPosition((w - 300) / 2 + 100, h / 2 - 7);
             container.addWidget(priorityWidget);
+            var xeiHiddenWidget = new BooleanConfigurator("recipe.xei_hidden", () -> recipe.isXEIHidden, v -> recipe.isXEIHidden = v, false, true);
+            xeiHiddenWidget.setTips( "recipe.xei_hidden.tooltip");
+            xeiHiddenWidget.init(100);
+            xeiHiddenWidget.setSelfPosition((w - 300) / 2 + 200, h / 2 - 7);
+            container.addWidget(xeiHiddenWidget);
             if (!isFuel) {
                 container.addWidget(new ImageWidget(0, h / 2 + 8, w, 10, new TextTexture(IO.OUT.getTooltip()).setWidth(w)))
                         .addWidget(outputsContainer = new ContentContainer(0, h / 2 + 18, w, h / 2 - 18, recipe.outputs, () -> {

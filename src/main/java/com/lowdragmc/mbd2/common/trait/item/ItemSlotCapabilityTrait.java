@@ -1,12 +1,12 @@
 package com.lowdragmc.mbd2.common.trait.item;
 
 import com.google.common.base.Predicates;
-import com.lowdragmc.lowdraglib.misc.ItemStackTransfer;
-import com.lowdragmc.lowdraglib.misc.ItemTransferList;
-import com.lowdragmc.lowdraglib.side.item.forge.ItemTransferHelperImpl;
-import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced;
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder;
+import com.lowdragmc.lowdraglib2.misc.ItemStackTransfer;
+import com.lowdragmc.lowdraglib2.misc.ItemTransferList;
+import com.lowdragmc.lowdraglib2.side.item.forge.ItemTransferHelperImpl;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
@@ -50,20 +50,12 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait implements IA
         this.storage.setOnContentsChanged(this::onContentsChanged);
     }
 
-    /**
-     * pop storage to the world.
-     */
     @Override
-    public void onMachineRemoved() {
-        super.onMachineRemoved();
-        var level = getMachine().getLevel();
-        var pos = getMachine().getPos();
+    public void onMachineDrop(Entity entity, List<ItemStack> drops) {
         for (int i = 0; i < storage.getSlots(); i++) {
             ItemStack stackInSlot = storage.getStackInSlot(i);
             if (!stackInSlot.isEmpty()) {
-                storage.setStackInSlot(i, ItemStack.EMPTY);
-                storage.onContentsChanged();
-                Block.popResource(level, pos, stackInSlot);
+                drops.add(stackInSlot);
             }
         }
     }
@@ -190,11 +182,12 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait implements IA
 
     @Override
     public void handleAutoIO(BlockPos port, Direction side, IO io) {
-        if (io == IO.IN) {
+        if (io.support(IO.IN)) {
             ItemTransferHelperImpl.importToTarget(new ItemTransferList(storage), Integer.MAX_VALUE,
                     getDefinition().getItemFilterSettings().isEnable() ? getDefinition().getItemFilterSettings() : Predicates.alwaysTrue(),
                     getMachine().getLevel(), port.relative(side), side.getOpposite());
-        } else if (io == IO.OUT) {
+        }
+        if (io.support(IO.OUT)){
             ItemTransferHelperImpl.exportToTarget(new ItemTransferList(storage), Integer.MAX_VALUE, Predicates.alwaysTrue(),
                     getMachine().getLevel(), port.relative(side), side.getOpposite());
         }

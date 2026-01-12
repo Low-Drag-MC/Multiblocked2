@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 /**
  * A trait that have recipe handling capability.
  */
-public abstract class RecipeCapabilityTrait implements ITrait,  IEnhancedManaged {
+public abstract class RecipeCapabilityTrait implements ITrait, IEnhancedManaged {
     @Getter
     private final FieldManagedStorage syncStorage = new FieldManagedStorage(this);
     @Getter

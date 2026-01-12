@@ -1,6 +1,7 @@
 package com.lowdragmc.mbd2.integration.emi;
 
 import com.lowdragmc.lowdraglib.emi.ModularEmiRecipe;
+import com.lowdragmc.lowdraglib.gui.widget.SlotWidget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.pattern.PatternPreviewWidget;
@@ -33,6 +34,11 @@ public class MultiblockInfoEmiCategory extends EmiRecipeCategory {
         @Override
         public @Nullable ResourceLocation getId() {
             return definition.id();
+        }
+
+        @Override
+        public void clearSlotWidgetHandler(SlotWidget slotW, int slotIndex) {
+            slotW.setDrawHoverOverlay(false);
         }
     }
 

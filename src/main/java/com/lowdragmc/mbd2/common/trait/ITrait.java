@@ -6,6 +6,8 @@ import com.lowdragmc.mbd2.common.gui.editor.machine.MachineTraitPanel;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.common.capabilities.Capability;
 
@@ -42,6 +44,11 @@ public interface ITrait {
     default void onMachineLoad() {}
 
     /**
+     * Called when the machine is unloaded.
+     */
+    default void onChunkUnloaded() {}
+
+    /**
      * Called when the machine is being unloaded.
      */
     default void onMachineUnLoad() {}
@@ -50,6 +57,13 @@ public interface ITrait {
      * Called when the machine is being removed.
      */
     default void onMachineRemoved() {}
+
+    /**
+     * Called when the machine is dropping
+     */
+    default void onMachineDrop(Entity entity, List<ItemStack> drops) {
+
+    }
 
     /**
      * Called per server tick.

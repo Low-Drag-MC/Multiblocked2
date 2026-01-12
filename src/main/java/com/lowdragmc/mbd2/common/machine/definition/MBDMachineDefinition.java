@@ -6,14 +6,13 @@ import com.lowdragmc.lowdraglib.Platform;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.client.renderer.impl.UIResourceRenderer;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurableWidget;
 import com.lowdragmc.lowdraglib.gui.editor.data.resource.IRendererResource;
 import com.lowdragmc.lowdraglib.gui.editor.data.resource.TexturesResource;
 import com.lowdragmc.lowdraglib.gui.editor.ui.Editor;
-import com.lowdragmc.lowdraglib.gui.widget.ButtonWidget;
-import com.lowdragmc.lowdraglib.gui.widget.ProgressWidget;
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
+import com.lowdragmc.lowdraglib.gui.widget.*;
 import com.lowdragmc.lowdraglib.jei.JEIPlugin;
 import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
@@ -51,6 +50,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -76,6 +76,7 @@ import java.util.function.Supplier;
  */
 @Getter
 @Accessors(fluent = true)
+@LDLRegister(name = "single_machine", group = "machine_definition")
 public class MBDMachineDefinition implements IConfigurable, IPersistedSerializable {
     @FunctionalInterface
     public interface ConfigMachineSettingsFactory extends Supplier<ConfigMachineSettings> {}
@@ -279,6 +280,11 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
     }
 
     protected void bindMachineUI(MBDMachine machine, WidgetGroup ui) {
+        WidgetUtils.widgetByIdForEach(ui, "^ui:machine_name$", TextTextureWidget.class,
+                nameWidget -> nameWidget.setText(() -> {
+                    if (machine.getCustomName() == null) return machine.getDefinition().block().getName();
+                    return machine.getCustomName();
+                }));
         WidgetUtils.widgetByIdForEach(ui, "^ui:progress_bar$", ProgressWidget.class,
                 progressWidget -> progressWidget.setProgressSupplier(() -> machine.getRecipeLogic().getProgressPercent()));
         WidgetUtils.widgetByIdForEach(ui, "^ui:fuel_bar$", ProgressWidget.class,
@@ -303,6 +309,30 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
                 var trait = machine.getTraitByDefinition(traitDefinition);
                 if (trait != null)
                     provider.initTraitUI(trait, ui);
+            }
+        }
+        // proxy controller ui
+        if (partSettings != null && partSettings.isEnable() && machine instanceof MBDPartMachine partMachine) {
+            var prefix = "controller:";
+            var midTag = "@ui:";
+            for (Widget widget : ui.getWidgetsById("controller:.*?@ui:")) {
+                var id = widget.getId();
+                if (id.startsWith(prefix)) {
+                    int atIndex = id.indexOf(midTag);
+                    if (atIndex != -1) {
+                        var traitName = id.substring(prefix.length(), atIndex);
+                        var uiName = "ui:" + id.substring(atIndex + midTag.length());
+                        for (var controller : partMachine.getControllers()) {
+                            if (controller instanceof MBDMachine mbdMachine) {
+                                var trait = mbdMachine.getTraitByName(traitName);
+                                if (trait != null && trait.getDefinition() instanceof IUIProviderTrait provider && uiName.startsWith(provider.uiPrefixName())) {
+                                    widget.setId(uiName);
+                                    provider.initTraitUI(trait, ui);
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -377,7 +407,7 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
     }
 
     public ItemStack asStack() {
-        return new ItemStack(item());
+        return item() == null ? new ItemStack(Items.BARRIER) : new ItemStack(item());
     }
 
     public ItemStack asStack(int count) {

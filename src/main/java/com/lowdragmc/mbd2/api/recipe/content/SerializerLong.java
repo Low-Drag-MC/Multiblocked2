@@ -40,6 +40,10 @@ public class SerializerLong implements IContentSerializer<Long> {
     }
 
     @Override
+    public Long deepCopyInner(Long content) {
+        return content;
+    }
+    @Override
     public Codec<Long> codec() {
         return Codec.LONG;
     }

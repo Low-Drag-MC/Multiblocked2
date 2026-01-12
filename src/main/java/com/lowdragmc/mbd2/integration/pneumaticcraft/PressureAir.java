@@ -84,5 +84,10 @@ public record PressureAir(boolean isAir, float value) {
         public PressureAir copyInner(PressureAir content) {
             return new PressureAir(content.isAir, content.value);
         }
+
+        @Override
+        public PressureAir deepCopyInner(PressureAir content) {
+            return new PressureAir(content.isAir, content.value);
+        }
     }
 }

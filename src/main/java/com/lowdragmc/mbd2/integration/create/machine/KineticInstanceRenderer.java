@@ -3,6 +3,7 @@ package com.lowdragmc.mbd2.integration.create.machine;
 import com.lowdragmc.lowdraglib.client.renderer.IItemRendererProvider;
 import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib.gui.editor.ui.Editor;
+import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
 import com.lowdragmc.mbd2.common.gui.editor.texture.IRendererSlotTexture;
@@ -90,14 +91,7 @@ public record KineticInstanceRenderer(IRenderer baseRenderer, BakedModel rotatio
 
     @Override
     public boolean hasTESR(BlockEntity blockEntity) {
-        if (baseRenderer.hasTESR(blockEntity)) return true;
-        var machineOptional = IMachine.ofMachine(blockEntity).filter(MBDMachine.class::isInstance).map(MBDMachine.class::cast);
-        if (machineOptional.isEmpty()) return false;
-        var machine = machineOptional.get();
-        if (machine.getDefinition() instanceof CreateKineticMachineDefinition definition) {
-            return !definition.kineticMachineSettings().useFlywheel() || !VisualizationManager.supportsVisualization(blockEntity.getLevel());
-        }
-        return false;
+        return true;
     }
 
     @Override

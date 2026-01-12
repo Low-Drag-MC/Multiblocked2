@@ -3,6 +3,7 @@ package com.lowdragmc.mbd2.integration.create.machine;
 import com.lowdragmc.lowdraglib.client.renderer.impl.IModelRenderer;
 import com.lowdragmc.lowdraglib.client.renderer.impl.UIResourceRenderer;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.*;
@@ -31,6 +32,7 @@ import java.util.Deque;
 
 @Getter
 @Accessors(fluent = true)
+@LDLRegister(name = "create_machine", group = "machine_definition", modID = "create")
 public class CreateKineticMachineDefinition extends MBDMachineDefinition {
     @Configurable(name = "config.definition.kinetic_machine_settings", subConfigurable = true, tips = "config.definition.kinetic_machine_settings.tooltip", collapse = false)
     protected final ConfigKineticMachineSettings kineticMachineSettings;

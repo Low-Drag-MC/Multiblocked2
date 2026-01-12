@@ -17,6 +17,7 @@ import com.lowdragmc.mbd2.common.trait.ITrait;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTraitDefinition;
 import com.lowdragmc.mbd2.common.trait.ToggleAutoIO;
+import com.lowdragmc.mbd2.utils.EnergyFormattingUtil;
 import com.lowdragmc.mbd2.utils.WidgetUtils;
 import lombok.Getter;
 import lombok.Setter;
@@ -86,12 +87,18 @@ public class ForgeEnergyCapabilityTraitDefinition extends SimpleCapabilityTraitD
             var prefix = uiPrefixName();
             WidgetUtils.widgetByIdForEach(group, "^%s$".formatted(prefix), ProgressWidget.class, energyBar -> {
                 energyBar.setProgressSupplier(() -> forgeEnergyTrait.storage.getEnergyStored() * 1d / forgeEnergyTrait.storage.getMaxEnergyStored());
-                energyBar.setDynamicHoverTips(value -> LocalizationUtils.format(
-                        "config.definition.trait.forge_energy_storage.ui_container_hover",
-                        Math.round(forgeEnergyTrait.storage.getMaxEnergyStored() * value), forgeEnergyTrait.storage.getMaxEnergyStored()));
+                energyBar.setDynamicHoverTips(value -> {
+                    var stored = EnergyFormattingUtil.formatExtended(Math.round(forgeEnergyTrait.storage.getMaxEnergyStored() * value));
+                    var maxStored = EnergyFormattingUtil.formatExtended(forgeEnergyTrait.storage.getMaxEnergyStored());
+                    return LocalizationUtils.format("config.definition.trait.forge_energy_storage.ui_container_hover", stored, maxStored);
+                });
             });
             WidgetUtils.widgetByIdForEach(group, "^%s_text$".formatted(prefix), TextTextureWidget.class, energyBarText -> {
-                energyBarText.setText(() -> Component.literal(forgeEnergyTrait.storage.getEnergyStored() + "/" + forgeEnergyTrait.storage.getMaxEnergyStored() + " FE"));
+                energyBarText.setText(() -> {
+                    var stored = EnergyFormattingUtil.formatCompact(forgeEnergyTrait.storage.getEnergyStored()) + "FE";
+                    var maxStored = EnergyFormattingUtil.formatCompact(forgeEnergyTrait.storage.getMaxEnergyStored()) + "FE";
+                    return Component.literal(stored + "/" + maxStored);
+                });
             });
         }
     }

@@ -83,9 +83,15 @@ public class CreateRotationCondition extends RecipeCondition {
         var inputs = proxy.get(IO.IN, CreateStressRecipeCapability.CAP);
         if (inputs != null) {
             for (var input : inputs) {
-                if (input instanceof CreateRotationTrait trait) {
+                CreateRotationTrait trait = null;
+                if (input instanceof CreateRotationTrait.RPMRecipeHandler handler) {
+                    trait = handler.getTrait();
+                } else if (input instanceof CreateRotationTrait.StressRecipeHandler handler) {
+                    trait = handler.getTrait();
+                }
+                if (trait != null) {
                     var rpm = Math.abs(trait.getLastSpeed());
-                    var stress = rpm * trait.getImpact();
+                    var stress = rpm * trait.getTorque();
                     if (rpm >= minRPM && rpm <= maxRPM && stress >= minStress && stress <= maxStress) {
                         return true;
                     }

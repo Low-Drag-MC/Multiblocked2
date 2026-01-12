@@ -24,13 +24,18 @@ public class EmitPhotonFXNode extends LinearTriggerNode {
     @InputPort(name = "forced death", tips = {"graph_processor.node.mbd2.machine.photon.force_death.tips.0",
     "graph_processor.node.mbd2.machine.photon.force_death.tips.1", "graph_processor.node.mbd2.machine.photon.force_death.tips.2"})
     public boolean forcedDeath;
+    @InputPort(name = "replace existing", tips = {
+            "graph_processor.node.mbd2.machine.photon.replace_existing.0",
+            "graph_processor.node.mbd2.machine.photon.replace_existing.1"
+    })
+    public boolean replaceExisting;
 
     @Override
     protected void process() {
         if (machine != null && identifier != null && fxLocation != null && ResourceLocation.isValidPath(fxLocation)) {
             machine.emitPhotonFx(identifier, ResourceLocation.parse(fxLocation),
                     offset == null ? new Vector3f(): offset,
-                    rotation == null ? new Vector3f(): rotation, delay, forcedDeath);
+                    rotation == null ? new Vector3f(): rotation, delay, forcedDeath, replaceExisting);
         }
     }
 }

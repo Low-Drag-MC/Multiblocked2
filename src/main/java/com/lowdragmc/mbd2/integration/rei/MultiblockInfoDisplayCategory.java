@@ -1,6 +1,7 @@
 package com.lowdragmc.mbd2.integration.rei;
 
 import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
+import com.lowdragmc.lowdraglib.gui.widget.SlotWidget;
 import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
 import com.lowdragmc.lowdraglib.rei.IGui2Renderer;
 import com.lowdragmc.lowdraglib.rei.ModularDisplay;
@@ -34,6 +35,11 @@ public class MultiblockInfoDisplayCategory extends ModularUIDisplayCategory<Mult
         public Optional<ResourceLocation> getDisplayLocation() {
             return Optional.of(definition.id());
         }
+
+        @Override
+        public void clearSlotWidgetHandler(SlotWidget slotW, int slotIndex) {
+            slotW.setDrawHoverOverlay(false);
+        }
     }
 
     public static final CategoryIdentifier<MultiblockInfoDisplay> CATEGORY = CategoryIdentifier
@@ -41,7 +47,7 @@ public class MultiblockInfoDisplayCategory extends ModularUIDisplayCategory<Mult
     private final Renderer icon;
 
     public MultiblockInfoDisplayCategory() {
-        this.icon = IGui2Renderer.toDrawable(new ResourceTexture("textures/gui/multiblock_info_page.png"));
+        this.icon = IGui2Renderer.toDrawable(new ResourceTexture("mbd2:textures/gui/multiblock_info_page.png"));
     }
 
     public static void registerDisplays(DisplayRegistry registry) {

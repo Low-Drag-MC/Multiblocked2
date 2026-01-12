@@ -31,7 +31,7 @@ public class RecipeInfoNode extends BaseNode {
             recipeID = recipe.getId().toString();
             duration = recipe.duration;
             priority = recipe.priority;
-            isFuel = recipe.isFuel();
+            isFuel = recipe.isFuel;
             data = recipe.data;
         }
     }

@@ -22,6 +22,7 @@ import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
 import com.lowdragmc.lowdraglib.utils.Position;
 import com.lowdragmc.lowdraglib.utils.Size;
 import com.mojang.blaze3d.systems.RenderSystem;
+import dev.emi.emi.jemi.JemiStack;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -184,10 +185,17 @@ public abstract class ChemicalTankWidget<CHEMICAL extends Chemical<CHEMICAL>, ST
 //        if (LDLib.isReiLoaded()) {
 //            return List.of(EntryStacks.of(dev.architectury.fluid.FluidStack.create(lastChemicalInTank.getFluid(), lastChemicalInTank.getAmount(), lastChemicalInTank.getTag())));
 //        }
-//        if (LDLib.isEmiLoaded()) {
-//            return List.of(EmiStack.of(lastChemicalInTank.getFluid(), lastChemicalInTank.getTag(), lastChemicalInTank.getAmount()).setChance(XEIChance));
-//        }
-        return List.of(lastChemicalInTank);
+        if (LDLib.isEmiLoaded() && LDLib.isModLoaded(LDLib.MODID_JEI)) {
+            var stack = JEIPlugin.jeiHelpers.getIngredientManager().createTypedIngredient(lastChemicalInTank).map(typedIngredient -> {
+                var ingredientHelper = JEIPlugin.jeiHelpers.getIngredientManager().getIngredientHelper(typedIngredient.getType());
+                var ingredientRenderer = JEIPlugin.jeiHelpers.getIngredientManager().getIngredientRenderer(typedIngredient.getType());
+                return new JemiStack<>(typedIngredient.getType(), ingredientHelper, ingredientRenderer, typedIngredient.getIngredient());
+            });
+            if (stack.isPresent()) {
+                return List.of(stack.get());
+            }
+        }
+        return List.of();
     }
 
     @Override

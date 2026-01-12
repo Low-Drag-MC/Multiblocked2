@@ -21,6 +21,7 @@ import com.lowdragmc.mbd2.common.gui.editor.multiblock.MultiblockShapeInfoPanel;
 import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.*;
 import com.lowdragmc.mbd2.utils.ControllerBlockInfo;
+import com.mojang.datafixers.util.Either;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -304,7 +305,7 @@ public class MultiblockMachineProject extends MachineProject {
         var blockPlaceholders = new BlockPlaceholder[x][y][z];
         for (int i = 0; i < pattern.length; i++) {
             var index = pattern[i];
-            var holder = index == -1 ? BlockPlaceholder.create(predicateResource, "any") : BlockPlaceholder.fromTag(predicateResource, placeHoldersListTag.getCompound(index));
+            var holder = index == -1 ? BlockPlaceholder.create(predicateResource, Either.left("any")) : BlockPlaceholder.fromTag(predicateResource, placeHoldersListTag.getCompound(index));
             blockPlaceholders[i / (y * z)][(i / z) % y][i % z] = holder;
         }
         return blockPlaceholders;

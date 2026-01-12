@@ -23,6 +23,12 @@ public class MBDMachineEvents {
         }
     }
 
+    public static class MachineUIEventJS extends MachineEventJS<MachineUIEvent> {
+        public MachineUIEventJS(MachineUIEvent event) {
+            super(event);
+        }
+    }
+
     public static class MachineBeforeRecipeWorkingEventJS extends MachineEventJS<MachineBeforeRecipeWorkingEvent> {
         public MachineBeforeRecipeWorkingEventJS(MachineBeforeRecipeWorkingEvent event) {
             super(event);
@@ -73,6 +79,18 @@ public class MBDMachineEvents {
 
     public static class MachineOpenUIEventJS extends MachineEventJS<MachineOpenUIEvent> {
         public MachineOpenUIEventJS(MachineOpenUIEvent event) {
+            super(event);
+        }
+    }
+
+    public static class MachineOnConsumeInputsAfterWorkingEventJS extends MachineEventJS<MachineOnConsumeInputsAfterWorkingEvent> {
+        public MachineOnConsumeInputsAfterWorkingEventJS(MachineOnConsumeInputsAfterWorkingEvent event) {
+            super(event);
+        }
+    }
+
+    public static class MachineOnRecipeFinishEventJS extends MachineEventJS<MachineOnRecipeFinishEvent> {
+        public MachineOnRecipeFinishEventJS(MachineOnRecipeFinishEvent event) {
             super(event);
         }
     }
@@ -151,6 +169,12 @@ public class MBDMachineEvents {
 
     public static class MachineUseCatalystEventJS extends MachineEventJS<MachineUseCatalystEvent> {
         public MachineUseCatalystEventJS(MachineUseCatalystEvent event) {
+            super(event);
+        }
+    }
+
+    public static class MachineCustomKeyframeEventJS extends MachineEventJS<MachineCustomKeyframeEvent> {
+        public MachineCustomKeyframeEventJS(MachineCustomKeyframeEvent event) {
             super(event);
         }
     }

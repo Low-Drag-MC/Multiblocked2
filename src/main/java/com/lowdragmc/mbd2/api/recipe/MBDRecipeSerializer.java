@@ -42,9 +42,10 @@ public class MBDRecipeSerializer implements RecipeSerializer<MBDRecipe> {
                     CompoundTag.CODEC.optionalFieldOf("data", new CompoundTag()).forGetter(val -> val.data),
                     ExtraCodecs.NON_NEGATIVE_INT.fieldOf("duration").forGetter(val -> val.duration),
                     Codec.BOOL.optionalFieldOf("isFuel", false).forGetter(val -> val.isFuel),
+                    Codec.BOOL.optionalFieldOf("isXEIHidden", false).forGetter(val -> val.isXEIHidden),
                     Codec.INT.fieldOf("priority").forGetter(val -> val.priority))
-            .apply(instance, (recipeType, id, inputs, outputs, conditions, data, duration, isFuel, priority) ->
-                    new MBDRecipe(recipeType, id.orElse(null), inputs, outputs, conditions, data, duration, isFuel, priority)));
+            .apply(instance, (recipeType, id, inputs, outputs, conditions, data, duration, isFuel, isXEIHidden, priority) ->
+                    new MBDRecipe(recipeType, id.orElse(null), inputs, outputs, conditions, data, duration, isFuel, isXEIHidden, priority)));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, MBDRecipe> STREAM_CODEC = StreamCodec
             .of(MBDRecipeSerializer::toNetwork, MBDRecipeSerializer::fromNetwork);
@@ -80,12 +81,13 @@ public class MBDRecipeSerializer implements RecipeSerializer<MBDRecipe> {
         var conditions = buf.readCollection(c -> new ArrayList<RecipeCondition>(), (StreamDecoder) RecipeCondition.STREAM_CODEC);
         CompoundTag data = buf.readNbt();
         boolean isFuel = buf.readBoolean();
+        boolean isXEIHidden = buf.readBoolean();
         int priority = buf.readVarInt();
-        return new MBDRecipe((MBDRecipeType) BuiltInRegistries.RECIPE_TYPE.get(ResourceLocation.parse(recipeType)), id, inputs, outputs, conditions, data, duration, isFuel, priority);
+        return new MBDRecipe((MBDRecipeType) BuiltInRegistries.RECIPE_TYPE.get(ResourceLocation.parse(recipeType)), id, inputs, outputs, conditions, data, duration, isFuel, isXEIHidden, priority);
     }
 
     public static void toNetwork(RegistryFriendlyByteBuf buf, MBDRecipe recipe) {
-        buf.writeResourceLocation(recipe.getId());
+        buf.writeResourceLocation(recipe.id);
         buf.writeUtf(recipe.recipeType == null ? "dummy" : recipe.recipeType.toString());
         buf.writeVarInt(recipe.duration);
         buf.writeObjectCollection(recipe.inputs.entrySet(), MBDRecipeSerializer::entryWriter);
@@ -93,6 +95,7 @@ public class MBDRecipeSerializer implements RecipeSerializer<MBDRecipe> {
         buf.writeCollection(recipe.conditions, (StreamEncoder) RecipeCondition.STREAM_CODEC);
         buf.writeNbt(recipe.data);
         buf.writeBoolean(recipe.isFuel);
+        buf.writeBoolean(recipe.isXEIHidden);
         buf.writeVarInt(recipe.priority);
     }
 

@@ -36,9 +36,8 @@ import java.util.function.Supplier;
 @SuppressWarnings({"ConstantValue", "rawtypes", "unchecked"})
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
-public class MBDRecipe implements Recipe<RecipeInput> {
+public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Container> {
     public MBDRecipeType recipeType;
-    @Getter
     public final ResourceLocation id;
     public final Map<RecipeCapability<?>, List<Content>> inputs;
     public final Map<RecipeCapability<?>, List<Content>> outputs;
@@ -46,8 +45,8 @@ public class MBDRecipe implements Recipe<RecipeInput> {
     public CompoundTag data;
     public int duration;
     public int priority;
-    @Getter
     public boolean isFuel;
+    public boolean isXEIHidden;
     private Boolean hasTick;
 
     public MBDRecipe(MBDRecipeType recipeType,
@@ -58,6 +57,7 @@ public class MBDRecipe implements Recipe<RecipeInput> {
                      CompoundTag data,
                      int duration,
                      boolean isFuel,
+                     boolean isXEIHidden,
                      int priority) {
         this.recipeType = recipeType;
         this.id = id;
@@ -67,6 +67,7 @@ public class MBDRecipe implements Recipe<RecipeInput> {
         this.data = data;
         this.duration = duration;
         this.isFuel = isFuel;
+        this.isXEIHidden = isXEIHidden;
         this.priority = priority;
     }
 
@@ -91,11 +92,11 @@ public class MBDRecipe implements Recipe<RecipeInput> {
     }
 
     public MBDRecipe copy(ResourceLocation id) {
-        return new MBDRecipe(recipeType, id, copyContents(inputs, false, null), copyContents(outputs, false, null), conditions, data, duration, isFuel, priority);
+        return new MBDRecipe(recipeType, id, copyContents(inputs, false, null), copyContents(outputs, false, null), conditions, data, duration, isFuel, isXEIHidden, priority);
     }
 
     public MBDRecipe deepCopied(ResourceLocation id) {
-        return new MBDRecipe(recipeType, id, copyContents(inputs, true, null), copyContents(outputs, true, null), conditions, data, duration, isFuel, priority);
+        return new MBDRecipe(recipeType, id, copyContents(inputs, true, null), copyContents(outputs, true, null), conditions, data, duration, isFuel, isXEIHidden, priority);
     }
 
     public MBDRecipe copy() {
@@ -114,7 +115,7 @@ public class MBDRecipe implements Recipe<RecipeInput> {
         var copied = new MBDRecipe(recipeType, id,
                 (io == IO.BOTH || io == IO.IN) ? copyContents(inputs, false, modifier) : inputs,
                 (io == IO.BOTH || io == IO.OUT) ? copyContents(outputs, false, modifier): outputs,
-                conditions, data, duration, isFuel, priority);
+                conditions, data, duration, isFuel, isXEIHidden, priority);
         if (modifyDuration) {
             copied.duration = modifier.apply(this.duration).intValue();
         }

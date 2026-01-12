@@ -8,11 +8,17 @@ Discord: [https://discord.com/invite/sDdf2yD9bh](https://discord.com/invite/sDdf
 
 Github: https://github.com/Low-Drag-MC/Multiblocked2
 
+CurseForge: https://www.curseforge.com/minecraft/mc-mods/multiblocked2
+
+Modrinth: https://modrinth.com/mod/multiblocked2
+
+QQ: 827533873
+
 ```gradle
 repositories{
     maven {
         name "firstdarkdev"
-        url "https://maven.firstdarkdev.xyz/snapshots"
+        url "https://maven.firstdark.dev/snapshots"
     }
 }
 
