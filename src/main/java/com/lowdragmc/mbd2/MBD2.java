@@ -1,9 +1,9 @@
 package com.lowdragmc.mbd2;
 
-import com.lowdragmc.lowdraglib.LDLib;
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.mbd2.client.ClientProxy;
 import com.lowdragmc.mbd2.common.CommonProxy;
-import com.lowdragmc.lowdraglib.Platform;
+import com.lowdragmc.lowdraglib2.Platform;
 import lombok.Getter;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
@@ -36,7 +36,7 @@ public class MBD2 {
     }
 
     private static File createDir() {
-        var location = new File(LDLib.getLDLibDir(), "assets/" + MOD_ID);
+        var location = new File(LDLib2.getAssetsDir(), MOD_ID);
         if (location.mkdirs()) {
             LOGGER.info("create mbd2 resources folder");
         }
@@ -52,42 +52,42 @@ public class MBD2 {
     }
 
     public static boolean isGeckolibLoaded() {
-        return LDLib.isModLoaded("geckolib");
+        return LDLib2.isModLoaded("geckolib");
     }
 
     public static boolean isBotaniaLoaded() {
-        return LDLib.isModLoaded("botania");
+        return LDLib2.isModLoaded("botania");
     }
 
     public static boolean isNaturesAuraLoaded() {
-        return LDLib.isModLoaded("naturesaura");
+        return LDLib2.isModLoaded("naturesaura");
     }
 
     public static boolean isPneumaticCraftLoaded() {
-        return LDLib.isModLoaded("pneumaticcraft");
+        return LDLib2.isModLoaded("pneumaticcraft");
     }
 
     public static boolean isEmbersLoaded() {
-        return LDLib.isModLoaded("embers");
+        return LDLib2.isModLoaded("embers");
     }
 
     public static boolean isGTMLoaded() {
-        return LDLib.isModLoaded("gtceu");
+        return LDLib2.isModLoaded("gtceu");
     }
 
     public static boolean isMekanismLoaded() {
-        return LDLib.isModLoaded("mekanism");
+        return LDLib2.isModLoaded("mekanism");
     }
 
     public static boolean isCreateLoaded() {
-        return LDLib.isModLoaded("create");
+        return LDLib2.isModLoaded("create");
     }
 
     public static boolean isPhotonLoaded() {
-        return LDLib.isModLoaded("photon");
+        return LDLib2.isModLoaded("photon");
     }
 
     public static boolean isKubeJSLoaded() {
-        return LDLib.isModLoaded("kubejs");
+        return LDLib2.isModLoaded("kubejs");
     }
 }

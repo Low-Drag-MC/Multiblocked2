@@ -24,7 +24,7 @@ repositories {
     maven { url = "https://maven.quiltmc.org/repository/release" } // Quilt Mappings
     maven { // LDLib Configuration
         name "firstdarkdev"
-        url "https://maven.firstdarkdev.xyz/snapshots"
+        url "https://maven.firstdark.dev/snapshots"
     }
     maven { // blood magic
         url "https://tehnut.info/maven/"
@@ -43,9 +43,10 @@ repositories {
     }
     maven {
         // saps.dev Maven (KubeJS and Rhino)
-        url = "https://maven.saps.dev/minecraft"
+        url "https://maven.latvian.dev/releases"
         content {
             includeGroup "dev.latvian.mods"
+            includeGroup "dev.latvian.apps"
         }
     }
     maven { url = "https://maven.jamieswhiteshirt.com/libs-release" } // Reach Entity Attributes

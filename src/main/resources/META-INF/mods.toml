@@ -18,9 +18,9 @@ config="$mixins.{mod_id}.json"
 file="META-INF/accesstransformer.cfg"
 
 [[dependencies.${mod_id}]] #optional
-modId="forge" #mandatory
+modId="neoforge" #mandatory
 mandatory=true #mandatory
-versionRange="${forge_version_range}" #mandatory
+versionRange="${neoforge_version_range}" #mandatory
 ordering="NONE"
 side="BOTH"# Here's another dependency
 
