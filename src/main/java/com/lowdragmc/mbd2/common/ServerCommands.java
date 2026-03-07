@@ -1,6 +1,9 @@
 package com.lowdragmc.mbd2.common;
 
+import com.lowdragmc.lowdraglib2.gui.editor.UIEditor;
+import com.lowdragmc.lowdraglib2.gui.factory.PlayerUIMenuType;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
+import com.lowdragmc.mbd2.common.gui.editor.MBDEditor;
 import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.commands.CommandSourceStack;
@@ -18,7 +21,7 @@ public class ServerCommands {
     public static List<LiteralArgumentBuilder<CommandSourceStack>> createServerCommands() {
         return List.of(
                 Commands.literal("mbd2")
-                        .requires(s -> s.hasPermission(2))
+                        .requires(s -> s.getServer().isSingleplayer() && s.hasPermission(2))
                         .then(Commands.literal("reload_machine_projects")
                                 .executes(context -> {
                                     // clear up the catalyst candidates
@@ -45,7 +48,14 @@ public class ServerCommands {
                                     }
                                     return 1;
                                 })
-                        )
+                        ),
+                Commands.literal("mbd2_editor")
+                        .requires(s -> s.getServer().isSingleplayer() && s.hasPermission(2))
+                        .executes(context -> {
+                            if (context.getSource().getPlayer() == null) return 0;
+                            PlayerUIMenuType.openUI(context.getSource().getPlayer(), MBDEditor.WINDOW_ID);
+                            return 1;
+                        })
         );
     }
 }

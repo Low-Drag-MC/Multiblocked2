@@ -1,28 +1,30 @@
 package com.lowdragmc.mbd2.api.recipe;
 
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.lowdraglib2.Platform;
-import com.lowdragmc.lowdraglib2.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib2.gui.editor.configurator.*;
-import com.lowdragmc.lowdraglib2.gui.editor.data.resource.TexturesResource;
-import com.lowdragmc.lowdraglib2.gui.editor.runtime.PersistedParser;
+import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.configurator.ui.ArrayConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.configurator.ui.SearchComponentConfigurator;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib2.gui.texture.ProgressTexture;
-import com.lowdragmc.lowdraglib2.gui.texture.ResourceTexture;
-import com.lowdragmc.lowdraglib2.gui.texture.UIResourceTexture;
-import com.lowdragmc.lowdraglib2.gui.widget.*;
-import com.lowdragmc.lowdraglib2.jei.IngredientIO;
-import com.lowdragmc.lowdraglib2.syncdata.ITagSerializable;
-import com.lowdragmc.lowdraglib2.utils.Size;
+import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.UI;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
+import com.lowdragmc.lowdraglib2.math.Size;
+import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeCapabilityHolder;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
-import com.lowdragmc.mbd2.core.mixins.RecipeManagerAccessor;
+import com.lowdragmc.mbd2.api.recipe.event.FuelRecipeUIEvent;
+import com.lowdragmc.mbd2.api.recipe.event.RecipeUIEvent;
+import com.lowdragmc.mbd2.api.recipe.event.TransferProxyRecipeEvent;
 import com.lowdragmc.mbd2.utils.FormattingUtil;
-import com.lowdragmc.mbd2.utils.WidgetUtils;
+import dev.latvian.mods.rhino.util.HideFromJS;
+import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -35,9 +37,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.crafting.*;
 import net.minecraft.world.level.ItemLike;
-import net.neoforged.neoforge.common.crafting.SizedIngredient;
+import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
@@ -45,6 +48,7 @@ import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -54,12 +58,12 @@ import java.util.stream.Collectors;
  */
 @Accessors(chain = true)
 @RemapPrefixForJS("kjs$")
-public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<CompoundTag>, IConfigurable {
+public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<CompoundTag>, IConfigurable, IPersistedSerializable {
     public static final MBDRecipeType DUMMY = new MBDRecipeType(MBD2.id("dummy"));
 
     public interface UICreator {
-        UICreator DEFAULT = recipe -> new WidgetGroup();
-        WidgetGroup create(MBDRecipe recipe);
+        UICreator DEFAULT = recipe -> UI.of();
+        UI create(MBDRecipe recipe);
     }
 
     @Configurable(name = "recipe_type.registry_name", tips = {
@@ -69,15 +73,16 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
     @Getter
     private ResourceLocation registryName;
     @Setter
+    @Getter
     private MBDRecipeBuilder recipeBuilder;
     @Setter
     @Getter
     @Configurable(name = "recipe_type.icon", tips = "recipe_type.icon.tooltip")
-    private IGuiTexture icon = new ResourceTexture();
+    private IGuiTexture icon = SpriteTexture.of(LDLib2.id("textures/gui/icon.png"));
     @Setter
     @Getter
     @Configurable(name = "recipe_type.fuel_icon", tips = "recipe_type.fuel_icon.tooltip")
-    private IGuiTexture fuelIcon = new ProgressTexture();
+    private IGuiTexture fuelIcon = SpriteTexture.of(LDLib2.id("textures/gui/icon.png"));
     @Setter
     @Getter
     @Configurable(name = "recipe_type.require_fuel", tips = "recipe_type.require_fuel.tooltip")
@@ -86,6 +91,10 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
     @Getter
     @Configurable(name = "recipe_type.is_xei_visible", tips = "recipe_type.is_xei_visible.tooltip")
     protected boolean isXEIVisible = true;
+    @Setter
+    @Getter
+    @Configurable(name = "recipe_type.is_proxy_recipe_xei_visible", tips = "recipe_type.is_proxy_recipe_xei_visible.tooltip")
+    protected boolean isProxyRecipeXEIVisible = false;
     private final List<RecipeType<?>> proxyRecipeTypes = new ArrayList<>();
     @Getter
     protected final Map<ResourceLocation, MBDRecipe> builtinRecipes = new LinkedHashMap<>();
@@ -94,13 +103,13 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
     protected UICreator uiCreator = UICreator.DEFAULT;
     @Setter
     @Getter
-    protected Size uiSize = new Size(176, 166);
+    protected Size uiSize = Size.of(50, 50);
     @Setter
     @Getter
     protected UICreator fuelUICreator = UICreator.DEFAULT;
     @Setter
     @Getter
-    protected Size fuelUISize = new Size(176, 166);
+    protected Size fuelUISize = Size.of(50, 50);
 
     // run-time
     @Nullable
@@ -120,28 +129,29 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
     /**
      * This method is used to clear the proxy recipes cache.
      */
-    public void onRecipeManagerLoaded(Map<RecipeType<?>, Map<ResourceLocation, Recipe<?>>> rawRecipes) {
+    public void onRecipeManagerLoaded(Multimap<RecipeType<?>, RecipeHolder<?>> byType,
+                                      Map<ResourceLocation, RecipeHolder<?>> byName) {
         // append builtin recipes
-        var recipeTypeMap = rawRecipes.computeIfAbsent(this, type -> new HashMap<>());
-        recipeTypeMap.putAll(builtinRecipes);
+        builtinRecipes.forEach((id, recipe) -> byName.put(id, new RecipeHolder<>(id, recipe)));
 
         // load proxy recipes
         proxyRecipes.clear();
         for (var type : proxyRecipeTypes) {
             var recipes = new ArrayList<MBDRecipe>();
-            for (var recipe : rawRecipes.get(type).entrySet()) {
-                var mbdRecipe = toMBDrecipe(type, recipe.getKey(), recipe.getValue());
+            for (var recipe : byType.get(type)) {
+                if (recipe == null) continue;
+                var mbdRecipe = toMBDrecipe(type, recipe.id(), recipe.value());
                 if (mbdRecipe != null) {
                     recipes.add(mbdRecipe);
-                    recipeTypeMap.put(mbdRecipe.id, mbdRecipe);
+                    byName.put(mbdRecipe.id, new RecipeHolder<>(mbdRecipe.id, mbdRecipe));
                 }
             }
             proxyRecipes.put(type, recipes);
         }
     }
 
-    public void onRecipeManagerLoadedKjs(Map<ResourceLocation, Recipe<?>> recipesByName) {
-        recipesByName.putAll(builtinRecipes);
+    public void onRecipeManagerLoadedKjs(Map<ResourceLocation, RecipeHolder<?>> recipesByName) {
+        builtinRecipes.forEach((id, recipe) -> recipesByName.put(id, new RecipeHolder<>(id, recipe)));
         // load proxy recipes
         proxyRecipes.clear();
         var proxyRecipeTypes = new HashSet<>(this.proxyRecipeTypes);
@@ -149,7 +159,7 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
         if (proxyRecipeTypes.isEmpty()) return;
         for (var entry : recipesByName.entrySet()) {
             var key = entry.getKey();
-            var recipe = entry.getValue();
+            var recipe = entry.getValue().value();
             if (proxyRecipeTypes.contains(recipe.getType())) {
                 var mbdRecipe = toMBDrecipe(recipe.getType(), key, recipe);
                 if (mbdRecipe != null) {
@@ -159,7 +169,7 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
         }
         for (List<MBDRecipe> recipes : proxyRecipes.values()) {
             for (MBDRecipe recipe : recipes) {
-                recipesByName.put(recipe.getId(), recipe);
+                recipesByName.put(recipe.id, new RecipeHolder<>(recipe.id, recipe));
             }
         }
     }
@@ -179,38 +189,38 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
         this.projectFile = file;
         this.registryName = ResourceLocation.parse(tag.getCompound("recipe_type").getString("registryName"));
         postTask.add(() -> {
-            var texturesResource = new TexturesResource();
-            texturesResource.deserializeNBT(tag.getCompound("resources").getCompound(TexturesResource.RESOURCE_NAME), Platform.getFrozenRegistry());
-            UIResourceTexture.setCurrentResource(texturesResource, false);
-            deserializeNBT(Platform.getFrozenRegistry(), tag.getCompound("recipe_type"));
-            UIResourceTexture.clearCurrentResource();
-            var uiTag = tag.getCompound("ui");
-            var size = uiTag.getCompound("size");
-            setUiSize(new Size(size.getInt("width"), size.getInt("height")));
-            setUiCreator(recipe -> {
-                var recipeUI = new WidgetGroup();
-                recipeUI.setClientSideWidget();
-                IConfigurableWidget.deserializeNBT(recipeUI, uiTag, texturesResource, false, Platform.getFrozenRegistry());
-                bindXEIRecipeUI(recipeUI, recipe);
-                recipeUI.setSelfPosition(0, 0);
-                recipeUI.setBackground(IGuiTexture.EMPTY);
-                return recipeUI;
-            });
-            if (requireFuelForWorking && tag.contains("fuelUI")) {
-                var fuelUITag = tag.getCompound("fuelUI");
-                var fuelSize= fuelUITag.getCompound("size");
-                setFuelUISize(new Size(fuelSize.getInt("width"), fuelSize.getInt("height")));
-                setFuelUICreator(recipe -> {
-                    var recipeUI = new WidgetGroup();
-                    recipeUI.setClientSideWidget();
-                    IConfigurableWidget.deserializeNBT(recipeUI, fuelUITag, texturesResource, false, Platform.getFrozenRegistry());
-                    bindXEIRecipeUI(recipeUI, recipe);
-                    recipeUI.setSelfPosition(0, 0);
-                    recipeUI.setBackground(IGuiTexture.EMPTY);
-                    return recipeUI;
-                });
-            }
-
+            // todo ui
+//            var texturesResource = new TexturesResource();
+//            texturesResource.deserializeNBT(tag.getCompound("resources").getCompound(TexturesResource.RESOURCE_NAME), Platform.getFrozenRegistry());
+//            UIResourceTexture.setCurrentResource(texturesResource, false);
+//            deserializeNBT(Platform.getFrozenRegistry(), tag.getCompound("recipe_type"));
+//            UIResourceTexture.clearCurrentResource();
+//            var uiTag = tag.getCompound("ui");
+//            var size = uiTag.getCompound("size");
+//            setUiSize(new Size(size.getInt("width"), size.getInt("height")));
+//            setUiCreator(recipe -> {
+//                var recipeUI = new WidgetGroup();
+//                recipeUI.setClientSideWidget();
+//                IConfigurableWidget.deserializeNBT(recipeUI, uiTag, texturesResource, false, Platform.getFrozenRegistry());
+//                bindXEIRecipeUI(recipeUI, recipe);
+//                recipeUI.setSelfPosition(0, 0);
+//                recipeUI.setBackground(IGuiTexture.EMPTY);
+//                return recipeUI;
+//            });
+//            if (requireFuelForWorking && tag.contains("fuelUI")) {
+//                var fuelUITag = tag.getCompound("fuelUI");
+//                var fuelSize= fuelUITag.getCompound("size");
+//                setFuelUISize(new Size(fuelSize.getInt("width"), fuelSize.getInt("height")));
+//                setFuelUICreator(recipe -> {
+//                    var recipeUI = new WidgetGroup();
+//                    recipeUI.setClientSideWidget();
+//                    IConfigurableWidget.deserializeNBT(recipeUI, fuelUITag, texturesResource, false, Platform.getFrozenRegistry());
+//                    bindXEIRecipeUI(recipeUI, recipe);
+//                    recipeUI.setSelfPosition(0, 0);
+//                    recipeUI.setBackground(IGuiTexture.EMPTY);
+//                    return recipeUI;
+//                });
+//            }
         });
         return this;
     }
@@ -302,7 +312,8 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
 
     public Object kjs$recipeBuilder() {
         if (LDLib2.isKubejsLoaded()) {
-            return new MBDRecipeSchema.MBDRecipeJS(this);
+            // todo
+//            return new MBDRecipeSchema.MBDRecipeJS(this);
         }
         throw new UnsupportedOperationException("KubeJS is not loaded");
     }
@@ -325,7 +336,7 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
             result = copied;
         } else {
             if (!recipe.getIngredients().isEmpty()) {
-                var newID = new ResourceLocation(registryName.getNamespace(), registryName.getPath() + "/" + id.getPath());
+                var newID = ResourceLocation.fromNamespaceAndPath(registryName.getNamespace(), registryName.getPath() + "/" + id.getPath());
                 var builder = recipeBuilder(newID).recipeType(this);
                 for (var ingredient : recipe.getIngredients()) {
                     builder.inputItems(ingredient);
@@ -338,10 +349,10 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
                 result = builder.buildRawRecipe();
             }
         }
-        var proxyTypeId = ForgeRegistries.RECIPE_TYPES.getKey(recipeType);
+        var proxyTypeId = BuiltInRegistries.RECIPE_TYPE.getKey(recipeType);
         if (proxyTypeId != null) {
             var event = new TransferProxyRecipeEvent(this, proxyTypeId, recipeType, id, recipe, result);
-            MinecraftForge.EVENT_BUS.post(event.postCustomEvent());
+            NeoForge.EVENT_BUS.post(event.postCustomEvent());
             if (event.isCanceled()) {
                 return null;
             }
@@ -363,10 +374,10 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
                         if (id != null && id.toString().contains(word.toLowerCase())) {
                             find.accept(recipeType);
                         }
-                    }}, recipeType -> Optional.ofNullable(BuiltInRegistries.RECIPE_TYPE.getKey(recipeType)).map(Object::toString).orElse("missing")), false);
+                    }}, recipeType -> Optional.ofNullable(BuiltInRegistries.RECIPE_TYPE.getKey(recipeType)).map(Object::toString).orElse("missing"),
+                        UIElementProvider.text(recipeType -> Component.literal(Optional.ofNullable(BuiltInRegistries.RECIPE_TYPE.getKey(recipeType)).map(Object::toString).orElse("missing")))),
+                true);
         proxyGroup.setAddDefault(() -> RecipeType.SMELTING);
-        proxyGroup.setOnAdd(proxyRecipeTypes::add);
-        proxyGroup.setOnRemove(proxyRecipeTypes::remove);
         proxyGroup.setOnUpdate(list -> {
             proxyRecipeTypes.clear();
             proxyRecipeTypes.addAll(list);
@@ -379,9 +390,8 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
     //********    Serialize    *********//
     //////////////////////////////////////
     @Override
-    public CompoundTag serializeNBT(HolderLookup.Provider provider) {
-        var tag = new CompoundTag();
-        PersistedParser.serializeNBT(tag, this.getClass(), this, provider);
+    public CompoundTag serializeNBT(@Nonnull HolderLookup.Provider provider) {
+        var tag = IPersistedSerializable.super.serializeNBT(provider);
         // proxyRecipeTypes
         var proxyTag = new ListTag();
         for (var type : proxyRecipeTypes) {
@@ -399,8 +409,8 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
     }
 
     @Override
-    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
-        PersistedParser.deserializeNBT(tag, new HashMap<>(), this.getClass(), this, provider);
+    public void deserializeNBT(@Nonnull HolderLookup.Provider provider, @Nonnull CompoundTag tag) {
+        IPersistedSerializable.super.deserializeNBT(provider, tag);
         // proxyRecipeTypes
         proxyRecipeTypes.clear();
         var proxyTag = tag.getList("proxyRecipeTypes", 8);
@@ -424,50 +434,46 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
     //***********     UI    ************//
     //////////////////////////////////////
 
-    public void bindXEIRecipeUI(WidgetGroup ui, MBDRecipe recipe) {
-        WidgetUtils.widgetByIdForEach(ui, "^@progress_bar$", ProgressWidget.class,
-                progress -> progress.setHoverTooltips(Component.translatable("recipe.duration.value", recipe.duration)));
-        WidgetUtils.widgetByIdForEach(ui, "^@duration$", LabelWidget.class,
-                label -> label.setComponent(Component.translatable("recipe.duration.value", recipe.duration)));
-        WidgetUtils.widgetByIdForEach(ui, "^@condition$", TextBoxWidget.class,
-                textBoxWidget -> textBoxWidget.setContent(recipe.conditions.stream().map(RecipeCondition::getTooltips).map(Component::getString).toList()));
-        bindCapIOUI(ui, recipe.inputs, IO.IN);
-        bindCapIOUI(ui, recipe.outputs, IO.OUT);
+    public void bindXEIRecipeUI(UI ui, MBDRecipe recipe) {
+        // todo ui
+//        WidgetUtils.widgetByIdForEach(ui, "^@progress_bar$", ProgressWidget.class,
+//                progress -> progress.setHoverTooltips(Component.translatable("recipe.duration.value", recipe.duration)));
+//        WidgetUtils.widgetByIdForEach(ui, "^@duration$", LabelWidget.class,
+//                label -> label.setComponent(Component.translatable("recipe.duration.value", recipe.duration)));
+//        WidgetUtils.widgetByIdForEach(ui, "^@condition$", TextBoxWidget.class,
+//                textBoxWidget -> textBoxWidget.setContent(recipe.conditions.stream().map(RecipeCondition::getTooltips).map(Component::getString).toList()));
+//        bindCapIOUI(ui, recipe.inputs, IO.IN);
+//        bindCapIOUI(ui, recipe.outputs, IO.OUT);
     }
 
-    private static void bindCapIOUI(WidgetGroup ui, Map<RecipeCapability<?>, List<Content>> values, IO io) {
-        values.forEach((cap, contents) -> {
-            for (int i = 0; i < contents.size(); i++) {
-                var content = contents.get(i);
-                var id = content.uiName.isEmpty() ? "^@%s_%s_%d$".formatted(cap.name, io.name, i) : Pattern.quote(content.uiName);
-                for (var widget : WidgetUtils.getWidgetsById(ui, id)) {
-                    cap.bindXEIWidget(widget, content, switch (io) {
-                        case IN -> IngredientIO.INPUT;
-                        case OUT -> IngredientIO.OUTPUT;
-                        case BOTH -> IngredientIO.BOTH;
-                        default -> IngredientIO.RENDER_ONLY;
-                    });
-                    var tooltips = new ArrayList<Component>();
-                    content.appendTooltip(tooltips);
-                    if (!tooltips.isEmpty()) {
-                        widget.appendHoverTooltips(tooltips);
-                    }
-                }
-            }
-        });
+    private static void bindCapIOUI(UI ui, Map<RecipeCapability<?>, List<Content>> values, IO io) {
+//        values.forEach((cap, contents) -> {
+//            for (int i = 0; i < contents.size(); i++) {
+//                var content = contents.get(i);
+//                var id = content.uiName.isEmpty() ? "^@%s_%s_%d$".formatted(cap.name, io.name, i) : Pattern.quote(content.uiName);
+//                for (var widget : WidgetUtils.getWidgetsById(ui, id)) {
+//                    cap.bindXEIWidget(widget, content, io);
+//                    var tooltips = new ArrayList<Component>();
+//                    content.appendTooltip(tooltips);
+//                    if (!tooltips.isEmpty()) {
+//                        widget.appendHoverTooltips(tooltips);
+//                    }
+//                }
+//            }
+//        });
     }
 
-    public WidgetGroup createRecipeUI(MBDRecipe recipe) {
+    public UI createRecipeUI(MBDRecipe recipe) {
         var ui = uiCreator.create(recipe);
         var event = new RecipeUIEvent(this, recipe, ui);
-        MinecraftForge.EVENT_BUS.post(event.postKubeJSEvent());
-        return event.getRoot().setClientSideWidget();
+        NeoForge.EVENT_BUS.post(event.postKubeJSEvent());
+        return event.getUi();
     }
 
-    public WidgetGroup createFuelUI(MBDRecipe recipe) {
+    public UI createFuelUI(MBDRecipe recipe) {
         var ui = fuelUICreator.create(recipe);
         var event = new FuelRecipeUIEvent(this, recipe, ui);
-        MinecraftForge.EVENT_BUS.post(event.postKubeJSEvent());
-        return event.getRoot().setClientSideWidget();
+        NeoForge.EVENT_BUS.post(event.postKubeJSEvent());
+        return event.getUi();
     }
 }

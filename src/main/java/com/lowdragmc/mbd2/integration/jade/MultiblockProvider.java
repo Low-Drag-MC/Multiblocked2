@@ -12,6 +12,7 @@ import snownee.jade.api.BlockAccessor;
 import snownee.jade.api.IBlockComponentProvider;
 import snownee.jade.api.ITooltip;
 import snownee.jade.api.config.IPluginConfig;
+import snownee.jade.impl.ui.ElementHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +37,7 @@ public class MultiblockProvider implements IBlockComponentProvider {
                     });
                 }
                 for (ItemStack catalystItem : catalystItems) {
-                    tooltip.append(tooltip.getElementHelper().item(catalystItem));
+                    tooltip.append(ElementHelper.INSTANCE.item(catalystItem));
                 }
             }
         });

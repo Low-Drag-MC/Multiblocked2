@@ -6,7 +6,7 @@ import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
 import com.lowdragmc.mbd2.api.pattern.error.PatternError;
 import com.lowdragmc.mbd2.api.pattern.error.PatternStringError;
-import com.lowdragmc.mbd2.api.pattern.predicates.SimplePredicate;
+import com.lowdragmc.mbd2.api.pattern.predicates.PatternPredicate;
 import com.lowdragmc.mbd2.api.pattern.util.PatternMatchContext;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import lombok.Getter;
@@ -34,9 +34,9 @@ public class MultiblockState {
     @Getter
     private final PatternMatchContext matchContext;
     @Getter
-    private Map<SimplePredicate, Integer> globalCount;
+    private Map<PatternPredicate, Integer> globalCount;
     @Getter
-    private Map<SimplePredicate, Integer> layerCount;
+    private Map<PatternPredicate, Integer> layerCount;
     public TraceabilityPredicate predicate;
     public IO io;
     public PatternError error;

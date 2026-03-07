@@ -1,7 +1,7 @@
 package com.lowdragmc.mbd2.common.machine.definition.config.toggle;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.DefaultValue;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.core.BlockPos;

@@ -1,8 +1,8 @@
 package com.lowdragmc.mbd2.common.machine.definition.config;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
-import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
+import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleCatalyst;
 import lombok.Builder;
 import lombok.Getter;

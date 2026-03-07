@@ -1,19 +1,19 @@
 package com.lowdragmc.mbd2.common.machine.definition.config;
 
-import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
-import com.lowdragmc.lowdraglib.client.renderer.impl.IModelRenderer;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
-import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
-import com.lowdragmc.lowdraglib.utils.ShapeUtils;
-import com.lowdragmc.mbd2.MBD2;
+import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
+import com.lowdragmc.lowdraglib2.client.renderer.impl.IModelRenderer;
+import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.gui.util.ITreeNode;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
+import com.lowdragmc.lowdraglib2.utils.ShapeUtils;
 import com.lowdragmc.mbd2.client.MachineSound;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.*;
-import com.lowdragmc.mbd2.integration.geckolib.GeckolibRenderer;
-import dev.latvian.mods.rhino.util.HideFromJS;
 import lombok.*;
 import lombok.experimental.Accessors;
+import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -25,20 +25,28 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import org.jetbrains.annotations.NotNull;
+import org.apache.commons.lang3.function.Consumers;
 
 import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 
 @Accessors(fluent = true)
 @Getter
-public class MachineState implements IConfigurable, IPersistedSerializable, Comparable<MachineState> {
-    protected final String name;
-    @NonNull
-    protected List<MachineState> children;
+@MethodsReturnNonnullByDefault
+@ParametersAreNonnullByDefault
+@KJSBindings
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+public class MachineState implements ITreeNode<MachineState, Void>, IConfigurable, IPersistedSerializable, Comparable<MachineState> {
+    @EqualsAndHashCode.Include
+    public final String name;
+    protected int dimension;
     @Nullable
     protected MachineState parent;
+    @NonNull
+    protected final List<MachineState> children = new ArrayList<>();
 
     @Configurable(name = "config.machine_state.renderer", subConfigurable = true, tips =
             {"config.machine_state.renderer.tooltip.0", "config.machine_state.renderer.tooltip.1"})
@@ -64,7 +72,7 @@ public class MachineState implements IConfigurable, IPersistedSerializable, Comp
     protected boolean isGlobalVisible = false;
     @Configurable(name = "config.machine_state.rendering_radius", tips =
             "config.machine_state.rendering_radius.tooltip")
-    @NumberRange(range = {1, Integer.MAX_VALUE})
+    @ConfigNumber(range = {1, Integer.MAX_VALUE})
     @Setter
     protected int renderingRadius = 64;
     @Configurable(name = "config.machine_state.machine_sound", subConfigurable = true, tips = {
@@ -80,13 +88,15 @@ public class MachineState implements IConfigurable, IPersistedSerializable, Comp
     private final Map<Direction, VoxelShape> shapeCache = new EnumMap<>(Direction.class);
     private final Map<Direction, AABB> renderingBoxCache = new EnumMap<>(Direction.class);
 
-    public MachineState(String name, @NonNull List<MachineState> children,
+    public MachineState(String name,
+                        @Nullable MachineState parent,
                         @Nullable IRenderer renderer,
                         @Nullable VoxelShape shape,
                         @Nullable Integer lightLevel,
                         @Nullable AABB renderingBox) {
         this.name = name;
-        this.children = children;
+        this.parent = parent;
+        this.dimension = parent == null ? 0 : parent.dimension + 1;
         this.renderer = renderer == null ? new ToggleRenderer() : new ToggleRenderer(renderer);
         this.shape = shape == null ? new ToggleShape() : new ToggleShape(shape);
         this.lightLevel = lightLevel == null ? new ToggleLightValue() : new ToggleLightValue(lightLevel);
@@ -109,10 +119,12 @@ public class MachineState implements IConfigurable, IPersistedSerializable, Comp
     public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
         IPersistedSerializable.super.deserializeNBT(provider, tag);
         var childrenList = tag.getList("children", 10);
-        children = new ArrayList<>();
+        children.clear();
         for (int i = 0; i < childrenList.size(); i++) {
-            var child = childrenList.getCompound(i);
-            children.add(createFromTag(provider, child));
+            var childTag = childrenList.getCompound(i);
+            var childState = newBuilder(childTag.getString("name")).build(this);
+            childState.deserializeNBT(provider, childTag);
+            children.add(childState);
         }
         if (this.stateMachine != null) {
             this.stateMachine.initStateMachine();
@@ -124,38 +136,52 @@ public class MachineState implements IConfigurable, IPersistedSerializable, Comp
     }
 
     public MachineState addChild(String name) {
-        return addChild(newBuilder().name(name).build());
+        return addChild(newBuilder(name).build(this));
     }
 
-    protected MachineState addChild(MachineState state) {
-        children = new ArrayList<>(children);
-        children.add(state);
+    public MachineState addChild(MachineState state) {
+        return addChildAt(state, children.size());
+    }
+
+    public MachineState addChildAt(MachineState state, int index) {
+        children.add(index, state);
         if (this.stateMachine != null) {
-            state.parent = this;
             state.init(this.stateMachine);
         }
+        state.parent = this;
+        state.setDimension(dimension + 1);
         return state;
     }
 
+    public int getChildSiblingIndex(MachineState state) {
+        return children.indexOf(state);
+    }
+
+    public int getSiblingIndex(MachineState state) {
+        return parent == null ? -1 : parent.getChildSiblingIndex(state);
+    }
+
     public void removeChild(MachineState state) {
-        children = this.children.stream().filter(s -> s != state).toList();
-        if (this.stateMachine != null) {
-            this.stateMachine.initStateMachine();
+        if (children.remove(state)) {
+            if (this.stateMachine != null) {
+                this.stateMachine.initStateMachine();
+            }
+            state.onRemoved();
+            state.setDimension(0);
+            state.parent = null;
         }
-        state.onRemoved();
     }
 
     private void onRemoved() {
         this.stateMachine = null;
-        this.parent = null;
-        this.children.forEach(MachineState::onRemoved);
+        new ArrayList<>(this.children).forEach(MachineState::onRemoved);
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     protected void init(StateMachine stateMachine) {
         this.stateMachine = stateMachine;
         stateMachine.addState(this);
         for (MachineState child : children) {
-            child.parent = this;
             child.init(stateMachine);
         }
     }
@@ -235,30 +261,58 @@ public class MachineState implements IConfigurable, IPersistedSerializable, Comp
     }
 
     @Override
-    public int compareTo(@NotNull MachineState o) {
+    public int compareTo(MachineState o) {
         return Integer.compare(this.getDepth(), o.getDepth());
     }
 
-    protected MachineState createFromTag(HolderLookup.Provider provider, CompoundTag tag) {
-        var name = tag.getString("name");
-        var state = newBuilder().name(name).build();
-        state.deserializeNBT(provider, tag);
-        return state;
+    protected Builder<? extends MachineState> newBuilder(String name) {
+        return new Builder<>(name);
     }
 
-    protected Builder<? extends MachineState> newBuilder() {
-        return MachineState.builder();
+    public static Builder<? extends MachineState> baseBuilder() {
+        return new Builder<>("base");
     }
 
-    public static Builder<? extends MachineState> builder() {
-        return new Builder<>();
+    @Override
+    public int getDimension() {
+        return dimension;
+    }
+
+    public void setDimension(int dimension) {
+        this.dimension = dimension;
+        children.forEach(child -> child.setDimension(dimension + 1));
+    }
+
+    @Override
+    public MachineState getKey() {
+        return this;
+    }
+
+    @Override
+    public @Nullable Void getContent() {
+        return null;
+    }
+
+    @Override
+    public @Nullable MachineState getParent() {
+        return parent;
+    }
+
+    @Override
+    public List<MachineState> getChildren() {
+        return children;
+    }
+
+    @Override
+    public String toString() {
+        return name;
     }
 
     @Setter
     @Accessors(chain = true, fluent = true)
     public static class Builder<T extends MachineState> {
-        protected String name;
-        protected List<MachineState> children = new ArrayList<>();
+        protected final String name;
+        protected List<Builder<T>> childrenBuilders = new ArrayList<>();
         @Nullable
         protected IRenderer renderer;
         @Nullable
@@ -268,28 +322,43 @@ public class MachineState implements IConfigurable, IPersistedSerializable, Comp
         @Nullable
         protected AABB renderingBox;
 
-        protected Builder() {
+        protected Builder(String name) {
+            this.name = name;
         }
 
-        public Builder<T> child(MachineState child) {
-            children.add(child);
+        public Builder<T> child(String name, Consumer<Builder<T>> builderConsumer) {
+            var childBuilder = new Builder<T>(name);
+            builderConsumer.accept(childBuilder);
+            childrenBuilders.add(childBuilder);
             return this;
+        }
+
+        public Builder<T> child(String name) {
+            return child(name, Consumers.nop());
         }
 
         public Builder<T> modelRenderer(ResourceLocation modelPath) {
             return renderer(new IModelRenderer(modelPath));
         }
 
-        @HideFromJS
-        public Builder<T> geckolibRenderer(ResourceLocation modelPath, ResourceLocation texturePath, ResourceLocation animationPath) {
-            if (MBD2.isGeckolibLoaded()) {
-                return renderer(new GeckolibRenderer(modelPath, texturePath, animationPath));
-            }
-            return this;
-        }
+//        @HideFromJS
+//        public Builder<T> geckolibRenderer(ResourceLocation modelPath, ResourceLocation texturePath, ResourceLocation animationPath) {
+//            if (MBD2.isGeckolibLoaded()) {
+//                return renderer(new GeckolibRenderer(modelPath, texturePath, animationPath));
+//            }
+//            return this;
+//        }
 
         public T build() {
-            return (T) new MachineState(name, children, renderer, shape, lightLevel, renderingBox);
+            return build(null);
+        }
+
+        public T build(@Nullable MachineState parent) {
+            var state = (T) new MachineState(name, parent, renderer, shape, lightLevel, renderingBox);
+            for (Builder<T> childrenBuilder : childrenBuilders) {
+                state.addChild(childrenBuilder.build(state));
+            }
+            return state;
         }
     }
 }

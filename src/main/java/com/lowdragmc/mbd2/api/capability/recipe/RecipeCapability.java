@@ -1,8 +1,8 @@
 package com.lowdragmc.mbd2.api.capability.recipe;
 
-import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.gui.widget.Widget;
-import com.lowdragmc.lowdraglib.jei.IngredientIO;
+import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.registry.ILDLRegister;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.api.recipe.content.IContentSerializer;
@@ -17,8 +17,7 @@ import java.util.function.Supplier;
 /**
  * Used to detect whether a machine has a certain capability.
  */
-public abstract class RecipeCapability<T> {
-
+public abstract class RecipeCapability<T> implements ILDLRegister<RecipeCapability<?>, RecipeCapability<?>> {
     public static final Codec<RecipeCapability<?>> CODEC = MBDRegistries.RECIPE_CAPABILITIES.codec();
 
     public final String name;
@@ -34,7 +33,7 @@ public abstract class RecipeCapability<T> {
      * it's not recommended to use this method directly, use {@link #copyContent(Object)} instead.
      */
     public final T deepCopyContent(Object content) {
-        return serializer.deepCopy((T) content);
+        return serializer.deepCopyInner((T) content);
     }
 
     public final T deepCopyContent(Object content, ContentModifier modifier) {
@@ -42,7 +41,7 @@ public abstract class RecipeCapability<T> {
     }
 
     /**
-     * deep copy of this content. recipe need it for searching and such things
+     * copy of this content. recipe need it for searching and such things
      */
     public T copyInner(T content) {
         return serializer.copyInner(content);
@@ -84,22 +83,22 @@ public abstract class RecipeCapability<T> {
     /**
      * create a preview widget for the content of this capability.
      * <br>
-     * it will be used for ui editor. make sure the widget's size is (18, 18)
+     * it will be used for ui editor. the widget will be resized to (18, 18)
      */
-    public abstract Widget createPreviewWidget(T content);
+    public abstract UIElement createPreviewWidget(T content);
 
     /**
      * create a widget for recipe viewer (XEI).
      * <br>
-     * just create the template, call {@link #bindXEIWidget(Widget, Content, IngredientIO)} to bind the content.
+     * just create the template, call {@link #bindXEIWidget(UIElement, Content, IO)} to bind the content.
      */
-    public abstract Widget createXEITemplate();
+    public abstract UIElement createXEITemplate();
 
     /**
      * bind the content to the widget. you should do the casting yourself.
-     * @param ingredientIO the ingredient io for the widget. mark it as inputs or outputs or render only..
+     * @param io the ingredient io for the widget. mark it as inputs or outputs or render only..
      */
-    public abstract void bindXEIWidget(Widget widget, Content content, IngredientIO ingredientIO);
+    public abstract void bindXEIWidget(UIElement element, Content content, IO io);
 
     /**
      * create a content ui configurator for the content of this capability.

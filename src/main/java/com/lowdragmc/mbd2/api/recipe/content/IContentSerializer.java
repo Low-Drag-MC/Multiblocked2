@@ -1,44 +1,18 @@
 package com.lowdragmc.mbd2.api.recipe.content;
 
-import com.google.gson.JsonElement;
+import com.lowdragmc.lowdraglib2.Platform;
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.JavaOps;
-import com.mojang.serialization.JsonOps;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.nbt.Tag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 
 public interface IContentSerializer<T> {
-
-    default void toNetwork(RegistryFriendlyByteBuf buf, T content) {
-        streamCodec().encode(buf, content);
-    }
-
-    default T fromNetwork(RegistryFriendlyByteBuf buf) {
-        return streamCodec().decode(buf);
-    }
-
-    default Tag toNBT(T content, HolderLookup.Provider provider) {
-        return codec().encodeStart(provider.createSerializationContext(NbtOps.INSTANCE), content).getOrThrow();
-    }
-
-    default T fromNBT(Tag tag, HolderLookup.Provider provider) {
-        return codec().parse(provider.createSerializationContext(NbtOps.INSTANCE), tag).getOrThrow();
-    }
-
-    default JsonElement toJson(T content, HolderLookup.Provider provider) {
-        return codec().encodeStart(
-                provider.createSerializationContext(JsonOps.INSTANCE), content).getOrThrow();
-    }
-
-    default T fromJson(JsonElement json, HolderLookup.Provider provider) {
-        return codec().parse(provider.createSerializationContext(JsonOps.INSTANCE), json).getOrThrow();
-    }
-
-    default T deepCopy(T content) {
-        return codec().parse(JavaOps.INSTANCE, codec().encodeStart(JavaOps.INSTANCE, content).getOrThrow()).getOrThrow();
+    /**
+     * deep copy of this content.
+     */
+    default T deepCopyInner(T content) {
+        var op = Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE);
+        return codec().parse(op, codec().encodeStart(op, content).getOrThrow()).getOrThrow();
     }
 
     T of(Object o);

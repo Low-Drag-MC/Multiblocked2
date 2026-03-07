@@ -1,18 +1,16 @@
 package com.lowdragmc.mbd2.api.recipe.event;
 
-import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.gui.editor.ILDLRegister;
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
-import com.lowdragmc.mbd2.common.graphprocessor.GraphParameterGet;
 import com.lowdragmc.mbd2.integration.kubejs.events.MBDClientEvents;
 import com.lowdragmc.mbd2.integration.kubejs.events.MBDServerEvents;
 import lombok.Getter;
-import net.minecraftforge.eventbus.api.Event;
+import net.neoforged.bus.api.Event;
+import net.neoforged.bus.api.ICancellableEvent;
 
 @Getter
-public class RecipeTypeEvent extends Event implements ILDLRegister {
-    @GraphParameterGet
+public class RecipeTypeEvent extends Event {
     public final MBDRecipeType recipeType;
 
     public RecipeTypeEvent(MBDRecipeType recipeType) {
@@ -20,7 +18,7 @@ public class RecipeTypeEvent extends Event implements ILDLRegister {
     }
 
     public RecipeTypeEvent postCustomEvent() {
-        // TODO post to the graph events
+        // TODO blueprint in the future
 //        machine.getDefinition().machineEvents().postGraphEvent(this);
         // post to the KubeJS events
         postKubeJSEvent();
@@ -31,15 +29,17 @@ public class RecipeTypeEvent extends Event implements ILDLRegister {
         // post to the KubeJS events
         if (MBD2.isKubeJSLoaded()) {
             try {
-                if (LDLib.isClient()) {
-                    if (MBDServerEvents.postRecipeTypeEvent(this).interruptFalse() && isCancelable()) {
-                        setCanceled(true);
-                    } else if (MBDClientEvents.postRecipeTypeEvent(this).interruptFalse() && isCancelable()) {
-                        setCanceled(true);
+                if (LDLib2.isClient()) {
+                    if (this instanceof ICancellableEvent cancellable) {
+                        if (MBDServerEvents.postRecipeTypeEvent(this).interruptFalse()) {
+                            cancellable.setCanceled(true);
+                        } else if (MBDClientEvents.postRecipeTypeEvent(this).interruptFalse()) {
+                            cancellable.setCanceled(true);
+                        }
                     }
                 } else {
-                    if (MBDServerEvents.postRecipeTypeEvent(this).interruptFalse() && isCancelable()) {
-                        setCanceled(true);
+                    if (MBDServerEvents.postRecipeTypeEvent(this).interruptFalse() && this instanceof ICancellableEvent cancellableEvent) {
+                        cancellableEvent.setCanceled(true);
                     }
                 }
             } catch (Exception e) {
@@ -54,7 +54,8 @@ public class RecipeTypeEvent extends Event implements ILDLRegister {
         return "RecipeTypeEvent{" +
                 "recipeType=" + recipeType +
                 ", eventName='" + getClass().getSimpleName() + '\'' +
-                ", isCanceled=" + isCanceled() +
+                (this instanceof ICancellableEvent event ?
+                        ", isCanceled=" + event.isCanceled() : "") +
                 '}';
     }
 }

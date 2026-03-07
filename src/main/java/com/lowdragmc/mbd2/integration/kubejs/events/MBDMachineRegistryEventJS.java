@@ -3,7 +3,7 @@ package com.lowdragmc.mbd2.integration.kubejs.events;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import dev.latvian.mods.kubejs.event.EventResult;
-import dev.latvian.mods.kubejs.event.StartupEventJS;
+import dev.latvian.mods.kubejs.event.KubeEvent;
 import net.minecraft.resources.ResourceLocation;
 
 import javax.annotation.Nullable;
@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
-public class MBDMachineRegistryEventJS extends StartupEventJS {
+public class MBDMachineRegistryEventJS implements KubeEvent {
     public final static Map<String, Supplier<? extends MBDMachineDefinition.Builder>> BUILDERS = new HashMap<>();
     private final Map<ResourceLocation, MBDMachineDefinition.Builder> machineBuilders = new HashMap<>();
 
@@ -38,7 +38,7 @@ public class MBDMachineRegistryEventJS extends StartupEventJS {
 
 
     @Override
-    protected void afterPosted(EventResult result) {
+    public void afterPosted(EventResult result) {
         machineBuilders.forEach((id, builder) -> MBDRegistries.MACHINE_DEFINITIONS.register(id, builder.build()));
     }
 }

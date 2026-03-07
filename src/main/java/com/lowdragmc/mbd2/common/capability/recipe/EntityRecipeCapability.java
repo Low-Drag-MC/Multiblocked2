@@ -1,23 +1,21 @@
 package com.lowdragmc.mbd2.common.capability.recipe;
 
-import com.lowdragmc.lowdraglib.gui.editor.accessors.CompoundTagAccessor;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.*;
-import com.lowdragmc.lowdraglib.gui.widget.Widget;
-import com.lowdragmc.lowdraglib.jei.IngredientIO;
+import com.lowdragmc.lowdraglib2.configurator.ui.*;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.api.recipe.content.SerializerEntityIngredient;
 import com.lowdragmc.mbd2.api.recipe.ingredient.EntityIngredient;
-import com.lowdragmc.mbd2.common.gui.recipe.ingredient.entity.EntityPreviewWidget;
-import com.lowdragmc.mbd2.common.gui.recipe.ingredient.entity.EntityTypeConfigurator;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
+import com.lowdragmc.mbd2.common.gui.recipe.ingredient.entity.EntityIngredientSlot;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.EntityTypeTags;
-import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
+import org.appliedenergistics.yoga.YogaDisplay;
 
 import java.util.Arrays;
 import java.util.List;
@@ -28,12 +26,11 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.lowdragmc.lowdraglib.gui.widget.TankWidget.FLUID_SLOT_TEXTURE;
-
 public class EntityRecipeCapability extends RecipeCapability<EntityIngredient> {
     public static final String ENTITY_TYPE = "recipe.capability.entity.ingredient.values.entity";
     public static final String TAG_TYPE = "recipe.capability.entity.ingredient.values.tag";
 
+    @LDLRegister(name = "entity", registry = "mbd2:recipe_capability")
     public final static EntityRecipeCapability CAP = new EntityRecipeCapability();
 
     protected EntityRecipeCapability() {
@@ -46,24 +43,32 @@ public class EntityRecipeCapability extends RecipeCapability<EntityIngredient> {
     }
 
     @Override
-    public Widget createPreviewWidget(EntityIngredient content) {
-        return new EntityPreviewWidget(content, 0, 0, 18, 18).setDrawHoverOverlay(false);
+    public UIElement createPreviewWidget(EntityIngredient content) {
+        return new EntityIngredientSlot().slotStyle(slotStyle -> slotStyle.hoverOverlay(IGuiTexture.EMPTY));
     }
 
     @Override
-    public Widget createXEITemplate() {
-        var preview = new EntityPreviewWidget();
-        preview.initTemplate();
-        return preview;
+    public UIElement createXEITemplate() {
+        return new EntityIngredientSlot();
     }
 
     @Override
-    public void bindXEIWidget(Widget widget, Content content, IngredientIO ingredientIO) {
-        if (widget instanceof EntityPreviewWidget entityPreview) {
+    public void bindXEIWidget(UIElement widget, Content content, IO io) {
+        if (widget instanceof EntityIngredientSlot entityIngredientSlot) {
             var entityIngredient = of(content.content);
-            entityPreview.setEntityIngredient(entityIngredient);
-            entityPreview.setIngredientIO(ingredientIO);
-            entityPreview.setXEIChance(content.chance);
+            entityIngredientSlot.setEntityIngredient(entityIngredient);
+
+            // xei
+            var ingredientIO = switch (io) {
+                case IN -> IngredientIO.INPUT;
+                case OUT -> IngredientIO.OUTPUT;
+                default -> IngredientIO.NONE;
+            };
+
+            if (ingredientIO == IngredientIO.NONE) return;
+
+            entityIngredientSlot.xeiRecipeIngredient(ingredientIO);
+            entityIngredientSlot.xeiRecipeSlot(ingredientIO, content.chance);
         }
     }
 
@@ -80,7 +85,7 @@ public class EntityRecipeCapability extends RecipeCapability<EntityIngredient> {
         var valuesGroup = new ArrayConfiguratorGroup<>("recipe.capability.entity.ingredient.candidates", false,
                 () -> Arrays.stream(supplier.get().values).collect(Collectors.toList()), (getter, setter) -> {
             // check values type
-            return new ConfiguratorSelectorConfigurator<>("recipe.capability.item.ingredient.values.type", false, getter, setter,
+            return new ConfiguratorSelectorConfigurator<>("recipe.capability.item.ingredient.values.type", getter, setter,
                     new EntityIngredient.EntityTypeValue(EntityType.PIG), true,
                     List.of(
                             // values candidates
@@ -94,73 +99,64 @@ public class EntityRecipeCapability extends RecipeCapability<EntityIngredient> {
                         }
                         return ENTITY_TYPE;
                     }, (value, valueGroup) -> {
+
                 // preview slot
-                var preview = new EntityPreviewWidget(EntityIngredient.fromValues(Stream.of(value), 1, supplier.get().getNbt()), 0, 0, 60, 60);
-                preview.setBackground(FLUID_SLOT_TEXTURE);
-                preview.setShowAmount(false);
-                preview.setClientSideWidget();
+                var preview = new EntityIngredientSlot();
+                preview.setValue(
+                        EntityIngredient.fromValues(Stream.of(value), 1, supplier.get().getNbt())
+                );
+                preview.countLabel.setDisplay(YogaDisplay.NONE);
+                preview.getLayout().width(60).height(60);
 
                 if (value instanceof EntityIngredient.EntityTypeValue entityTypeValue) {
                     // entity type value
-                    valueGroup.addConfigurators(new EntityTypeConfigurator(ENTITY_TYPE,
+                    valueGroup.addConfigurator(new RegistrySearchComponent.EntityType(ENTITY_TYPE,
                             entityTypeValue::getEntityType,
                             entityType -> {
                                 entityTypeValue.setEntityType(entityType);
                                 preview.setEntityIngredient(EntityIngredient.of(value.getTypes().stream(), 1, supplier.get().getNbt()));
                                 setter.accept(value);
                             },
-                            EntityType.PIG, true));
+                            EntityType.PIG,
+                            true
+                    ));
                 } else if (value instanceof EntityIngredient.TagValue tagValue) {
                     // tag value
-                    valueGroup.addConfigurators(new SearchComponentConfigurator<>(TAG_TYPE,
-                            () -> tagValue.getTag().location(), tagKey -> {
-                        tagValue.setTag(TagKey.create(Registries.ENTITY_TYPE, tagKey));
-                        preview.setEntityIngredient(EntityIngredient.of(value.getTypes().stream(), 1, supplier.get().getNbt()));
-                        setter.accept(value);
-                    }, EntityTypeTags.SKELETONS.location(), true, (word, find) -> {
-                        for (var tag : BuiltInRegistries.ENTITY_TYPE.getTagNames().toList()) {
-                            if (Thread.currentThread().isInterrupted()) return;
-                            var tagKey = tag.location();
-                            if (tagKey.toString().toLowerCase().contains(word.toLowerCase())) {
-                                find.accept(tagKey);
-                            }
-                        }}, ResourceLocation::toString));
+                    valueGroup.addConfigurators(new TagKeySearchComponent.EntityType(TAG_TYPE,
+                            tagValue::getTag,
+                            tagKey -> {
+                                tagValue.setTag(tagKey);
+                                preview.setEntityIngredient(EntityIngredient.of(value.getTypes().stream(), 1, supplier.get().getNbt()));
+                                setter.accept(value);
+                            },
+                            EntityTypeTags.SKELETONS,
+                            true
+                    ));
                 }
-                valueGroup.addConfigurators(new WrapperConfigurator("ldlib.gui.editor.group.preview", preview));
+
+                valueGroup.addConfigurators(new Configurator().addInlineChild(preview));
             });
         }, true);
         valuesGroup.setAddDefault(() -> new EntityIngredient.EntityTypeValue(EntityType.PIG));
-        valuesGroup.setOnAdd(value -> {
-            var entityIngredient = supplier.get();
-            var values = entityIngredient.values;
-            var newValues = Arrays.copyOf(values, values.length + 1);
-            newValues[values.length] = value;
-            entityIngredient.values = newValues;
-            entityIngredient.types = null;
-        });
-        valuesGroup.setOnRemove(value -> {
-            var entityIngredient = supplier.get();
-            var values = entityIngredient.values;
-            entityIngredient.values = Arrays.stream(values).filter(v -> v != value).toArray(EntityIngredient.Value[]::new);
-            entityIngredient.types = null;
-        });
         valuesGroup.setOnUpdate(values -> {
             var entityIngredient = supplier.get();
             entityIngredient.values = values.toArray(EntityIngredient.Value[]::new);
             entityIngredient.types = null;
         });
         father.addConfigurators(valuesGroup);
+
         // entity nbt
         try {
-            father.addConfigurators(new CompoundTagAccessor().create("ldlib.gui.editor.configurator.nbt",
+            father.addConfigurators(new TagConfigurator("ldlib2.gui.editor.configurator.nbt",
                     () -> Optional.ofNullable(supplier.get().getNbt()).orElseGet(CompoundTag::new),
                     tag -> {
                         var entityIngredient = supplier.get();
-                        var newTag = tag.isEmpty() ? null : tag;
+                        var newTag = tag instanceof CompoundTag compoundTag ? compoundTag : null;
+                        if (newTag == null || newTag.isEmpty()) newTag = null;
                         if (Objects.equals(newTag, entityIngredient.getNbt())) return;
                         entityIngredient.setNbt(newTag);
                         onUpdate.accept(entityIngredient);
-                    }, false, RecipeCapability.class.getField("name")));
+                    }, new CompoundTag(), true));
         } catch (Exception ignored) {}
     }
 

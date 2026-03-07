@@ -1,6 +1,6 @@
 package com.lowdragmc.mbd2.common.network.packets;
 
-import com.lowdragmc.lowdraglib.LDLib;
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.client.renderer.MultiblockInWorldPreviewRenderer;
 import com.lowdragmc.mbd2.config.ConfigHolder;
@@ -25,8 +25,8 @@ public class SPatternErrorPosPacket implements CustomPacketPayload {
     public BlockPos pos;
 
     public static void execute(SPatternErrorPosPacket packet, IPayloadContext context) {
-        if (LDLib.isClient()) {
-            MultiblockInWorldPreviewRenderer.showPatternErrorPos(packet.pos, ConfigHolder.multiblockPatternErrorPosDuration * 20);
+        if (LDLib2.isClient()) {
+            MultiblockInWorldPreviewRenderer.showPatternErrorPos(packet.pos, ConfigHolder.MULTIBLOCK_PATTERN_ERROR_DURATION.get() * 20);
         }
     }
 

@@ -1,10 +1,9 @@
 package com.lowdragmc.mbd2.common.machine;
 
-import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced;
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
-import com.lowdragmc.lowdraglib.syncdata.annotation.RequireRerender;
-import com.lowdragmc.lowdraglib.syncdata.annotation.UpdateListener;
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.RequireRerender;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.UpdateListener;
 import com.lowdragmc.mbd2.api.block.ProxyPartBlock;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
 import com.lowdragmc.mbd2.api.blockentity.ProxyPartBlockEntity;
@@ -35,6 +34,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -51,16 +51,11 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class MBDMultiblockMachine extends MBDMachine implements IMultiController {
-    protected static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(MBDMultiblockMachine.class, MBDMachine.MANAGED_FIELD_HOLDER);
-    @Override
-    public ManagedFieldHolder getFieldHolder() {
-        return MANAGED_FIELD_HOLDER;
-    }
-
     private MultiblockState multiblockState;
     private final List<IMultiPart> parts = new ArrayList<>();
     @Getter
-    @DescSynced @UpdateListener(methodName = "onPartsUpdated")
+    @DescSynced
+    @UpdateListener(methodName = "onPartsUpdated")
     private BlockPos[] partPositions = new BlockPos[0];
     @Getter
     @Persisted
@@ -427,40 +422,42 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
         return super.shouldOpenUI(hit) && (!getDefinition().multiblockSettings().showUIOnlyFormed() || isFormed());
     }
 
-    /**
-     * On hand is using on the machine.
-     * <br>
-     * We will check the catalyst and consume it if it's valid.
-     */
     @Override
-    public InteractionResult onUse(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-        if (!isFormed() && player.isShiftKeyDown() && player.getItemInHand(hand).isEmpty()) {
+    public InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player, BlockHitResult hit) {
+        var result = super.useWithoutItem(state, world, pos, player, hit);
+            if (result != InteractionResult.PASS && !isFormed() && player.isShiftKeyDown()) {
             if (world.isClientSide()) {
-                MultiblockInWorldPreviewRenderer.showPreview(pos, this, ConfigHolder.multiblockPreviewDuration * 20);
+                MultiblockInWorldPreviewRenderer.showPreview(pos, this, ConfigHolder.MULTIBLOCK_PREVIEW_DURATION.get() * 20);
             }
             return InteractionResult.SUCCESS;
         }
-        if (!isFormed() && getDefinition().multiblockSettings().catalyst().isEnable()) {
+        return result;
+    }
+
+    @Override
+    public ItemInteractionResult useItemOn(ItemStack item, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        var result = super.useItemOn(item, state, level, pos, player, hand, hit);
+        if (result != ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION && !isFormed() && getDefinition().multiblockSettings().catalyst().isEnable()) {
             var catalyst = getDefinition().multiblockSettings().catalyst();
             var held = player.getItemInHand(hand);
             if (catalyst.test(held)) {
-                if (world instanceof ServerLevel serverLevel && checkPatternWithLock()) { // formed
+                if (level instanceof ServerLevel serverLevel && checkPatternWithLock()) { // formed
                     var success = onCatalystUsed(player, hand, held);
                     if (success) {
                         onStructureFormed();
                         var mwsd = MultiblockWorldSavedData.getOrCreate(serverLevel);
                         mwsd.addMapping(getMultiblockState());
                         mwsd.removeAsyncLogic(this);
-                        return InteractionResult.CONSUME;
+                        return ItemInteractionResult.CONSUME;
                     } else {
-                        return InteractionResult.FAIL;
+                        return ItemInteractionResult.FAIL;
                     }
                 }
-                return InteractionResult.SUCCESS;
+                return ItemInteractionResult.SUCCESS;
             }
-            return InteractionResult.FAIL;
+            return ItemInteractionResult.FAIL;
         }
-        return super.onUse(state, world, pos, player, hand, hit);
+        return result;
     }
 
     public boolean onCatalystUsed(Player player, InteractionHand hand, ItemStack held) {

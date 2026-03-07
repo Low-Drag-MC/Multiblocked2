@@ -1,6 +1,6 @@
 package com.lowdragmc.mbd2.api.capability.recipe;
 
-import com.lowdragmc.lowdraglib.syncdata.ISubscription;
+import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 

@@ -1,10 +1,10 @@
 package com.lowdragmc.mbd2.api.pattern;
 
+import com.lowdragmc.lowdraglib2.utils.data.BlockInfo;
 import com.lowdragmc.mbd2.api.pattern.predicates.PredicateBlocks;
 import com.lowdragmc.mbd2.api.pattern.predicates.PredicateFluids;
 import com.lowdragmc.mbd2.api.pattern.predicates.PredicateStates;
-import com.lowdragmc.mbd2.api.pattern.predicates.SimplePredicate;
-import com.lowdragmc.lowdraglib.utils.BlockInfo;
+import com.lowdragmc.mbd2.api.pattern.predicates.PatternPredicate;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
@@ -20,15 +20,7 @@ public class Predicates {
     }
 
     public static TraceabilityPredicate states(BlockState... allowedStates) {
-        var candidates = new ArrayList<BlockState>();
-        for (BlockState state : allowedStates) {
-            candidates.add(state);
-            // TODO vaBlocks
-//            if (state.getBlock() instanceof ActiveBlock block) {
-//                candidates.add(block.changeActive(state, !block.isActive(state)));
-//            }
-        }
-        return new TraceabilityPredicate(new PredicateStates(candidates.toArray(BlockState[]::new)));
+        return new TraceabilityPredicate(new PredicateStates(allowedStates));
     }
 
     public static TraceabilityPredicate blocks(Block... blocks) {
@@ -42,12 +34,13 @@ public class Predicates {
     public static TraceabilityPredicate custom(Predicate<MultiblockState> predicate, Supplier<BlockInfo[]> candidates) {
         return new TraceabilityPredicate(predicate, candidates);
     }
+
     public static TraceabilityPredicate any() {
-        return new TraceabilityPredicate(SimplePredicate.ANY);
+        return new TraceabilityPredicate(PatternPredicate.ANY);
     }
 
     public static TraceabilityPredicate air() {
-        return new TraceabilityPredicate(SimplePredicate.AIR);
+        return new TraceabilityPredicate(PatternPredicate.AIR);
     }
 
 }

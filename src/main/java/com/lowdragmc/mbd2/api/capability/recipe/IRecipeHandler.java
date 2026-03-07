@@ -20,7 +20,7 @@ public interface IRecipeHandler<K> {
      * matching or handling the given recipe.
      * <br/>
      * Note: it's not always thread-safe.
-     * In general, it will be called in the main thread if and only if simulate is true.
+     * In general, it will be called in the main thread if and only if simulate is false.
      *
      * @param io       the IO type of this recipe. always be one of the {@link IO#IN} or {@link IO#OUT}
      * @param recipe   recipe.
@@ -31,7 +31,11 @@ public interface IRecipeHandler<K> {
      * <br>
      * null - nothing left. handling successful/finish. you should always return null as a handling-done mark.
      */
-    List<K> handleRecipeInner(IO io, MBDRecipe recipe, List<K> left, @Nullable String slotName, boolean simulate);
+    @Nullable List<K> handleRecipeInner(IO io,
+                              MBDRecipe recipe,
+                              List<K> left,
+                              @Nullable String slotName,
+                              boolean simulate);
 
     /**
      * Slot name, it makes sense if recipe contents specify a slot name.

@@ -2,6 +2,7 @@ package com.lowdragmc.mbd2.client;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
+import net.minecraft.client.resources.sounds.SoundInstance;
 import net.minecraft.core.BlockPos;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
@@ -18,7 +19,7 @@ public class MachineSound extends AbstractTickableSoundInstance {
     public final BooleanSupplier predicate;
 
     public MachineSound(SoundEvent soundEvent, SoundSource soundSource, BooleanSupplier predicate, BlockPos pos, boolean loop, boolean loopWithShuffle, int delay, float volume, float pitch) {
-        super(soundEvent, soundSource, Minecraft.getInstance().level.random);
+        super(soundEvent, soundSource, SoundInstance.createUnseededRandom());
         this.predicate = predicate;
         this.loop = loop;
         this.loopWithShuffle = loopWithShuffle;

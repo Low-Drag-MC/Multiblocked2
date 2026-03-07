@@ -1,6 +1,7 @@
 package com.lowdragmc.mbd2.common.trait;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import lombok.Getter;
 import lombok.Setter;
@@ -10,6 +11,7 @@ import javax.annotation.Nullable;
 
 @Getter
 @Setter
+@KJSBindings
 public class CapabilityIO {
     @Configurable(name = "config.definition.trait.capability_io.internal", tips = "config.definition.trait.capability_io.internal.tooltip")
     private IO internal = IO.BOTH;

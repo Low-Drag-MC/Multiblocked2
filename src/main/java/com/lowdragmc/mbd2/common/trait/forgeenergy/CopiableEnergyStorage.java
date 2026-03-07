@@ -1,16 +1,19 @@
 package com.lowdragmc.mbd2.common.trait.forgeenergy;
 
-import com.lowdragmc.lowdraglib.syncdata.IContentChangeAware;
-import com.lowdragmc.lowdraglib.syncdata.ITagSerializable;
+import com.lowdragmc.lowdraglib2.syncdata.IContentChangeAware;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.nbt.Tag;
-import net.neoforged.energy.EnergyStorage;
+import net.minecraft.MethodsReturnNonnullByDefault;
+import net.neoforged.neoforge.energy.EnergyStorage;
 
-public class CopiableEnergyStorage extends EnergyStorage implements ITagSerializable<Tag>, IContentChangeAware {
+import javax.annotation.ParametersAreNonnullByDefault;
+
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
+public class CopiableEnergyStorage extends EnergyStorage implements IContentChangeAware {
     @Getter
     @Setter
-    public Runnable onContentsChanged = () -> {};
+    private Runnable onContentsChanged = () -> {};
 
     public CopiableEnergyStorage(int capacity) {
         super(capacity);
@@ -38,13 +41,4 @@ public class CopiableEnergyStorage extends EnergyStorage implements ITagSerializ
         return new CopiableEnergyStorage(capacity, energy);
     }
 
-    @Override
-    public void deserializeNBT(Tag tag) {
-        super.deserializeNBT(tag);
-    }
-
-    @Override
-    public Tag serializeNBT() {
-        return super.serializeNBT();
-    }
 }

@@ -158,15 +158,4 @@ public class FormattingUtil {
         return TWO_PLACES_FORMAT.format(number);
     }
 
-    public static void combineComponents(MutableComponent c1, Component c2) {
-        if (!isEmptyComponent(c1) && !isEmptyComponent(c2)) {
-            c1.append(", ").append(c2);
-        } else {
-            c1.append(c2);
-        }
-    }
-
-    private static boolean isEmptyComponent(Component component) {
-        return component.getContents() == ComponentContents.EMPTY && component.getSiblings().isEmpty();
-    }
 }

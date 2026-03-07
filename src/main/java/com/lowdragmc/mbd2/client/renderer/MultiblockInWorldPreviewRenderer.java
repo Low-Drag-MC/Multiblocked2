@@ -1,18 +1,10 @@
 package com.lowdragmc.mbd2.client.renderer;
 
 
-import com.lowdragmc.lowdraglib.client.scene.WorldSceneRenderer;
-import com.lowdragmc.lowdraglib.client.scene.forge.WorldSceneRendererImpl;
-import com.lowdragmc.lowdraglib.client.utils.RenderUtils;
-import com.lowdragmc.lowdraglib.utils.BlockInfo;
-import com.lowdragmc.lowdraglib.utils.TrackedDummyWorld;
-import com.lowdragmc.mbd2.api.block.RotationState;
-import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
-import com.lowdragmc.mbd2.api.machine.IMultiController;
-import com.lowdragmc.mbd2.common.block.MBDMachineBlock;
+import com.lowdragmc.lowdraglib2.client.scene.WorldSceneRenderer;
+import com.lowdragmc.lowdraglib2.client.utils.RenderUtils;
+import com.lowdragmc.lowdraglib2.utils.virtuallevel.TrackedDummyWorld;
 import com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine;
-import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
-import com.lowdragmc.mbd2.utils.ControllerBlockInfo;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import lombok.Getter;
@@ -35,8 +27,8 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
@@ -120,126 +112,117 @@ public class MultiblockInWorldPreviewRenderer {
      * @param duration   the duration of the preview. in ticks.
      */
     public static void showPreview(BlockPos pos, MBDMultiblockMachine controller, int duration) {
-        var front = controller.getFrontFacing().orElse(Direction.NORTH);
-        var shapeInfos = controller.getDefinition().shapeInfoFactory().apply(controller.getDefinition());
-        if (shapeInfos.length == 0) return;
-        var shapeInfo = shapeInfos[0];
-
-        Map<BlockPos, BlockInfo> blockMap = new HashMap<>();
-        IMultiController controllerBase = null;
-        LEVEL = new TrackedDummyWorld();
-
-        var blocks = shapeInfo.getBlocks();
-        BlockPos controllerPatternPos = null;
-        var controllerPatternFront = Direction.NORTH;
-        var maxY = 0;
-
-        // find the pos of controller
-        for (int x = 0; x < blocks.length; x++) {
-            BlockInfo[][] aisle = blocks[x];
-            maxY = Math.max(maxY, aisle.length);
-            for (int y = 0; y < aisle.length; y++) {
-                BlockInfo[] column = aisle[y];
-                for (int z = 0; z < column.length; z++) {
-                    // if its controller record its position offset.
-                    if (column[z] instanceof ControllerBlockInfo info) {
-                        controllerPatternPos = new BlockPos(x, y, z);
-                        controllerPatternFront = info.getFacing();
-                    } else {
-                        var blockState = column[z].getBlockState();
-                        if (blockState != null && blockState.getBlock() instanceof MBDMachineBlock machineBlock &&
-                                machineBlock.getDefinition() instanceof MultiblockMachineDefinition definition) {
-                            controllerPatternPos = new BlockPos(x, y, z);
-                            if (definition.blockProperties().rotationState().property.isPresent()) {
-                                controllerPatternFront = blockState.getValue(definition.blockProperties().rotationState().property.get());
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        if (controllerPatternPos == null) { // if there is no controller found
-            return;
-        }
-
-        if (LAST_POS != null && LAST_POS.equals(pos)) {
-            LAST_LAYER++;
-            if (LAST_LAYER >= maxY) {
-                LAST_LAYER = -1;
-            }
-        } else {
-            LAST_LAYER = -1;
-        }
-        LAST_POS = pos;
-
-        for (int x = 0; x < blocks.length; x++) {
-            BlockInfo[][] aisle = blocks[x];
-            for (int y = 0; y < aisle.length; y++) {
-                BlockInfo[] column = aisle[y];
-                if (LAST_LAYER != -1 && LAST_LAYER != y) {
-                    continue;
-                }
-                for (int z = 0; z < column.length; z++) {
-                    var blockState = column[z].getBlockState();
-                    var offset = new BlockPos(x, y, z).subtract(controllerPatternPos);
-                    if (blockState == null || offset.equals(new BlockPos(0, 0, 0))) continue;
-
-                    // rotation
-                    offset = switch (controllerPatternFront) {
-                        case SOUTH -> offset.rotate(Rotation.CLOCKWISE_180);
-                        case EAST -> offset.rotate(Rotation.COUNTERCLOCKWISE_90);
-                        case WEST -> offset.rotate(Rotation.CLOCKWISE_90);
-                        default -> offset.rotate(Rotation.NONE);
-                    };
-                    offset = switch (front) {
-                        case SOUTH -> offset.rotate(Rotation.CLOCKWISE_180);
-                        case EAST -> offset.rotate(Rotation.COUNTERCLOCKWISE_90);
-                        case WEST -> offset.rotate(Rotation.CLOCKWISE_90);
-                        default -> offset.rotate(Rotation.NONE);
-                    };
-
-
-                    // TODO rotation by front axis in the future
-                    offset = rotateByFrontAxis(offset, front, Rotation.NONE);
-
-                    if (blockState.getBlock() instanceof MBDMachineBlock machineBlock) {
-                        var rotationState = machineBlock.getRotationState();
-                        if (rotationState != RotationState.NONE && rotationState.property.isPresent()) {
-                            var face = blockState.getValue(rotationState.property.get());
-                            if (face.getAxis() != Direction.Axis.Y) {
-                                face = switch (front) {
-                                    case NORTH, UP, DOWN -> front;
-                                    case SOUTH -> face.getOpposite();
-                                    case WEST -> face.getCounterClockWise();
-                                    case EAST -> face.getClockWise();
-                                };
-                            }
-                            if (rotationState.test(face)) {
-                                blockState = blockState.setValue(rotationState.property.get(), face);
-                            }
-                        }
-                    }
-
-                    BlockPos realPos = pos.offset(offset);
-
-                    if (column[z].getBlockEntity(realPos) instanceof IMachineBlockEntity holder &&
-                            holder.getMetaMachine() instanceof IMultiController cont) {
-                        holder.getSelf().setLevel(LEVEL);
-                        controllerBase = cont;
-                    } else {
-                        blockMap.put(realPos, BlockInfo.fromBlockState(blockState));
-                    }
-                }
-            }
-        }
-
-        LEVEL.addBlocks(blockMap);
-        if (controllerBase != null) {
-            LEVEL.setInnerBlockEntity(controllerBase.getHolder());
-        }
-
-        prepareBuffers(LEVEL, blockMap.keySet(), duration);
+        // preview
+//        var front = controller.getFrontFacing().orElse(Direction.NORTH);
+//        var shapeInfos = controller.getDefinition().shapeInfoFactory().apply(controller.getDefinition());
+//        if (shapeInfos.length == 0) return;
+//        var shapeInfo = shapeInfos[0];
+//
+//        Map<BlockPos, BlockInfo> blockMap = new HashMap<>();
+//        IMultiController controllerBase = null;
+//        LEVEL = new TrackedDummyWorld();
+//
+//        var blocks = shapeInfo.getBlocks();
+//        BlockPos controllerPatternPos = null;
+//        var controllerPatternFront = Direction.NORTH;
+//        var maxY = 0;
+//
+//        // find the pos of controller
+//        for (int x = 0; x < blocks.length; x++) {
+//            BlockInfo[][] aisle = blocks[x];
+//            maxY = Math.max(maxY, aisle.length);
+//            for (int y = 0; y < aisle.length; y++) {
+//                BlockInfo[] column = aisle[y];
+//                for (int z = 0; z < column.length; z++) {
+//                    // if its controller record its position offset.
+//                    if (column[z] instanceof ControllerBlockInfo info) {
+//                        controllerPatternPos = new BlockPos(x, y, z);
+//                        controllerPatternFront = info.getFacing();
+//                    } else {
+//                        var blockState = column[z].getBlockState();
+//                        if (blockState != null && blockState.getBlock() instanceof MBDMachineBlock machineBlock &&
+//                                machineBlock.getDefinition() instanceof MultiblockMachineDefinition definition) {
+//                            controllerPatternPos = new BlockPos(x, y, z);
+//                            if (definition.blockProperties().rotationState().property.isPresent()) {
+//                                controllerPatternFront = blockState.getValue(definition.blockProperties().rotationState().property.get());
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//
+//        if (controllerPatternPos == null) { // if there is no controller found
+//            return;
+//        }
+//
+//        if (LAST_POS != null && LAST_POS.equals(pos)) {
+//            LAST_LAYER++;
+//            if (LAST_LAYER >= maxY) {
+//                LAST_LAYER = -1;
+//            }
+//        } else {
+//            LAST_LAYER = -1;
+//        }
+//        LAST_POS = pos;
+//
+//        for (int x = 0; x < blocks.length; x++) {
+//            BlockInfo[][] aisle = blocks[x];
+//            for (int y = 0; y < aisle.length; y++) {
+//                BlockInfo[] column = aisle[y];
+//                if (LAST_LAYER != -1 && LAST_LAYER != y) {
+//                    continue;
+//                }
+//                for (int z = 0; z < column.length; z++) {
+//                    var blockState = column[z].getBlockState();
+//                    var offset = new BlockPos(x, y, z).subtract(controllerPatternPos);
+//                    if (blockState == null || offset.equals(new BlockPos(0, 0, 0))) continue;
+//
+//                    // rotation
+//                    offset = switch (controllerPatternFront) {
+//                        case SOUTH -> offset.rotate(Rotation.CLOCKWISE_180);
+//                        case EAST -> offset.rotate(Rotation.COUNTERCLOCKWISE_90);
+//                        case WEST -> offset.rotate(Rotation.CLOCKWISE_90);
+//                        default -> offset.rotate(Rotation.NONE);
+//                    };
+//                    offset = switch (front) {
+//                        case SOUTH -> offset.rotate(Rotation.CLOCKWISE_180);
+//                        case EAST -> offset.rotate(Rotation.COUNTERCLOCKWISE_90);
+//                        case WEST -> offset.rotate(Rotation.CLOCKWISE_90);
+//                        default -> offset.rotate(Rotation.NONE);
+//                    };
+//
+//
+//                    // TODO rotation by front axis in the future
+//                    offset = rotateByFrontAxis(offset, front, Rotation.NONE);
+//
+//                    if (blockState.getBlock() instanceof MBDMachineBlock machineBlock) {
+//                        var rotationState = machineBlock.getRotationState();
+//                        if (rotationState != RotationState.NONE && rotationState.property.isPresent()) {
+//                            var face = blockState.getValue(rotationState.property.get());
+//                            if (face.getAxis() != Direction.Axis.Y) {
+//                                face = switch (front) {
+//                                    case NORTH, UP, DOWN -> front;
+//                                    case SOUTH -> face.getOpposite();
+//                                    case WEST -> face.getCounterClockWise();
+//                                    case EAST -> face.getClockWise();
+//                                };
+//                            }
+//                            if (rotationState.test(face)) {
+//                                blockState = blockState.setValue(rotationState.property.get(), face);
+//                            }
+//                        }
+//                    }
+//
+//                    BlockPos realPos = pos.offset(offset);
+//                    blockMap.put(realPos, BlockInfo.fromBlockState(blockState));
+//                }
+//            }
+//        }
+//
+//        LEVEL.addBlocks(blockMap);
+//
+//        prepareBuffers(LEVEL, blockMap.keySet(), duration);
     }
 
     private static BlockPos rotateByFrontAxis(BlockPos pos, Direction front, Rotation rotation) {
@@ -434,23 +417,20 @@ public class MultiblockInWorldPreviewRenderer {
                 if (Thread.interrupted())
                     return;
                 var layer = RenderType.chunkBufferLayers().get(i);
-                var buffer = new BufferBuilder(layer.bufferSize());
-                buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
+                var buffer = new BufferBuilder(new ByteBufferBuilder(layer.bufferSize()), VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
                 renderBlocks(level, poseStack, dispatcher, layer, new WorldSceneRenderer.VertexConsumerWrapper(buffer),
                         renderedBlocks, randomSource);
-                var builder = buffer.end();
-                var vertexBuffer = getBUFFERS()[i];
-                Runnable toUpload = () -> {
-                    if (!vertexBuffer.isInvalid()) {
-                        vertexBuffer.bind();
-                        vertexBuffer.upload(builder);
-                        VertexBuffer.unbind();
-                    }
-                };
-                CompletableFuture.runAsync(toUpload, runnable -> {
-                    RenderSystem.recordRenderCall(runnable::run);
-                });
-
+                var meshData = buffer.build();
+                if (meshData != null) {
+                    var vertexBuffer = getBUFFERS()[i];
+                    CompletableFuture.runAsync(() -> {
+                        if (!vertexBuffer.isInvalid()) {
+                            vertexBuffer.bind();
+                            vertexBuffer.upload(meshData);
+                            VertexBuffer.unbind();
+                        }
+                    }, runnable -> RenderSystem.recordRenderCall(runnable::run));
+                }
             }
             ModelBlockRenderer.clearCache();
 
@@ -477,7 +457,7 @@ public class MultiblockInWorldPreviewRenderer {
         THREAD.start();
     }
 
-    private static void renderBlocks(TrackedDummyWorld level, PoseStack poseStack, BlockRenderDispatcher dispatcher,
+    private static void renderBlocks(TrackedDummyWorld level, PoseStack poseStack, BlockRenderDispatcher brd,
                                      RenderType layer, WorldSceneRenderer.VertexConsumerWrapper wrapperBuffer,
                                      Collection<BlockPos> renderedBlocks, RandomSource randomSource) {
         for (BlockPos pos : renderedBlocks) {
@@ -488,29 +468,26 @@ public class MultiblockInWorldPreviewRenderer {
 
             if (block == Blocks.AIR) continue;
 
-            // render blocks
-            if (state.getRenderShape() != INVISIBLE && WorldSceneRendererImpl.canRenderInLayer(dispatcher, state, pos, level, layer, randomSource)) {
-                poseStack.pushPose();
-                poseStack.translate(pos.getX(), pos.getY(), pos.getZ());
-
-                poseStack.translate(0.5, 0.5, 0.5);
-                poseStack.scale(0.8f, 0.8f, 0.8f);
-                poseStack.translate(-0.5, -0.5, -0.5);
-
-                level.setRenderFilter(p -> p.equals(pos));
-                WorldSceneRendererImpl.renderBlocksForge(dispatcher, state, pos, level, poseStack, wrapperBuffer, randomSource, layer);
-                level.setRenderFilter(p -> true);
-                poseStack.popPose();
+            if (state.getRenderShape() != INVISIBLE) {
+                var model = brd.getBlockModel(state);
+                var modelData = level.getModelData(pos);
+                modelData = model.getModelData(level, pos, state, modelData);
+                randomSource.setSeed(state.getSeed(pos));
+                modelData = model.getModelData(level, pos, state, modelData);
+                if (model.getRenderTypes(state, randomSource, modelData).contains(layer)) {
+                    poseStack.pushPose();
+                    poseStack.translate(pos.getX(), pos.getY(), pos.getZ());
+                    brd.renderBatched(state, pos, level, poseStack, wrapperBuffer, false, randomSource, modelData, layer);
+                    poseStack.popPose();
+                }
             }
 
-            // render fluids
             if (!fluidState.isEmpty() && ItemBlockRenderTypes.getRenderLayer(fluidState) == layer) {
-                wrapperBuffer.addOffset((pos.getX() - (pos.getX() & 15)), (pos.getY() - (pos.getY() & 15)),
-                        (pos.getZ() - (pos.getZ() & 15)));
-                dispatcher.renderLiquid(pos, level, wrapperBuffer, state, fluidState);
+                wrapperBuffer.addOffset((pos.getX() - (pos.getX() & 15)), (pos.getY() - (pos.getY() & 15)), (pos.getZ() - (pos.getZ() & 15)));
+                brd.renderLiquid(pos, level, wrapperBuffer, state, fluidState);
             }
 
-            wrapperBuffer.clerOffset();
+            wrapperBuffer.clearOffset();
             wrapperBuffer.clearColor();
         }
     }

@@ -1,13 +1,13 @@
 package com.lowdragmc.mbd2.api.capability.recipe;
 
-import com.lowdragmc.lowdraglib.gui.editor.Icons;
-import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import lombok.Getter;
 
 /**
  * The capability can be input or output or both
  */
 @Getter
+@KJSBindings
 public enum IO {
     IN("import"),
     OUT("export"),
@@ -15,11 +15,9 @@ public enum IO {
     NONE("none");
 
     public final String name;
-    public final IGuiTexture icon;
 
     IO(String name) {
         this.name = name;
-        this.icon = Icons.borderText(getTooltip());
     }
 
     public String getTooltip() {

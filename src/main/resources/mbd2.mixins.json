@@ -1,0 +1,26 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.lowdragmc.mbd2.core.mixins",
+  "compatibilityLevel": "JAVA_21",
+  "plugin": "com.lowdragmc.mbd2.core.mixins.MBDMixinPlugin",
+  "client": [
+    "LevelRendererAccessor"
+  ],
+  "mixins": [
+    "ChunkMixin",
+    "FluidIngredientAccessor",
+    "IngredientAccessor",
+    "ItemValueAccessor",
+    "LevelMixin",
+    "RecipeManagerMixin",
+    "ServerChunkProviderMixin",
+    "SizedFluidIngredientAccessor",
+    "SizedIngredientAccessor",
+    "TagValueAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1,
+    "maxShiftBy": 5
+  }
+}

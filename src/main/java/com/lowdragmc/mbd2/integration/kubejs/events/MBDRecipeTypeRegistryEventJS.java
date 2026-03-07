@@ -2,12 +2,12 @@ package com.lowdragmc.mbd2.integration.kubejs.events;
 
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
-import dev.latvian.mods.kubejs.event.StartupEventJS;
+import dev.latvian.mods.kubejs.event.KubeEvent;
 import net.minecraft.resources.ResourceLocation;
 
 import javax.annotation.Nullable;
 
-public class MBDRecipeTypeRegistryEventJS extends StartupEventJS {
+public class MBDRecipeTypeRegistryEventJS implements KubeEvent {
 
     public MBDRecipeType createRecipeType(ResourceLocation id) {
         var recipeType = new MBDRecipeType(id);

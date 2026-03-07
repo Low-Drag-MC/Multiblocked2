@@ -1,51 +1,72 @@
 package com.lowdragmc.mbd2.common.trait;
 
-import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
-import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib.syncdata.IAutoPersistedSerializable;
+import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
+import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.registry.ILDLRegister;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
+import com.lowdragmc.lowdraglib2.utils.PersistedParser;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
-import com.lowdragmc.mbd2.common.gui.editor.machine.MachineTraitPanel;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.nbt.CompoundTag;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
 
 import javax.annotation.Nullable;
+import java.util.function.Supplier;
 
 @Getter @Setter
-public abstract class TraitDefinition implements IConfigurable, IAutoPersistedSerializable {
-    public static CompoundTag serializeDefinition(TraitDefinition definition) {
-        return definition.serializeNBT();
+public abstract class TraitDefinition implements IConfigurable, IPersistedSerializable, ILDLRegister<TraitDefinition, Supplier<TraitDefinition>> {
+    @LDLRegister(name = "empty", registry = "mbd2:trait_definition_type", manual = true)
+    private static final class EmptyTraitDefinition extends TraitDefinition {
+        @Override
+        public @Nullable ITrait createTrait(MBDMachine machine) {
+            return null;
+        }
+
+        @Override
+        public IGuiTexture getIcon() {
+            return IGuiTexture.EMPTY;
+        }
     }
 
-    @Nullable
-    public static TraitDefinition deserializeDefinition(CompoundTag tag) {
-        var type = tag.getString("_type");
-        var wrapper = MBDRegistries.TRAIT_DEFINITION_TYPES.get(type);
-        if (wrapper != null) {
-            var definition = wrapper.creator().get();
-            definition.deserializeNBT(tag);
-            return definition;
-        }
-        return null;
+    public static final TraitDefinition EMPTY = new EmptyTraitDefinition();
+
+    public final static Codec<TraitDefinition> CODEC = createCodec();
+
+    static Codec<TraitDefinition> createCodec() {
+        return MBDRegistries.TRAIT_DEFINITION_TYPES.optionalCodec().dispatch(ILDLRegister::getRegistryHolderOptional,
+                optional -> optional.map(holder ->
+                                MapCodec.assumeMapUnsafe(PersistedParser.createCodec(holder.value())))
+                        .orElseGet(() -> MapCodec.unit(EMPTY)));
+    }
+
+    public final static StreamCodec<RegistryFriendlyByteBuf, TraitDefinition> STREAM_CODEC = createStreamCodec();
+
+    static StreamCodec<RegistryFriendlyByteBuf, TraitDefinition> createStreamCodec() {
+        return MBDRegistries.TRAIT_DEFINITION_TYPES.streamCodec().dispatch(ILDLRegister::getRegistryHolder,
+                holder -> PersistedParser.createStreamCodec(holder.value())
+        );
     }
 
     @Configurable(name = "config.definition.trait.name")
     private String name = name();
 
     @Configurable(name = "config.definition.trait.priority", tips = "config.definition.trait.priority.tooltip")
-    @NumberRange(range = {Integer.MIN_VALUE, Integer.MAX_VALUE})
+    @ConfigNumber(range = {Integer.MIN_VALUE, Integer.MAX_VALUE})
     private int priority;
 
     /**
      * Create a capability trait for the machine.
      */
+    @Nullable
     public abstract ITrait createTrait(MBDMachine machine);
 
     /**
@@ -72,10 +93,11 @@ public abstract class TraitDefinition implements IConfigurable, IAutoPersistedSe
         return "config.definition.%s.%s.name".formatted(this.group(), this.name());
     }
 
-    /**
-     * Additional rendering after world rendering in trait panel for definition settings.
-     */
-    @OnlyIn(Dist.CLIENT)
-    public void renderAfterWorldInTraitPanel(MachineTraitPanel panel) {
-    }
+    // todo trait view
+//    /**
+//     * Additional rendering after world rendering in trait panel for definition settings.
+//     */
+//    @OnlyIn(Dist.CLIENT)
+//    public void renderAfterWorldInTraitPanel(MachineTraitPanel panel) {
+//    }
 }

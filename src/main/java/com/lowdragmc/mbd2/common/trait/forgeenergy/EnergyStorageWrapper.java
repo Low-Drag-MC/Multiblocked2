@@ -1,20 +1,12 @@
 package com.lowdragmc.mbd2.common.trait.forgeenergy;
 
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
-import net.neoforged.energy.IEnergyStorage;
+import net.neoforged.neoforge.energy.IEnergyStorage;
 
-public class EnergyStorageWrapper implements IEnergyStorage {
-    private final IEnergyStorage storage;
-    private final IO io;
-    private final int maxReceive;
-    private final int maxExtract;
-
-    public EnergyStorageWrapper(IEnergyStorage storage, IO io, int maxReceive, int maxExtract) {
-        this.storage = storage;
-        this.io = io;
-        this.maxReceive = maxReceive;
-        this.maxExtract = maxExtract;
-    }
+public record EnergyStorageWrapper(IEnergyStorage storage,
+                                   IO io,
+                                   int maxReceive,
+                                   int maxExtract) implements IEnergyStorage {
 
     @Override
     public int receiveEnergy(int maxReceive, boolean simulate) {

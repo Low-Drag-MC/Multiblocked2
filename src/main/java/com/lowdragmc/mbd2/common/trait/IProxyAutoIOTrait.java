@@ -4,6 +4,7 @@ import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigPartSettings;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Interface for proxy auto IO trait. The block can implement this to handle proxy auto IO from {@link ConfigPartSettings#proxyControllerCapabilities()}
@@ -14,6 +15,5 @@ public interface IProxyAutoIOTrait extends ITrait {
      * @param port port pos.
      * @param side the side of the port.
      */
-    void handleAutoIO(BlockPos port, Direction side, IO io);
-
+    void handleAutoIO(BlockPos port, @NotNull Direction side, IO io);
 }

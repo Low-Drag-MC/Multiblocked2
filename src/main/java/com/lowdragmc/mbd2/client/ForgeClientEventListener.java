@@ -19,7 +19,7 @@ import java.util.List;
  * @date 2022/8/27
  * @implNote ForgeCommonEventListener
  */
-@EventBusSubscriber(modid = MBD2.MOD_ID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
+@EventBusSubscriber(modid = MBD2.MOD_ID, value = Dist.CLIENT)
 @OnlyIn(Dist.CLIENT)
 public class ForgeClientEventListener {
     @SubscribeEvent
@@ -39,7 +39,7 @@ public class ForgeClientEventListener {
     }
 
     @SubscribeEvent
-    public static void onClientTick(ClientTickEvent event) {
+    public static void onClientTick(ClientTickEvent.Pre event) {
         MultiblockInWorldPreviewRenderer.onClientTick();
     }
 }

@@ -1,6 +1,6 @@
 package com.lowdragmc.mbd2.common.trait;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.core.Direction;

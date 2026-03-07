@@ -1,11 +1,11 @@
 package com.lowdragmc.mbd2.common.trait.fluid;
 
-import com.lowdragmc.lowdraglib.client.model.ModelFactory;
-import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
-import com.lowdragmc.lowdraglib.client.utils.RenderBufferUtils;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.side.fluid.FluidHelper;
-import com.lowdragmc.lowdraglib.side.fluid.FluidStack;
+import com.lowdragmc.lowdraglib2.client.model.ModelFactory;
+import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
+import com.lowdragmc.lowdraglib2.client.utils.RenderBufferUtils;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.utils.FluidHelper;
+import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
 import com.lowdragmc.mbd2.api.capability.MBDCapabilities;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
@@ -18,8 +18,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.Sheets;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
-import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.core.Direction;
+import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -33,7 +33,6 @@ public class FluidFancyRendererSettings extends FancyRendererSettings {
     @Configurable(name = "config.definition.trait.fancy_renderer.percent_height", tips = "config.definition.trait.fancy_renderer.percent_height.tooltip")
     private boolean percentHeight = false;
 
-
     public FluidFancyRendererSettings(FluidTankCapabilityTraitDefinition definition) {
         this.definition = definition;
     }
@@ -45,23 +44,22 @@ public class FluidFancyRendererSettings extends FancyRendererSettings {
     private class Renderer implements IRenderer {
         @Override
         @OnlyIn(Dist.CLIENT)
-        public boolean hasTESR(BlockEntity blockEntity) {
+        public boolean hasBlockEntityRenderer(BlockEntity blockEntity) {
             return true;
         }
 
         @Override
         @OnlyIn(Dist.CLIENT)
         public void render(BlockEntity blockEntity, float partialTicks, PoseStack poseStack, MultiBufferSource buffer, int combinedLight, int combinedOverlay) {
-            var optional = IMachine.ofMachine(blockEntity).filter(MBDMachine.class::isInstance).map(MBDMachine.class::cast);
-            if (optional.isPresent()) {
-                var machine = optional.get();
+            if (blockEntity instanceof IMachineBlockEntity machineBlockEntity
+                    && machineBlockEntity.getMetaMachine() instanceof MBDMachine machine) {
                 if (machine.getTraitByDefinition(definition) instanceof FluidTankCapabilityTrait trait) {
                     var fluid = trait.storages[0].getFluid();
                     if (fluid.isEmpty() || trait.storages[0].getCapacity() == 0) return;
 
                     var fluidTexture = FluidHelper.getStillTexture(fluid);
                     if (fluidTexture == null) {
-                        fluidTexture = Minecraft.getInstance().getTextureAtlas(TextureAtlas.LOCATION_BLOCKS).apply(MissingTextureAtlasSprite.getLocation());
+                        fluidTexture = Minecraft.getInstance().getTextureAtlas(InventoryMenu.BLOCK_ATLAS).apply(MissingTextureAtlasSprite.getLocation());
                     }
                     poseStack.pushPose();
 

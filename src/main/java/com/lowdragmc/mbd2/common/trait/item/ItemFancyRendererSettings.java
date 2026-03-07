@@ -1,9 +1,10 @@
 package com.lowdragmc.mbd2.common.trait.item;
 
-import com.lowdragmc.lowdraglib.client.model.ModelFactory;
-import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib2.client.model.ModelFactory;
+import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
 import com.lowdragmc.mbd2.api.capability.MBDCapabilities;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.FancyRendererSettings;
@@ -22,7 +23,6 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Quaternionf;
-import org.joml.Vector3f;
 
 public class ItemFancyRendererSettings extends FancyRendererSettings {
     private final ItemSlotCapabilityTraitDefinition definition;
@@ -30,7 +30,7 @@ public class ItemFancyRendererSettings extends FancyRendererSettings {
     @Getter
     @Setter
     @Configurable(name = "config.definition.trait.fancy_renderer.spin", tips = "config.definition.trait.fancy_renderer.spin.tooltip")
-    @NumberRange(range = {0, Float.MAX_VALUE})
+    @ConfigNumber(range = {0, Float.MAX_VALUE})
     private float spin = 0;
     @Getter
     @Setter
@@ -51,15 +51,15 @@ public class ItemFancyRendererSettings extends FancyRendererSettings {
 
         @Override
         @OnlyIn(Dist.CLIENT)
-        public boolean hasTESR(BlockEntity blockEntity) {
+        public boolean hasBlockEntityRenderer(BlockEntity blockEntity) {
             return true;
         }
 
         @Override
         @OnlyIn(Dist.CLIENT)
         public void render(BlockEntity blockEntity, float partialTicks, PoseStack poseStack, MultiBufferSource bufferSource, int combinedLight, int combinedOverlay) {
-            var optional = blockEntity.getCapability(MBDCapabilities.CAPABILITY_MACHINE).resolve();
-            if (optional.isPresent() && optional.get() instanceof MBDMachine machine) {
+            if (blockEntity instanceof IMachineBlockEntity machineBlockEntity
+                    && machineBlockEntity.getMetaMachine() instanceof MBDMachine machine) {
                 if (machine.getTraitByDefinition(definition) instanceof ItemSlotCapabilityTrait trait) {
                     var itemRenderer = Minecraft.getInstance().getItemRenderer();
                     float tick = blockEntity.getLevel().getGameTime() + partialTicks;

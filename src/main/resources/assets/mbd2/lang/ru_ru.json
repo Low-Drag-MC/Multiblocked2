@@ -389,7 +389,7 @@
     "config.definition.trait.filter.chemicals": "Химические вещества",
     "config.definition.trait.filter.chemical_tags": "Химические теги",
 
-    "ldlib.gui.editor.register.editor.machine.trait_ui_view": "Просмотр пользовательского интерфейса признака",
+    "ldlib2.gui.editor.register.editor.machine.trait_ui_view": "Просмотр пользовательского интерфейса признака",
     "config.definition.trait.ui.generate": "добавить",
     "config.definition.trait.ui.generate.tooltip": "§eсгенерировать шаблон для пользовательского интерфейса признака.§r",
 
@@ -605,12 +605,12 @@
     "recipe.priority.tooltip": "приоритет рецепта. Если несколько рецептов соответствуют требованиям, Самый низкий будет обработан первым.",
     "recipe_type.fuel": "%s fuel",
 
-    "ldlib.gui.editor.register.editor.machine.sm": "Проект отдельной машины",
-    "ldlib.gui.editor.register.editor.machine.mb": "Проект нескольких блоков",
-    "ldlib.gui.editor.register.editor.machine.km": "Создать проект кинетической машины",
-    "ldlib.gui.editor.register.editor.machine.rt": "Проект типа рецепта",
-    "ldlib.gui.editor.register.editor.machine.recipe_xei_preview": "Предварительный просмотр рецепта XEI",
-    "ldlib.gui.editor.register.editor.machine.recipe_type_ui_view": "Просмотр типа рецепта UI",
+    "ldlib2.gui.editor.register.editor.machine.sm": "Проект отдельной машины",
+    "ldlib2.gui.editor.register.editor.machine.mb": "Проект нескольких блоков",
+    "ldlib2.gui.editor.register.editor.machine.km": "Создать проект кинетической машины",
+    "ldlib2.gui.editor.register.editor.machine.rt": "Проект типа рецепта",
+    "ldlib2.gui.editor.register.editor.machine.recipe_xei_preview": "Предварительный просмотр рецепта XEI",
+    "ldlib2.gui.editor.register.editor.machine.recipe_type_ui_view": "Просмотр типа рецепта UI",
 
     "mbd2.gui.editor.group.predicate": "утверждение",
     "config.block_pattern.predicate.preview": "предварительный просмотр",
@@ -691,7 +691,7 @@
     "recipe.capability.entity.ingredient.candidates": "Кандидаты сущностей",
     "recipe.capability.entity.ingredient.values.entity": "тип сущности",
     "recipe.capability.entity.ingredient.values.tag": "тег сущности",
-    "ldlib.gui.editor.register.widget.container.entity_preview": "Слот предварительного просмотра сущности",
+    "ldlib2.gui.editor.register.widget.container.entity_preview": "Слот предварительного просмотра сущности",
 
     "recipe.capability.forge_energy.name": "Кузница энергетической способности",
     "recipe.capability.forge_energy.energy": "Энергия",
@@ -734,20 +734,20 @@
     "recipe.capability.mek_heat.name": "Возможность нагрева Мека",
     "recipe.capability.mek_heat.heat": "Нагрев",
 
-    "ldlib.gui.editor.register.widget.container.chemical_gas_slot": "Слот химического газа",
-    "ldlib.gui.editor.register.widget.container.chemical_infuse_slot": "Слот химической инфузии",
-    "ldlib.gui.editor.register.widget.container.chemical_pigment_slot": "Слот химического пигмента",
-    "ldlib.gui.editor.register.widget.container.chemical_slurry_slot": "Слот химической суспензии",
+    "ldlib2.gui.editor.register.widget.container.chemical_gas_slot": "Слот химического газа",
+    "ldlib2.gui.editor.register.widget.container.chemical_infuse_slot": "Слот химической инфузии",
+    "ldlib2.gui.editor.register.widget.container.chemical_pigment_slot": "Слот химического пигмента",
+    "ldlib2.gui.editor.register.widget.container.chemical_slurry_slot": "Слот химической суспензии",
 
     "recipe.capability.create_stress.name": "Создать стресс",
     "recipe.capability.create_stress.stress": "Стресс",
     "recipe.capability.create_stress.stress.unit": "%d su",
-    "ldlib.gui.editor.register.widget.container.create_stress": "Создать слот стресса",
+    "ldlib2.gui.editor.register.widget.container.create_stress": "Создать слот стресса",
 
     "recipe.capability.create_rpm.name": "Создать RPM",
     "recipe.capability.create_rpm.rpm": "RPM",
     "recipe.capability.create_rpm.rpm.unit": "%d об/мин",
-    "ldlib.gui.editor.register.widget.container.create_rpm": "Создать слот RPM",
+    "ldlib2.gui.editor.register.widget.container.create_rpm": "Создать слот RPM",
 
     "editor.machine.machine_tab": "Машина",
     "editor.machine.multiblock.area_panel.sceneRadius": "Радиус сцены",
@@ -782,7 +782,7 @@
     "editor.machine.multiblock.multiblock_shape_info.remove": "удалить информацию о форме",
     "mbd2.jei.multiblock_info": "Информация о мультиблоке",
 
-    "ldlib.renderer.geckolib": "Модель Geckolib",
+    "ldlib2.renderer.geckolib": "Модель Geckolib",
     "geckolib_renderer.scale_width": "Ширина шкалы",
     "geckolib_renderer.scale_height": "Высота шкалы",
     "geckolib_renderer.use_glowing_layer": "Использовать светящийся слой",

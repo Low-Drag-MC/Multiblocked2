@@ -297,7 +297,7 @@
     "config.definition.trait.filter.chemicals": "化学物質",
     "config.definition.trait.filter.chemical_tags": "化学物質タグ",
 
-    "ldlib.gui.editor.register.editor.machine.trait_ui_view": "特性UIビュー",
+    "ldlib2.gui.editor.register.editor.machine.trait_ui_view": "特性UIビュー",
     "config.definition.trait.ui.generate": "追加",
     "config.definition.trait.ui.generate.tooltip": "§e特性UIのテンプレートを生成します。§r",
 
@@ -452,12 +452,12 @@
     "recipe.priority": "優先度",
     "recipe.priority.tooltip": "レシピの優先度。複数のレシピが条件を満たす場合、優先度が最も低いものが最初に処理されます。",
 
-    "ldlib.gui.editor.register.editor.machine.sm": "単一マシンプロジェクト",
-    "ldlib.gui.editor.register.editor.machine.mb": "マルチブロックプロジェクト",
-    "ldlib.gui.editor.register.editor.machine.km": "キネティックマシンを作成するプロジェクト",
-    "ldlib.gui.editor.register.editor.machine.rt": "レシピタイププロジェクト",
-    "ldlib.gui.editor.register.editor.machine.recipe_xei_preview": "レシピXEIプレビュー",
-    "ldlib.gui.editor.register.editor.machine.recipe_type_ui_view": "レシピタイプUIビュー",
+    "ldlib2.gui.editor.register.editor.machine.sm": "単一マシンプロジェクト",
+    "ldlib2.gui.editor.register.editor.machine.mb": "マルチブロックプロジェクト",
+    "ldlib2.gui.editor.register.editor.machine.km": "キネティックマシンを作成するプロジェクト",
+    "ldlib2.gui.editor.register.editor.machine.rt": "レシピタイププロジェクト",
+    "ldlib2.gui.editor.register.editor.machine.recipe_xei_preview": "レシピXEIプレビュー",
+    "ldlib2.gui.editor.register.editor.machine.recipe_type_ui_view": "レシピタイプUIビュー",
 
     "mbd2.gui.editor.group.predicate": "predicate",
     "config.block_pattern.predicate.preview": "プレビュー",
@@ -530,7 +530,7 @@
     "recipe.capability.entity.ingredient.candidates": "エンティティ候補",
     "recipe.capability.entity.ingredient.values.entity": "エンティティタイプ",
     "recipe.capability.entity.ingredient.values.tag": "エンティティタグ",
-    "ldlib.gui.editor.register.widget.container.entity_preview": "エンティティプレビュー用スロット",
+    "ldlib2.gui.editor.register.widget.container.entity_preview": "エンティティプレビュー用スロット",
 
 
     "recipe.capability.forge_energy.name": "Forgeエネルギー能力",
@@ -556,15 +556,15 @@
 
     "recipe.capability.mek_heat.name": "メック熱能力",
     "recipe.capability.mek_heat.heat": "熱",
-    "ldlib.gui.editor.register.widget.container.chemical_gas_slot": "化学ガススロット",
-    "ldlib.gui.editor.register.widget.container.chemical_infuse_slot": "化学インフュージョンスロット",
-    "ldlib.gui.editor.register.widget.container.chemical_pigment_slot": "化学顔料スロット",
-    "ldlib.gui.editor.register.widget.container.chemical_slurry_slot": "化学スラリースロット",
+    "ldlib2.gui.editor.register.widget.container.chemical_gas_slot": "化学ガススロット",
+    "ldlib2.gui.editor.register.widget.container.chemical_infuse_slot": "化学インフュージョンスロット",
+    "ldlib2.gui.editor.register.widget.container.chemical_pigment_slot": "化学顔料スロット",
+    "ldlib2.gui.editor.register.widget.container.chemical_slurry_slot": "化学スラリースロット",
 
     "recipe.capability.create_stress.name": "生成ストレス",
     "recipe.capability.create_stress.stress": "ストレス",
     "recipe.capability.create_stress.stress.unit": "%d su",
-    "ldlib.gui.editor.register.widget.container.create_stress": "生成ストレススロット",
+    "ldlib2.gui.editor.register.widget.container.create_stress": "生成ストレススロット",
 
     "editor.machine.machine_tab": "マシン",
     "editor.machine.multiblock.area_panel.sceneRadius": "シーン半径",
@@ -600,7 +600,7 @@
     "editor.machine.multiblock.multiblock_shape_info.remove": "形状情報を削除",
     "mbd2.jei.multiblock_info": "マルチブロック情報",
 
-    "ldlib.renderer.geckolib": "Geckolibモデル",
+    "ldlib2.renderer.geckolib": "Geckolibモデル",
     "geckolib_renderer.scale_width": "スケール幅",
     "geckolib_renderer.scale_height": "スケール高さ",
     "geckolib_renderer.use_translucent": "透過を使用",

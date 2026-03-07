@@ -1,10 +1,11 @@
 package com.lowdragmc.mbd2.api.blockentity;
 
-import com.lowdragmc.lowdraglib.syncdata.blockentity.IAsyncAutoSyncBlockEntity;
-import com.lowdragmc.lowdraglib.syncdata.blockentity.IAutoPersistBlockEntity;
-import com.lowdragmc.lowdraglib.syncdata.blockentity.IRPCBlockEntity;
+import com.lowdragmc.lowdraglib2.syncdata.holder.IPersistManagedHolder;
+import com.lowdragmc.lowdraglib2.syncdata.holder.blockentity.IRPCBlockEntity;
+import com.lowdragmc.lowdraglib2.syncdata.holder.blockentity.ISyncBlockEntity;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.Nameable;
@@ -12,6 +13,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nonnull;
 import java.util.Objects;
 
 /**
@@ -19,7 +21,7 @@ import java.util.Objects;
  * <br>
  * Its using async system to sync data.
  */
-public interface IMachineBlockEntity extends IAsyncAutoSyncBlockEntity, IRPCBlockEntity, IAutoPersistBlockEntity, Nameable {
+public interface IMachineBlockEntity extends ISyncBlockEntity, IRPCBlockEntity, IPersistManagedHolder, Nameable {
 
     default BlockEntity self() {
         return (BlockEntity) this;
@@ -60,18 +62,27 @@ public interface IMachineBlockEntity extends IAsyncAutoSyncBlockEntity, IRPCBloc
     long getOffset();
 
     @Override
-    default void saveCustomPersistedData(CompoundTag tag, boolean forDrop) {
-        IAutoPersistBlockEntity.super.saveCustomPersistedData(tag, forDrop);
-        getMetaMachine().saveCustomPersistedData(tag, forDrop);
+    default boolean isAsyncValid() {
+        return !getSelf().isRemoved();
     }
 
     @Override
-    default void loadCustomPersistedData(CompoundTag tag) {
-        IAutoPersistBlockEntity.super.loadCustomPersistedData(tag);
-        getMetaMachine().loadCustomPersistedData(tag);
+    default boolean useAsyncThread() {
+        return true;
     }
 
     @Override
+    default void saveCustomPersistedData(HolderLookup.Provider provider, CompoundTag tag, boolean forDrop) {
+        getMetaMachine().saveCustomPersistedData(provider, tag, forDrop);
+    }
+
+    @Override
+    default void loadCustomPersistedData(HolderLookup.Provider provider, CompoundTag tag) {
+        getMetaMachine().loadCustomPersistedData(provider, tag);
+    }
+
+    @Override
+    @Nonnull
     default Component getName() {
         return Objects.requireNonNullElse(getCustomName(), self().getBlockState().getBlock().getName());
     }

@@ -1,23 +1,20 @@
 package com.lowdragmc.mbd2.common.machine.definition;
 
 import com.google.common.collect.Queues;
-import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.Platform;
-import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
-import com.lowdragmc.lowdraglib.client.renderer.impl.UIResourceRenderer;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurableWidget;
-import com.lowdragmc.lowdraglib.gui.editor.data.resource.IRendererResource;
-import com.lowdragmc.lowdraglib.gui.editor.data.resource.TexturesResource;
-import com.lowdragmc.lowdraglib.gui.editor.ui.Editor;
-import com.lowdragmc.lowdraglib.gui.widget.*;
-import com.lowdragmc.lowdraglib.jei.JEIPlugin;
-import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib2.Platform;
+import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
+import com.lowdragmc.lowdraglib2.client.renderer.impl.UIResourceRenderer;
+import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.gui.ui.UI;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.UITemplate;
+import com.lowdragmc.lowdraglib2.registry.ILDLRegister;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
+import com.lowdragmc.mbd2.api.capability.MBDCapabilities;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.client.renderer.MBDBESRenderer;
 import com.lowdragmc.mbd2.client.renderer.MBDBlockRenderer;
@@ -28,11 +25,10 @@ import com.lowdragmc.mbd2.common.item.MBDMachineItem;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.machine.MBDPartMachine;
 import com.lowdragmc.mbd2.common.machine.definition.config.*;
+import com.lowdragmc.mbd2.common.trait.ICapabilityProviderTrait;
 import com.lowdragmc.mbd2.common.trait.IUIProviderTrait;
-import com.lowdragmc.mbd2.integration.emi.MBDRecipeTypeEmiCategory;
-import com.lowdragmc.mbd2.integration.jei.MBDRecipeTypeCategory;
-import com.lowdragmc.mbd2.integration.rei.MBDRecipeTypeDisplayCategory;
-import com.lowdragmc.mbd2.utils.WidgetUtils;
+
+import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 import dev.emi.emi.api.EmiApi;
 import lombok.Getter;
 import lombok.Setter;
@@ -58,10 +54,12 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.registries.RegisterEvent;
 import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
 import java.util.Deque;
@@ -76,8 +74,8 @@ import java.util.function.Supplier;
  */
 @Getter
 @Accessors(fluent = true)
-@LDLRegister(name = "single_machine", group = "machine_definition")
-public class MBDMachineDefinition implements IConfigurable, IPersistedSerializable {
+@LDLRegister(name = "single_machine", registry = "mbd2:machine_definition_type")
+public class MBDMachineDefinition implements IConfigurable, IPersistedSerializable, ILDLRegister<MBDMachineDefinition, Supplier<MBDMachineDefinition>> {
     @FunctionalInterface
     public interface ConfigMachineSettingsFactory extends Supplier<ConfigMachineSettings> {}
 
@@ -122,8 +120,8 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
             "config.definition.part_settings.tooltip.2",
     })
     protected ConfigPartSettings partSettings;
-    @Persisted(subPersisted = true)
-    protected final ConfigMachineEvents machineEvents;
+//    @Persisted(subPersisted = true)
+//    protected final ConfigMachineEvents machineEvents;
 
     // runtime
     protected ConfigMachineSettingsFactory machineSettingsFactory;
@@ -137,7 +135,7 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
     private BlockEntityType<?> blockEntityType;
     private IRenderer blockRenderer;
     private IRenderer itemRenderer;
-    private Function<MBDMachine, WidgetGroup> uiCreator;
+    private UITemplate uiTemplate;
 
     protected MBDMachineDefinition(ResourceLocation id,
                                    @Nullable MachineState rootState,
@@ -150,30 +148,35 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
         this.stateMachine = new StateMachine<>(rootState == null ? createDefaultRootState() : rootState);
         this.blockProperties = blockProperties == null ? ConfigBlockProperties.builder().build() : blockProperties;
         this.itemProperties = itemProperties == null ? ConfigItemProperties.builder().build() : itemProperties;
+        this.itemProperties.definition(this);
         this.machineSettingsFactory = machineSettingsFactory == null ? () -> ConfigMachineSettings.builder().build() : machineSettingsFactory;
         this.recipeLogicSettings = recipeLogicSettings == null ? ConfigRecipeLogicSettings.builder().build() : recipeLogicSettings;
         this.partSettingsFactory = allowPartSettings() ? (partSettingsFactory == null ? () -> ConfigPartSettings.builder().build() : partSettingsFactory) : null;
-        this.machineEvents = createMachineEvents();
+//        this.machineEvents = createMachineEvents();
     }
 
     public boolean allowPartSettings() {
         return true;
     }
 
-    public ConfigMachineEvents createMachineEvents() {
-        return new ConfigMachineEvents().registerEventGroup("MachineEvent");
-    }
+//    public ConfigMachineEvents createMachineEvents() {
+//        return new ConfigMachineEvents().registerEventGroup("MachineEvent");
+//    }
 
     public MachineState createDefaultRootState() {
-        return StateMachine.createDefault(MachineState::builder);
+        return StateMachine.createDefault(MachineState::baseBuilder);
     }
 
     /**
      * Load factory settings. Called after all registry finished.
      */
     public void loadFactory() {
-        machineSettings = machineSettingsFactory.get();
-        if (partSettingsFactory != null) partSettings = partSettingsFactory.get();
+        if (machineSettings == null) {
+            machineSettings = machineSettingsFactory.get();
+        }
+        if (partSettings == null && allowPartSettings() && partSettingsFactory != null) {
+            partSettings = partSettingsFactory.get();
+        }
     }
 
     public static Builder builder() {
@@ -183,7 +186,7 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
     public static MBDMachineDefinition createDefault() {
         return new MBDMachineDefinition(
                 MBD2.id("dummy"),
-                StateMachine.createDefault(MachineState::builder),
+                StateMachine.createDefault(MachineState::baseBuilder),
                 ConfigBlockProperties.builder().build(),
                 ConfigItemProperties.builder().build(),
                 () -> ConfigMachineSettings.builder().build(),
@@ -192,20 +195,16 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
     }
 
     @Override
-    public CompoundTag serializeNBT(HolderLookup.Provider provider) {
+    public CompoundTag serializeNBT(@Nonnull HolderLookup.Provider provider) {
         var tag = IPersistedSerializable.super.serializeNBT(provider);
         tag.put("stateMachine", stateMachine.serializeNBT(provider));
         return tag;
     }
 
     @Override
-    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
+    public void deserializeNBT(@Nonnull HolderLookup.Provider provider, @Nonnull CompoundTag tag) {
         IPersistedSerializable.super.deserializeNBT(provider, tag);
         stateMachine.deserializeNBT(provider, tag.getCompound("stateMachine"));
-        if (!tag.contains("recipeLogicSettings")) {
-            // compatible with old project
-            recipeLogicSettings.deserializeNBT(provider, tag.getCompound("machineSettings"));
-        }
     }
 
     /**
@@ -217,42 +216,43 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
      *                 <br/> e.g. items, blocks and other registries are ready.
      */
     public MBDMachineDefinition loadProductiveTag(@Nullable File file, CompoundTag projectTag, Deque<Runnable> postTask) {
-        this.projectFile = file;
-        var rendererResource = new IRendererResource();
-        rendererResource.deserializeNBT(projectTag.getCompound("resources").getCompound(IRendererResource.RESOURCE_NAME), Platform.getFrozenRegistry());
-        UIResourceRenderer.setCurrentResource(rendererResource, false);
-        var definitionTag = projectTag.getCompound("definition");
-        id = ResourceLocation.parse(definitionTag.getString("id"));
-        blockProperties.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("blockProperties"));
-        itemProperties.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("itemProperties"));
-        stateMachine.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("stateMachine"));
-        UIResourceRenderer.clearCurrentResource();
-        postTask.add(() -> {
-            machineSettings.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("machineSettings"));
-            if (definitionTag.contains("recipeLogicSettings")) {
-                recipeLogicSettings.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("recipeLogicSettings"));
-            } else {
-                // compatible with old project
-                var tag = definitionTag.getCompound("machineSettings");
-                recipeLogicSettings.deserializeNBT(Platform.getFrozenRegistry(), tag);
-                recipeLogicSettings.setEnable(tag.getBoolean("hasRecipeLogic"));
-            }
-            if (partSettings != null) {
-                partSettings.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("partSettings"));
-            }
-            machineEvents.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("machineEvents"));
-            if (machineSettings().hasUI()) {
-                var texturesResource = new TexturesResource();
-                texturesResource.deserializeNBT(projectTag.getCompound("resources").getCompound(TexturesResource.RESOURCE_NAME), Platform.getFrozenRegistry());
-                var uiTag = projectTag.getCompound("ui");
-                uiCreator = machine -> {
-                    var machineUI = new WidgetGroup();
-                    IConfigurableWidget.deserializeNBT(machineUI, uiTag, texturesResource, false, Platform.getFrozenRegistry());
-                    bindMachineUI(machine, machineUI);
-                    return machineUI;
-                };
-            }
-        });
+        // todo load project
+//        this.projectFile = file;
+//        var rendererResource = new IRendererResource();
+//        rendererResource.deserializeNBT(projectTag.getCompound("resources").getCompound(IRendererResource.RESOURCE_NAME), Platform.getFrozenRegistry());
+//        UIResourceRenderer.setCurrentResource(rendererResource, false);
+//        var definitionTag = projectTag.getCompound("definition");
+//        id = ResourceLocation.parse(definitionTag.getString("id"));
+//        blockProperties.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("blockProperties"));
+//        itemProperties.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("itemProperties"));
+//        stateMachine.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("stateMachine"));
+//        UIResourceRenderer.clearCurrentResource();
+//        postTask.add(() -> {
+//            machineSettings.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("machineSettings"));
+//            if (definitionTag.contains("recipeLogicSettings")) {
+//                recipeLogicSettings.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("recipeLogicSettings"));
+//            } else {
+//                // compatible with old project
+//                var tag = definitionTag.getCompound("machineSettings");
+//                recipeLogicSettings.deserializeNBT(Platform.getFrozenRegistry(), tag);
+//                recipeLogicSettings.setEnable(tag.getBoolean("hasRecipeLogic"));
+//            }
+//            if (partSettings != null) {
+//                partSettings.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("partSettings"));
+//            }
+//            machineEvents.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("machineEvents"));
+//            if (machineSettings().hasUI()) {
+//                var texturesResource = new TexturesResource();
+//                texturesResource.deserializeNBT(projectTag.getCompound("resources").getCompound(TexturesResource.RESOURCE_NAME), Platform.getFrozenRegistry());
+//                var uiTag = projectTag.getCompound("ui");
+//                uiCreator = machine -> {
+//                    var machineUI = new WidgetGroup();
+//                    IConfigurableWidget.deserializeNBT(machineUI, uiTag, texturesResource, false, Platform.getFrozenRegistry());
+//                    bindMachineUI(machine, machineUI);
+//                    return machineUI;
+//                };
+//            }
+//        });
         return this;
     }
 
@@ -279,62 +279,63 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
         }
     }
 
-    protected void bindMachineUI(MBDMachine machine, WidgetGroup ui) {
-        WidgetUtils.widgetByIdForEach(ui, "^ui:machine_name$", TextTextureWidget.class,
-                nameWidget -> nameWidget.setText(() -> {
-                    if (machine.getCustomName() == null) return machine.getDefinition().block().getName();
-                    return machine.getCustomName();
-                }));
-        WidgetUtils.widgetByIdForEach(ui, "^ui:progress_bar$", ProgressWidget.class,
-                progressWidget -> progressWidget.setProgressSupplier(() -> machine.getRecipeLogic().getProgressPercent()));
-        WidgetUtils.widgetByIdForEach(ui, "^ui:fuel_bar$", ProgressWidget.class,
-                progressWidget -> progressWidget.setProgressSupplier(() -> machine.getRecipeLogic().getFuelProgressPercent()));
-        WidgetUtils.widgetByIdForEach(ui, "^ui:xei_lookup$", ButtonWidget.class,
-                buttonWidget -> buttonWidget.setOnPressCallback(cd -> {
-                    if (cd.isRemote && (LDLib.isReiLoaded() || LDLib.isJeiLoaded() || LDLib.isEmiLoaded()) && Editor.INSTANCE == null) {
-                        var recipeType = machine.getRecipeType();
-                        if (recipeType != MBDRecipeType.DUMMY && recipeType.isXEIVisible()) {
-                            if (LDLib.isReiLoaded()) {
-                                ViewSearchBuilder.builder().addCategory(MBDRecipeTypeDisplayCategory.CATEGORIES.apply(recipeType)).open();
-                            } else if (LDLib.isJeiLoaded()) {
-                                JEIPlugin.jeiRuntime.getRecipesGui().showTypes(List.of(MBDRecipeTypeCategory.TYPES.apply(recipeType)));
-                            } else if (LDLib.isEmiLoaded()) {
-                                EmiApi.displayRecipeCategory(MBDRecipeTypeEmiCategory.CATEGORIES.apply(recipeType));
-                            }
-                        }
-                    }
-                }));
-        for (var traitDefinition : machineSettings.traitDefinitions()) {
-            if (traitDefinition instanceof IUIProviderTrait provider) {
-                var trait = machine.getTraitByDefinition(traitDefinition);
-                if (trait != null)
-                    provider.initTraitUI(trait, ui);
-            }
-        }
-        // proxy controller ui
-        if (partSettings != null && partSettings.isEnable() && machine instanceof MBDPartMachine partMachine) {
-            var prefix = "controller:";
-            var midTag = "@ui:";
-            for (Widget widget : ui.getWidgetsById("controller:.*?@ui:")) {
-                var id = widget.getId();
-                if (id.startsWith(prefix)) {
-                    int atIndex = id.indexOf(midTag);
-                    if (atIndex != -1) {
-                        var traitName = id.substring(prefix.length(), atIndex);
-                        var uiName = "ui:" + id.substring(atIndex + midTag.length());
-                        for (var controller : partMachine.getControllers()) {
-                            if (controller instanceof MBDMachine mbdMachine) {
-                                var trait = mbdMachine.getTraitByName(traitName);
-                                if (trait != null && trait.getDefinition() instanceof IUIProviderTrait provider && uiName.startsWith(provider.uiPrefixName())) {
-                                    widget.setId(uiName);
-                                    provider.initTraitUI(trait, ui);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    protected void bindMachineUI(MBDMachine machine, UIElement ui) {
+        // todo ui
+//        WidgetUtils.widgetByIdForEach(ui, "^ui:machine_name$", TextTextureWidget.class,
+//                nameWidget -> nameWidget.setText(() -> {
+//                    if (machine.getCustomName() == null) return machine.getDefinition().block().getName();
+//                    return machine.getCustomName();
+//                }));
+//        WidgetUtils.widgetByIdForEach(ui, "^ui:progress_bar$", ProgressWidget.class,
+//                progressWidget -> progressWidget.setProgressSupplier(() -> machine.getRecipeLogic().getProgressPercent()));
+//        WidgetUtils.widgetByIdForEach(ui, "^ui:fuel_bar$", ProgressWidget.class,
+//                progressWidget -> progressWidget.setProgressSupplier(() -> machine.getRecipeLogic().getFuelProgressPercent()));
+//        WidgetUtils.widgetByIdForEach(ui, "^ui:xei_lookup$", ButtonWidget.class,
+//                buttonWidget -> buttonWidget.setOnPressCallback(cd -> {
+//                    if (cd.isRemote && (LDLib2.isReiLoaded() || LDLib2.isJeiLoaded() || LDLib2.isEmiLoaded()) && Editor.INSTANCE == null) {
+//                        var recipeType = machine.getRecipeType();
+//                        if (recipeType != MBDRecipeType.DUMMY && recipeType.isXEIVisible()) {
+//                            if (LDLib2.isReiLoaded()) {
+//                                ViewSearchBuilder.builder().addCategory(MBDRecipeTypeDisplayCategory.CATEGORIES.apply(recipeType)).open();
+//                            } else if (LDLib2.isJeiLoaded()) {
+//                                JEIPlugin.jeiRuntime.getRecipesGui().showTypes(List.of(MBDRecipeTypeCategory.TYPES.apply(recipeType)));
+//                            } else if (LDLib2.isEmiLoaded()) {
+//                                EmiApi.displayRecipeCategory(MBDRecipeTypeEmiCategory.CATEGORIES.apply(recipeType));
+//                            }
+//                        }
+//                    }
+//                }));
+//        for (var traitDefinition : machineSettings.traitDefinitions()) {
+//            if (traitDefinition instanceof IUIProviderTrait provider) {
+//                var trait = machine.getTraitByDefinition(traitDefinition);
+//                if (trait != null)
+//                    provider.initTraitUI(trait, ui);
+//            }
+//        }
+//        // proxy controller ui
+//        if (partSettings != null && partSettings.isEnable() && machine instanceof MBDPartMachine partMachine) {
+//            var prefix = "controller:";
+//            var midTag = "@ui:";
+//            for (Widget widget : ui.getWidgetsById("controller:.*?@ui:")) {
+//                var id = widget.getId();
+//                if (id.startsWith(prefix)) {
+//                    int atIndex = id.indexOf(midTag);
+//                    if (atIndex != -1) {
+//                        var traitName = id.substring(prefix.length(), atIndex);
+//                        var uiName = "ui:" + id.substring(atIndex + midTag.length());
+//                        for (var controller : partMachine.getControllers()) {
+//                            if (controller instanceof MBDMachine mbdMachine) {
+//                                var trait = mbdMachine.getTraitByName(traitName);
+//                                if (trait != null && trait.getDefinition() instanceof IUIProviderTrait provider && uiName.startsWith(provider.uiPrefixName())) {
+//                                    widget.setId(uiName);
+//                                    provider.initTraitUI(trait, ui);
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
     }
 
     public void onRegistry(RegisterEvent event) {
@@ -362,6 +363,26 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
 
     public MBDMachine createMachine(IMachineBlockEntity blockEntity) {
         return partSettings != null ? new MBDPartMachine(blockEntity, this) : new MBDMachine(blockEntity, this);
+    }
+
+    public void registerCapabilities(RegisterCapabilitiesEvent event) {
+        // TODO capabilities
+        event.registerBlockEntity(
+                MBDCapabilities.CAPABILITY_MACHINE,
+                blockEntityType,
+                (be, context) -> {
+                    if (be instanceof IMachineBlockEntity blockEntity) {
+                        return blockEntity.getMetaMachine();
+                    }
+                    return null;
+                }
+        );
+        // todo register all capabilities
+        for (var definition : machineSettings.traitDefinitions()) {
+            if (definition instanceof ICapabilityProviderTrait capabilityProvider) {
+                capabilityProvider.registerCapability(this, event);
+            }
+        }
     }
 
     @OnlyIn(Dist.CLIENT)

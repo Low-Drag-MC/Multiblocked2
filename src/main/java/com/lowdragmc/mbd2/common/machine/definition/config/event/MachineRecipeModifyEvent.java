@@ -1,22 +1,13 @@
 package com.lowdragmc.mbd2.common.machine.definition.config.event;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.gui.graphprocessor.data.parameter.ExposedParameter;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
-import com.lowdragmc.mbd2.common.graphprocessor.GraphParameterGet;
-import com.lowdragmc.mbd2.common.graphprocessor.GraphParameterSet;
 import lombok.Getter;
 import lombok.Setter;
 import net.neoforged.bus.api.ICancellableEvent;
 
-import java.util.Map;
-import java.util.Optional;
-
 @Getter
 public class MachineRecipeModifyEvent extends MachineEvent {
-    @GraphParameterGet(identity = "recipe.in")
-    @GraphParameterSet(identity = "recipe.out")
     @Setter
     public MBDRecipe recipe;
 
@@ -25,30 +16,15 @@ public class MachineRecipeModifyEvent extends MachineEvent {
         this.recipe = recipe;
     }
 
-    @Override
-    public void bindParameters(Map<String, ExposedParameter> exposedParameters) {
-        super.bindParameters(exposedParameters);
-        Optional.ofNullable(exposedParameters.get("recipe.in")).ifPresent(p -> p.setValue(recipe));
-    }
 
-    @Override
-    public void gatherParameters(Map<String, ExposedParameter> exposedParameters) {
-        super.gatherParameters(exposedParameters);
-        this.recipe = Optional.ofNullable(exposedParameters.get("recipe.out"))
-                .map(ExposedParameter::getValue)
-                .filter(MBDRecipe.class::isInstance)
-                .map(MBDRecipe.class::cast)
-                .orElse(null);
-    }
-
-    @LDLRegister(name = "MachineRecipeModifyEvent.Before", group = "MachineEvent")
+//    @LDLRegister(name = "MachineRecipeModifyEvent.Before", group = "MachineEvent")
     public static class Before extends MachineRecipeModifyEvent implements ICancellableEvent {
         public Before(MBDMachine machine, MBDRecipe recipe) {
             super(machine, recipe);
         }
     }
 
-    @LDLRegister(name = "MachineRecipeModifyEvent.After", group = "MachineEvent")
+//    @LDLRegister(name = "MachineRecipeModifyEvent.After", group = "MachineEvent")
     public static class After extends MachineRecipeModifyEvent {
         public After(MBDMachine machine, MBDRecipe recipe) {
             super(machine, recipe);

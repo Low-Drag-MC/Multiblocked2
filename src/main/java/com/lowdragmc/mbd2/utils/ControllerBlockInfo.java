@@ -1,6 +1,6 @@
 package com.lowdragmc.mbd2.utils;
 
-import com.lowdragmc.lowdraglib.utils.BlockInfo;
+import com.lowdragmc.lowdraglib2.utils.data.BlockInfo;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.core.Direction;

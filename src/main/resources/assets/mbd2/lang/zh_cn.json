@@ -412,7 +412,7 @@
     "config.definition.trait.filter.chemicals": "化学品",
     "config.definition.trait.filter.chemical_tags": "化学品标签",
 
-    "ldlib.gui.editor.register.editor.machine.trait_ui_view": "特性 UI 视图",
+    "ldlib2.gui.editor.register.editor.machine.trait_ui_view": "特性 UI 视图",
     "config.definition.trait.ui.generate": "添加",
     "config.definition.trait.ui.generate.tooltip": "§e生成特性 UI 的模板。§r",
 
@@ -635,12 +635,12 @@
     "recipe.xei_hidden.tooltip": "是否在配方查看器中显示该配方。",
     "recipe_type.fuel": "%s 燃料",
 
-    "ldlib.gui.editor.register.editor.machine.sm": "单方块机器项目",
-    "ldlib.gui.editor.register.editor.machine.mb": "多方块机器项目",
-    "ldlib.gui.editor.register.editor.machine.km": "机械动力机器项目",
-    "ldlib.gui.editor.register.editor.machine.rt": "配方类型项目",
-    "ldlib.gui.editor.register.editor.machine.recipe_xei_preview": "配方 XEI 预览",
-    "ldlib.gui.editor.register.editor.machine.recipe_type_ui_view": "配方类型 UI 视图",
+    "ldlib2.gui.editor.register.editor.machine.sm": "单方块机器项目",
+    "ldlib2.gui.editor.register.editor.machine.mb": "多方块机器项目",
+    "ldlib2.gui.editor.register.editor.machine.km": "机械动力机器项目",
+    "ldlib2.gui.editor.register.editor.machine.rt": "配方类型项目",
+    "ldlib2.gui.editor.register.editor.machine.recipe_xei_preview": "配方 XEI 预览",
+    "ldlib2.gui.editor.register.editor.machine.recipe_type_ui_view": "配方类型 UI 视图",
 
     "mbd2.gui.editor.group.predicate": "谓词",
     "config.block_pattern.predicate.preview": "预览",
@@ -722,9 +722,9 @@
     "recipe.capability.entity.ingredient.candidates": "实体候选",
     "recipe.capability.entity.ingredient.values.entity": "实体类型",
     "recipe.capability.entity.ingredient.values.tag": "实体标签",
-    "ldlib.gui.editor.register.widget.container.entity_preview": "实体预览槽",
+    "ldlib2.gui.editor.register.widget.container.entity_preview": "实体预览槽",
 
-    "ldlib.gui.editor.register.widget.container.ae_interface_slot": "ME 接口槽位",
+    "ldlib2.gui.editor.register.widget.container.ae_interface_slot": "ME 接口槽位",
 
     "recipe.capability.forge_energy.name": "能量",
     "recipe.capability.forge_energy.energy": "能量",
@@ -767,20 +767,20 @@
     "recipe.capability.mek_heat.name": "通用机械 - 热量",
     "recipe.capability.mek_heat.heat": "热量",
 
-    "ldlib.gui.editor.register.widget.container.chemical_gas_slot": "气体槽",
-    "ldlib.gui.editor.register.widget.container.chemical_infuse_slot": "灌注类型槽",
-    "ldlib.gui.editor.register.widget.container.chemical_pigment_slot": "颜料槽",
-    "ldlib.gui.editor.register.widget.container.chemical_slurry_slot": "浆液槽",
+    "ldlib2.gui.editor.register.widget.container.chemical_gas_slot": "气体槽",
+    "ldlib2.gui.editor.register.widget.container.chemical_infuse_slot": "灌注类型槽",
+    "ldlib2.gui.editor.register.widget.container.chemical_pigment_slot": "颜料槽",
+    "ldlib2.gui.editor.register.widget.container.chemical_slurry_slot": "浆液槽",
 
     "recipe.capability.create_stress.name": "机械动力 - 应力",
     "recipe.capability.create_stress.stress": "应力",
     "recipe.capability.create_stress.stress.unit": "%d 应力",
-    "ldlib.gui.editor.register.widget.container.create_stress": "应力槽",
+    "ldlib2.gui.editor.register.widget.container.create_stress": "应力槽",
 
     "recipe.capability.create_rpm.name": "机械动力 - 转速",
     "recipe.capability.create_rpm.rpm": "转速",
     "recipe.capability.create_rpm.rpm.unit": "%d 转速",
-    "ldlib.gui.editor.register.widget.container.create_rpm": "机械动力转速",
+    "ldlib2.gui.editor.register.widget.container.create_rpm": "机械动力转速",
 
     "editor.machine.machine_tab": "机器",
     "editor.machine.multiblock.area_panel.sceneRadius": "场景半径",
@@ -815,7 +815,7 @@
     "editor.machine.multiblock.multiblock_shape_info.remove": "移除形状信息",
     "mbd2.jei.multiblock_info": "多方块信息",
 
-    "ldlib.renderer.geckolib": "Geckolib 模型",
+    "ldlib2.renderer.geckolib": "Geckolib 模型",
     "geckolib_renderer.scale_width": "宽度缩放",
     "geckolib_renderer.scale_height": "高度缩放",
     "geckolib_renderer.use_glowing_layer": "使用发光层",

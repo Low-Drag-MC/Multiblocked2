@@ -1,62 +1,48 @@
 package com.lowdragmc.mbd2.api.recipe.content;
 
-import com.google.gson.JsonElement;
-import com.lowdragmc.mbd2.api.recipe.ingredient.FluidIngredient;
-import com.lowdragmc.lowdraglib.side.fluid.FluidStack;
-import net.minecraft.network.FriendlyByteBuf;
+import com.mojang.serialization.Codec;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.neoforged.neoforge.fluids.crafting.FluidIngredient;
+import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient;
 
-public class SerializerFluidIngredient implements IContentSerializer<FluidIngredient> {
+public class SerializerFluidIngredient implements IContentSerializer<SizedFluidIngredient> {
 
     public static SerializerFluidIngredient INSTANCE = new SerializerFluidIngredient();
 
     private SerializerFluidIngredient() {}
 
     @Override
-    public void toNetwork(FriendlyByteBuf buf, FluidIngredient content) {
-        content.toNetwork(buf);
-    }
-
-    @Override
-    public FluidIngredient fromNetwork(FriendlyByteBuf buf) {
-        return FluidIngredient.fromNetwork(buf);
-    }
-
-    @Override
-    public FluidIngredient fromJson(JsonElement json) {
-        return FluidIngredient.fromJson(json);
-    }
-
-    @Override
-    public JsonElement toJson(FluidIngredient content) {
-        return content.toJson();
-    }
-
-    @Override
-    public FluidIngredient of(Object o) {
-        if (o instanceof FluidIngredient ingredient) {
-            return ingredient;
+    public SizedFluidIngredient of(Object o) {
+        if (o instanceof SizedFluidIngredient sizedIngredient) {
+            return sizedIngredient;
+        } else if (o instanceof FluidIngredient ingredient) {
+            return new SizedFluidIngredient(ingredient, 1);
         }
-        if (o instanceof FluidStack stack) {
-            return FluidIngredient.of(stack.copy());
-        }
-        return FluidIngredient.EMPTY;
+        return new SizedFluidIngredient(FluidIngredient.empty(), 1);
     }
 
     @Override
-    public FluidIngredient copyInner(FluidIngredient content) {
-        return content.copy();
+    public SizedFluidIngredient copyInner(SizedFluidIngredient content) {
+        var amount = content.amount();
+        var ingredient = content.ingredient();
+        return new SizedFluidIngredient(ingredient, amount);
     }
 
     @Override
-    public FluidIngredient copyWithModifier(FluidIngredient content, ContentModifier modifier) {
-        if (content.isEmpty()) return content.copy();
-        FluidIngredient copy = content.copy();
-        copy.setAmount(modifier.apply(copy.getAmount()).intValue());
-        return copy;
+    public Codec<SizedFluidIngredient> codec() {
+        return SizedFluidIngredient.FLAT_CODEC;
     }
 
     @Override
-    public FluidIngredient deepCopyInner(FluidIngredient content) {
-        return content.copy();
+    public StreamCodec<? super RegistryFriendlyByteBuf, SizedFluidIngredient> streamCodec() {
+        return SizedFluidIngredient.STREAM_CODEC;
     }
+
+    @Override
+    public SizedFluidIngredient copyWithModifier(SizedFluidIngredient content, ContentModifier modifier) {
+        var amount = modifier.apply(content.amount()).intValue();
+        return new SizedFluidIngredient(content.ingredient(), amount);
+    }
+
 }

@@ -1,36 +1,36 @@
 package com.lowdragmc.mbd2.common.trait.fluid;
 
 import com.google.common.base.Predicates;
-import com.lowdragmc.lowdraglib.misc.FluidStorage;
-import com.lowdragmc.lowdraglib.misc.FluidTransferList;
-import com.lowdragmc.lowdraglib.side.fluid.*;
-import com.lowdragmc.lowdraglib.side.fluid.forge.FluidHelperImpl;
-import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced;
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder;
+import com.lowdragmc.lowdraglib2.misc.FluidStorage;
+import com.lowdragmc.lowdraglib2.misc.FluidTransferList;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
-import com.lowdragmc.mbd2.api.recipe.ingredient.FluidIngredient;
 import com.lowdragmc.mbd2.common.capability.recipe.FluidRecipeCapability;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.*;
-import lombok.Setter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.material.Fluids;
-import net.neoforged.common.capabilities.Capability;
-import net.neoforged.common.capabilities.ForgeCapabilities;
-import net.neoforged.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import javax.annotation.Nonnull;
+import java.util.*;
+import java.util.function.Predicate;
 
-public class FluidTankCapabilityTrait extends SimpleCapabilityTrait implements IAutoIOTrait {
+public class FluidTankCapabilityTrait extends SimpleCapabilityTrait<IFluidHandler, @Nullable Direction> implements IAutoIOTrait {
     public static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(FluidTankCapabilityTrait.class);
     @Override
     public ManagedFieldHolder getFieldHolder() { return MANAGED_FIELD_HOLDER; }
@@ -38,11 +38,12 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait implements I
     @Persisted
     @DescSynced
     public final FluidStorage[] storages;
-    @Setter
-    protected boolean allowSameFluids; // Can different tanks be filled with the same fluid. It should be determined while creating tanks.
-    private Boolean isEmpty;
     private final FluidRecipeHandler recipeHandler = new FluidRecipeHandler();
-    private final FluidHandlerCap fluidHandlerCap = new FluidHandlerCap();
+
+    // runtime
+    private final Random random = new Random();
+    private Boolean isEmpty;
+    private final Map<BlockPos, EnumMap<Direction, BlockCapabilityCache<IFluidHandler, @Nullable Direction>>> nearbyCache = new HashMap<>();
 
     public FluidTankCapabilityTrait(MBDMachine machine, FluidTankCapabilityTraitDefinition definition) {
         super(machine, definition);
@@ -57,7 +58,7 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait implements I
     @Override
     public void onLoadingTraitInPreview() {
         if (storages.length > 0) {
-            storages[0].setFluid(FluidStack.create(Fluids.WATER, Math.max(getDefinition().getCapacity() / 2, 1)));
+            storages[0].setFluid(new FluidStack(Fluids.WATER, Math.max(getDefinition().getCapacity() / 2, 1)));
         }
     }
 
@@ -111,10 +112,10 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait implements I
                         var state = level.getBlockState(pos);
                         var block = state.getBlock();
                         if (block instanceof LiquidBlock liquidBlock && state.getFluidState().isSource()) {
-                            var toFilled = FluidStack.create(liquidBlock.getFluid().getSource(), 1000);
+                            var toFilled = new FluidStack(liquidBlock.fluid.getSource(), 1000);
                             for (FluidStorage storage : storages) {
-                                if (storage.fill(toFilled, true) == 1000) {
-                                    storage.fill(toFilled, false);
+                                if (storage.fill(toFilled, IFluidHandler.FluidAction.SIMULATE) == 1000) {
+                                    storage.fill(toFilled, IFluidHandler.FluidAction.EXECUTE);
                                     leftBlocks--;
                                     level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
                                     break;
@@ -138,15 +139,15 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait implements I
                         var pos = new BlockPos(x, y, z);
                         var state = level.getBlockState(pos);
                         for (FluidStorage storage : storages) {
-                            var drained = storage.drain(1000, true);
-                            if (drained.getAmount() == 1000 && drained.getFluid().getFluidType().canBePlacedInLevel(level, pos, FluidHelperImpl.toFluidStack(drained))) {
+                            var drained = storage.drain(1000, IFluidHandler.FluidAction.SIMULATE);
+                            if (drained.getAmount() == 1000 && drained.getFluid().getFluidType().canBePlacedInLevel(level, pos, drained)) {
                                 if (!(state.getFluidState().isSource()) && state.canBeReplaced(drained.getFluid())) {
                                     if (!level.isClientSide) {
                                         level.destroyBlock(pos, true);
                                     }
                                     level.setBlockAndUpdate(pos, drained.getFluid().defaultFluidState().createLegacyBlock());
                                     leftBlocks--;
-                                    storage.drain(1000, false);
+                                    storage.drain(1000, IFluidHandler.FluidAction.EXECUTE);
                                     break;
                                 }
                             }
@@ -163,8 +164,8 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait implements I
     }
 
     @Override
-    public List<ICapabilityProviderTrait<?>> getCapabilityProviderTraits() {
-        return List.of(fluidHandlerCap);
+    public IFluidHandler getCapContent(IO capbilityIO) {
+        return new FluidHandlerWrapper(storages, capbilityIO, getDefinition().isAllowSameFluids());
     }
 
     @Override
@@ -172,102 +173,174 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait implements I
         return getDefinition().getAutoIO().isEnable() ? getDefinition().getAutoIO() : null;
     }
 
+    @Nonnull
+    public BlockCapabilityCache<IFluidHandler, @Nullable Direction> getNearbyCache(ServerLevel serverLevel,
+                                                                                  BlockPos pos,
+                                                                                  @Nonnull Direction side) {
+        return nearbyCache.computeIfAbsent(pos, blockPos -> new EnumMap<>(Direction.class))
+                .computeIfAbsent(side, direction -> BlockCapabilityCache.create(Capabilities.FluidHandler.BLOCK,
+                        serverLevel,
+                        pos, direction
+                ));
+    }
+
     @Override
-    public void handleAutoIO(BlockPos port, Direction side, IO io) {
-        if (io.support(IO.IN)) {
-            FluidTransferHelper.importToTarget(new FluidTransferList(storages), Integer.MAX_VALUE,
-                    getDefinition().getFluidFilterSettings().isEnable() ? getDefinition().getFluidFilterSettings() : Predicates.alwaysTrue(),
-                    getMachine().getLevel(), port.relative(side), side.getOpposite());
-        }
-        if (io.support(IO.OUT)){
-            FluidTransferHelper.exportToTarget(new FluidTransferList(storages), Integer.MAX_VALUE, Predicates.alwaysTrue(),
-                    getMachine().getLevel(), port.relative(side), side.getOpposite());
+    public void handleAutoIO(BlockPos port, @NotNull Direction side, IO io) {
+        if (getMachine().getLevel() instanceof ServerLevel serverLevel) {
+            if (io.support(IO.IN)) {
+                var source = getNearbyCache(serverLevel, port, side).getCapability();
+                if (source == null) return;
+
+                Predicate<FluidStack> filter = getDefinition().getFluidFilterSettings().isEnable() ?
+                        getDefinition().getFluidFilterSettings() : Predicates.alwaysTrue();
+
+                var storage = new FluidTransferList(storages);
+                var maxAmount = Integer.MAX_VALUE;
+
+                for (int srcIndex = 0; srcIndex < source.getTanks(); srcIndex++) {
+                    var currentFluid = source.getFluidInTank(srcIndex);
+                    if (currentFluid.isEmpty() || !filter.test(currentFluid)) {
+                        continue;
+                    }
+
+                    var toDrain = currentFluid.copy();
+                    toDrain.setAmount(maxAmount);
+
+                    var filled = storage.fill(source.drain(toDrain, IFluidHandler.FluidAction.SIMULATE), IFluidHandler.FluidAction.SIMULATE);
+                    if (filled > 0) {
+                        maxAmount -= filled;
+                        toDrain = currentFluid.copy();
+                        toDrain.setAmount(filled);
+                        storage.fill(source.drain(toDrain, IFluidHandler.FluidAction.EXECUTE), IFluidHandler.FluidAction.EXECUTE);
+                    }
+                    if (maxAmount <= 0) return;
+                }
+            }
+            if (io.support(IO.OUT) && !isEmpty()){
+                var target = getNearbyCache(serverLevel, port, side).getCapability();
+                if (target == null) return;
+
+                var source = new FluidTransferList(storages);
+                int maxAmount = Integer.MAX_VALUE;
+
+                for (int srcIndex = 0; srcIndex < source.getTanks(); srcIndex++) {
+                    var currentFluid = source.getFluidInTank(srcIndex);
+                    if (currentFluid.isEmpty()) {
+                        continue;
+                    }
+
+                    var toDrain = currentFluid.copy();
+                    toDrain.setAmount(maxAmount);
+
+                    var filled = target.fill(source.drain(toDrain, IFluidHandler.FluidAction.SIMULATE), IFluidHandler.FluidAction.SIMULATE);
+                    if (filled > 0) {
+                        maxAmount -= filled;
+                        toDrain = currentFluid.copy();
+                        toDrain.setAmount(filled);
+                        target.fill(source.drain(toDrain, IFluidHandler.FluidAction.EXECUTE), IFluidHandler.FluidAction.EXECUTE);
+                    }
+                    if (maxAmount <= 0) return;
+                }
+            }
         }
     }
 
-    public class FluidRecipeHandler extends RecipeHandlerTrait<FluidIngredient> {
+    public class FluidRecipeHandler extends RecipeHandlerTrait<SizedFluidIngredient> {
         protected FluidRecipeHandler() {
             super(FluidTankCapabilityTrait.this, FluidRecipeCapability.CAP);
         }
 
         @Override
-        public List<FluidIngredient> handleRecipeInner(IO io, MBDRecipe recipe, List<FluidIngredient> left, @Nullable String slotName, boolean simulate) {
+        public List<SizedFluidIngredient> handleRecipeInner(IO io, MBDRecipe recipe, List<SizedFluidIngredient> left, @Nullable String slotName, boolean simulate) {
             if (!compatibleWith(io)) return left;
-            var capabilities = simulate ? Arrays.stream(storages).map(FluidStorage::copy).toArray(FluidStorage[]::new) : storages;
-            for (FluidStorage capability : capabilities) {
-                Iterator<FluidIngredient> iterator = left.iterator();
-                if (io == IO.IN) {
-                    while (iterator.hasNext()) {
-                        FluidIngredient fluidStack = iterator.next();
-                        if (fluidStack.isEmpty()) {
-                            iterator.remove();
-                            continue;
-                        }
-                        boolean found = false;
-                        FluidStack foundStack = null;
-                        for (int i = 0; i < capability.getTanks(); i++) {
-                            FluidStack stored = capability.getFluidInTank(i);
-                            if (!fluidStack.test(stored)) {
-                                continue;
+            var containers = simulate ? Arrays.stream(storages).map(FluidStorage::copy).toArray(FluidStorage[]::new) : storages;
+            var result = new ArrayList<SizedFluidIngredient>();
+            var iterator = left.iterator();
+            if (io == IO.IN) {
+                while (iterator.hasNext()) {
+                    var sizedIngredient = iterator.next();
+                    var need = sizedIngredient.amount();
+                    for (FluidStorage container : containers) {
+                        var fluidStack = container.getFluid();
+                        if (sizedIngredient.test(fluidStack)) {
+                            var extracted = container.drain(need, IFluidHandler.FluidAction.EXECUTE);
+                            need -= extracted.getAmount();
+                            if (need <= 0) {
+                                break;
                             }
-                            found = true;
-                            foundStack = stored;
-                        }
-                        if (!found) continue;
-                        FluidStack drained = capability.drain(foundStack.copy(fluidStack.getAmount()), false);
-
-                        fluidStack.setAmount(fluidStack.getAmount() - drained.getAmount());
-                        if (fluidStack.getAmount() <= 0) {
-                            iterator.remove();
                         }
                     }
-                } else if (io == IO.OUT) {
-                    while (iterator.hasNext()) {
-                        FluidIngredient fluidStack = iterator.next();
-                        if (fluidStack.isEmpty()) {
-                            iterator.remove();
-                            continue;
-                        }
-                        var fluids = fluidStack.getStacks();
-                        if (fluids.length == 0) {
-                            iterator.remove();
-                            continue;
-                        }
-                        FluidStack output = fluids[0];
-                        long filled = capability.fill(output.copy(), false);
-                        if (!fluidStack.isEmpty()) {
-                            fluidStack.setAmount(fluidStack.getAmount() - filled);
-                        }
-                        if (fluidStack.getAmount() <= 0) {
-                            iterator.remove();
+                    if (need > 0) {
+                        if (need == sizedIngredient.amount()) {
+                            result.add(sizedIngredient);
+                        } else {
+                            result.add(new SizedFluidIngredient(sizedIngredient.ingredient(), need));
                         }
                     }
                 }
-                if (left.isEmpty()) break;
+            } else if (io == IO.OUT) {
+                while (iterator.hasNext()) {
+                    var sizedIngredient = iterator.next();
+                    var fluids = sizedIngredient.getFluids();
+                    if (fluids.length == 0) {
+                        continue;
+                    }
+                    if (fluids.length == 1) {
+                        var output = fluids[0];
+                        var leftCount = sizedIngredient.amount();
+                        if (leftCount > 0) {
+                            for (FluidStorage container : containers) {
+                                var filled = container.fill(output.copyWithAmount(leftCount), IFluidHandler.FluidAction.EXECUTE);
+                                leftCount -= filled;
+                                if (leftCount == 0) break;
+                            }
+                        }
+                        if (leftCount > 0) {
+                            result.add(leftCount == sizedIngredient.amount() ?
+                                    sizedIngredient :
+                                    new SizedFluidIngredient(sizedIngredient.ingredient(), leftCount));
+                        }
+                    } else { // random output
+                        var shuffledItems = Arrays.asList(Arrays.copyOf(fluids, fluids.length));
+                        random.setSeed(getMachine().getOffsetTimer());
+                        Collections.shuffle(shuffledItems, random);
+
+                        var probe = Arrays.stream(containers).map(FluidStorage::copy).toArray(FluidStorage[]::new);
+
+                        // find index
+                        var index = -1;
+                        for (int i = 0; i < shuffledItems.size(); i++) {
+                            var output = shuffledItems.get(i).copy();
+                            var leftCount = sizedIngredient.amount();
+                            if (leftCount > 0) {
+                                for (FluidStorage fluidStorage : probe) {
+                                    var filled = fluidStorage.fill(output.copyWithAmount(leftCount), IFluidHandler.FluidAction.SIMULATE);
+                                    leftCount -= filled;
+                                    if (leftCount == 0) break;
+                                }
+                            }
+                            if (leftCount == 0) {
+                                index = i;
+                                break;
+                            }
+                        }
+                        if (index != -1) {
+                            if (!simulate) {
+                                var output = shuffledItems.get(index);
+                                var leftCount = sizedIngredient.amount();
+                                for (FluidStorage container : containers) {
+                                    var filled = container.fill(output.copyWithAmount(leftCount), IFluidHandler.FluidAction.EXECUTE);
+                                    leftCount -= filled;
+                                    if (leftCount == 0) break;
+                                }
+                            }
+                        } else {
+                            result.add(sizedIngredient);
+                        }
+                    }
+                }
             }
-            return left.isEmpty() ? null : left;
-        }
-    }
-
-    public class FluidHandlerCap implements ICapabilityProviderTrait<IFluidHandler> {
-        @Override
-        public IO getCapabilityIO(@Nullable Direction side) {
-            return FluidTankCapabilityTrait.this.getCapabilityIO(side);
-        }
-
-        @Override
-        public Capability<IFluidHandler> getCapability() {
-            return ForgeCapabilities.FLUID_HANDLER;
-        }
-
-        @Override
-        public IFluidHandler getCapContent(IO capbilityIO) {
-            return new FluidHandlerWrapper(storages, capbilityIO, getDefinition().isAllowSameFluids());
-        }
-
-        @Override
-        public IFluidHandler mergeContents(List<IFluidHandler> contents) {
-            return new FluidHandlerList(contents.toArray(new IFluidHandler[0]));
+            return result.isEmpty() ? null : result;
         }
     }
 }

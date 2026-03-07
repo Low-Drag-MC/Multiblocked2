@@ -1,12 +1,12 @@
 package com.lowdragmc.mbd2.integration.jade;
 
-import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
+import com.lowdragmc.lowdraglib2.Platform;
+import com.lowdragmc.lowdraglib2.gui.ColorPattern;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
 import snownee.jade.api.BlockAccessor;
 import snownee.jade.api.IBlockComponentProvider;
@@ -14,8 +14,11 @@ import snownee.jade.api.IServerDataProvider;
 import snownee.jade.api.ITooltip;
 import snownee.jade.api.config.IPluginConfig;
 import snownee.jade.api.ui.BoxStyle;
+import snownee.jade.impl.ui.ElementHelper;
 import snownee.jade.impl.ui.ProgressElement;
-import snownee.jade.impl.ui.ProgressStyle;
+import snownee.jade.impl.ui.SimpleProgressStyle;
+
+import static snownee.jade.impl.ui.ElementHelper.DEFAULT_PROGRESS_BASE;
 
 public class RecipeLogicProvider implements IBlockComponentProvider, IServerDataProvider<BlockAccessor> {
 
@@ -27,15 +30,15 @@ public class RecipeLogicProvider implements IBlockComponentProvider, IServerData
             data = data.getCompound("recipe_logic");
             var status = data.getString("status");
             tooltip.add(Component.translatable("recipe_logic.status." + status.toLowerCase()));
-            var boxStyle = new BoxStyle();
-            boxStyle.borderColor = ColorPattern.GRAY.color;
-            boxStyle.borderWidth = 1;
+
+            var boxStyle = BoxStyle.getSprite(DEFAULT_PROGRESS_BASE, null);
+
             if (data.contains("duration")) {
                 var progress = data.getInt("progress");
                 var duration = data.getInt("duration");
-                tooltip.add(tooltip.getElementHelper().progress(progress * 1f / duration,
+                tooltip.add(ElementHelper.INSTANCE.progress(progress * 1f / duration,
                         Component.literal("%.2fs / %.2fs".formatted(progress / 20f, duration / 20f)).withStyle(ChatFormatting.WHITE),
-                        new ProgressStyle().color(ColorPattern.GREEN.color), boxStyle, true));
+                        new SimpleProgressStyle().color(ColorPattern.GREEN.color), boxStyle, true));
             }
 
             if (data.contains("fuel")) {
@@ -43,10 +46,10 @@ public class RecipeLogicProvider implements IBlockComponentProvider, IServerData
                 var maxFuel = data.getInt("maxFuel");
                 tooltip.add(new ProgressElement(fuel * 1f / maxFuel,
                         Component.literal("%.2f / %.2f ".formatted(fuel / 20f, maxFuel / 20f)).withStyle(ChatFormatting.WHITE),
-                        new ProgressStyle().color(ColorPattern.ORANGE.color), boxStyle, true));
+                        new SimpleProgressStyle().color(ColorPattern.ORANGE.color), boxStyle, true));
             }
             if (data.contains("waitingReason")) {
-                var reason = Component.Serializer.fromJson(data.getString("waitingReason"));
+                var reason = Component.Serializer.fromJson(data.getString("waitingReason"), Platform.getFrozenRegistry());
                 tooltip.add(reason);
             }
         }
@@ -68,7 +71,7 @@ public class RecipeLogicProvider implements IBlockComponentProvider, IServerData
                 tag.putInt("maxFuel", recipeLogic.getFuelMaxTime());
             }
             if (recipeLogic.isWaiting() && recipeLogic.getWaitingReason() != null) {
-                tag.putString("waitingReason", Component.Serializer.toJson(recipeLogic.getWaitingReason()));
+                tag.putString("waitingReason", Component.Serializer.toJson(recipeLogic.getWaitingReason(), machine.getLevel().registryAccess()));
             }
             data.put("recipe_logic", tag);
         });

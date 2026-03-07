@@ -1,20 +1,25 @@
 package com.lowdragmc.mbd2.common.machine.definition.config.toggle;
 
-import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.SelectorConfigurator;
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSearch;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.configurator.ui.SearchComponentConfigurator;
+import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 
-import java.util.ArrayList;
+import javax.annotation.ParametersAreNonnullByDefault;
 
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 public class ToggleCreativeTab extends ToggleObject<ResourceLocation> {
     public static final ResourceLocation DEFAULT = ResourceLocation.parse("redstone_blocks");
     @Getter
     @Setter
-    @Persisted
+    @Configurable
+    @ConfigSearch(searchConfiguratorMethod = "searchConfigurator")
     private ResourceLocation value;
 
     public ToggleCreativeTab(ResourceLocation value, boolean enable) {
@@ -34,10 +39,29 @@ public class ToggleCreativeTab extends ToggleObject<ResourceLocation> {
         this(false);
     }
 
-    @Override
-    public void buildConfigurator(ConfiguratorGroup father) {
-        super.buildConfigurator(father);
-        father.addConfigurators(new SelectorConfigurator<>("value", this::getValue, this::setValue, DEFAULT, true,
-                new ArrayList<>(BuiltInRegistries.CREATIVE_MODE_TAB.keySet()), ResourceLocation::toString));
+    private SearchComponentConfigurator.ISearchConfigurator<ResourceLocation> searchConfigurator() {
+        return new SearchComponentConfigurator.ISearchConfigurator<>() {
+
+            @Override
+            public void search(String word, IResultHandler<ResourceLocation> searchHandler) {
+                var wordLower = word.toLowerCase();
+                for (var key : BuiltInRegistries.CREATIVE_MODE_TAB.keySet()) {
+                    if (Thread.currentThread().isInterrupted()) return;
+                    if (key.toString().contains(wordLower)) {
+                        searchHandler.accept(key);
+                    }
+                }
+            }
+
+            @Override
+            public ResourceLocation defaultValue() {
+                return DEFAULT;
+            }
+
+            @Override
+            public String resultText(ResourceLocation value) {
+                return value.toString();
+            }
+        };
     }
 }

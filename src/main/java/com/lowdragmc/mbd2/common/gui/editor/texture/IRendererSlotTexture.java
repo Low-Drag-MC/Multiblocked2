@@ -1,13 +1,8 @@
 package com.lowdragmc.mbd2.common.gui.editor.texture;
 
-import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
-import com.lowdragmc.lowdraglib.gui.editor.ui.Editor;
-import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
-import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
-import com.lowdragmc.mbd2.common.gui.editor.MachineProject;
-import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
+import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Getter;
@@ -21,19 +16,13 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 
 import java.util.function.Supplier;
 
 public class IRendererSlotTexture implements IGuiTexture {
-    @Nullable
-    public static MBDMachineDefinition CURRENT_MACHINE_DEFINITION;
-
     @Getter @Setter
     private Supplier<IRenderer> rendererSupplier;
-    @Setter
-    private IGuiTexture slotTexture = new ResourceTexture("ldlib:textures/gui/slot.png");
 
     public IRendererSlotTexture(Supplier<IRenderer> rendererSupplier) {
         this.rendererSupplier = rendererSupplier;
@@ -41,8 +30,7 @@ public class IRendererSlotTexture implements IGuiTexture {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void draw(GuiGraphics graphics, int mouseX, int mouseY, float x, float y, int width, int height) {
-        slotTexture.draw(graphics, mouseX, mouseY, x, y, width, height);
+    public void draw(GuiGraphics graphics, float mouseX, float mouseY, float x, float y, float width, float height, float partialTicks) {
         var itemW = width * 16f / 18;
         var itemH = height * 16f / 18;
         var itemX = x + (width - itemW) / 2;
@@ -74,13 +62,9 @@ public class IRendererSlotTexture implements IGuiTexture {
             }
             var buffers = graphics.bufferSource();
 
-            if (Editor.INSTANCE instanceof MachineEditor editor && editor.getCurrentProject() instanceof MachineProject project) {
-                CURRENT_MACHINE_DEFINITION = project.getDefinition();
-            }
             renderer.renderItem(
                     Items.RED_STAINED_GLASS.getDefaultInstance(), ItemDisplayContext.GUI, false, pose, buffers, 15728880, OverlayTexture.NO_OVERLAY,
-                    Minecraft.getInstance().getModelManager().getModel(ModelResourceLocation.standalone(LDLib.location("block/renderer_model"))));
-            CURRENT_MACHINE_DEFINITION = null;
+                    Minecraft.getInstance().getModelManager().getModel(ModelResourceLocation.standalone(LDLib2.id("block/renderer_model"))));
             // flush
             RenderSystem.disableDepthTest();
             buffers.endBatch();

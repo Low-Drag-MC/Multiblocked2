@@ -1,9 +1,9 @@
 package com.lowdragmc.mbd2.api.pattern;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
-import com.lowdragmc.lowdraglib.utils.BlockInfo;
-import com.lowdragmc.lowdraglib.utils.Builder;
+import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.utils.Builder3D;
+import com.lowdragmc.lowdraglib2.utils.data.BlockInfo;
 import com.lowdragmc.mbd2.utils.ControllerBlockInfo;
 import lombok.Getter;
 import lombok.Setter;
@@ -118,7 +118,7 @@ public class MultiblockShapeInfo implements IConfigurable, INBTSerializable<Comp
         this.description = description;
     }
 
-    public static class ShapeInfoBuilder extends Builder<BlockInfo, ShapeInfoBuilder> {
+    public static class ShapeInfoBuilder extends Builder3D<BlockInfo, ShapeInfoBuilder> {
 
         public ShapeInfoBuilder where(char symbol, BlockState blockState) {
             return where(symbol, BlockInfo.fromBlockState(blockState));

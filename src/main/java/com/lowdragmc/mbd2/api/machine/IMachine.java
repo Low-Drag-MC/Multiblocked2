@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.api.machine;
 
+import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
 import com.lowdragmc.mbd2.api.capability.MBDCapabilities;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeCapabilityHolder;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
@@ -8,6 +9,7 @@ import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.BlockGetter;
@@ -22,7 +24,13 @@ import java.util.Optional;
 public interface IMachine extends IRecipeCapabilityHolder {
 
     static Optional<IMachine> ofMachine(@Nullable BlockEntity blockEntity) {
-        return blockEntity == null ? Optional.empty() : Optional.ofNullable(MBDCapabilities.CAPABILITY_MACHINE.getCapability(
+        if (blockEntity == null) {
+            return Optional.empty();
+        }
+        if (blockEntity instanceof IMachineBlockEntity machineBlockEntity) {
+            return Optional.of(machineBlockEntity.getMetaMachine());
+        }
+        return blockEntity.getLevel() == null ? Optional.empty() : Optional.ofNullable(MBDCapabilities.CAPABILITY_MACHINE.getCapability(
                 blockEntity.getLevel(), blockEntity.getBlockPos(), blockEntity.getBlockState(), blockEntity, null));
     }
 
@@ -92,7 +100,7 @@ public interface IMachine extends IRecipeCapabilityHolder {
      * @param tag the CompoundTag to load data from
      * @param forDrop if the save is done for dropping the machine as an item.
      */
-    default void saveCustomPersistedData(CompoundTag tag, boolean forDrop) {
+    default void saveCustomPersistedData(HolderLookup.Provider provider, CompoundTag tag, boolean forDrop) {
 
     }
 
@@ -100,7 +108,7 @@ public interface IMachine extends IRecipeCapabilityHolder {
      * Use for data not able to be saved with the SyncData system, like optional mod compatiblity in internal machines.
      * @param tag the CompoundTag to load data from
      */
-    default void loadCustomPersistedData(CompoundTag tag) {
+    default void loadCustomPersistedData(HolderLookup.Provider provider, CompoundTag tag) {
 
     }
 

@@ -1,70 +1,70 @@
-package com.lowdragmc.mbd2.integration.naturesaura.trait;
-
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
-import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib.gui.texture.ItemStackTexture;
-import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
-import com.lowdragmc.lowdraglib.gui.widget.TextTextureWidget;
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
-import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
-import com.lowdragmc.mbd2.common.machine.MBDMachine;
-import com.lowdragmc.mbd2.common.trait.ITrait;
-import com.lowdragmc.mbd2.common.trait.IUIProviderTrait;
-import com.lowdragmc.mbd2.common.trait.RecipeCapabilityTraitDefinition;
-import com.lowdragmc.mbd2.utils.WidgetUtils;
-import de.ellpeck.naturesaura.api.aura.chunk.IAuraChunk;
-import de.ellpeck.naturesaura.blocks.ModBlocks;
-import lombok.Getter;
-import lombok.Setter;
-import net.minecraft.network.chat.Component;
-
-@LDLRegister(name = "aura_handler", group = "trait", modID = "naturesaura")
-public class AuraHandlerTraitDefinition extends RecipeCapabilityTraitDefinition implements IUIProviderTrait {
-
-    @Getter
-    @Setter
-    @Configurable(name = "config.definition.trait.aura_handler.radius", tips = "config.definition.trait.aura_handler.radius.tooltip")
-    @NumberRange(range = {1, 64})
-    private int radius = 20;
-
-    @Override
-    public ITrait createTrait(MBDMachine machine) {
-        return new AuraHandlerTrait(machine, this);
-    }
-
-    @Override
-    public IGuiTexture getIcon() {
-        return new ItemStackTexture(ModBlocks.NATURE_ALTAR.asItem());
-    }
-
-    @Override
-    public boolean allowMultiple() {
-        return false;
-    }
-
-    @Override
-    public void createTraitUITemplate(WidgetGroup ui) {
-        var text = new TextTextureWidget(0, 0, 100, 10,
-                LocalizationUtils.format("recipe.capability.natures_aura.aura", 0))
-                .textureStyle(t -> t.setType(TextTexture.TextType.LEFT));
-        text.setId(uiPrefixName());
-        ui.addWidget(text);
-    }
-
-    @Override
-    public void initTraitUI(ITrait trait, WidgetGroup group) {
-        if (trait instanceof AuraHandlerTrait) {
-            var prefix = uiPrefixName();
-            WidgetUtils.widgetByIdForEach(group, "^%s$".formatted(prefix), TextTextureWidget.class, text -> {
-                text.setText(() -> {
-                    var world = trait.getMachine().getLevel();
-                    var pos = trait.getMachine().getPos();
-                    return Component.translatable("recipe.capability.natures_aura.aura",
-                            IAuraChunk.getAuraInArea(world, pos, ((AuraHandlerTrait) trait).getDefinition().radius));
-                });
-            });
-        }
-    }
-}
+//package com.lowdragmc.mbd2.integration.naturesaura.trait;
+//
+//import com.lowdragmc.lowdraglib2.gui.editor.annotation.Configurable;
+//import com.lowdragmc.lowdraglib2.gui.editor.annotation.LDLRegister;
+//import com.lowdragmc.lowdraglib2.gui.editor.annotation.NumberRange;
+//import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+//import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture;
+//import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
+//import com.lowdragmc.lowdraglib2.gui.widget.TextTextureWidget;
+//import com.lowdragmc.lowdraglib2.gui.widget.WidgetGroup;
+//import com.lowdragmc.lowdraglib2.utils.LocalizationUtils;
+//import com.lowdragmc.mbd2.common.machine.MBDMachine;
+//import com.lowdragmc.mbd2.common.trait.ITrait;
+//import com.lowdragmc.mbd2.common.trait.IUIProviderTrait;
+//import com.lowdragmc.mbd2.common.trait.RecipeCapabilityTraitDefinition;
+//import com.lowdragmc.mbd2.utils.WidgetUtils;
+//import de.ellpeck.naturesaura.api.aura.chunk.IAuraChunk;
+//import de.ellpeck.naturesaura.blocks.ModBlocks;
+//import lombok.Getter;
+//import lombok.Setter;
+//import net.minecraft.network.chat.Component;
+//
+//@LDLRegister(name = "aura_handler", group = "trait", modID = "naturesaura")
+//public class AuraHandlerTraitDefinition extends RecipeCapabilityTraitDefinition implements IUIProviderTrait {
+//
+//    @Getter
+//    @Setter
+//    @Configurable(name = "config.definition.trait.aura_handler.radius", tips = "config.definition.trait.aura_handler.radius.tooltip")
+//    @ConfigNumber(range = {1, 64})
+//    private int radius = 20;
+//
+//    @Override
+//    public ITrait createTrait(MBDMachine machine) {
+//        return new AuraHandlerTrait(machine, this);
+//    }
+//
+//    @Override
+//    public IGuiTexture getIcon() {
+//        return new ItemStackTexture(ModBlocks.NATURE_ALTAR.asItem());
+//    }
+//
+//    @Override
+//    public boolean allowMultiple() {
+//        return false;
+//    }
+//
+//    @Override
+//    public void createTraitUITemplate(WidgetGroup ui) {
+//        var text = new TextTextureWidget(0, 0, 100, 10,
+//                LocalizationUtils.format("recipe.capability.natures_aura.aura", 0))
+//                .textureStyle(t -> t.setType(TextTexture.TextType.LEFT));
+//        text.setId(uiPrefixName());
+//        ui.addWidget(text);
+//    }
+//
+//    @Override
+//    public void initTraitUI(ITrait trait, WidgetGroup group) {
+//        if (trait instanceof AuraHandlerTrait) {
+//            var prefix = uiPrefixName();
+//            WidgetUtils.widgetByIdForEach(group, "^%s$".formatted(prefix), TextTextureWidget.class, text -> {
+//                text.setText(() -> {
+//                    var world = trait.getMachine().getLevel();
+//                    var pos = trait.getMachine().getPos();
+//                    return Component.translatable("recipe.capability.natures_aura.aura",
+//                            IAuraChunk.getAuraInArea(world, pos, ((AuraHandlerTrait) trait).getDefinition().radius));
+//                });
+//            });
+//        }
+//    }
+//}

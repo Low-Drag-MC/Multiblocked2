@@ -1,6 +1,6 @@
 package com.lowdragmc.mbd2.test;
 
-import com.lowdragmc.lowdraglib.client.renderer.impl.IModelRenderer;
+import com.lowdragmc.lowdraglib2.client.renderer.impl.IModelRenderer;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.common.event.MBDRegistryEvent;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;

@@ -1,27 +1,24 @@
 package com.lowdragmc.mbd2.common;
 
-import com.lowdragmc.lowdraglib.Platform;
-import com.lowdragmc.lowdraglib.gui.factory.UIFactory;
-import com.lowdragmc.lowdraglib.networking.LDLNetworking;
+import com.lowdragmc.lowdraglib2.Platform;
+import com.lowdragmc.lowdraglib2.editor.ui.EditorWindow;
+import com.lowdragmc.lowdraglib2.gui.factory.PlayerUIMenuType;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.block.ProxyPartBlock;
 import com.lowdragmc.mbd2.api.blockentity.ProxyPartBlockEntity;
-import com.lowdragmc.mbd2.api.capability.MBDCapabilities;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeSerializer;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
-import com.lowdragmc.mbd2.api.recipe.ingredient.SizedIngredient;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
-import com.lowdragmc.mbd2.common.data.MBDMachineDefinitionTypes;
 import com.lowdragmc.mbd2.common.data.MBDRecipeCapabilities;
-import com.lowdragmc.mbd2.common.data.MBDRecipeConditions;
-import com.lowdragmc.mbd2.common.data.MBDTraitDefinitionTypes;
 import com.lowdragmc.mbd2.common.event.MBDRegistryEvent;
-import com.lowdragmc.mbd2.common.gui.factory.MachineUIFactory;
+import com.lowdragmc.mbd2.common.gui.editor.MBDEditor;
+import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
 import com.lowdragmc.mbd2.common.network.MBD2Network;
 import com.lowdragmc.mbd2.config.ConfigHolder;
-import com.lowdragmc.mbd2.integration.create.machine.CreateKineticMachineDefinition;
 import com.lowdragmc.mbd2.integration.kubejs.events.MBDMachineRegistryEventJS;
 import com.lowdragmc.mbd2.integration.kubejs.events.MBDRecipeTypeRegistryEventJS;
 import com.lowdragmc.mbd2.integration.kubejs.events.MBDStartupEvents;
@@ -35,14 +32,14 @@ import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.ModLoader;
-import net.neoforged.fml.ModLoadingContext;
+import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLConstructModEvent;
 import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
-import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import net.neoforged.neoforge.registries.RegisterEvent;
 
 import java.io.File;
@@ -52,25 +49,30 @@ public class CommonProxy {
     @Getter
     private static final ConcurrentLinkedDeque<Runnable> postTask = new ConcurrentLinkedDeque<>();
 
-
-    public CommonProxy(IEventBus eventBus) {
-        MBD2.getLocation();
-
+    public CommonProxy(IEventBus eventBus, ModContainer modContainer) {
         eventBus.register(this);
         if (Platform.isDevEnv()) {
             eventBus.register(new MBDTest());
         }
         eventBus.addListener(MBD2Network::registerPayloads);
-        ForgeRegistries.RECIPE_SERIALIZERS.register("mbd_recipe_serializer", MBDRecipeSerializer.SERIALIZER);
         // Register our mod's ForgeConfigSpec so that Forge can create and load the config file for us
-        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, ConfigHolder.SPEC);
-        // Register UI Factory
-        UIFactory.register(MachineUIFactory.INSTANCE);
+        modContainer.registerConfig(ModConfig.Type.COMMON, ConfigHolder.SPEC);
         // Register blocks
+        MBDRegistries.init();
         MBDRegistries.BLOCKS.register("proxy_part_block", () -> ProxyPartBlock.BLOCK);
         ProxyPartBlockEntity.TYPE = MBDRegistries.BLOCK_ENTITY_TYPES.register("proxy_part_block", () -> BlockEntityType.Builder.of(ProxyPartBlockEntity::new, ProxyPartBlock.BLOCK).build(null));
         MBDRegistries.BLOCKS.register(eventBus);
         MBDRegistries.BLOCK_ENTITY_TYPES.register(eventBus);
+        MBDRegistries.RECIPE_SERIALIZERS.register("mbd_recipe_serializer", () -> MBDRecipeSerializer.SERIALIZER);
+        // Register Editor UI
+        PlayerUIMenuType.register(MBDEditor.WINDOW_ID, ignored -> player -> {
+            if (player.level().isClientSide) {
+                return new ModularUI(UI.of(EditorWindow.open(MBDEditor.WINDOW_ID, MBDEditor::new)))
+                        .shouldCloseOnEsc(false)
+                        .shouldCloseOnKeyInventory(false);
+            }
+            return new ModularUI(UI.empty());
+        });
     }
 
     public void registerRecipeType() {
@@ -96,12 +98,12 @@ public class CommonProxy {
         FileUtils.loadNBTFiles(path, ".sm", (file, tag) -> event.register(MBDMachineDefinition.createDefault().loadProductiveTag(file, tag, postTask)));
         // load multiblock machine
         path = new File(MBD2.getLocation(), "multiblock");
-        FileUtils.loadNBTFiles(path, ".mb", (file, tag) -> event.register(MultiblockMachineDefinition.createDefault().loadProductiveTag(file, tag, postTask)));
-        if (MBD2.isCreateLoaded()) {
-            // load kinetic machine
-            path = new File(MBD2.getLocation(), "kinetic_machine");
-            FileUtils.loadNBTFiles(path, ".km", (file, tag) -> event.register(CreateKineticMachineDefinition.createDefault().loadProductiveTag(file, tag, postTask)));
-        }
+//        FileUtils.loadNBTFiles(path, ".mb", (file, tag) -> event.register(MultiblockMachineDefinition.createDefault().loadProductiveTag(file, tag, postTask)));
+//        if (MBD2.isCreateLoaded()) {
+//            // load kinetic machine
+//            path = new File(MBD2.getLocation(), "kinetic_machine");
+//            FileUtils.loadNBTFiles(path, ".km", (file, tag) -> event.register(CreateKineticMachineDefinition.createDefault().loadProductiveTag(file, tag, postTask)));
+//        }
         ModLoader.postEvent(event);
         if (MBD2.isKubeJSLoaded()) {
             KubeJSWrapper.postMachineEvent();
@@ -113,9 +115,9 @@ public class CommonProxy {
         public static void postMachineEvent() {
             MBDMachineRegistryEventJS.BUILDERS.put("single", MBDMachineDefinition::builder);
             MBDMachineRegistryEventJS.BUILDERS.put("multiblock", MultiblockMachineDefinition::builder);
-            if (MBD2.isCreateLoaded()) {
-                MBDMachineRegistryEventJS.BUILDERS.put("kinetic", CreateKineticMachineDefinition::builder);
-            }
+//            if (MBD2.isCreateLoaded()) {
+//                MBDMachineRegistryEventJS.BUILDERS.put("kinetic", CreateKineticMachineDefinition::builder);
+//            }
             MBDStartupEvents.MACHINE.post(ScriptType.STARTUP, new MBDMachineRegistryEventJS());
         }
 
@@ -127,10 +129,7 @@ public class CommonProxy {
     @SubscribeEvent
     public void constructMod(FMLConstructModEvent e) {
         e.enqueueWork(() -> {
-            MBDRecipeConditions.init();
             MBDRecipeCapabilities.init();
-            MBDMachineDefinitionTypes.init();
-            MBDTraitDefinitionTypes.init();
             registerRecipeType();
             registerMachine();
         });
@@ -138,16 +137,12 @@ public class CommonProxy {
 
     @SubscribeEvent
     public void commonSetup(FMLCommonSetupEvent e) {
-        e.enqueueWork(() -> {
-        });
-        CraftingHelper.register(SizedIngredient.TYPE, SizedIngredient.SERIALIZER);
+        e.enqueueWork(() -> {});
     }
 
     @SubscribeEvent
     public void loadComplete(FMLLoadCompleteEvent e) {
         e.enqueueWork(() -> {
-            MBDRegistries.FAKE_MACHINE().loadFactory();
-            MBDRegistries.MACHINE_DEFINITIONS.forEach(MBDMachineDefinition::loadFactory);
             postTask.forEach(Runnable::run);
             postTask.clear();
         });
@@ -155,7 +150,11 @@ public class CommonProxy {
 
     @SubscribeEvent
     public void registerCapabilities(RegisterCapabilitiesEvent event) {
-        MBDCapabilities.register(event);
+        // does it good place to loadFactory?
+        MBDRegistries.FAKE_MACHINE().loadFactory();
+        MBDRegistries.MACHINE_DEFINITIONS.forEach(MBDMachineDefinition::loadFactory);
+        MBDRegistries.getFakeMachineDefinition().registerCapabilities(event);
+        MBDRegistries.MACHINE_DEFINITIONS.forEach((definition) -> definition.registerCapabilities(event));
     }
 
     @SubscribeEvent
@@ -163,7 +162,7 @@ public class CommonProxy {
         MBDRegistries.FAKE_MACHINE().onRegistry(event);
         MBDRegistries.MACHINE_DEFINITIONS.forEach((definition) -> definition.onRegistry(event));
         // register items
-        event.register(ForgeRegistries.ITEMS.getRegistryKey(), helper -> helper.register(MBD2.id("mbd_gadgets"), MBDRegistries.GADGETS_ITEM()));
+        event.register(BuiltInRegistries.ITEM.key(), helper -> helper.register(MBD2.id("mbd_gadgets"), MBDRegistries.GADGETS_ITEM()));
         // register recipe types
         event.register(Registries.RECIPE_TYPE, registry -> MBDRegistries.RECIPE_TYPES.forEach((type) ->
                 registry.register(type.getRegistryName(), type)));

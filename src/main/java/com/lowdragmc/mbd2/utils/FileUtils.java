@@ -2,6 +2,7 @@ package com.lowdragmc.mbd2.utils;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,10 +20,10 @@ public class FileUtils {
             try {
                 Files.walkFileTree(path.toPath(), new SimpleFileVisitor<>() {
                     @Override
-                    public FileVisitResult visitFile(Path path, BasicFileAttributes attrs) {
+                    public @NotNull FileVisitResult visitFile(@NotNull Path path, @NotNull BasicFileAttributes attrs) {
                         if (path.getFileName().toString().endsWith(extension)) {
                             try {
-                                var tag = NbtIo.read(path.toFile());
+                                var tag = NbtIo.read(path);
                                 if (tag != null) {
                                     consumer.accept(path.toFile(), tag);
                                 }

@@ -29,9 +29,10 @@ public class MBD2 {
     public MBD2(IEventBus eventBus, ModContainer modContainer) {
         MBD2.init();
         if (FMLEnvironment.dist == Dist.CLIENT) {
+            new CommonProxy(eventBus, modContainer);
             new ClientProxy(eventBus);
         } else {
-            new CommonProxy(eventBus);
+            new CommonProxy(eventBus, modContainer);
         }
     }
 
@@ -92,10 +93,10 @@ public class MBD2 {
     }
 
     public static boolean isAE2Loaded() {
-        return LDLib.isModLoaded("ae2");
+        return LDLib2.isModLoaded("ae2");
     }
 
     public static boolean isEmbeddiumLoaded() {
-        return LDLib.isModLoaded("embeddium");
+        return LDLib2.isModLoaded("embeddium");
     }
 }

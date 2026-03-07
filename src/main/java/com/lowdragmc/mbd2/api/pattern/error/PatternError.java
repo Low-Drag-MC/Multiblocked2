@@ -2,7 +2,8 @@ package com.lowdragmc.mbd2.api.pattern.error;
 
 import com.lowdragmc.mbd2.api.pattern.MultiblockState;
 import com.lowdragmc.mbd2.api.pattern.TraceabilityPredicate;
-import com.lowdragmc.mbd2.api.pattern.predicates.SimplePredicate;
+import com.lowdragmc.mbd2.api.pattern.predicates.PatternPredicate;
+import lombok.Setter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
@@ -13,11 +14,8 @@ import java.util.List;
 
 public class PatternError {
 
+    @Setter
     protected MultiblockState worldState;
-
-    public void setWorldState(MultiblockState worldState) {
-        this.worldState = worldState;
-    }
 
     public Level getWorld() {
         return worldState.getWorld();
@@ -30,11 +28,11 @@ public class PatternError {
     public List<List<ItemStack>> getCandidates() {
         TraceabilityPredicate predicate = worldState.predicate;
         List<List<ItemStack>> candidates = new ArrayList<>();
-        for (SimplePredicate common : predicate.common) {
-            candidates.add(common.getCandidates());
+        for (PatternPredicate common : predicate.common) {
+            candidates.add(common.getItemCandidates());
         }
-        for (SimplePredicate limited : predicate.limited) {
-            candidates.add(limited.getCandidates());
+        for (PatternPredicate limited : predicate.limited) {
+            candidates.add(limited.getItemCandidates());
         }
         return candidates;
     }

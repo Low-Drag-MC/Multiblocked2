@@ -1,15 +1,14 @@
 package com.lowdragmc.mbd2.common.trait.entity;
 
-import com.lowdragmc.lowdraglib.client.utils.RenderBufferUtils;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.ConfigSetter;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.DefaultValue;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib.gui.texture.ItemStackTexture;
-import com.lowdragmc.lowdraglib.utils.ColorUtils;
-import com.lowdragmc.lowdraglib.utils.ShapeUtils;
-import com.lowdragmc.mbd2.common.gui.editor.machine.MachineTraitPanel;
+import com.lowdragmc.lowdraglib2.client.utils.RenderBufferUtils;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.utils.ColorUtils;
+import com.lowdragmc.lowdraglib2.utils.ShapeUtils;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.ITrait;
 import com.lowdragmc.mbd2.common.trait.RecipeCapabilityTraitDefinition;
@@ -30,7 +29,7 @@ import javax.annotation.Nullable;
 import java.util.EnumMap;
 import java.util.Map;
 
-@LDLRegister(name = "entity_handler", group = "trait", priority = -99)
+@LDLRegister(name = "entity_handler", registry = "mbd2:trait_definition_type", group = "trait", priority = -99)
 public class EntityHandlerTraitDefinition extends RecipeCapabilityTraitDefinition {
 
     @Getter
@@ -70,32 +69,33 @@ public class EntityHandlerTraitDefinition extends RecipeCapabilityTraitDefinitio
         return (direction == Direction.NORTH || direction == null) ? area : this.areaCache.computeIfAbsent(direction, dir -> ShapeUtils.rotate(area, dir));
     }
 
-    @Override
-    @OnlyIn(Dist.CLIENT)
-    public void renderAfterWorldInTraitPanel(MachineTraitPanel panel) {
-        super.renderAfterWorldInTraitPanel(panel);
-        var poseStack = new PoseStack();
-
-        RenderSystem.enableBlend();
-        RenderSystem.disableDepthTest();
-        RenderSystem.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-
-        poseStack.pushPose();
-        RenderSystem.disableCull();
-        RenderSystem.setShader(GameRenderer::getRendertypeLinesShader);
-        var buffer = Tesselator.getInstance().begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
-        RenderSystem.lineWidth(5);
-
-        var color = 0xff11aaee;
-        RenderBufferUtils.drawCubeFrame(poseStack, buffer,
-                (float)area.minX, (float)area.minY, (float)area.minZ,
-                (float)area.maxX, (float)area.maxY, (float)area.maxZ,
-                ColorUtils.red(color), ColorUtils.green(color), ColorUtils.blue(color), ColorUtils.alpha(color));
-
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
-
-        poseStack.popPose();
-        RenderSystem.enableDepthTest();
-        RenderSystem.enableCull();
-    }
+    // todo trait view
+//    @Override
+//    @OnlyIn(Dist.CLIENT)
+//    public void renderAfterWorldInTraitPanel(MachineTraitPanel panel) {
+//        super.renderAfterWorldInTraitPanel(panel);
+//        var poseStack = new PoseStack();
+//
+//        RenderSystem.enableBlend();
+//        RenderSystem.disableDepthTest();
+//        RenderSystem.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+//
+//        poseStack.pushPose();
+//        RenderSystem.disableCull();
+//        RenderSystem.setShader(GameRenderer::getRendertypeLinesShader);
+//        var buffer = Tesselator.getInstance().begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
+//        RenderSystem.lineWidth(5);
+//
+//        var color = 0xff11aaee;
+//        RenderBufferUtils.drawCubeFrame(poseStack, buffer,
+//                (float)area.minX, (float)area.minY, (float)area.minZ,
+//                (float)area.maxX, (float)area.maxY, (float)area.maxZ,
+//                ColorUtils.red(color), ColorUtils.green(color), ColorUtils.blue(color), ColorUtils.alpha(color));
+//
+//        BufferUploader.drawWithShader(buffer.buildOrThrow());
+//
+//        poseStack.popPose();
+//        RenderSystem.enableDepthTest();
+//        RenderSystem.enableCull();
+//    }
 }

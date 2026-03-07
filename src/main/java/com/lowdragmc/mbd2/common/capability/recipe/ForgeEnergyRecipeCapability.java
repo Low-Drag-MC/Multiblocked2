@@ -1,16 +1,18 @@
 package com.lowdragmc.mbd2.common.capability.recipe;
 
-import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.NumberConfigurator;
-import com.lowdragmc.lowdraglib.gui.texture.*;
-import com.lowdragmc.lowdraglib.gui.widget.ProgressWidget;
-import com.lowdragmc.lowdraglib.gui.widget.Widget;
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
-import com.lowdragmc.lowdraglib.jei.IngredientIO;
+import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
+import com.lowdragmc.lowdraglib2.gui.texture.*;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.ProgressBar;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.api.recipe.content.SerializerInteger;
-import com.lowdragmc.mbd2.common.gui.recipe.CornerNumberWidget;
 import com.lowdragmc.mbd2.utils.EnergyFormattingUtil;
 import net.minecraft.network.chat.Component;
 
@@ -19,9 +21,12 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class ForgeEnergyRecipeCapability extends RecipeCapability<Integer> {
+    @LDLRegister(name = "forge_energy", registry = "mbd2:recipe_capability")
     public final static ForgeEnergyRecipeCapability CAP = new ForgeEnergyRecipeCapability();
-    public final static ResourceTexture ENERGY_BAR = new ResourceTexture("mbd2:textures/gui/energy_bar_base.png");
-    public final static ResourceBorderTexture ENERGY_BASE = new ResourceBorderTexture("mbd2:textures/gui/energy_bar_background.png", 42, 14, 1, 1);
+
+    public final static SpriteTexture ENERGY_ICON = SpriteTexture.of("mbd2:textures/gui/forge_energy.png");
+    public final static SpriteTexture ENERGY_BAR = SpriteTexture.of("mbd2:textures/gui/energy_bar_base.png");
+    public final static SpriteTexture ENERGY_BASE = SpriteTexture.of("mbd2:textures/gui/energy_bar_background.png").setSprite(1, 1, 42, 14);
 
     protected ForgeEnergyRecipeCapability() {
         super("forge_energy", SerializerInteger.INSTANCE);
@@ -34,33 +39,39 @@ public class ForgeEnergyRecipeCapability extends RecipeCapability<Integer> {
     }
 
     @Override
-    public Widget createPreviewWidget(Integer content) {
-        var previewGroup = new WidgetGroup(0, 0, 18, 18);
-        previewGroup.setBackground(new ResourceTexture("mbd2:textures/gui/forge_energy.png"));
-        previewGroup.addWidget(new CornerNumberWidget(0, 0, 18, 18).setValue(content));
-        return previewGroup;
+    public UIElement createPreviewWidget(Integer content) {
+        return new UIElement()
+                .style(style -> style.background(ENERGY_ICON))
+                .layout(layout -> layout.width(18).height(18))
+                .addChild(new Label().textStyle(textStyle -> textStyle
+                                .textAlignVertical(Vertical.BOTTOM)
+                                .textAlignHorizontal(Horizontal.RIGHT)
+                                .fontSize(4.5f)
+                        ).setText(EnergyFormattingUtil.formatCompact(of(content)))
+                        .layout(layout -> layout.setWidthPercent(100).setHeightPercent(100))
+                );
     }
 
     @Override
-    public Widget createXEITemplate() {
-        var energyBar = new ProgressWidget(ProgressWidget.JEIProgress, 0, 0, 50, 14, new ProgressTexture(
-                IGuiTexture.EMPTY, ENERGY_BAR
-        ));
-        energyBar.setBackground(ENERGY_BASE);
-        energyBar.setOverlay(new TextTexture("0 FE"));
-        return energyBar;
+    public UIElement createXEITemplate() {
+        var progress = new ProgressBar();
+        progress.barContainer.getLayout().paddingAll(0);
+        progress.barContainer.getStyle().background(ENERGY_BAR);
+        progress.bar.getStyle().background(ENERGY_BASE);
+        progress.setProgress(1f);
+        progress.label.setText("0 FE");
+        return progress;
     }
 
     @Override
-    public void bindXEIWidget(Widget widget, Content content, IngredientIO ingredientIO) {
-        if (widget instanceof ProgressWidget energyBar) {
+    public void bindXEIWidget(UIElement element, Content content, IO ingredientIO) {
+        if (element instanceof ProgressBar progressBar) {
             var energy = EnergyFormattingUtil.formatExtended(of(content.content));
-            if (energyBar.getOverlay() instanceof TextTexture textTexture) {
-                if (content.perTick) {
-                    textTexture.updateText(energy + "FE/t");
-                } else {
-                    textTexture.updateText(energy + "FE");
-                }
+            progressBar.label.setText(energy);
+            if (content.perTick) {
+                progressBar.label.setText(energy + "FE/t");
+            } else {
+                progressBar.label.setText(energy + "FE");
             }
         }
     }

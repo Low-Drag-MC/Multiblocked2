@@ -1,11 +1,11 @@
 package com.lowdragmc.mbd2.common.machine.definition.config.toggle;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 
 public class ToggleLightValue extends ToggleObject<Integer> {
     @Configurable
-    @NumberRange(range = {0, 15})
+    @ConfigNumber(range = {0, 15})
     private int value;
 
     public ToggleLightValue(int value, boolean enable) {

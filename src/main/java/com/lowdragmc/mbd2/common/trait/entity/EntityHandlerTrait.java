@@ -11,6 +11,7 @@ import com.lowdragmc.mbd2.common.trait.RecipeCapabilityTrait;
 import com.lowdragmc.mbd2.common.trait.RecipeHandlerTrait;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -115,7 +116,7 @@ public class EntityHandlerTrait extends RecipeCapabilityTrait {
                         if (entity.isAlive() && types.contains(entity.getType())) {
                             var nbt = ingredient.getNbt();
                             if (nbt != null && !nbt.isEmpty()) {
-                                var held = entity.serializeNBT();
+                                var held = entity.saveWithoutId(new CompoundTag());
                                 if (!held.copy().merge(nbt).equals(held)) {
                                     continue;
                                 }

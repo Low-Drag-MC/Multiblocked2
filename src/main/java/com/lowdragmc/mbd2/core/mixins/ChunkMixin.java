@@ -22,8 +22,8 @@ public class ChunkMixin {
     @Inject(method = "setBlockState", at =@At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/level/block/state/BlockState;hasBlockEntity()Z",
-            ordinal = 2))
-    private void onAddingBlock(BlockPos pos, BlockState state, boolean isMoving, CallbackInfoReturnable<BlockState> cir) {
+            ordinal = 1))
+    private void mbd2$setBlockState(BlockPos pos, BlockState state, boolean isMoving, CallbackInfoReturnable<BlockState> cir) {
         MinecraftServer server = level.getServer();
         if (server != null) {
             if (level instanceof ServerLevel serverLevel) {

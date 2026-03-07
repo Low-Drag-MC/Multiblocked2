@@ -1,31 +1,29 @@
 package com.lowdragmc.mbd2.common.machine.definition.config;
 
-import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.SelectorConfigurator;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.WrapperConfigurator;
-import com.lowdragmc.lowdraglib.gui.editor.ui.Editor;
-import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
-import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
-import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
-import com.lowdragmc.mbd2.common.gui.editor.MachineProject;
+import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
+import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
+import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
+import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.MCSprites;
+import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.mbd2.common.gui.editor.texture.IRendererSlotTexture;
+import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleCreativeTab;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Rarity;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,6 +31,8 @@ import java.util.List;
 @Builder
 @Accessors(fluent = true)
 public class ConfigItemProperties implements IConfigurable, IPersistedSerializable {
+    @Setter
+    protected MBDMachineDefinition definition;
 
     @Configurable(name = "config.item_properties.use_block_light",
             tips = {"config.item_properties.use_block_light.tooltip.0", "config.item_properties.use_block_light.tooltip.1", "config.item_properties.use_block_light.tooltip.2"})
@@ -50,7 +50,7 @@ public class ConfigItemProperties implements IConfigurable, IPersistedSerializab
 
     @Configurable(name = "config.item_properties.max_stack_size", tips = {"config.item_properties.max_stack_size.tooltip",
             "config.require_restart"})
-    @NumberRange(range = {1, 64})
+    @ConfigNumber(range = {1, 64})
     @Builder.Default
     private int maxStackSize = 64;
 
@@ -76,18 +76,17 @@ public class ConfigItemProperties implements IConfigurable, IPersistedSerializab
     @Override
     public void buildConfigurator(ConfiguratorGroup father) {
         IConfigurable.super.buildConfigurator(father);
-        father.addConfigurators(new WrapperConfigurator("config.item_properties.slot_preview",
-                new ImageWidget(0, 0, 18, 18,
-                        new IRendererSlotTexture(() -> {
-                            if (renderer.isEnable()) {
-                                return renderer.getValue();
-                            }
-                            if (Editor.INSTANCE instanceof MachineEditor editor) {
-                                if (editor.getCurrentProject() instanceof MachineProject project) {
-                                    return project.getDefinition().getState("base").getRealRenderer();
-                                }
-                            }
-                            return IRenderer.EMPTY;
-                        }))));
+        father.addConfigurator(new Configurator("config.item_properties.slot_preview").addInlineChild(
+                new UIElement().layout(layout -> layout.width(18).height(18))
+                        .style(style -> style.background(IGuiTexture.group(
+                                MCSprites.RECT_1,
+                                new IRendererSlotTexture(() -> {
+                                    if (renderer.isEnable()) {
+                                        return renderer.getValue();
+                                    }
+                                    return definition == null ? IRenderer.EMPTY : definition.getState("base").getRealRenderer();
+                                })
+                        )))
+        ));
     }
 }

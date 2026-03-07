@@ -1,6 +1,6 @@
 package com.lowdragmc.mbd2.api.pattern.error;
 
-import com.lowdragmc.mbd2.api.pattern.predicates.SimplePredicate;
+import com.lowdragmc.mbd2.api.pattern.predicates.PatternPredicate;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
@@ -8,17 +8,17 @@ import java.util.Collections;
 import java.util.List;
 
 public class SinglePredicateError extends PatternError {
-    public final SimplePredicate predicate;
+    public final PatternPredicate predicate;
     public final int type;
 
-    public SinglePredicateError(SimplePredicate predicate, int type) {
+    public SinglePredicateError(PatternPredicate predicate, int type) {
         this.predicate = predicate;
         this.type = type;
     }
 
     @Override
     public List<List<ItemStack>> getCandidates() {
-        return Collections.singletonList(predicate.getCandidates());
+        return Collections.singletonList(predicate.getItemCandidates());
     }
 
     @Override

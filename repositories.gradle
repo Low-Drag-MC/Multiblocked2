@@ -30,6 +30,7 @@ repositories {
         url "https://tehnut.info/maven/"
     }
     maven { url = "https://maven.createmod.net" } // Ponder, Flywheel
+    maven { url = "https://maven.ithundxr.dev/snapshots" } // Registrate
     maven { // Flywheel
         url = "https://maven.tterrag.com/"
         content {

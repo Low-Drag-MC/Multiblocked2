@@ -1,15 +1,23 @@
 package com.lowdragmc.mbd2.common.machine.definition.config;
 
-import com.lowdragmc.lowdraglib.gui.editor.accessors.EnumAccessor;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.*;
-import com.lowdragmc.lowdraglib.gui.editor.ui.Editor;
-import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSearch;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.configurator.ui.SearchComponentConfigurator;
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
+import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import com.lowdragmc.mbd2.api.block.RotationState;
-import com.lowdragmc.mbd2.common.gui.editor.MachineEditor;
-import com.lowdragmc.mbd2.common.gui.editor.MultiblockMachineProject;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -24,18 +32,18 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.common.util.DeferredSoundType;
+import org.appliedenergistics.yoga.YogaFlexDirection;
+import org.appliedenergistics.yoga.YogaGutter;
+import org.appliedenergistics.yoga.YogaOverflow;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 @Getter
 @Accessors(fluent = true)
 @Builder
+@KJSBindings
 public class ConfigBlockProperties implements IPersistedSerializable, IConfigurable {
     @Getter
     @Setter
@@ -97,31 +105,31 @@ public class ConfigBlockProperties implements IPersistedSerializable, IConfigura
 
     @Configurable(name = "config.block_properties.friction", tips = {"config.block_properties.friction.tooltip",
             "config.require_restart"})
-    @NumberRange(range = {0, Float.MAX_VALUE})
+    @ConfigNumber(range = {0, Float.MAX_VALUE})
     @Builder.Default
     private float friction = 0.6f;
 
     @Configurable(name = "config.block_properties.speed_factor", tips = {"config.block_properties.speed_factor.tooltip",
             "config.require_restart"})
-    @NumberRange(range = {0, Float.MAX_VALUE})
+    @ConfigNumber(range = {0, Float.MAX_VALUE})
     @Builder.Default
     private float speedFactor = 1.0f;
 
     @Configurable(name = "config.block_properties.jump_factor", tips = {"config.block_properties.jump_factor.tooltip",
             "config.require_restart"})
-    @NumberRange(range = {0, Float.MAX_VALUE})
+    @ConfigNumber(range = {0, Float.MAX_VALUE})
     @Builder.Default
     private float jumpFactor = 1.0f;
 
     @Configurable(name = "config.block_properties.destroy_time", tips = {"config.block_properties.destroy_time.tooltip",
             "config.require_restart"})
-    @NumberRange(range = {0, Float.MAX_VALUE})
+    @ConfigNumber(range = {0, Float.MAX_VALUE})
     @Builder.Default
     private float destroyTime = 1.5f;
 
     @Configurable(name = "config.block_properties.explosion_resistance", tips = {"config.block_properties.explosion_resistance.tooltip",
             "config.require_restart"})
-    @NumberRange(range = {0, Float.MAX_VALUE})
+    @ConfigNumber(range = {0, Float.MAX_VALUE})
     @Builder.Default
     private float explosionResistance = 6.0f;
 
@@ -152,31 +160,6 @@ public class ConfigBlockProperties implements IPersistedSerializable, IConfigura
     @Configurable(name = "config.block_properties.collision_shape_full_block", tips = "config.block_properties.collision_shape_full_block.tooltip")
     @Builder.Default
     private boolean collisionShapeFullBlock = false;
-
-    @Override
-    public void buildConfigurator(ConfiguratorGroup father) {
-        IConfigurable.super.buildConfigurator(father);
-        var index = 0;
-        if (Editor.INSTANCE instanceof MachineEditor editor && editor.getCurrentProject() instanceof MultiblockMachineProject) {
-            for (Configurator configurator : father.getConfigurators()) {
-                if (configurator.getName().equals("config.block_properties.rotation_state") && configurator instanceof SelectorConfigurator<?> selector) {
-                    father.removeConfigurator(selector);
-                    var newSelector =  new SelectorConfigurator<>(
-                            "config.block_properties.rotation_state",
-                            () -> rotationState,
-                            r -> rotationState = r,
-                            RotationState.NON_Y_AXIS,
-                            true,
-                            List.of(RotationState.NONE, RotationState.NON_Y_AXIS),
-                            EnumAccessor::getEnumName);
-                    newSelector.setTips("config.block_properties.rotation_state.tooltip", "config.require_restart");
-                    father.addConfigurator(index, newSelector);
-                    break;
-                }
-                index++;
-            }
-        }
-    }
 
     public BlockBehaviour.Properties apply(StateMachine<?> stateMachine, BlockBehaviour.Properties properties) {
         if (forceSolid) {
@@ -234,20 +217,28 @@ public class ConfigBlockProperties implements IPersistedSerializable, IConfigura
     @Accessors(fluent = true)
     public static class BlockSound implements IPersistedSerializable, IConfigurable {
         @Configurable(name = "config.block_properties.block_sound.volume", tips = "config.require_restart")
-        @NumberRange(range = {0, Float.MAX_VALUE})
+        @ConfigNumber(range = {0, Float.MAX_VALUE})
         private float volumeIn = 1;
         @Configurable(name = "config.block_properties.block_sound.pitch", tips = "config.require_restart")
-        @NumberRange(range = {0, Float.MAX_VALUE})
+        @ConfigNumber(range = {0, Float.MAX_VALUE})
         private float pitchIn = 1;
-        @Persisted
+        @Configurable(name = "config.block_properties.block_sound.break")
         private ResourceLocation breakSound = SoundEvents.STONE_BREAK.getLocation();
         @Persisted
+        @Configurable(name = "config.block_properties.block_sound.step")
+        @ConfigSearch(searchConfiguratorMethod = "searchSound")
         private ResourceLocation stepSound = SoundEvents.STONE_STEP.getLocation();
         @Persisted
+        @Configurable(name = "config.block_properties.block_sound.place")
+        @ConfigSearch(searchConfiguratorMethod = "searchSound")
         private ResourceLocation placeSound = SoundEvents.STONE_PLACE.getLocation();
         @Persisted
+        @Configurable(name = "config.block_properties.block_sound.hit")
+        @ConfigSearch(searchConfiguratorMethod = "searchSound")
         private ResourceLocation hitSound = SoundEvents.STONE_HIT.getLocation();
         @Persisted
+        @Configurable(name = "config.block_properties.block_sound.fall")
+        @ConfigSearch(searchConfiguratorMethod = "searchSound")
         private ResourceLocation fallSound = SoundEvents.STONE_FALL.getLocation();
 
         // runtime
@@ -301,36 +292,61 @@ public class ConfigBlockProperties implements IPersistedSerializable, IConfigura
             return fallSoundEvent;
         }
 
-        @Override
-        public void buildConfigurator(ConfiguratorGroup father) {
-            IConfigurable.super.buildConfigurator(father);
-            father.addConfigurators(
-                    createSoundConfigurator("config.block_properties.block_sound.break", this::breakSound, this::breakSound),
-                    createSoundConfigurator("config.block_properties.block_sound.step", this::stepSound, this::stepSound),
-                    createSoundConfigurator("config.block_properties.block_sound.place", this::placeSound, this::placeSound),
-                    createSoundConfigurator("config.block_properties.block_sound.hit", this::hitSound, this::hitSound),
-                    createSoundConfigurator("config.block_properties.block_sound.fall", this::fallSound, this::fallSound)
-            );
-        }
+        private SearchComponentConfigurator.ISearchConfigurator<ResourceLocation> searchSound() {
+            return new SearchComponentConfigurator.ISearchConfigurator<>() {
 
-        @OnlyIn(Dist.CLIENT)
-        public Configurator createSoundConfigurator(String name, Consumer<ResourceLocation> setter, Supplier<ResourceLocation> getter) {
-            return new SearchComponentConfigurator<>(name, getter, sound -> {
-                setter.accept(sound);
-                var soundEvent = BuiltInRegistries.SOUND_EVENT.get(sound);
-                if (soundEvent != null) {
-                    Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(soundEvent, 1.0F));
-                }
-            }, SoundEvents.STONE_PLACE.getLocation(), true, (word, find) -> {
-                for (var key : BuiltInRegistries.SOUND_EVENT.keySet()) {
-                    if (Thread.currentThread().isInterrupted()) {
-                        return;
-                    }
-                    if (key.toString().contains(word.toLowerCase())) {
-                        find.accept(key);
+                @Override
+                public void search(String word, IResultHandler<ResourceLocation> searchHandler) {
+                    var wordLower = word.toLowerCase();
+                    for (var key : BuiltInRegistries.SOUND_EVENT.keySet()) {
+                        if (Thread.currentThread().isInterrupted()) {
+                            return;
+                        }
+                        if (key.toString().contains(wordLower)) {
+                            searchHandler.accept(key);
+                        }
                     }
                 }
-            }, Object::toString);
+
+                @Override
+                public @NotNull ResourceLocation defaultValue() {
+                    return SoundEvents.STONE_PLACE.getLocation();
+                }
+
+                @Override
+                public @NotNull String resultText(@NotNull ResourceLocation value) {
+                    return value.toString();
+                }
+
+                @Override
+                public UIElementProvider<ResourceLocation> candidateUIProvider() {
+                    return sound -> {
+                        var container = new UIElement().layout(layout -> {
+                            layout.setFlexDirection(YogaFlexDirection.ROW);
+                            layout.setGap(YogaGutter.ALL, 2);
+                            layout.setHeight(10);
+                        }).addChildren();
+                        var playButton = new Button().noText().addPreIcon(Icons.PLAY).layout(layout -> {
+                            layout.setAspectRatio(1);
+                            layout.setHeightPercent(100);
+                        });
+                        playButton.addEventListener(UIEvents.MOUSE_DOWN, e -> {
+                            var soundEvent = BuiltInRegistries.SOUND_EVENT.get(sound);
+                            if (soundEvent != null) {
+                                Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(soundEvent, pitchIn));
+                            }
+                            e.stopImmediatePropagation();
+                        });
+                        var label = new TextElement()
+                                .textStyle(style -> style.textWrap(TextWrap.HOVER_ROLL).textAlignVertical(Vertical.CENTER))
+                                .setText(sound.toString()).layout(layout -> {
+                                    layout.setHeightPercent(100);
+                                    layout.setFlex(1);
+                                }).setOverflow(YogaOverflow.HIDDEN);
+                        return container.addChildren(label, playButton);
+                    };
+                }
+            };
         }
     }
 }

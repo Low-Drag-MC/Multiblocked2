@@ -1,19 +1,12 @@
 package com.lowdragmc.mbd2.common.trait.item;
 
-import com.lowdragmc.lowdraglib.misc.ItemStackTransfer;
+import com.lowdragmc.lowdraglib2.misc.ItemStackTransfer;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.items.IItemHandlerModifiable;
+import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import org.jetbrains.annotations.NotNull;
 
-public class ItemHandlerWrapper implements IItemHandlerModifiable {
-    private final ItemStackTransfer storage;
-    private final IO io;
-
-    public ItemHandlerWrapper(ItemStackTransfer storage, IO io) {
-        this.storage = storage;
-        this.io = io;
-    }
+public record ItemHandlerWrapper(ItemStackTransfer storage, IO io, boolean allowSameItems) implements IItemHandlerModifiable {
 
     private boolean canCapInput() {
         return io == IO.IN || io == IO.BOTH;
@@ -41,6 +34,15 @@ public class ItemHandlerWrapper implements IItemHandlerModifiable {
     @Override
     public @NotNull ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
         if (canCapInput()) {
+            if (allowSameItems) {
+                if (storage.getStackInSlot(slot).isEmpty()) {
+                    for (int i = 0; i < storage.getSlots(); i++) {
+                        if (i != slot && ItemStack.isSameItemSameComponents(storage.getStackInSlot(i), stack)) {
+                            return stack;
+                        }
+                    }
+                }
+            }
             return storage.insertItem(slot, stack, simulate);
         }
         return stack;

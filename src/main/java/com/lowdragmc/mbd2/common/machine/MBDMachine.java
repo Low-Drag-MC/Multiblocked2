@@ -2,19 +2,17 @@ package com.lowdragmc.mbd2.common.machine;
 
 import com.google.common.collect.Table;
 import com.google.common.collect.Tables;
-import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
-import com.lowdragmc.lowdraglib.gui.modular.IUIHolder;
-import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
-import com.lowdragmc.lowdraglib.syncdata.IEnhancedManaged;
-import com.lowdragmc.lowdraglib.syncdata.IManaged;
-import com.lowdragmc.lowdraglib.syncdata.annotation.*;
-import com.lowdragmc.lowdraglib.syncdata.field.FieldManagedStorage;
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder;
-import com.lowdragmc.lowdraglib.syncdata.managed.IRef;
-import com.lowdragmc.lowdraglib.syncdata.managed.MultiManagedStorage;
 import com.lowdragmc.lowdraglib2.LDLib2;
-import com.lowdragmc.mbd2.MBD2;
+import com.lowdragmc.lowdraglib2.gui.factory.BlockUIMenuType;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import com.lowdragmc.lowdraglib2.syncdata.IManaged;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.UpdateListener;
+import com.lowdragmc.lowdraglib2.syncdata.holder.blockentity.IBlockEntityManaged;
+import com.lowdragmc.lowdraglib2.syncdata.storage.FieldManagedStorage;
+import com.lowdragmc.lowdraglib2.syncdata.storage.IManagedStorage;
+import com.lowdragmc.lowdraglib2.syncdata.storage.MultiManagedStorage;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
 import com.lowdragmc.mbd2.api.capability.recipe.*;
 import com.lowdragmc.mbd2.api.machine.IMachine;
@@ -23,23 +21,20 @@ import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.client.MachineSound;
-import com.lowdragmc.mbd2.common.gui.factory.MachineUIFactory;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigMachineSettings;
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
 import com.lowdragmc.mbd2.common.machine.definition.config.event.*;
-import com.lowdragmc.mbd2.common.trait.ICapabilityProviderTrait;
 import com.lowdragmc.mbd2.common.trait.ITrait;
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
-import com.lowdragmc.mbd2.integration.geckolib.GeckolibRenderer;
-import com.lowdragmc.mbd2.integration.photon.MachineFX;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.TickTask;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -53,7 +48,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
@@ -65,26 +59,13 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.common.NeoForge;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Vector3f;
 
 import javax.annotation.Nonnull;
 import java.util.*;
 import java.util.List;
 
 @Getter
-public class MBDMachine implements IMachine, IEnhancedManaged, IUIHolder.Block {
-    protected static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(MBDMachine.class);
-
-    @Override
-    public ManagedFieldHolder getFieldHolder() {
-        return MANAGED_FIELD_HOLDER;
-    }
-
-    @Override
-    public void onChanged() {
-        this.markDirty();
-    }
-
+public class MBDMachine implements IMachine, IBlockEntityManaged, BlockUIMenuType.BlockUI {
     private final FieldManagedStorage syncStorage = new FieldManagedStorage(this);
     private final MBDMachineDefinition definition;
     private final IMachineBlockEntity machineHolder;
@@ -110,10 +91,10 @@ public class MBDMachine implements IMachine, IEnhancedManaged, IUIHolder.Block {
     private String machineState;
     @Getter
     private final List<ITrait> additionalTraits = new ArrayList<>();
-    @Getter
-    private Map<IRenderer, Object> animatableMachine = new HashMap<>(); // it's used for Geckolib
-    @Getter
-    private Map<String, Object> photonFXs = new HashMap<>(); // it's used for Photon
+//    @Getter
+//    private Map<IRenderer, Object> animatableMachine = new HashMap<>(); // it's used for Geckolib
+//    @Getter
+//    private Map<String, Object> photonFXs = new HashMap<>(); // it's used for Photon
     @Persisted
     @DescSynced
     @Getter
@@ -122,11 +103,11 @@ public class MBDMachine implements IMachine, IEnhancedManaged, IUIHolder.Block {
     @Getter
     @Persisted
     @DescSynced
-    private byte[] outputSignal = new byte[6];
+    private final byte[] outputSignal = new byte[6];
     @Getter
     @Persisted
     @DescSynced
-    private byte[] outputDirectSignal = new byte[6];
+    private final byte[] outputDirectSignal = new byte[6];
     @Getter
     @Persisted
     @DescSynced
@@ -150,6 +131,11 @@ public class MBDMachine implements IMachine, IEnhancedManaged, IUIHolder.Block {
         recipeLogic = createRecipeLogic(args);
         // additional traits initialization
         loadAdditionalTraits();
+    }
+
+    @Override
+    public BlockEntity asBlockEntity() {
+        return machineHolder.getSelf();
     }
 
     @Override
@@ -183,7 +169,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, IUIHolder.Block {
     }
 
     /**
-     * Detach the {@link com.lowdragmc.lowdraglib.syncdata.IManagedStorage} of all traits.
+     * Detach the {@link IManagedStorage} of all traits.
      * <br>
      * Have to call this method while changing the machine instance. e.g. {@link com.lowdragmc.mbd2.common.blockentity.MachineBlockEntity#setMachine(IMachine)}
      */
@@ -211,7 +197,6 @@ public class MBDMachine implements IMachine, IEnhancedManaged, IUIHolder.Block {
 
     /**
      * Update the machine state from the {@link MBDMachineDefinition#stateMachine()} by the given state name. if no such state found, it will do nothing.
-     * @param newState
      */
     public void setMachineState(String newState) {
         if (machineState.equals(newState)) return;
@@ -259,7 +244,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, IUIHolder.Block {
     /**
      * Load additional traits from the {@link ConfigMachineSettings#traitDefinitions()}.
      * <br>
-     * It will attach the {@link com.lowdragmc.lowdraglib.syncdata.IManagedStorage} of all traits for sync/persisted data management.
+     * It will attach the {@link IManagedStorage} of all traits for sync/persisted data management.
      * <br>
      * You don't have to call this method manually, it will be called automatically when the machine is created.
      */
@@ -275,7 +260,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, IUIHolder.Block {
                 var trait = traitDefinition.createTrait(this);
                 additionalTraits.add(trait);
                 if (trait instanceof IManaged managed) {
-                    for (IRef ref : managed.getSyncStorage().getPersistedFields()) {
+                    for (var ref : managed.getSyncStorage().getPersistedFields()) {
                         ref.setPersistedPrefixName("trait." + traitDefinition.getName());
                     }
                     multiManagedStorage.attach(managed.getSyncStorage());
@@ -430,38 +415,6 @@ public class MBDMachine implements IMachine, IEnhancedManaged, IUIHolder.Block {
 
     public String getMachineStateName() {
         return machineState;
-    }
-
-    @Override
-    @NotNull
-    public <T> LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable Direction side) {
-        List<T> results = new ArrayList<>();
-        for (var trait : additionalTraits) {
-            for (var capabilityProviderTrait : trait.getCapabilityProviderTraits()) {
-                if (capabilityProviderTrait.getCapability() == cap) {
-                    var io = capabilityProviderTrait.getCapabilityIO(side);
-                    if (io != IO.NONE) {
-                        results.add((T) capabilityProviderTrait.getCapContent(io));
-                    }
-                }
-            }
-        }
-        if (results.isEmpty()) {
-            return LazyOptional.empty();
-        } else {
-            if (results.size() == 1) {
-                return LazyOptional.of(() -> results.get(0));
-            } else {
-                for (var trait : additionalTraits) {
-                    for (var capabilityProviderTrait : trait.getCapabilityProviderTraits()) {
-                        if (capabilityProviderTrait.getCapability() == cap) {
-                            return LazyOptional.of(() -> (T) ((ICapabilityProviderTrait)capabilityProviderTrait).mergeContents(results));
-                        }
-                    }
-                }
-            }
-        }
-        return cap.orEmpty(cap, LazyOptional.of(() -> results.get(0)));
     }
 
     //////////////////////////////////////
@@ -656,7 +609,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, IUIHolder.Block {
      * it won't be called when machine added by {@link Level#setBlock(BlockPos, BlockState, int, int)}
      */
     public void onMachinePlaced(LivingEntity player, ItemStack stack) {
-        if (stack.hasCustomHoverName()) {
+        if (stack.has(DataComponents.CUSTOM_NAME)) {
             setCustomName(stack.getHoverName());
         }
         NeoForge.EVENT_BUS.post(new MachinePlacedEvent(this, player, stack).postCustomEvent());
@@ -764,7 +717,7 @@ public class MBDMachine implements IMachine, IEnhancedManaged, IUIHolder.Block {
     public ItemStack getDropItem() {
         var item = getDefinition().asStack();
         if (customName != null) {
-            item.setHoverName(customName);
+            item.set(DataComponents.CUSTOM_NAME, customName);
         }
         return item;
     }
@@ -789,15 +742,17 @@ public class MBDMachine implements IMachine, IEnhancedManaged, IUIHolder.Block {
      * On use item on the machine.
      */
     public ItemInteractionResult useItemOn(ItemStack item, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-        //todo event
-        return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        var event = new MachineUseItemOnEvent(this, player, hand, hit);
+        event.setItemInteractionResult(ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION);
+        NeoForge.EVENT_BUS.post(event.postCustomEvent());
+        return event.getItemInteractionResult();
     }
 
     /**
      * On hand is using on the machine.
      */
     public InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player, BlockHitResult hit) {
-        var event = new MachineRightClickEvent(this, player, hand, hit);
+        var event = new MachineUseWithoutItemEvent(this, player, hit);
         event.setInteractionResult(InteractionResult.PASS);
         NeoForge.EVENT_BUS.post(event.postCustomEvent());
         return event.getInteractionResult();
@@ -820,39 +775,40 @@ public class MBDMachine implements IMachine, IEnhancedManaged, IUIHolder.Block {
             if (event.isCanceled()) {
                 return InteractionResult.PASS;
             }
-            MachineUIFactory.INSTANCE.openUI(this, serverPlayer);
+            BlockUIMenuType.openUI(serverPlayer, getPos());
         }
         return InteractionResult.sidedSuccess(player.level().isClientSide);
     }
 
+
     /**
      * Create Modular UI.
      */
-    public ModularUI createUI(Player entityPlayer) {
+    @Override
+    public ModularUI createUI(BlockUIMenuType.BlockUIHolder holder) {
         var ui = getDefinition().uiCreator().apply(this);
-        var event = new MachineUIEvent(this, ui, entityPlayer);
+        var event = new MachineUIEvent(this, ui, holder.player);
         NeoForge.EVENT_BUS.post(event.postKubeJSEvent());
-        ui = event.getRoot();
+        ui = event.getUi();
         if (ui == null) {
             return null;
         }
-        return new ModularUI(ui, this, entityPlayer);
+        return new ModularUI(ui, holder.player);
     }
 
     @Override
-    public boolean isInvalid() {
-        return isInValid();
+    public boolean stillValid(BlockUIMenuType.BlockUIHolder holder) {
+        return BlockUIMenuType.BlockUI.super.stillValid(holder) && !isInValid();
     }
 
     @Override
+    public Component getUIDisplayName(BlockUIMenuType.BlockUIHolder holder) {
+        return customName == null ? BlockUIMenuType.BlockUI.super.getUIDisplayName(holder) : customName;
+    }
+
     public boolean isRemote() {
         var level = getLevel();
         return level == null ? LDLib2.isRemote() : level.isClientSide;
-    }
-
-    @Override
-    public void markAsDirty() {
-        this.markDirty();
     }
 
     /**
@@ -892,75 +848,75 @@ public class MBDMachine implements IMachine, IEnhancedManaged, IUIHolder.Block {
         }
     }
 
-    public void triggerGeckolibAnim(String animName, float speed){
-        triggerGeckolibAnim("", animName, speed);
-    }
+//    public void triggerGeckolibAnim(String animName, float speed){
+//        triggerGeckolibAnim("", animName, speed);
+//    }
 
     /**
      * Trigger the geckolib animation by name.
      * <br>
      * It's safe to call this method on both side.
      */
-    @RPCMethod
-    public void triggerGeckolibAnim(String controllerName, String animName, float speed){
-        if (MBD2.isGeckolibLoaded()) {
-            if (isRemote()) {
-                if (controllerName.isEmpty()) {
-                    controllerName = "base_controller";
-                }
-                if (getMachineState().getRenderer() instanceof GeckolibRenderer renderer) {
-                    var controller = renderer.getAnimatableFromMachine(this).getAnimatableInstanceCache()
-                            .getManagerForId(0)
-                            .getAnimationControllers()
-                            .get(controllerName);
-                    if (controller != null) {
-                        controller.setAnimationSpeed(Math.max(speed, 0));
-                        controller.tryTriggerAnimation(animName);
-                    }
-                }
-            } else {
-                rpcToTracking("triggerGeckolibAnim", controllerName, animName, speed);
-            }
-        }
-    }
+//    @RPCMethod
+//    public void triggerGeckolibAnim(String controllerName, String animName, float speed){
+//        if (MBD2.isGeckolibLoaded()) {
+//            if (isRemote()) {
+//                if (controllerName.isEmpty()) {
+//                    controllerName = "base_controller";
+//                }
+//                if (getMachineState().getRenderer() instanceof GeckolibRenderer renderer) {
+//                    var controller = renderer.getAnimatableFromMachine(this).getAnimatableInstanceCache()
+//                            .getManagerForId(0)
+//                            .getAnimationControllers()
+//                            .get(controllerName);
+//                    if (controller != null) {
+//                        controller.setAnimationSpeed(Math.max(speed, 0));
+//                        controller.tryTriggerAnimation(animName);
+//                    }
+//                }
+//            } else {
+//                rpcToTracking("triggerGeckolibAnim", controllerName, animName, speed);
+//            }
+//        }
+//    }
 
     /**
      * Emit the photon fx.
      */
-    @RPCMethod
-    public void emitPhotonFx(String identifier, ResourceLocation fxLocation, Vector3f offset, Vector3f rotation, int delay, boolean forcedDeath, boolean replaceExisting){
-        if (MBD2.isPhotonLoaded()) {
-            if (isRemote()) {
-                var fx = FXHelper.getFX(fxLocation);
-                if (fx != null) {
-                    var machineFX = new MachineFX(fx, identifier, this);
-                    machineFX.setOffset(offset.x, offset.y, offset.z);
-                    machineFX.setRotation(rotation.x, rotation.y, rotation.z);
-                    machineFX.setDelay(delay);
-                    machineFX.setForcedDeath(forcedDeath);
-                    machineFX.setReplaceExisting(replaceExisting);
-                    machineFX.start();
-                }
-            } else {
-                rpcToTracking("emitPhotonFx", identifier, fxLocation, offset, rotation, delay, forcedDeath, replaceExisting);
-            }
-        }
-    }
+//    @RPCMethod
+//    public void emitPhotonFx(String identifier, ResourceLocation fxLocation, Vector3f offset, Vector3f rotation, int delay, boolean forcedDeath, boolean replaceExisting){
+//        if (MBD2.isPhotonLoaded()) {
+//            if (isRemote()) {
+//                var fx = FXHelper.getFX(fxLocation);
+//                if (fx != null) {
+//                    var machineFX = new MachineFX(fx, identifier, this);
+//                    machineFX.setOffset(offset.x, offset.y, offset.z);
+//                    machineFX.setRotation(rotation.x, rotation.y, rotation.z);
+//                    machineFX.setDelay(delay);
+//                    machineFX.setForcedDeath(forcedDeath);
+//                    machineFX.setReplaceExisting(replaceExisting);
+//                    machineFX.start();
+//                }
+//            } else {
+//                rpcToTracking("emitPhotonFx", identifier, fxLocation, offset, rotation, delay, forcedDeath, replaceExisting);
+//            }
+//        }
+//    }
 
     /**
      * Kill the photon fx.
      */
-    @RPCMethod
-    public void killPhotonFx(String identifier, boolean forcedDeath) {
-        if (MBD2.isPhotonLoaded()) {
-            if (isRemote()) {
-                if (photonFXs.get(identifier) instanceof MachineFX machineFX) {
-                    machineFX.kill(forcedDeath);
-                    photonFXs.remove(identifier);
-                }
-            } else {
-                rpcToTracking("killPhotonFx", identifier, forcedDeath);
-            }
-        }
-    }
+//    @RPCMethod
+//    public void killPhotonFx(String identifier, boolean forcedDeath) {
+//        if (MBD2.isPhotonLoaded()) {
+//            if (isRemote()) {
+//                if (photonFXs.get(identifier) instanceof MachineFX machineFX) {
+//                    machineFX.kill(forcedDeath);
+//                    photonFXs.remove(identifier);
+//                }
+//            } else {
+//                rpcToTracking("killPhotonFx", identifier, forcedDeath);
+//            }
+//        }
+//    }
 }

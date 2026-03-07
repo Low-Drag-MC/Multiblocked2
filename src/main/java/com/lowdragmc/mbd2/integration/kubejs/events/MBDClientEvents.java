@@ -7,7 +7,7 @@ import com.lowdragmc.mbd2.api.recipe.event.RecipeUIEvent;
 import com.lowdragmc.mbd2.common.machine.definition.config.event.*;
 import dev.latvian.mods.kubejs.event.EventHandler;
 import dev.latvian.mods.kubejs.event.EventResult;
-import dev.latvian.mods.kubejs.event.Extra;
+import dev.latvian.mods.kubejs.event.EventTargetType;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
@@ -32,8 +32,8 @@ public interface MBDClientEvents {
             MBDMachineEvents.MachineCustomDataUpdateEventJS.class,
             MBDMachineEvents.MachineCustomDataUpdateEventJS::new);
 
-    @Nullable
-    EventHandler CUSTOM_KEYFRAME = createCustomKeyframeEvent();
+//    @Nullable
+//    EventHandler CUSTOM_KEYFRAME = createCustomKeyframeEvent();
 
     // Recipe events
     EventHandler RECIPE_UI = registerRecipeTypeEvent("onRecipeUI",
@@ -46,15 +46,16 @@ public interface MBDClientEvents {
             MBDRecipeTypeEvents.FuelRecipeUIEventJS.class,
             MBDRecipeTypeEvents.FuelRecipeUIEventJS::new);
 
-    static EventHandler createCustomKeyframeEvent() {
-        if (MBD2.isGeckolibLoaded()) {
-            return registerMachineEvent("onCustomKeyframe",
-                    MachineCustomKeyframeEvent.class,
-                    MBDMachineEvents.MachineCustomKeyframeEventJS.class,
-                    MBDMachineEvents.MachineCustomKeyframeEventJS::new);
-        }
-        return null;
-    }
+    // todo geckolib
+//    static EventHandler createCustomKeyframeEvent() {
+//        if (MBD2.isGeckolibLoaded()) {
+//            return registerMachineEvent("onCustomKeyframe",
+//                    MachineCustomKeyframeEvent.class,
+//                    MBDMachineEvents.MachineCustomKeyframeEventJS.class,
+//                    MBDMachineEvents.MachineCustomKeyframeEventJS::new);
+//        }
+//        return null;
+//    }
 
     static void init() {
         // NO-OP
@@ -63,7 +64,7 @@ public interface MBDClientEvents {
     static <E extends MachineEvent> EventHandler registerMachineEvent(String name, Class<E> eventClass,
                                                                       Class<? extends MBDMachineEvents.MachineEventJS<E>> eventJSClass,
                                                                       Function<E, MBDMachineEvents.MachineEventJS<E>> eventJSFactory) {
-        var handler = MBD_MACHINE_EVENTS.client(name, () -> eventJSClass).extra(Extra.ID);
+        var handler = MBD_MACHINE_EVENTS.client(name, () -> eventJSClass).requiredTarget(EventTargetType.ID);
         machineEventHandlers.put(eventClass, event -> handler.post(eventJSFactory.apply((E) event), event.machine.getDefinition().id()));
         return handler;
     }
@@ -71,11 +72,11 @@ public interface MBDClientEvents {
     static <E extends RecipeTypeEvent> EventHandler registerRecipeTypeEvent(String name, Class<? extends RecipeTypeEvent> eventClass,
                                                                             Class<? extends MBDRecipeTypeEvents.RecipeTypeEventJS<E>> eventJSClass,
                                                                             Function<E, MBDRecipeTypeEvents.RecipeTypeEventJS<E>> eventJSFactory) {
-        var handler = MBDRecipeTypeEvents.MBD_RECIPE_TYPE_EVENTS.client(name, () -> eventJSClass).extra(Extra.ID);
+        var handler = MBDRecipeTypeEvents.MBD_RECIPE_TYPE_EVENTS.client(name, () -> eventJSClass).requiredTarget(EventTargetType.ID);
         recipeTypeEventHandlers.put(eventClass, event -> handler.post(eventJSFactory.apply((E) event), event.recipeType.getRegistryName()));
         return handler;
     }
-    
+
     static EventResult postMachineEvent(MachineEvent machineEvent) {
         return Optional.ofNullable(machineEventHandlers.get(machineEvent.getClass())).map(handler -> handler.apply(machineEvent)).orElse(EventResult.PASS);
     }

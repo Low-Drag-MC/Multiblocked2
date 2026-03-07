@@ -1,11 +1,10 @@
 package com.lowdragmc.mbd2.common.trait;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.DefaultValue;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IToggleConfigurable;
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
-import com.lowdragmc.lowdraglib.utils.ShapeUtils;
+import com.lowdragmc.lowdraglib2.configurator.IToggleConfigurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
+import com.lowdragmc.lowdraglib2.utils.ShapeUtils;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -18,18 +17,17 @@ import java.util.Map;
 @Setter
 @Getter
 public class AutoWorldIO implements IToggleConfigurable {
-    @Persisted
     public boolean enable;
     @Configurable(name = "config.definition.trait.auto_world_io.range", tips = "config.definition.trait.auto_world_io.range.tooltip")
     @DefaultValue(numberValue = {-1, -1, -1, 2, 2, 2})
     @Accessors(chain = true)
     public AABB range = new AABB(-1, -1, -1, 2, 2, 2);
     @Configurable(name = "config.definition.trait.auto_world_io.interval", tips = "config.definition.trait.auto_world_io.interval.tooltip")
-    @NumberRange(range = {1, Integer.MAX_VALUE})
+    @ConfigNumber(range = {1, Integer.MAX_VALUE})
     @Accessors(chain = true)
     public int interval = 20;
     @Configurable(name = "config.definition.trait.auto_world_io.speed", tips = "config.definition.trait.auto_world_io.speed.tooltip")
-    @NumberRange(range = {1, Integer.MAX_VALUE})
+    @ConfigNumber(range = {1, Integer.MAX_VALUE})
     @Accessors(chain = true)
     public int speed = 64;
 

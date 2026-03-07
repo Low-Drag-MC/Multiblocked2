@@ -1,8 +1,8 @@
 package com.lowdragmc.mbd2.common.trait.item;
 
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.items.IItemHandler;
-import net.neoforged.items.IItemHandlerModifiable;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;

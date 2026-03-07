@@ -1,15 +1,11 @@
 package com.lowdragmc.mbd2.common.trait;
 
-
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
-import com.lowdragmc.mbd2.common.gui.editor.machine.MachineTraitPanel;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
-import net.neoforged.common.capabilities.Capability;
 
 import java.util.Collections;
 import java.util.List;
@@ -32,7 +28,7 @@ public interface ITrait {
     TraitDefinition getDefinition();
 
     /**
-     * It will be called when this trait is being previewed in the editor. see {@link MachineTraitPanel#reloadAdditionalTraits()}
+     * It will be called when this trait is being previewed in the editor.
      * <br/>
      * e.g. you can do some storage preparation, or render some preview model.
      */
@@ -90,13 +86,6 @@ public interface ITrait {
      * Get all available recipe handler traits for this trait which will be used for recipe logic.
      */
     default List<IRecipeHandlerTrait<?>> getRecipeHandlerTraits() {
-        return Collections.emptyList();
-    }
-
-    /**
-     * Get all available capability provider traits for this trait which will be used for {@link net.minecraft.world.level.block.entity.BlockEntity#getCapability(Capability, Direction)}.
-     */
-    default List<ICapabilityProviderTrait<?>> getCapabilityProviderTraits() {
         return Collections.emptyList();
     }
 }

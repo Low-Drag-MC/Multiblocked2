@@ -1,15 +1,12 @@
 package com.lowdragmc.mbd2.common.machine.definition.config.toggle;
 
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IToggleConfigurable;
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib2.configurator.IToggleConfigurable;
 import lombok.Getter;
 import lombok.Setter;
 
 public abstract class ToggleObject<T> implements IToggleConfigurable {
-
     @Getter
     @Setter
-    @Persisted
     protected boolean enable;
 
     public abstract T getValue();

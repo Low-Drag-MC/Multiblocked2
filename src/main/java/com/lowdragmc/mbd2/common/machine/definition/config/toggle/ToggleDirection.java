@@ -1,12 +1,11 @@
 package com.lowdragmc.mbd2.common.machine.definition.config.toggle;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.core.Direction;
 
 public class ToggleDirection extends ToggleObject<Direction> {
-
     @Getter
     @Setter
     @Configurable

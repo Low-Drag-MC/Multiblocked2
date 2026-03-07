@@ -1,6 +1,6 @@
 package com.lowdragmc.mbd2.core.mixins;
 
-import com.lowdragmc.lowdraglib.async.AsyncThreadData;
+import com.lowdragmc.lowdraglib2.async.AsyncThreadData;
 import com.lowdragmc.mbd2.api.pattern.MultiblockWorldSavedData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;

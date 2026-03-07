@@ -2,9 +2,6 @@ package com.lowdragmc.mbd2.client;
 
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
-import com.lowdragmc.mbd2.common.CommonProxy;
-import com.lowdragmc.mbd2.integration.create.machine.KineticInstanceRenderer;
-import net.createmod.catnip.render.SuperByteBufferCache;
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -19,11 +16,12 @@ import net.neoforged.neoforge.client.event.EntityRenderersEvent;
  * @implNote ClientProxy
  */
 @OnlyIn(Dist.CLIENT)
-public class ClientProxy extends CommonProxy {
+public class ClientProxy {
     public ClientProxy(IEventBus eventBus) {
-        super(eventBus);
+        eventBus.register(this);
         if (MBD2.isCreateLoaded()) {
-            SuperByteBufferCache.getInstance().registerCompartment(KineticInstanceRenderer.DIRECTIONAL_PARTIAL);
+            // todo kinetic
+//            SuperByteBufferCache.getInstance().registerCompartment(KineticInstanceRenderer.DIRECTIONAL_PARTIAL);
         }
     }
 

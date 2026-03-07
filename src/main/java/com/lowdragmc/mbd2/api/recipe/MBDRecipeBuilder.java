@@ -1,18 +1,15 @@
 package com.lowdragmc.mbd2.api.recipe;
 
-import com.lowdragmc.lowdraglib.LDLib;
-import com.lowdragmc.lowdraglib.Platform;
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.common.capability.recipe.FluidRecipeCapability;
 import com.lowdragmc.mbd2.common.capability.recipe.ItemRecipeCapability;
 import com.lowdragmc.mbd2.common.recipe.*;
-import com.lowdragmc.mbd2.utils.TagUtil;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
@@ -20,10 +17,11 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.ItemLike;
-import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.common.crafting.SizedIngredient;
 import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.crafting.FluidIngredient;
 import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient;
 
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -157,15 +155,18 @@ public class MBDRecipeBuilder {
         return this;
     }
 
-
     public MBDRecipeBuilder inputItems(SizedIngredient... inputs) {
         return input(ItemRecipeCapability.CAP, inputs);
+    }
+
+    public MBDRecipeBuilder inputItems(Ingredient... inputs) {
+        return inputItems(Arrays.stream(inputs).map(ingredient -> new SizedIngredient(ingredient,1)).toArray(SizedIngredient[]::new));
     }
 
     public MBDRecipeBuilder inputItems(ItemStack... inputs) {
         for (ItemStack itemStack : inputs) {
             if (itemStack.isEmpty()) {
-                LDLib.LOGGER.error("gt recipe {} input items is empty", id);
+                LDLib2.LOGGER.error("gt recipe {} input items is empty", id);
                 throw new IllegalArgumentException(id + ": input items is empty");
             }
         }
@@ -205,7 +206,7 @@ public class MBDRecipeBuilder {
     public MBDRecipeBuilder outputItems(ItemStack... outputs) {
         for (ItemStack itemStack : outputs) {
             if (itemStack.isEmpty()) {
-                LDLib.LOGGER.error("gt recipe {} output items is empty", id);
+                LDLib2.LOGGER.error("gt recipe {} output items is empty", id);
                 throw new IllegalArgumentException(id + ": output items is empty");
             }
         }
@@ -254,17 +255,17 @@ public class MBDRecipeBuilder {
     
 
     public MBDRecipeBuilder inputFluids(FluidStack... inputs) {
-        return input(FluidRecipeCapability.CAP, Arrays.stream(inputs).map(fluid -> {
-            if (!Platform.isForge() && fluid.getFluid() == Fluids.WATER) { // Special case for fabric, because there all fluids have to be tagged as water to function as water when placed.
-                return SizedFluidIngredient.of(fluid);
-            } else {
-                return SizedFluidIngredient.of(TagUtil.createFluidTag(BuiltInRegistries.FLUID.getKey(fluid.getFluid()).getPath()), fluid.getAmount());
-            }
-        }).toArray(SizedFluidIngredient[]::new));
+        return input(FluidRecipeCapability.CAP, Arrays.stream(inputs).map(fluid ->
+                new SizedFluidIngredient(FluidIngredient.of(fluid.getFluid()), fluid.getAmount())
+        ).toArray(SizedFluidIngredient[]::new));
     }
 
     public MBDRecipeBuilder inputFluids(SizedFluidIngredient... inputs) {
         return input(FluidRecipeCapability.CAP, inputs);
+    }
+
+    public MBDRecipeBuilder inputFluids(FluidIngredient... inputs) {
+        return inputFluids(Arrays.stream(inputs).map(ingredient -> new SizedFluidIngredient(ingredient,1000)).toArray(SizedFluidIngredient[]::new));
     }
 
     public MBDRecipeBuilder outputFluids(FluidStack... outputs) {

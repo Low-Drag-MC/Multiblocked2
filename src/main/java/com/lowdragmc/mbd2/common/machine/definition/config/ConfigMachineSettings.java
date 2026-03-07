@@ -1,21 +1,24 @@
 package com.lowdragmc.mbd2.common.machine.definition.config;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
-import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
+import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 import lombok.*;
 import lombok.experimental.Accessors;
+import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
 
+
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
 import java.util.List;
 
 @Accessors(fluent = true)
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 @Builder
 public class ConfigMachineSettings implements IPersistedSerializable, IConfigurable {
     @Getter @Setter
@@ -53,7 +56,7 @@ public class ConfigMachineSettings implements IPersistedSerializable, IConfigura
     @Getter
     @Builder.Default
     @Configurable(name = "config.machine_settings.machine_level", tips = "config.machine_settings.machine_level.tooltip")
-    @NumberRange(range = {0, Integer.MAX_VALUE})
+    @ConfigNumber(range = {0, Integer.MAX_VALUE})
     private int machineLevel = 0;
     @Getter
     @Builder.Default
@@ -73,34 +76,9 @@ public class ConfigMachineSettings implements IPersistedSerializable, IConfigura
             tips = {"config.machine_settings.signal_connection.tooltip.0", "config.machine_settings.signal_connection.tooltip.1"})
     private final SignalConnection signalConnection = new SignalConnection();
     @Singular
-    @NonNull
+    @Persisted
     @Getter
     private List<TraitDefinition> traitDefinitions;
-
-    @Override
-    public CompoundTag serializeNBT(HolderLookup.Provider provider) {
-        var tag = IPersistedSerializable.super.serializeNBT(provider);
-        var traits = new ListTag();
-        for (var definition : traitDefinitions) {
-            traits.add(TraitDefinition.serializeDefinition(definition));
-        }
-        tag.put("traitDefinitions", traits);
-        return tag;
-    }
-
-    @Override
-    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
-        IPersistedSerializable.super.deserializeNBT(provider, tag);
-        var traits = tag.getList("traitDefinitions", 10);
-        traitDefinitions = new ArrayList<>();
-        for (var i = 0; i < traits.size(); i++) {
-            var trait = traits.getCompound(i);
-            var definition = TraitDefinition.deserializeDefinition(trait);
-            if (definition != null) {
-                traitDefinitions.add(definition);
-            }
-        }
-    }
 
     public void addTraitDefinition(TraitDefinition definition) {
         traitDefinitions = new ArrayList<>(traitDefinitions);
@@ -111,4 +89,24 @@ public class ConfigMachineSettings implements IPersistedSerializable, IConfigura
         traitDefinitions = this.traitDefinitions.stream().filter(s -> s != definition).toList();
     }
 
+    public void moveTraitDefinition(TraitDefinition toMoved, int newIndex) {
+        if (toMoved == null || traitDefinitions == null || traitDefinitions.isEmpty()) {
+            return;
+        }
+        var definitions = new ArrayList<>(traitDefinitions);
+        int oldIndex = definitions.indexOf(toMoved);
+        if (oldIndex < 0) {
+            return;
+        }
+        int boundedIndex = Math.max(0, Math.min(newIndex, definitions.size()));
+        if (oldIndex < boundedIndex) {
+            boundedIndex--;
+        }
+        if (oldIndex == boundedIndex) {
+            return;
+        }
+        definitions.remove(oldIndex);
+        definitions.add(boundedIndex, toMoved);
+        traitDefinitions = definitions;
+    }
 }

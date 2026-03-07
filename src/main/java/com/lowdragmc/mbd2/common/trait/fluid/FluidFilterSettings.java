@@ -1,19 +1,23 @@
 package com.lowdragmc.mbd2.common.trait.fluid;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.DefaultValue;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IToggleConfigurable;
-import com.lowdragmc.lowdraglib.side.fluid.FluidStack;
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
-import com.lowdragmc.mbd2.utils.TagUtil;
+import com.lowdragmc.lowdraglib2.configurator.IToggleConfigurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigList;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
+import com.lowdragmc.lowdraglib2.configurator.ui.TagKeySearchComponent;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.registries.ForgeRegistries;
+import net.minecraft.tags.FluidTags;
+import net.neoforged.neoforge.common.Tags;
+import net.neoforged.neoforge.fluids.FluidStack;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 public class FluidFilterSettings implements IToggleConfigurable, Predicate<FluidStack> {
     @Getter
@@ -27,16 +31,16 @@ public class FluidFilterSettings implements IToggleConfigurable, Predicate<Fluid
     private boolean isWhitelist = true;
     @Getter
     @Setter
-    @Configurable(name = "config.definition.trait.filter.match_nbt")
-    private boolean matchNBT = false;
+    @Configurable(name = "config.definition.trait.filter.match_component")
+    private boolean matchComponent = false;
     @Getter
     @Setter
     @Configurable(name = "config.definition.trait.filter.fluids")
     private List<FluidStack> filterFluids = new ArrayList<>();
     @Getter
     @Setter
-    @Configurable(name = "config.definition.trait.filter.fluid_tags", forceUpdate = false)
-    @DefaultValue(stringValue = "forge:gaseous")
+    @Configurable(name = "config.definition.trait.filter.fluid_tags")
+    @ConfigList(configuratorMethod = "buildFilterTagsConfigurator", addDefaultMethod = "addDefaultFilterTags")
     private List<ResourceLocation> filterTags = new ArrayList<>();
 
     @Override
@@ -45,8 +49,8 @@ public class FluidFilterSettings implements IToggleConfigurable, Predicate<Fluid
             return true;
         }
         for (var filterFluids : filterFluids) {
-            if (matchNBT) {
-                if (filterFluids.isFluidEqual(fluidStack)) {
+            if (matchComponent) {
+                if (FluidStack.isSameFluidSameComponents(filterFluids, fluidStack)) {
                     return isWhitelist;
                 }
             } else if (filterFluids.getFluid() == fluidStack.getFluid()) {
@@ -54,10 +58,23 @@ public class FluidFilterSettings implements IToggleConfigurable, Predicate<Fluid
             }
         }
         for (var filterTag : filterTags) {
-            if (fluidStack.getFluid().is(TagUtil.optionalTag(ForgeRegistries.FLUIDS.getRegistryKey(), filterTag))) {
+            if (fluidStack.getFluid().is(FluidTags.create(filterTag))) {
                 return isWhitelist;
             }
         }
         return !isWhitelist;
+    }
+
+    private Configurator buildFilterTagsConfigurator(Supplier<ResourceLocation> getter, Consumer<ResourceLocation> setter) {
+        return new TagKeySearchComponent.Fluid("",
+                () -> FluidTags.create(getter.get()),
+                tagKey -> setter.accept(tagKey.location()),
+                Tags.Fluids.WATER,
+                true
+        );
+    }
+
+    private ResourceLocation addDefaultFilterTags() {
+        return Tags.Fluids.WATER.location();
     }
 }

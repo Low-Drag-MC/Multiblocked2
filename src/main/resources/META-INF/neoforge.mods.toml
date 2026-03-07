@@ -1,0 +1,40 @@
+modLoader="javafml" #mandatory
+loaderVersion = "[${loader_version},)"
+license="${mod_license}"
+
+[[mods]] #mandatory
+modId="${mod_id}" #mandatory
+version="${mod_version}" #mandatory
+displayName="${mod_name}" #mandatory
+authors="${mod_authors}" #optional
+description="${mod_description}"
+logoFile = "icon.png"
+displayURL = "${mod_url}"
+issueTrackerURL = "https://github.com/Low-Drag-MC/Multiblocked2/issues"
+
+[[mixins]]
+config="${mod_id}.mixins.json"
+
+[[accessTransformers]]
+file="META-INF/accesstransformer.cfg"
+
+[[dependencies.${mod_id}]] #optional
+    modId="neoforge" #mandatory
+    mandatory=true #mandatory
+    versionRange="${neoforge_version_range}" #mandatory
+    ordering="NONE"
+    side="BOTH"# Here's another dependency
+
+[[dependencies.${mod_id}]]
+    modId="minecraft"
+    type = "required"
+    versionRange="${minecraft_version_range}"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="ldlib2"
+    type = "required"
+    versionRange="${ldlib2_version_range}"
+    ordering="NONE"
+    side="BOTH"

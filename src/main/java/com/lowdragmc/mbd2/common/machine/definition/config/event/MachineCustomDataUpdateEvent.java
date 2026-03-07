@@ -1,20 +1,12 @@
 package com.lowdragmc.mbd2.common.machine.definition.config.event;
 
-import com.lowdragmc.lowdraglib2.gui.editor.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib2.gui.graphprocessor.data.parameter.ExposedParameter;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
-import com.lowdragmc.mbd2.common.graphprocessor.GraphParameterGet;
 import net.minecraft.nbt.CompoundTag;
 import net.neoforged.bus.api.ICancellableEvent;
 
-import java.util.Map;
-import java.util.Optional;
-
-@LDLRegister(name = "MachineCustomDataUpdateEvent", group = "MachineEvent")
+//@LDLRegister(name = "MachineCustomDataUpdateEvent", group = "MachineEvent")
 public class MachineCustomDataUpdateEvent extends MachineEvent implements ICancellableEvent {
-    @GraphParameterGet(displayName = "old data")
     public final CompoundTag oldValue;
-    @GraphParameterGet(displayName = "new data")
     public final CompoundTag newValue;
 
     public MachineCustomDataUpdateEvent(MBDMachine machine, CompoundTag newValue, CompoundTag oldValue) {
@@ -23,10 +15,4 @@ public class MachineCustomDataUpdateEvent extends MachineEvent implements ICance
         this.oldValue = oldValue;
     }
 
-    @Override
-    public void bindParameters(Map<String, ExposedParameter> exposedParameters) {
-        super.bindParameters(exposedParameters);
-        Optional.ofNullable(exposedParameters.get("oldValue")).ifPresent(p -> p.setValue(oldValue));
-        Optional.ofNullable(exposedParameters.get("newValue")).ifPresent(p -> p.setValue(newValue));
-    }
 }

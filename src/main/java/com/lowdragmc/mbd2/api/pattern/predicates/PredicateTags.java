@@ -1,12 +1,12 @@
 package com.lowdragmc.mbd2.api.pattern.predicates;
 
 import com.google.common.base.Suppliers;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.ArrayConfiguratorGroup;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.SearchComponentConfigurator;
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
-import com.lowdragmc.lowdraglib.utils.BlockInfo;
+import com.lowdragmc.lowdraglib2.configurator.ui.ArrayConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.configurator.ui.TagKeySearchComponent;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib2.utils.data.BlockInfo;
 import lombok.NoArgsConstructor;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -19,9 +19,9 @@ import net.minecraft.world.level.block.Blocks;
 import java.util.Arrays;
 import java.util.Objects;
 
-@LDLRegister(name = "tags", group = "predicate")
+@LDLRegister(name = "tags", registry = "mbd2:pattern_predicate", group = "predicate")
 @NoArgsConstructor
-public class PredicateTags extends SimplePredicate {
+public class PredicateTags extends PatternPredicate {
 
     @Persisted
     protected ResourceLocation[] tags = new ResourceLocation[] {};
@@ -32,7 +32,7 @@ public class PredicateTags extends SimplePredicate {
     }
 
     @Override
-    public SimplePredicate buildPredicate() {
+    public PatternPredicate buildPredicate() {
         tags = Arrays.stream(tags).filter(Objects::nonNull).toArray(ResourceLocation[]::new);
         if (tags.length == 0) tags = new ResourceLocation[]{BlockTags.SAND.location()};
         var tagKeys = (TagKey<Block>[]) Arrays.stream(tags).map(BlockTags::create).toArray(TagKey[]::new);
@@ -52,24 +52,13 @@ public class PredicateTags extends SimplePredicate {
         super.buildConfigurator(father);
         var tagsConfigurator = new ArrayConfiguratorGroup<>("config.predicate.tags", false,
                 () -> Arrays.stream(tags).toList(), (getter, setter) ->
-                new SearchComponentConfigurator<>("", getter, setter, BlockTags.SAND.location(), true, (word, find) -> {
-                    for (var tag : BuiltInRegistries.BLOCK.getTagNames().toList()) {
-                        if (Thread.currentThread().isInterrupted()) return;
-                        var tagKey = tag.location();
-                        if (tagKey.toString().toLowerCase().contains(word.toLowerCase())) {
-                            find.accept(tagKey);
-                        }
-                    }}, ResourceLocation::toString), true);
+                new TagKeySearchComponent.Block("",
+                        () -> BlockTags.create(getter.get()),
+                        tagKey -> setter.accept(tagKey.location()),
+                        BlockTags.SAND,
+                        true
+                ), true);
         tagsConfigurator.setAddDefault(BlockTags.SAND::location);
-        tagsConfigurator.setOnAdd(value -> {
-            tags = Arrays.copyOf(this.tags, this.tags.length + 1);
-            tags[tags.length - 1] = value;
-            buildPredicate();
-        });
-        tagsConfigurator.setOnRemove(value -> {
-            tags = Arrays.stream(this.tags).filter(tag -> !tag.equals(value)).toArray(ResourceLocation[]::new);
-            buildPredicate();
-        });
         tagsConfigurator.setOnUpdate(list -> {
             tags = list.toArray(new ResourceLocation[0]);
             buildPredicate();

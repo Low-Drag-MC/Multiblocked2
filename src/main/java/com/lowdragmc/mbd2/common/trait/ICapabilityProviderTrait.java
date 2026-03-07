@@ -1,37 +1,14 @@
 package com.lowdragmc.mbd2.common.trait;
 
-import com.lowdragmc.mbd2.api.capability.recipe.IO;
-import net.minecraft.core.Direction;
-import net.neoforged.common.capabilities.Capability;
-import net.neoforged.common.capabilities.ICapabilityProvider;
+import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 
-import javax.annotation.Nullable;
-import java.util.List;
-
-public interface ICapabilityProviderTrait<T> {
-
+public interface ICapabilityProviderTrait {
     /**
-     * Get capability IO direction of the specific side.
-     * <br/>
-     * For example, whether you can insert or extract items from the specific side.
+     * Registers a capability for the specified machine definition during the provided event.
+     *
+     * @param definition the machine definition for which the capability is being registered
+     * @param event the event context used to register capabilities
      */
-    IO getCapabilityIO(@Nullable Direction side);
-
-    /**
-     * Get the capability for {@link ICapabilityProvider}.
-     */
-    Capability<? super T> getCapability();
-
-    /**
-     * Get the capability content for {@link ICapabilityProvider}.
-     */
-    T getCapContent(IO capabilityIO);
-
-    /**
-     * Merge the content of the capability.
-     * for example, when you create multiple item handlers, you can merge them into one.
-     */
-    default T mergeContents(List<T> contents) {
-        return !contents.isEmpty() ? contents.get(0) : getCapContent(getCapabilityIO(null));
-    }
+    void registerCapability(MBDMachineDefinition definition, RegisterCapabilitiesEvent event);
 }

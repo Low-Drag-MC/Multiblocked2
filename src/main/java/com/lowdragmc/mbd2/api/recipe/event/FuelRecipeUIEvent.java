@@ -1,22 +1,20 @@
 package com.lowdragmc.mbd2.api.recipe.event;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
+import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import lombok.Getter;
-import net.minecraftforge.eventbus.api.Cancelable;
+import net.neoforged.bus.api.ICancellableEvent;
 
 @Getter
-@Cancelable
-@LDLRegister(name = "FuelRecipeUIEvent", group = "RecipeTypeEvent")
-public class FuelRecipeUIEvent extends RecipeTypeEvent {
+//@LDLRegister(name = "FuelRecipeUIEvent", group = "RecipeTypeEvent")
+public class FuelRecipeUIEvent extends RecipeTypeEvent implements ICancellableEvent {
     public MBDRecipe recipe;
-    public WidgetGroup root;
+    public UI ui;
 
-    public FuelRecipeUIEvent(MBDRecipeType recipeType, MBDRecipe recipe, WidgetGroup root) {
+    public FuelRecipeUIEvent(MBDRecipeType recipeType, MBDRecipe recipe, UI ui) {
         super(recipeType);
         this.recipe = recipe;
-        this.root = root;
+        this.ui = ui;
     }
 }

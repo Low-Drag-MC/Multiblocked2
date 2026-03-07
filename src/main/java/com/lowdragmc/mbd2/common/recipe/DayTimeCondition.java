@@ -1,15 +1,12 @@
 package com.lowdragmc.mbd2.common.recipe;
 
-import com.lowdragmc.lowdraglib2.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib2.gui.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
-import com.mojang.serialization.Codec;
-import com.mojang.serialization.MapCodec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -21,30 +18,18 @@ import javax.annotation.Nonnull;
 @Getter
 @Setter
 @NoArgsConstructor
+@LDLRegister(name = "day_time", registry = "mbd2:recipe_condition")
 public class DayTimeCondition extends RecipeCondition {
-
-    public static final MapCodec<DayLightCondition> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-            Codec.BOOL.optionalFieldOf("reverse", false).forGetter(val -> val.isReverse),
-            Codec.BOOL.optionalFieldOf("isDay", true).forGetter(val -> val.isDay)
-    ).apply(instance, DayLightCondition::new));
-
-    public final static DayLightCondition INSTANCE = new DayLightCondition();
-    @Configurable(name = "config.recipe.condition.day_light.is_day")
-    @NumberRange(range = {0f, 1f})
+    @Configurable(name = "config.recipe.condition.day_time.is_day")
     private boolean isDay;
 
     public DayTimeCondition(boolean isDay) {
         this.isDay = isDay;
     }
 
-    public DayLightCondition(boolean isReverse, boolean isDay) {
+    public DayTimeCondition(boolean isReverse, boolean isDay) {
         super(isReverse);
         this.isDay = isDay;
-    }
-
-    @Override
-    public String getType() {
-        return "day_time";
     }
 
     @Override
@@ -55,11 +40,6 @@ public class DayTimeCondition extends RecipeCondition {
     @Override
     public IGuiTexture getIcon() {
         return new ItemStackTexture(Items.CLOCK);
-    }
-
-    @Override
-    public MapCodec<? extends RecipeCondition> codec() {
-        return CODEC;
     }
 
     @Override

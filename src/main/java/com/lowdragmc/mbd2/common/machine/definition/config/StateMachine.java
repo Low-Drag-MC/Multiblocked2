@@ -1,16 +1,20 @@
 package com.lowdragmc.mbd2.common.machine.definition.config;
 
-import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
+import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import lombok.Getter;
+import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 public class StateMachine<T extends MachineState> implements INBTSerializable<CompoundTag> {
     @Getter
     protected final T rootState;
@@ -23,39 +27,27 @@ public class StateMachine<T extends MachineState> implements INBTSerializable<Co
     }
 
     public static <T extends MachineState> T createSingleDefault(Supplier<MachineState.Builder<T>> builderCreator, IRenderer renderer) {
-        var builder = builderCreator.get().name("base")
+        var builder = builderCreator.get()
                 .renderer(renderer)
                 .shape(Shapes.block())
                 .lightLevel(0)
-                .child(builderCreator.get()
-                        .name("working")
-                        .child(builderCreator.get()
-                                .name("waiting")
-                                .build())
-                        .build())
-                .child(builderCreator.get()
-                        .name("suspend")
-                        .build());
+                .child("working", working -> working
+                        .child("waiting"))
+                .child("suspend");
         return builder.build();
     }
 
     public static <T extends MachineState> T createMultiblockDefault(Supplier<MachineState.Builder<T>> builderCreator, IRenderer renderer) {
-        var builder = builderCreator.get().name("base")
+        var builder = builderCreator.get()
                 .renderer(renderer)
                 .shape(Shapes.block())
                 .lightLevel(0)
-                .child(builderCreator.get()
-                        .name("formed")
-                        .child(builderCreator.get()
-                                .name("working")
-                                .child(builderCreator.get()
-                                        .name("waiting")
-                                        .build())
-                                .build())
-                        .child(builderCreator.get()
-                                .name("suspend")
-                                .build())
-                        .build());
+                .child("formed", formed -> formed
+                        .child("working", working -> working
+                                .child("waiting")
+                        )
+                        .child("suspend")
+                );
         return builder.build();
     }
 

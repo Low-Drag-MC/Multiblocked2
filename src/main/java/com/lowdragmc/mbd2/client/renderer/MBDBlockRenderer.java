@@ -1,6 +1,6 @@
 package com.lowdragmc.mbd2.client.renderer;
 
-import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
+import  com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -31,8 +31,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
-
-import static com.lowdragmc.lowdraglib.client.model.forge.LDLRendererModel.RendererBakedModel.*;
 
 @OnlyIn(Dist.CLIENT)
 @AllArgsConstructor
@@ -68,44 +66,35 @@ public class MBDBlockRenderer implements IRenderer {
         return getMachine(level, pos)
                 .map(machine -> {
                     if (machine.isDisableRendering()) return Collections.<BakedQuad>emptyList();
-                    return machine.getMachineState().getRealRenderer().renderModel(level, pos, state, side, rand);
+                    return machine.getMachineState().getRealRenderer().renderModel(level, pos, state, side, rand, modelData, renderType);
                 })
-                .orElseGet(() -> defaultRenderer.get().renderModel(level, pos, state, side, rand));
-    }
-
-    @NotNull
-    @Override
-    public TextureAtlasSprite getParticleTexture() {
-//        var modelData = LDLRendererModel.RendererBakedModel.CURRENT_MODEL_DATA.get();
-//        if (modelData != null) {
-//            var world = modelData.get(WORLD);
-//            var pos = modelData.get(POS);
-//            return getMachine(world, pos)
-//                    .map(machine -> machine.getMachineState().getRealRenderer().getParticleTexture())
-//                    .orElseGet(() -> defaultRenderer.get().getParticleTexture());
-//        }
-        return defaultRenderer.get().getParticleTexture();
+                .orElseGet(() -> defaultRenderer.get().renderModel(level, pos, state, side, rand, modelData, renderType));
     }
 
     @Override
-    public boolean hasTESR(BlockEntity blockEntity) {
+    public @NotNull TextureAtlasSprite getParticleTexture(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, ModelData modelData) {
+        return defaultRenderer.get().getParticleTexture(level, pos, modelData);
+    }
+
+    @Override
+    public boolean hasBlockEntityRenderer(BlockEntity blockEntity) {
         return getMachine(blockEntity).map(machine ->
-                machine.getMachineState().getRealRenderer().hasTESR(blockEntity) ||
+                machine.getMachineState().getRealRenderer().hasBlockEntityRenderer(blockEntity) ||
                         machine.getDefinition().machineSettings().traitDefinitions().stream()
                                 .map(definition -> definition.getBESRenderer(machine))
-                                .anyMatch(renderer -> renderer.hasTESR(blockEntity))
-        ).orElseGet(() -> defaultRenderer.get().hasTESR(blockEntity));
+                                .anyMatch(renderer -> renderer.hasBlockEntityRenderer(blockEntity))
+        ).orElseGet(() -> defaultRenderer.get().hasBlockEntityRenderer(blockEntity));
     }
 
     @Override
-    public boolean isGlobalRenderer(BlockEntity blockEntity) {
+    public boolean shouldRenderOffScreen(BlockEntity blockEntity) {
         return getMachine(blockEntity).map(machine ->
                 machine.getMachineState().isGlobalVisible() ||
-                machine.getMachineState().getRealRenderer().isGlobalRenderer(blockEntity) ||
+                machine.getMachineState().getRealRenderer().shouldRenderOffScreen(blockEntity) ||
                         machine.getDefinition().machineSettings().traitDefinitions().stream()
                                 .map(definition -> definition.getBESRenderer(machine))
-                                .anyMatch(renderer -> renderer.isGlobalRenderer(blockEntity))
-        ).orElseGet(() -> defaultRenderer.get().isGlobalRenderer(blockEntity));
+                                .anyMatch(renderer -> renderer.shouldRenderOffScreen(blockEntity))
+        ).orElseGet(() -> defaultRenderer.get().shouldRenderOffScreen(blockEntity));
     }
 
     @Override
@@ -121,7 +110,7 @@ public class MBDBlockRenderer implements IRenderer {
             machine.getMachineState().getRealRenderer().render(blockEntity, partialTicks, stack, buffer, combinedLight, combinedOverlay);
             for (var traitDefinition : machine.getDefinition().machineSettings().traitDefinitions()) {
                 var renderer = traitDefinition.getBESRenderer(machine);
-                if (renderer.hasTESR(blockEntity)) {
+                if (renderer.hasBlockEntityRenderer(blockEntity)) {
                     renderer.render(blockEntity, partialTicks, stack, buffer, combinedLight, combinedOverlay);
                 }
             }

@@ -1,30 +1,30 @@
 package com.lowdragmc.mbd2.common.machine.definition.config;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.ArrayConfiguratorGroup;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorSelectorConfigurator;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
-import com.lowdragmc.lowdraglib.syncdata.IPersistedSerializable;
+import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigList;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
+import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorSelectorConfigurator;
+import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.ReadOnlyManaged;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
+import com.lowdragmc.mbd2.common.recipe.RainingCondition;
 import com.mojang.datafixers.util.Pair;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.NbtOps;
-import net.minecraft.nbt.Tag;
-import net.neoforged.neoforge.common.util.INBTSerializable;
+import net.minecraft.nbt.*;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * To modify the controller recipe on the fly. You can use it to make a upgrade/plugin part.
@@ -36,103 +36,55 @@ public class RecipeModifier implements IConfigurable, IPersistedSerializable {
     public final IO targetContent = IO.BOTH;
     @Configurable(name = "config.recipe.duration_modifier", subConfigurable = true, tips = {"config.recipe.duration_modifier.tooltip"}, collapse = false)
     public final ContentModifier durationModifier = ContentModifier.of(1, 0);
+    @Configurable(name = "config.recipe.recipe_conditions")
+    @ConfigList(configuratorMethod = "recipeConditionConfigurator", addDefaultMethod = "defaultRecipeCondition")
     public final List<RecipeCondition> recipeConditions = new ArrayList<>();
     @Configurable(name = "config.machine_settings.max_parallel", subConfigurable = true, tips = "config.machine_settings.max_parallel.tooltip", collapse = false)
-    @NumberRange(range = {1, Integer.MAX_VALUE})
+    @ConfigNumber(range = {1, Integer.MAX_VALUE})
     public final ContentModifier maxParallel = ContentModifier.identity();
 
-    @Override
-    public CompoundTag serializeNBT(HolderLookup.Provider provider) {
-        var tag = IPersistedSerializable.super.serializeNBT(provider);
-        ListTag conditions = new ListTag();
-        for (RecipeCondition condition : recipeConditions) {
-            conditions.add(RecipeCondition.CODEC.encodeStart(NbtOps.INSTANCE, condition).getOrThrow());
-        }
-        tag.put("recipeConditions", conditions);
-        return tag;
-    }
 
-    @Override
-    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag) {
-        IPersistedSerializable.super.deserializeNBT(provider, tag);
-        recipeConditions.clear();
-        ListTag conditions = tag.getList("recipeConditions", Tag.TAG_COMPOUND);
-        for (int i = 0; i < conditions.size(); i++) {
-            CompoundTag conditionTag = conditions.getCompound(i);
-            var condition = RecipeCondition.CODEC.parse(NbtOps.INSTANCE, conditionTag).result();
-            if (condition.isPresent()) {
-                recipeConditions.add(condition.get());
-            }
-        }
-    }
-
-    @Override
-    public void buildConfigurator(ConfiguratorGroup father) {
-        IConfigurable.super.buildConfigurator(father);
-        var conditions = new ArrayConfiguratorGroup<>("config.recipe.recipe_conditions", false,
-                () -> recipeConditions, (getter, setter) -> new ConfiguratorSelectorConfigurator<>("config.recipe.recipe_condition.type", false,
+    protected Configurator recipeConditionConfigurator(Supplier<RecipeCondition> getter, Consumer<RecipeCondition> setter) {
+        return new ConfiguratorSelectorConfigurator<>("config.recipe.recipe_condition.type",
                 () -> getter.get().getType(), type -> {
-            var current = getter.get();
             var condition = MBDRegistries.RECIPE_CONDITIONS.get(type);
             if (condition != null) {
-                recipeConditions.set(recipeConditions.indexOf(current), condition.copy());
+                setter.accept(condition.value().get());
             }
         }, "rain", true, MBDRegistries.RECIPE_CONDITIONS.registry().keySet().stream().toList(),
-                String::toString, (type, container) -> {
-            var current = getter.get();
-            current.buildConfigurator(container);
-        }), true);
-        conditions.setTips("config.recipe.recipe_conditions.tooltip");
-        conditions.setAddDefault(() -> MBDRegistries.RECIPE_CONDITIONS.get("rain").copy());
-        conditions.setOnAdd(recipeConditions::add);
-        conditions.setOnRemove(recipeConditions::remove);
-        conditions.setOnUpdate(list -> {
-            recipeConditions.clear();
-            recipeConditions.addAll(list);
-        });
-        father.addConfigurators(conditions);
+                String::toString, (type, container) -> getter.get().buildConfigurator(container));
     }
 
-    public static class RecipeModifiers implements INBTSerializable<ListTag>, IConfigurable {
+    protected RecipeCondition defaultRecipeCondition() {
+        return new RainingCondition();
+    }
+
+    public static class RecipeModifiers implements IConfigurable, IPersistedSerializable {
+        @Configurable(name = "config.recipe.recipe_modifiers")
+        @ConfigList(configuratorMethod = "recipeModifierConfigurator", addDefaultMethod = "defaultRecipeModifier")
+        @ReadOnlyManaged(serializeMethod = "recipeModifiersSerialize", deserializeMethod = "recipeModifiersDeserialize")
         public final List<RecipeModifier> recipeModifiers = new ArrayList<>();
 
-        @Override
-        public ListTag serializeNBT(HolderLookup.Provider provider) {
-            var modifiers = new ListTag();
-            for (RecipeModifier modifier : recipeModifiers) {
-                modifiers.add(modifier.serializeNBT(provider));
-            }
-            return modifiers;
+        protected IntTag recipeModifiersSerialize(List<RecipeModifier> groups) {
+            return IntTag.valueOf(groups.size());
         }
 
-        @Override
-        public void deserializeNBT(HolderLookup.Provider provider, ListTag modifiers) {
-            recipeModifiers.clear();
-            for (int i = 0; i < modifiers.size(); i++) {
-                var modifier = new RecipeModifier();
-                modifier.deserializeNBT(provider, modifiers.getCompound(i));
-                recipeModifiers.add(modifier);
+        protected List<RecipeModifier> recipeModifiersDeserialize(IntTag tag) {
+            var groups = new ArrayList<RecipeModifier>();
+            for (int i = 0; i < tag.getAsInt(); i++) {
+                groups.add(defaultRecipeModifier());
             }
+            return groups;
         }
 
-        @Override
-        public void buildConfigurator(ConfiguratorGroup father) {
-            var modifiers = new ArrayConfiguratorGroup<>("config.recipe.recipe_modifiers", true,
-                    () -> recipeModifiers, (getter, setter) -> {
-                var recipeModifier = getter.get();
-                var group = new ConfiguratorGroup("config.recipe.content_modifier", false);
-                recipeModifier.buildConfigurator(group);
-                return group;
-            }, true);
-            modifiers.setTips("config.recipe.recipe_modifiers.tooltip");
-            modifiers.setAddDefault(RecipeModifier::new);
-            modifiers.setOnAdd(recipeModifiers::add);
-            modifiers.setOnRemove(recipeModifiers::remove);
-            modifiers.setOnUpdate(list -> {
-                recipeModifiers.clear();
-                recipeModifiers.addAll(list);
-            });
-            father.addConfigurators(modifiers);
+        protected Configurator recipeModifierConfigurator(Supplier<RecipeModifier> getter, Consumer<RecipeModifier> setter) {
+            var group = new ConfiguratorGroup("", false).hideTitle();
+            getter.get().buildConfigurator(group);
+            return group;
+        }
+
+        protected RecipeModifier defaultRecipeModifier() {
+            return new RecipeModifier();
         }
 
         /**

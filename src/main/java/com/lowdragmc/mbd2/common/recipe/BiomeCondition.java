@@ -1,27 +1,29 @@
 package com.lowdragmc.mbd2.common.recipe;
 
-import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.SearchComponentConfigurator;
-import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
+import com.lowdragmc.lowdraglib2.Platform;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSearch;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.configurator.ui.SearchComponentConfigurator;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib2.utils.LocalizationUtils;
+import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
-import com.mojang.serialization.Codec;
-import com.mojang.serialization.MapCodec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import net.minecraft.client.Minecraft;
 import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
-import java.util.function.Consumer;
+import java.util.Collections;
 
 /**
  * @author KilaBash
@@ -31,14 +33,10 @@ import java.util.function.Consumer;
 @Getter
 @Setter
 @NoArgsConstructor
+@LDLRegister(name = "biome", registry = "mbd2:recipe_condition")
 public class BiomeCondition extends RecipeCondition {
-    public static final MapCodec<BiomeCondition> CODEC = RecordCodecBuilder
-            .mapCodec(instance -> instance.group(
-                            Codec.BOOL.optionalFieldOf("reverse", false).forGetter(val -> val.isReverse),
-                            ResourceLocation.CODEC.fieldOf("biome").forGetter(val -> val.biome)
-                    ).apply(instance, BiomeCondition::new));
-
-    public final static BiomeCondition INSTANCE = new BiomeCondition();
+    @Configurable(name = "recipe.condition.biome")
+    @ConfigSearch(searchConfiguratorMethod = "searchConfigurator")
     private ResourceLocation biome = ResourceLocation.parse("dummy");
 
     public BiomeCondition(ResourceLocation biome) {
@@ -68,34 +66,28 @@ public class BiomeCondition extends RecipeCondition {
         return biome.is(this.biome);
     }
 
-    @Override
-    public MapCodec<? extends RecipeCondition> codec() {
-        return CODEC;
-    }
-
-    @Override
-    public void buildConfigurator(ConfiguratorGroup father) {
-        super.buildConfigurator(father);
-        var selector = new SearchComponentConfigurator<>(getTranslationKey(),
-                () -> this.biome,
-                b -> this.biome = b,
-                ResourceLocation.parse("dummy"),
-                true,
-                this::search,
-                ResourceLocation::toString
-        );
-        selector.setUp(false);
-        selector.setTips("config.recipe.condition.biome.tooltip");
-        father.addConfigurators(selector);
-    }
-
-    protected void search(String word, Consumer<ResourceLocation> find) {
-        var wordLower = word.toLowerCase();
-        for (var biomeEntry : Minecraft.getInstance().level.registryAccess().registry(Registries.BIOME).get().keySet()) {
-            if (Thread.currentThread().isInterrupted()) return;
-            if (biomeEntry.toString().contains(wordLower)) {
-                find.accept(biomeEntry);
+    private SearchComponentConfigurator.ISearchConfigurator<ResourceLocation> searchConfigurator() {
+        return new SearchComponentConfigurator.ISearchConfigurator<>() {
+            @Override
+            public @Nonnull ResourceLocation defaultValue() {
+                return ResourceLocation.parse("dummy");
             }
-        }
+
+            @Override
+            public @Nonnull String resultText(@NotNull ResourceLocation value) {
+                return value.toString();
+            }
+
+            @Override
+            public void search(String word, IResultHandler<ResourceLocation> searchHandler) {
+                var wordLower = word.toLowerCase();
+                for (var biomeEntry : Platform.getClientRegistryAccess().registry(Registries.BIOME).map(Registry::keySet).orElseGet(Collections::emptySet)) {
+                    if (Thread.currentThread().isInterrupted()) return;
+                    if (biomeEntry.toString().contains(wordLower)) {
+                        searchHandler.accept(biomeEntry);
+                    }
+                }
+            }
+        };
     }
 }

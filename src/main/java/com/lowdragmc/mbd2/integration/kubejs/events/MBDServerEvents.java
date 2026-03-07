@@ -5,7 +5,7 @@ import com.lowdragmc.mbd2.api.recipe.event.TransferProxyRecipeEvent;
 import com.lowdragmc.mbd2.common.machine.definition.config.event.*;
 import dev.latvian.mods.kubejs.event.EventHandler;
 import dev.latvian.mods.kubejs.event.EventResult;
-import dev.latvian.mods.kubejs.event.Extra;
+import dev.latvian.mods.kubejs.event.EventTargetType;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -93,7 +93,7 @@ public interface MBDServerEvents {
             MBDMachineEvents.MachineRemovedEventJS::new);
 
     EventHandler RIGHT_CLICK = registerMachineEvent("onRightClick",
-            MachineRightClickEvent.class,
+            MachineUseWithoutItemEvent.class,
             MBDMachineEvents.MachineRightClickEventJS.class,
             MBDMachineEvents.MachineRightClickEventJS::new);
 
@@ -151,7 +151,7 @@ public interface MBDServerEvents {
     static <E extends MachineEvent> EventHandler registerMachineEvent(String name, Class<E> eventClass,
                                                                       Class<? extends MBDMachineEvents.MachineEventJS<E>> eventJSClass,
                                                                       Function<E, MBDMachineEvents.MachineEventJS<E>> eventJSFactory) {
-        var handler = MBDMachineEvents.MBD_MACHINE_EVENTS.server(name, () -> eventJSClass).extra(Extra.ID);
+        var handler = MBDMachineEvents.MBD_MACHINE_EVENTS.server(name, () -> eventJSClass).requiredTarget(EventTargetType.ID);
         machineEventHandlers.put(eventClass, event -> handler.post(eventJSFactory.apply((E) event), event.machine.getDefinition().id()));
         return handler;
     }
@@ -159,7 +159,7 @@ public interface MBDServerEvents {
     static <E extends RecipeTypeEvent> EventHandler registerRecipeTypeEvent(String name, Class<? extends RecipeTypeEvent> eventClass,
                                         Class<? extends MBDRecipeTypeEvents.RecipeTypeEventJS<E>> eventJSClass,
                                         Function<E, MBDRecipeTypeEvents.RecipeTypeEventJS<E>> eventJSFactory) {
-        var handler = MBDRecipeTypeEvents.MBD_RECIPE_TYPE_EVENTS.server(name, () -> eventJSClass).extra(Extra.ID);
+        var handler = MBDRecipeTypeEvents.MBD_RECIPE_TYPE_EVENTS.server(name, () -> eventJSClass).requiredTarget(EventTargetType.ID);
         recipeTypeEventHandlers.put(eventClass, event -> handler.post(eventJSFactory.apply((E) event), event.recipeType.getRegistryName()));
         return handler;
     }

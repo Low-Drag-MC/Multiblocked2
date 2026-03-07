@@ -1,13 +1,13 @@
 package com.lowdragmc.mbd2.api.pattern;
 
-import com.lowdragmc.lowdraglib.utils.BlockInfo;
+import com.lowdragmc.lowdraglib2.utils.data.BlockInfo;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
 import com.lowdragmc.mbd2.api.machine.IMultiPart;
 import com.lowdragmc.mbd2.api.pattern.error.PatternError;
 import com.lowdragmc.mbd2.api.pattern.error.PatternStringError;
 import com.lowdragmc.mbd2.api.pattern.error.SinglePredicateError;
-import com.lowdragmc.mbd2.api.pattern.predicates.SimplePredicate;
+import com.lowdragmc.mbd2.api.pattern.predicates.PatternPredicate;
 import com.lowdragmc.mbd2.api.pattern.util.PatternMatchContext;
 import com.lowdragmc.mbd2.api.pattern.util.RelativeDirection;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -18,7 +18,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.stats.Stats;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.BucketItem;
@@ -94,8 +93,8 @@ public class BlockPattern {
         int minZ = -centerOffset[4];
         worldState.clean();
         PatternMatchContext matchContext = worldState.getMatchContext();
-        Map<SimplePredicate, Integer> globalCount = worldState.getGlobalCount();
-        Map<SimplePredicate, Integer> layerCount = worldState.getLayerCount();
+        Map<PatternPredicate, Integer> globalCount = worldState.getGlobalCount();
+        Map<PatternPredicate, Integer> layerCount = worldState.getLayerCount();
         //Checking aisles
         for (int c = 0, z = minZ++, r; c < this.fingerLength; c++) {
             //Checking repeatable slices
@@ -154,7 +153,7 @@ public class BlockPattern {
                 z++;
 
                 //Check layer-local matcher predicate
-                for (Map.Entry<SimplePredicate, Integer> entry : layerCount.entrySet()) {
+                for (Map.Entry<PatternPredicate, Integer> entry : layerCount.entrySet()) {
                     if (entry.getValue() < entry.getKey().minLayerCount) {
                         worldState.setError(new SinglePredicateError(entry.getKey(), 3));
                         return false;
@@ -171,7 +170,7 @@ public class BlockPattern {
         }
 
         //Check count matches amount
-        for (Map.Entry<SimplePredicate, Integer> entry : globalCount.entrySet()) {
+        for (Map.Entry<PatternPredicate, Integer> entry : globalCount.entrySet()) {
             if (entry.getValue() < entry.getKey().minCount) {
                 worldState.setError(new SinglePredicateError(entry.getKey(), 1));
                 return false;
@@ -189,8 +188,8 @@ public class BlockPattern {
         IMultiController controller = worldState.getController();
         BlockPos centerPos = controller.getPos();
         Direction facing = controller.getFrontFacing().orElse(Direction.NORTH);
-        Map<SimplePredicate, Integer> cacheGlobal = worldState.getGlobalCount();
-        Map<SimplePredicate, Integer> cacheLayer = worldState.getLayerCount();
+        Map<PatternPredicate, Integer> cacheGlobal = worldState.getGlobalCount();
+        Map<PatternPredicate, Integer> cacheLayer = worldState.getLayerCount();
         Map<BlockPos, Object> blocks = new HashMap<>();
         blocks.put(centerPos, controller);
         for (int c = 0, z = minZ++, r; c < this.fingerLength; c++) {
@@ -203,13 +202,13 @@ public class BlockPattern {
                         worldState.update(pos, predicate);
                         if (!world.isEmptyBlock(pos)) {
                             blocks.put(pos, world.getBlockState(pos));
-                            for (SimplePredicate limit : predicate.limited) {
+                            for (PatternPredicate limit : predicate.limited) {
                                 limit.testLimited(worldState);
                             }
                         } else {
                             boolean find = false;
                             BlockInfo[] infos = new BlockInfo[0];
-                            for (SimplePredicate limit : predicate.limited) {
+                            for (PatternPredicate limit : predicate.limited) {
                                 if (limit.controllerFront.isEnable() && limit.controllerFront.getValue() != facing) continue;
                                 if (limit.minLayerCount > 0) {
                                     if (!cacheLayer.containsKey(limit)) {
@@ -222,12 +221,12 @@ public class BlockPattern {
                                 } else {
                                     continue;
                                 }
-                                infos = limit.candidates == null ? null : limit.candidates.get();
+                                infos = limit.getCandidates();
                                 find = true;
                                 break;
                             }
                             if (!find) {
-                                for (SimplePredicate limit : predicate.limited) {
+                                for (PatternPredicate limit : predicate.limited) {
                                     if (limit.controllerFront.isEnable() && limit.controllerFront.getValue() != facing) continue;
                                     if (limit.minCount > 0) {
                                         if (!cacheGlobal.containsKey(limit)) {
@@ -240,13 +239,13 @@ public class BlockPattern {
                                     } else {
                                         continue;
                                     }
-                                    infos = limit.candidates == null ? null : limit.candidates.get();
+                                    infos = limit.getCandidates();
                                     find = true;
                                     break;
                                 }
                             }
                                 if (!find) { // no limited
-                                for (SimplePredicate limit : predicate.limited) {
+                                for (PatternPredicate limit : predicate.limited) {
                                     if (limit.controllerFront.isEnable() && limit.controllerFront.getValue() != facing) continue;
                                     if (limit.maxLayerCount != -1 && cacheLayer.getOrDefault(limit, Integer.MAX_VALUE) == limit.maxLayerCount)
                                         continue;
@@ -262,11 +261,11 @@ public class BlockPattern {
                                     } else {
                                         cacheGlobal.put(limit, 1);
                                     }
-                                    infos = ArrayUtils.addAll(infos, limit.candidates == null ? null : limit.candidates.get());
+                                    infos = ArrayUtils.addAll(infos, limit.getCandidates());
                                 }
-                                for (SimplePredicate common : predicate.common) {
+                                for (PatternPredicate common : predicate.common) {
                                     if (common.controllerFront.isEnable() && common.controllerFront.getValue() != facing) continue;
-                                    infos = ArrayUtils.addAll(infos, common.candidates == null ? null : common.candidates.get());
+                                    infos = ArrayUtils.addAll(infos, common.getCandidates());
                                 }
                             }
 
@@ -344,7 +343,7 @@ public class BlockPattern {
     }
 
     public BlockInfo[][][] getPreview(int[] repetition) {
-        Map<SimplePredicate, Integer> cacheGlobal = new HashMap<>();
+        Map<PatternPredicate, Integer> cacheGlobal = new HashMap<>();
         Map<BlockPos, BlockInfo> blocks = new HashMap<>();
         int minX = Integer.MAX_VALUE;
         int minY = Integer.MAX_VALUE;
@@ -355,13 +354,13 @@ public class BlockPattern {
         for (int l = 0, x = 0; l < this.fingerLength; l++) {
             for (int r = 0; r < repetition[l]; r++) {
                 //Checking single slice
-                Map<SimplePredicate, Integer> cacheLayer = new HashMap<>();
+                Map<PatternPredicate, Integer> cacheLayer = new HashMap<>();
                 for (int y = 0; y < this.thumbLength; y++) {
                     for (int z = 0; z < this.palmLength; z++) {
                         var predicate = this.blockMatches[l][y][z];
                         boolean find = false;
                         BlockInfo[] infos = null;
-                        for (SimplePredicate limit : predicate.limited) { // check layer and previewCount
+                        for (PatternPredicate limit : predicate.limited) { // check layer and previewCount
                             if (limit.controllerFront.isEnable() && limit.controllerFront.getValue() != Direction.NORTH) continue;
                             if (limit.minLayerCount > 0) {
                                 if (!cacheLayer.containsKey(limit)) {
@@ -383,12 +382,12 @@ public class BlockPattern {
                             } else {
                                 continue;
                             }
-                            infos = limit.candidates == null ? null : limit.candidates.get();
+                            infos = limit.getCandidates();
                             find = true;
                             break;
                         }
                         if (!find) { // check global and previewCount
-                            for (SimplePredicate limit : predicate.limited) {
+                            for (PatternPredicate limit : predicate.limited) {
                                 if (limit.controllerFront.isEnable() && limit.controllerFront.getValue() != Direction.NORTH) continue;
                                 if (limit.minCount == -1 && limit.previewCount == -1) continue;
                                 if (cacheGlobal.getOrDefault(limit, 0) < limit.previewCount) {
@@ -410,13 +409,13 @@ public class BlockPattern {
                                 } else {
                                     continue;
                                 }
-                                infos = limit.candidates == null ? null : limit.candidates.get();
+                                infos = limit.getCandidates();
                                 find = true;
                                 break;
                             }
                         }
                         if (!find) { // check common with previewCount
-                            for (SimplePredicate common : predicate.common) {
+                            for (PatternPredicate common : predicate.common) {
                                 if (common.controllerFront.isEnable() && common.controllerFront.getValue() != Direction.NORTH) continue;
                                 if (common.previewCount > 0) {
                                     if (!cacheGlobal.containsKey(common)) {
@@ -429,23 +428,23 @@ public class BlockPattern {
                                 } else {
                                     continue;
                                 }
-                                infos = common.candidates == null ? null : common.candidates.get();
+                                infos = common.getCandidates();
                                 find = true;
                                 break;
                             }
                         }
                         if (!find) { // check without previewCount
-                            for (SimplePredicate common : predicate.common) {
+                            for (PatternPredicate common : predicate.common) {
                                 if (common.controllerFront.isEnable() && common.controllerFront.getValue() != Direction.NORTH) continue;
                                 if (common.previewCount == -1) {
-                                    infos = common.candidates == null ? null : common.candidates.get();
+                                    infos = common.getCandidates();
                                     find = true;
                                     break;
                                 }
                             }
                         }
                         if (!find) { // check max
-                            for (SimplePredicate limit : predicate.limited) {
+                            for (PatternPredicate limit : predicate.limited) {
                                 if (limit.controllerFront.isEnable() && limit.controllerFront.getValue() != Direction.NORTH) continue;
                                 if (limit.previewCount != -1) {
                                     continue;
@@ -467,7 +466,7 @@ public class BlockPattern {
                                     }
                                 }
 
-                                infos = limit.candidates == null ? null : limit.candidates.get();
+                                infos = limit.getCandidates();
                                 break;
                             }
                         }

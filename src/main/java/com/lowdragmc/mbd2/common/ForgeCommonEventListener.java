@@ -12,20 +12,20 @@ import it.unimi.dsi.fastutil.longs.LongSets;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.LevelAccessor;
-import net.neoforged.event.RegisterCommandsEvent;
-import net.neoforged.event.entity.player.PlayerInteractEvent;
-import net.neoforged.event.level.LevelEvent;
-import net.neoforged.event.server.ServerStoppingEvent;
-import net.neoforged.eventbus.api.Event;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.common.util.TriState;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import net.neoforged.neoforge.event.level.LevelEvent;
+import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 
 /**
  * @author KilaBash
  * @date 2022/8/27
  * @implNote ForgeCommonEventListener
  */
-@Mod.EventBusSubscriber(modid = MBD2.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
+@EventBusSubscriber(modid = MBD2.MOD_ID)
 public class ForgeCommonEventListener {
 
     @SubscribeEvent
@@ -47,8 +47,8 @@ public class ForgeCommonEventListener {
                                 machine.getDefinition().multiblockSettings().showUIWhenClickStructure() &&
                                 openUIMask.contains(pos.asLong())) {
                             machine.openUI(event.getEntity());
-                            event.setUseBlock(Event.Result.ALLOW);
-                            event.setUseItem(Event.Result.DENY);
+                            event.setUseBlock(TriState.FALSE);
+                            event.setUseItem(TriState.FALSE);
                             // event.setCanceled(true);
                             return;
                         }

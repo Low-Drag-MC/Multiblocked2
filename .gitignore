@@ -19,3 +19,5 @@ classes/
 *.launch
 .DS_Store
 /runs
+.claude/settings.local.json
+CLAUDE.md

@@ -1,24 +1,20 @@
 package com.lowdragmc.mbd2.common.machine.definition.config.toggle;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.DefaultValue;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorSelectorConfigurator;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.NumberConfigurator;
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSelector;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
+import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.SkipPersistedValue;
 import com.lowdragmc.mbd2.common.trait.item.ItemFilterSettings;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.world.level.block.Block;
 
-import java.util.Arrays;
-
+@Getter
+@Setter
 public class ToggleCatalyst extends ItemFilterSettings {
-    @Getter
-    @Setter
-    @Persisted
-    protected boolean enable;
-
     public enum CatalystType {
         CONSUME_ITEM("config.multiblock_settings.catalyst.consume_type.consume_item"),
         CONSUME_DURABILITY("config.multiblock_settings.catalyst.consume_type.consume_durability");
@@ -35,42 +31,38 @@ public class ToggleCatalyst extends ItemFilterSettings {
     @Configurable(name = "config.multiblock_settings.catalyst.candidates", subConfigurable = true,
             tips = "config.multiblock_settings.catalyst.candidates.tooltip")
     private ToggleCandidates candidates = new ToggleCandidates();
-    @Getter
+    @Configurable(name = "config.multiblock_settings.catalyst.consume_type")
+    @ConfigSelector(subConfiguratorBuilder = "catalystTypeConfigurator")
     private CatalystType catalystType = CatalystType.CONSUME_ITEM;
-    @Getter
     @Persisted
     private int consumeItemAmount = 0;
-    @Getter
     @Persisted
     private int consumeDurabilityValue = 1;
 
-    @Override
-    public void buildConfigurator(ConfiguratorGroup father) {
-        super.buildConfigurator(father);
-        father.addConfigurators(new ConfiguratorSelectorConfigurator<>(
-                "config.multiblock_settings.catalyst.consume_type",
-                false, () -> catalystType,
-                type -> catalystType = type,
-                CatalystType.CONSUME_ITEM,
-                true,
-                Arrays.stream(CatalystType.values()).toList(),
-                CatalystType::getTranslateKey,
-                (type, configurator) -> {
-                    if (type == CatalystType.CONSUME_ITEM) {
-                        configurator.addConfigurators(new NumberConfigurator("config.multiblock_settings.catalyst.consume_type.consume_item.amount",
-                                () -> consumeItemAmount,
-                                value -> consumeItemAmount = value.intValue(),
-                                0,
-                                true).setRange(0, 64).setWheel(1));
-                    } else {
-                        configurator.addConfigurators(new NumberConfigurator("config.multiblock_settings.catalyst.consume_type.consume_durability.amount",
-                                () -> consumeDurabilityValue,
-                                value -> consumeDurabilityValue = value.intValue(),
-                                1,
-                                true).setRange(1, Integer.MAX_VALUE).setWheel(1));
-                    }
-                }
-                ));
+    private void catalystTypeConfigurator(CatalystType type, ConfiguratorGroup group) {
+        if (type == CatalystType.CONSUME_ITEM) {
+            group.addConfigurators(new NumberConfigurator("config.multiblock_settings.catalyst.consume_type.consume_item.amount",
+                    () -> consumeItemAmount,
+                    value -> consumeItemAmount = value.intValue(),
+                    0,
+                    true).setRange(0, 64).setWheel(1));
+        } else {
+            group.addConfigurators(new NumberConfigurator("config.multiblock_settings.catalyst.consume_type.consume_durability.amount",
+                    () -> consumeDurabilityValue,
+                    value -> consumeDurabilityValue = value.intValue(),
+                    1,
+                    true).setRange(1, Integer.MAX_VALUE).setWheel(1));
+        }
+    }
+
+    @SkipPersistedValue(field = "consumeItemAmount")
+    public boolean skipIntFieldPersisted(int value) {
+        return catalystType == CatalystType.CONSUME_ITEM || value == 0;
+    }
+
+    @SkipPersistedValue(field = "consumeDurabilityValue")
+    public boolean skipIntFieldPersisted2(int value) {
+        return catalystType == CatalystType.CONSUME_DURABILITY || value == 1;
     }
 
     public static class ToggleCandidates extends ToggleObject<Block[]> {

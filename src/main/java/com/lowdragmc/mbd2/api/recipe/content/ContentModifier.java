@@ -1,8 +1,9 @@
 package com.lowdragmc.mbd2.api.recipe.content;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
-import com.lowdragmc.lowdraglib.gui.editor.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -11,14 +12,15 @@ import java.math.BigInteger;
 
 @Getter
 @Setter
+@KJSBindings
 public class ContentModifier implements IConfigurable {
     public static final ContentModifier IDENTITY = ContentModifier.identity();
 
     @Configurable(name="content_modifier.multiplier", tips="content_modifier.multiplier.tips")
-    @NumberRange(range = {0, Double.MAX_VALUE}, wheel = 1f)
+    @ConfigNumber(range = {0, Double.MAX_VALUE}, wheel = 1f)
     private double multiplier;
     @Configurable(name="content_modifier.addition", tips="content_modifier.addition.tips")
-    @NumberRange(range = {0, Double.MAX_VALUE}, wheel = 1f)
+    @ConfigNumber(range = {0, Double.MAX_VALUE}, wheel = 1f)
     private double addition;
 
     public boolean isIdentity() {

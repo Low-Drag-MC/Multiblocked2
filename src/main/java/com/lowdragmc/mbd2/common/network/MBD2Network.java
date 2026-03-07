@@ -8,8 +8,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 public class MBD2Network {
 
     public static void registerPayloads(RegisterPayloadHandlersEvent event) {
-        PayloadRegistrar registar = event.registrar(MBD2.MOD_ID);
-
-        registar.playToClient(SPatternErrorPosPacket.TYPE, SPatternErrorPosPacket.CODEC, SPatternErrorPosPacket::execute);
+        PayloadRegistrar registrar = event.registrar(MBD2.MOD_ID);
+        registrar.playToClient(SPatternErrorPosPacket.TYPE, SPatternErrorPosPacket.CODEC, SPatternErrorPosPacket::execute);
     }
 }

@@ -1,12 +1,12 @@
 package com.lowdragmc.mbd2.api.recipe;
 
-import com.lowdragmc.lowdraglib.Platform;
-import com.lowdragmc.lowdraglib.syncdata.IEnhancedManaged;
-import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced;
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
-import com.lowdragmc.lowdraglib.syncdata.annotation.RequireRerender;
-import com.lowdragmc.lowdraglib.syncdata.field.FieldManagedStorage;
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder;
+import com.lowdragmc.lowdraglib2.Platform;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.RequireRerender;
+import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
+import com.lowdragmc.lowdraglib2.syncdata.holder.blockentity.IBlockEntityManaged;
+import com.lowdragmc.lowdraglib2.syncdata.storage.FieldManagedStorage;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.config.ConfigHolder;
@@ -15,6 +15,7 @@ import lombok.Setter;
 import net.minecraft.Util;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.crafting.RecipeManager;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import javax.annotation.Nullable;
@@ -22,7 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-public class RecipeLogic implements IEnhancedManaged {
+public class RecipeLogic implements IBlockEntityManaged {
     @Getter
     private final FieldManagedStorage syncStorage = new FieldManagedStorage(this);
     public static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(RecipeLogic.class);
@@ -32,13 +33,8 @@ public class RecipeLogic implements IEnhancedManaged {
     }
 
     @Override
-    public void onChanged() {
-        machine.markDirty();
-    }
-
-    @Override
-    public void scheduleRenderUpdate() {
-        machine.scheduleRenderUpdate();
+    public BlockEntity asBlockEntity() {
+        return machine.getHolder();
     }
 
     public enum Status {
@@ -299,7 +295,7 @@ public class RecipeLogic implements IEnhancedManaged {
             lastOriginRecipe = null;
             if (completableFuture == null) {
                 // try to search recipe in threads.
-                if (ConfigHolder.asyncRecipeSearching) {
+                if (ConfigHolder.ASYNC_RECIPE_SEARCHING.get()) {
                     completableFuture = supplyAsyncSearchingTask();
                 } else {
                     handleSearchingRecipes(searchRecipe());

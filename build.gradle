@@ -4,10 +4,19 @@ plugins {
     id 'idea'
     id 'maven-publish'
     id 'net.neoforged.gradle.userdev' version '7.0.181'
+    id 'org.jetbrains.kotlin.jvm' version '2.1.20'
+    id 'org.jetbrains.kotlin.plugin.lombok' version '2.1.20'
+    id 'io.freefair.lombok' version "9.2.0"
 }
 
 version = mod_version
 group = maven_group
+
+configurations {
+    localImplementation
+    runtimeClasspath.extendsFrom localImplementation
+    compileOnly.extendsFrom localImplementation
+}
 
 base {
     archivesName = "${project.name}-${minecraft_version}"
@@ -17,6 +26,14 @@ base {
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(21)
     withSourcesJar()
+}
+
+kotlin {
+    jvmToolchain(21)
+    compilerOptions {
+        freeCompilerArgs.add("-Xcontext-parameters")
+        freeCompilerArgs.add("-Xwhen-guards")
+    }
 }
 
 minecraft.accessTransformers.file rootProject.file('src/main/resources/META-INF/accesstransformer.cfg')
@@ -75,37 +92,14 @@ sourceSets.main.resources {
     srcDir 'src/generated/resources'
     exclude '.cache/'
 }
-
-tasks.named('processResources', ProcessResources).configure {
-    var replaceProperties = [
-            minecraft_version: minecraft_version,
-            minecraft_version_range: minecraft_version_range,
-            forge_version: forge_version,
-            forge_version_range: forge_version_range,
-            loader_version_range: loader_version_range,
-            mod_id: mod_id,
-            mod_name: mod_name,
-            mod_license: mod_license,
-            mod_version: mod_version,
-            mod_authors: mod_authors,
-            mod_description: mod_description,
-            mod_url: mod_url,
-            ldlib_version_range: ldlib_version_range,
-            ldlib_version: ldlib_version,
-    ]
-    inputs.properties replaceProperties
-
-    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
-        expand replaceProperties + [project: project]
-    }
-}
+sourceSets.main.kotlin { srcDir("src/main/java") }
 
 tasks.withType(ProcessResources).configureEach {
     // set up properties for filling into metadata
     var replaceProperties = [
             "minecraft_version": minecraft_version,
             "minecraft_version_range": minecraft_version_range,
-            "neo_version_range": neoforge_version_range, // only specify major version of forge
+            "neoforge_version_range": neoforge_version_range, // only specify major version of forge
             "loader_version": loader_version,
             "mod_id": mod_id,
             "mod_name": mod_name,
@@ -114,8 +108,7 @@ tasks.withType(ProcessResources).configureEach {
             "mod_authors": mod_authors,
             "mod_description": mod_description,
             "mod_url": mod_url,
-            "ldlib2_version_range": ldlib_version_range,
-            "ldlib2_version": ldlib_version,
+            "ldlib2_version_range": ldlib2_version_range,
     ]
     inputs.properties replaceProperties
 

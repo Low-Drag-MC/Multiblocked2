@@ -1,10 +1,8 @@
 package com.lowdragmc.mbd2.api.pattern;
 
-import com.lowdragmc.mbd2.api.block.ProxyPartBlock;
+import com.lowdragmc.lowdraglib2.utils.data.BlockInfo;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
-import com.lowdragmc.mbd2.api.pattern.predicates.SimplePredicate;
-import com.lowdragmc.lowdraglib.utils.BlockInfo;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import com.lowdragmc.mbd2.api.pattern.predicates.PatternPredicate;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 
@@ -17,8 +15,8 @@ import java.util.function.Supplier;
 
 public class TraceabilityPredicate {
 
-    public List<SimplePredicate> common = new ArrayList<>();
-    public List<SimplePredicate> limited = new ArrayList<>();
+    public List<PatternPredicate> common = new ArrayList<>();
+    public List<PatternPredicate> limited = new ArrayList<>();
     public boolean isController;
 
     public TraceabilityPredicate() {}
@@ -30,14 +28,14 @@ public class TraceabilityPredicate {
     }
 
     public TraceabilityPredicate(Predicate<MultiblockState> predicate, Supplier<BlockInfo[]> candidates) {
-        common.add(new SimplePredicate(predicate, candidates));
+        common.add(new PatternPredicate(predicate, candidates));
     }
 
-    public TraceabilityPredicate(SimplePredicate simplePredicate) {
-        if (simplePredicate.minCount != -1 || simplePredicate.maxCount != -1) {
-            limited.add(simplePredicate);
+    public TraceabilityPredicate(PatternPredicate patternPredicate) {
+        if (patternPredicate.minCount != -1 || patternPredicate.maxCount != -1) {
+            limited.add(patternPredicate);
         } else {
-            common.add(simplePredicate);
+            common.add(patternPredicate);
         }
     }
 
@@ -61,11 +59,9 @@ public class TraceabilityPredicate {
         if (tips.length > 0) {
             List<Component> tooltips = Arrays.stream(tips).toList();
             common.forEach(predicate -> {
-                if (predicate.candidates == null) return;
                 predicate.toolTips.addAll(tooltips);
             });
             limited.forEach(predicate -> {
-                if (predicate.candidates == null) return;
                 predicate.toolTips.addAll(tooltips);
             });
         }
@@ -78,7 +74,7 @@ public class TraceabilityPredicate {
     public TraceabilityPredicate setMinGlobalLimited(int min) {
         limited.addAll(common);
         common.clear();
-        for (SimplePredicate predicate : limited) {
+        for (PatternPredicate predicate : limited) {
             predicate.minCount = min;
         }
         return this;
@@ -94,7 +90,7 @@ public class TraceabilityPredicate {
     public TraceabilityPredicate setMaxGlobalLimited(int max) {
         limited.addAll(common);
         common.clear();
-        for (SimplePredicate predicate : limited) {
+        for (PatternPredicate predicate : limited) {
             predicate.maxCount = max;
         }
         return this;
@@ -110,7 +106,7 @@ public class TraceabilityPredicate {
     public TraceabilityPredicate setMinLayerLimited(int min) {
         limited.addAll(common);
         common.clear();
-        for (SimplePredicate predicate : limited) {
+        for (PatternPredicate predicate : limited) {
             predicate.minLayerCount = min;
         }
         return this;
@@ -126,7 +122,7 @@ public class TraceabilityPredicate {
     public TraceabilityPredicate setMaxLayerLimited(int max) {
         limited.addAll(common);
         common.clear();
-        for (SimplePredicate predicate : limited) {
+        for (PatternPredicate predicate : limited) {
             predicate.maxLayerCount = max;
         }
         return this;
@@ -186,7 +182,7 @@ public class TraceabilityPredicate {
     public boolean test(MultiblockState blockWorldState) {
         blockWorldState.io = IO.BOTH;
         boolean flag = false;
-        for (SimplePredicate predicate : limited) {
+        for (PatternPredicate predicate : limited) {
             if (predicate.testLimited(blockWorldState)) {
                 flag = true;
             }
@@ -209,7 +205,7 @@ public class TraceabilityPredicate {
     }
 
     public boolean isAny() {
-        return this.common.size() == 1 && this.limited.isEmpty() && this.common.get(0) == SimplePredicate.ANY;
+        return this.common.size() == 1 && this.limited.isEmpty() && this.common.get(0) == PatternPredicate.ANY;
     }
 
     public boolean addCache() {
@@ -217,7 +213,7 @@ public class TraceabilityPredicate {
     }
 
     public boolean isAir() {
-        return this.common.size() == 1 && this.limited.isEmpty() && this.common.get(0) == SimplePredicate.AIR;
+        return this.common.size() == 1 && this.limited.isEmpty() && this.common.get(0) == PatternPredicate.AIR;
     }
 
     public boolean isSingle() {
@@ -225,7 +221,7 @@ public class TraceabilityPredicate {
     }
 
     public boolean hasAir() {
-        return this.common.contains(SimplePredicate.AIR);
+        return this.common.contains(PatternPredicate.AIR);
     }
 
 }

@@ -1,23 +1,12 @@
 package com.lowdragmc.mbd2.common.trait.fluid;
 
-import com.lowdragmc.lowdraglib.misc.FluidStorage;
-import com.lowdragmc.lowdraglib.side.fluid.forge.FluidHelperImpl;
+import com.lowdragmc.lowdraglib2.misc.FluidStorage;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
-import net.neoforged.fluids.FluidStack;
-import net.neoforged.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import org.jetbrains.annotations.NotNull;
 
-public class FluidHandlerWrapper implements IFluidHandler {
-
-    private final FluidStorage[] storages;
-    private final IO io;
-    private final boolean allowSameFluids;
-
-    public FluidHandlerWrapper(FluidStorage[] storages, IO io, boolean allowSameFluids) {
-        this.storages = storages;
-        this.io = io;
-        this.allowSameFluids = allowSameFluids;
-    }
+public record FluidHandlerWrapper(FluidStorage[] storages, IO io, boolean allowSameFluids) implements IFluidHandler {
 
     private boolean canCapInput() {
         return io == IO.IN || io == IO.BOTH;
@@ -35,38 +24,38 @@ public class FluidHandlerWrapper implements IFluidHandler {
     @NotNull
     @Override
     public FluidStack getFluidInTank(int tank) {
-        return FluidHelperImpl.toFluidStack(storages[tank].getFluid());
+        return storages[tank].getFluid();
     }
 
     public void setFluidInTank(int tank, @NotNull FluidStack fluidStack) {
-        storages[tank].setFluid(FluidHelperImpl.toFluidStack(fluidStack));
+        storages[tank].setFluid(fluidStack);
     }
 
     @Override
     public int getTankCapacity(int tank) {
-        return (int) storages[tank].getCapacity();
+        return storages[tank].getCapacity();
     }
 
     @Override
     public boolean isFluidValid(int tank, @NotNull FluidStack stack) {
-        return storages[tank].isFluidValid(FluidHelperImpl.toFluidStack(stack));
+        return storages[tank].isFluidValid(stack);
     }
 
     @Override
-    public int fill(FluidStack resource, FluidAction action) {
+    public int fill(@NotNull FluidStack resource, @NotNull FluidAction action) {
         if (canCapInput()) {
-            return (int) fillInternal(FluidHelperImpl.toFluidStack(resource), action.simulate());
+            return fillInternal(resource, action);
         }
         return 0;
     }
 
-    public long fillInternal(com.lowdragmc.lowdraglib.side.fluid.FluidStack resource, boolean simulate) {
+    public int fillInternal(FluidStack resource, FluidAction action) {
         if (resource.isEmpty()) return 0;
         var copied = resource.copy();
         FluidStorage existingStorage = null;
         if (!allowSameFluids) {
             for (var storage : storages) {
-                if (!storage.getFluid().isEmpty() && storage.getFluid().isFluidEqual(resource)) {
+                if (!storage.getFluid().isEmpty() && FluidStack.isSameFluidSameComponents(resource, storage.getFluid())) {
                     existingStorage = storage;
                     break;
                 }
@@ -74,7 +63,7 @@ public class FluidHandlerWrapper implements IFluidHandler {
         }
         if (existingStorage == null) {
             for (var storage : storages) {
-                var filled = storage.fill(copied.copy(), simulate);
+                var filled = storage.fill(copied.copy(), action);
                 if (filled > 0) {
                     copied.shrink(filled);
                     if (!allowSameFluids) {
@@ -84,67 +73,65 @@ public class FluidHandlerWrapper implements IFluidHandler {
                 if (copied.isEmpty()) break;
             }
         } else {
-            copied.shrink(existingStorage.fill(copied.copy(), simulate));
+            copied.shrink(existingStorage.fill(copied.copy(), action));
         }
         return resource.getAmount() - copied.getAmount();
     }
 
-
-
     @NotNull
     @Override
-    public FluidStack drain(FluidStack resource, FluidAction action) {
+    public FluidStack drain(@NotNull FluidStack resource, @NotNull FluidAction action) {
         if (canCapOutput()) {
-            return FluidHelperImpl.toFluidStack(drainInternal(FluidHelperImpl.toFluidStack(resource), action.simulate()));
+            return drainInternal(resource, action);
         }
         return FluidStack.EMPTY;
     }
 
-    public com.lowdragmc.lowdraglib.side.fluid.FluidStack drainInternal(com.lowdragmc.lowdraglib.side.fluid.FluidStack resource, boolean simulate) {
+    public FluidStack drainInternal(FluidStack resource, FluidAction action) {
         if (!resource.isEmpty()) {
             var copied = resource.copy();
             for (var transfer : storages) {
                 var candidate = copied.copy();
-                copied.shrink(transfer.drain(candidate, simulate).getAmount());
+                copied.shrink(transfer.drain(candidate, action).getAmount());
                 if (copied.isEmpty()) break;
             }
             copied.setAmount(resource.getAmount() - copied.getAmount());
             return copied;
         }
-        return com.lowdragmc.lowdraglib.side.fluid.FluidStack.empty();
+        return FluidStack.EMPTY;
     }
 
     @NotNull
     @Override
-    public FluidStack drain(int maxDrain, FluidAction action) {
+    public FluidStack drain(int maxDrain, @NotNull FluidAction action) {
         if (canCapOutput()) {
-            return FluidHelperImpl.toFluidStack(drainInternal(maxDrain, action.simulate()));
+            return drainInternal(maxDrain, action);
         }
         return FluidStack.EMPTY;
     }
 
-    public com.lowdragmc.lowdraglib.side.fluid.FluidStack drainInternal(long maxDrain, boolean simulate) {
+    public FluidStack drainInternal(int maxDrain, FluidAction action) {
         if (maxDrain == 0) {
-            return com.lowdragmc.lowdraglib.side.fluid.FluidStack.empty();
+            return FluidStack.EMPTY;
         }
-        com.lowdragmc.lowdraglib.side.fluid.FluidStack totalDrained = null;
+        FluidStack totalDrained = null;
         for (var storage : storages) {
             if (totalDrained == null || totalDrained.isEmpty()) {
-                totalDrained = storage.drain(maxDrain, simulate);
+                totalDrained = storage.drain(maxDrain, action);
                 if (totalDrained.isEmpty()) {
                     totalDrained = null;
                 } else {
                     maxDrain -= totalDrained.getAmount();
                 }
             } else {
-                com.lowdragmc.lowdraglib.side.fluid.FluidStack copy = totalDrained.copy();
+                FluidStack copy = totalDrained.copy();
                 copy.setAmount(maxDrain);
-                com.lowdragmc.lowdraglib.side.fluid.FluidStack drain = storage.drain(copy, simulate);
+                FluidStack drain = storage.drain(copy, action);
                 totalDrained.grow(drain.getAmount());
                 maxDrain -= drain.getAmount();
             }
             if (maxDrain <= 0) break;
         }
-        return totalDrained == null ? com.lowdragmc.lowdraglib.side.fluid.FluidStack.empty() : totalDrained;
+        return totalDrained == null ? FluidStack.EMPTY : totalDrained;
     }
 }

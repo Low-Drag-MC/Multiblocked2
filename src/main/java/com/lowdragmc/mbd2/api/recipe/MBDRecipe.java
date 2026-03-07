@@ -7,7 +7,6 @@ import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.mojang.datafixers.util.Pair;
-import lombok.Getter;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -15,12 +14,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
@@ -36,7 +33,7 @@ import java.util.function.Supplier;
 @SuppressWarnings({"ConstantValue", "rawtypes", "unchecked"})
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
-public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Container> {
+public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<RecipeInput> {
     public MBDRecipeType recipeType;
     public final ResourceLocation id;
     public final Map<RecipeCapability<?>, List<Content>> inputs;
@@ -123,17 +120,17 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
     }
 
     @Override
-    public @NotNull RecipeSerializer<?> getSerializer() {
+    public RecipeSerializer<?> getSerializer() {
         return MBDRecipeSerializer.SERIALIZER;
     }
 
     @Override
-    public @NotNull RecipeType<?> getType() {
+    public RecipeType<?> getType() {
         return recipeType;
     }
 
     @Override
-    public boolean matches(@NotNull RecipeInput pContainer, @NotNull Level pLevel) {
+    public boolean matches(RecipeInput pContainer, Level pLevel) {
         return false;
     }
 
@@ -428,7 +425,7 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
         }));
     }
 
-    public ActionResult checkConditions(@Nonnull RecipeLogic recipeLogic) {
+    public ActionResult checkConditions(RecipeLogic recipeLogic) {
         if (conditions.isEmpty()) return ActionResult.SUCCESS;
         Map<String, List<RecipeCondition>> or = new HashMap<>();
         for (RecipeCondition condition : conditions) {
@@ -460,8 +457,7 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Conta
      *                    <br>
      *                    return max expecting rate --- 2
      */
-    public static record ActionResult(boolean isSuccess, @Nullable Supplier<Component> reason, float expectingRate) {
-
+    public record ActionResult(boolean isSuccess, @Nullable Supplier<Component> reason, float expectingRate) {
         public final static ActionResult SUCCESS = new ActionResult(true, null, 0);
         public final static ActionResult FAIL_NO_REASON = new ActionResult(true, null, 0);
 

@@ -1,8 +1,7 @@
 package com.lowdragmc.mbd2.common.trait;
 
-import com.lowdragmc.lowdraglib.gui.editor.annotation.ConfigSelector;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
-import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import lombok.Getter;
 import lombok.Setter;
@@ -32,7 +31,7 @@ public class AutoIO {
     private IO bottomIO = IO.NONE;
 
     @Configurable(name = "config.definition.trait.auto_io.interval", tips = "config.definition.trait.auto_io.interval.tooltip")
-    @NumberRange(range = {1, Integer.MAX_VALUE})
+    @ConfigNumber(range = {1, Integer.MAX_VALUE})
     private int interval = 20;
 
     public IO getIO(Direction front, @Nullable Direction side) {
@@ -60,4 +59,6 @@ public class AutoIO {
         }
         return IO.NONE;
     }
+
+     //TODO All in one
 }

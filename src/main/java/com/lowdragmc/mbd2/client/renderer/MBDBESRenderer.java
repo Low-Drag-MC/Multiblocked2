@@ -1,6 +1,6 @@
 package com.lowdragmc.mbd2.client.renderer;
 
-import com.lowdragmc.lowdraglib.client.renderer.ATESRRendererProvider;
+import com.lowdragmc.lowdraglib2.client.renderer.ATESRRendererProvider;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import net.minecraft.MethodsReturnNonnullByDefault;

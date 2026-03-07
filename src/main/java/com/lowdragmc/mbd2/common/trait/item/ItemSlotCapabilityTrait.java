@@ -2,11 +2,8 @@ package com.lowdragmc.mbd2.common.trait.item;
 
 import com.google.common.base.Predicates;
 import com.lowdragmc.lowdraglib2.misc.ItemStackTransfer;
-import com.lowdragmc.lowdraglib2.misc.ItemTransferList;
-import com.lowdragmc.lowdraglib2.side.item.forge.ItemTransferHelperImpl;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
-import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
@@ -16,33 +13,37 @@ import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySelector;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.world.level.block.Block;
-import net.neoforged.common.capabilities.Capability;
-import net.neoforged.common.capabilities.ForgeCapabilities;
-import net.neoforged.items.IItemHandler;
+import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.common.crafting.SizedIngredient;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.ItemHandlerHelper;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nonnull;
 import java.util.*;
+import java.util.function.Predicate;
 
-public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait implements IAutoIOTrait {
-    public static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(ItemSlotCapabilityTrait.class);
-    private final Random random = new Random();
-    @Override
-    public ManagedFieldHolder getFieldHolder() { return MANAGED_FIELD_HOLDER; }
-
+public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler, @Nullable Direction> implements IAutoIOTrait {
     @Persisted
-    @DescSynced
+    @DescSynced // todo donot sync
     public final ItemStackTransfer storage;
-    private Boolean isEmpty;
+
     private final ItemRecipeHandler itemRecipeHandler = new ItemRecipeHandler();
     private final ItemDurabilityRecipeHandler durabilityRecipeHandler = new ItemDurabilityRecipeHandler();
-    private final ItemHandlerCap itemHandlerCap = new ItemHandlerCap();
+
+    // runtime
+    private final Random random = new Random();
+    private Boolean isEmpty;
+    private final Map<BlockPos, EnumMap<Direction, BlockCapabilityCache<IItemHandler, @Nullable Direction>>> nearbyCache = new HashMap<>();
 
     public ItemSlotCapabilityTrait(MBDMachine machine, ItemSlotCapabilityTraitDefinition definition) {
         super(machine, definition);
@@ -63,6 +64,11 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait implements IA
     @Override
     public ItemSlotCapabilityTraitDefinition getDefinition() {
         return (ItemSlotCapabilityTraitDefinition) super.getDefinition();
+    }
+
+    @Override
+    public IItemHandler getCapContent(IO capabilityIO) {
+        return new ItemHandlerWrapper(storage, capabilityIO, getDefinition().isAllowSameItems());
     }
 
     @Override
@@ -108,11 +114,6 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait implements IA
         return List.of(itemRecipeHandler, durabilityRecipeHandler);
     }
 
-    @Override
-    public List<ICapabilityProviderTrait<?>> getCapabilityProviderTraits() {
-        return List.of(itemHandlerCap);
-    }
-
     //////////////////////////////////////
     //********     AUTO IO     *********//
     //////////////////////////////////////
@@ -126,8 +127,8 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait implements IA
     public void serverTick() {
         IAutoIOTrait.super.serverTick();
         var timer = getMachine().getOffsetTimer();
-        var autoInput = getDefinition().getAutoInput();
-        var autoOutput = getDefinition().getAutoOutput();
+        var autoInput = getDefinition().getAutoWorldInput();
+        var autoOutput = getDefinition().getAutoWorldOutput();
         if (autoInput.isEnable() && timer % autoInput.getInterval() == 0) {
             var items = getMachine().getLevel().getEntitiesOfClass(ItemEntity.class,
                     autoInput.getRotatedRange(getMachine().getFrontFacing().orElse(Direction.NORTH)).move(getMachine().getPos()),
@@ -180,86 +181,144 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait implements IA
         }
     }
 
+    @Nonnull
+    public BlockCapabilityCache<IItemHandler, @Nullable Direction> getNearbyCache(ServerLevel serverLevel,
+                                                                                  BlockPos pos,
+                                                                                  @Nonnull Direction side) {
+        return nearbyCache.computeIfAbsent(pos, blockPos -> new EnumMap<>(Direction.class))
+                .computeIfAbsent(side, direction -> BlockCapabilityCache.create(Capabilities.ItemHandler.BLOCK,
+                        serverLevel,
+                        pos, direction
+                ));
+    }
+
     @Override
-    public void handleAutoIO(BlockPos port, Direction side, IO io) {
-        if (io.support(IO.IN)) {
-            ItemTransferHelperImpl.importToTarget(new ItemTransferList(storage), Integer.MAX_VALUE,
-                    getDefinition().getItemFilterSettings().isEnable() ? getDefinition().getItemFilterSettings() : Predicates.alwaysTrue(),
-                    getMachine().getLevel(), port.relative(side), side.getOpposite());
-        }
-        if (io.support(IO.OUT)){
-            ItemTransferHelperImpl.exportToTarget(new ItemTransferList(storage), Integer.MAX_VALUE, Predicates.alwaysTrue(),
-                    getMachine().getLevel(), port.relative(side), side.getOpposite());
+    public void handleAutoIO(BlockPos port, @NotNull Direction side, IO io) {
+        if (getMachine().getLevel() instanceof ServerLevel serverLevel) {
+            if (io.support(IO.IN)) {
+                var source = getNearbyCache(serverLevel, port, side).getCapability();
+                if (source == null) return;
+
+                Predicate<ItemStack> filter = getDefinition().getItemFilterSettings().isEnable() ?
+                        getDefinition().getItemFilterSettings() : Predicates.alwaysTrue();
+
+                int maxAmount = Integer.MAX_VALUE;
+
+                for (int srcIndex = 0; srcIndex < source.getSlots(); srcIndex++) {
+                    var sourceStack = source.extractItem(srcIndex, Integer.MAX_VALUE, true);
+                    if (sourceStack.isEmpty() || !filter.test(sourceStack)) {
+                        continue;
+                    }
+                    var remainder = ItemHandlerHelper.insertItemStacked(storage, sourceStack, true);
+                    int amountToInsert = sourceStack.getCount() - remainder.getCount();
+                    if (amountToInsert > 0) {
+                        sourceStack = source.extractItem(srcIndex, Math.min(maxAmount, amountToInsert), false);
+                        ItemHandlerHelper.insertItemStacked(storage, sourceStack, false);
+                        maxAmount -= Math.min(maxAmount, amountToInsert);
+                    }
+                    if (maxAmount <= 0) return;
+                }
+            }
+            if (io.support(IO.OUT) && !isEmpty()){
+                var target = getNearbyCache(serverLevel, port, side).getCapability();
+                if (target == null) return;
+
+                int maxAmount = Integer.MAX_VALUE;
+
+                for (int srcIndex = 0; srcIndex < storage.getSlots(); srcIndex++) {
+                    var sourceStack = storage.extractItem(srcIndex, Integer.MAX_VALUE, true);
+                    if (sourceStack.isEmpty()) {
+                        continue;
+                    }
+                    var remainder = ItemHandlerHelper.insertItemStacked(target, sourceStack, true);
+                    int amountToInsert = sourceStack.getCount() - remainder.getCount();
+                    if (amountToInsert > 0) {
+                        sourceStack = storage.extractItem(srcIndex, Math.min(maxAmount, amountToInsert), false);
+                        ItemHandlerHelper.insertItemStacked(target, sourceStack, false);
+                        maxAmount -= Math.min(maxAmount, amountToInsert);
+                        if (maxAmount <= 0) return;
+                    }
+                }
+            }
         }
     }
 
-    public class ItemRecipeHandler extends RecipeHandlerTrait<Ingredient> {
+    public class ItemRecipeHandler extends RecipeHandlerTrait<SizedIngredient> {
 
         protected ItemRecipeHandler() {
             super(ItemSlotCapabilityTrait.this, ItemRecipeCapability.CAP);
         }
 
         @Override
-        public List<Ingredient> handleRecipeInner(IO io, MBDRecipe recipe, List<Ingredient> left, @Nullable String slotName, boolean simulate) {
+        public @Nullable List<SizedIngredient> handleRecipeInner(IO io, MBDRecipe recipe, List<SizedIngredient> left, @Nullable String slotName, boolean simulate) {
             if (!compatibleWith(io)) return left;
-            var capability = simulate ? storage.copy() : storage;
-            Iterator<Ingredient> iterator = left.iterator();
+            var container = simulate ? storage.copy() : storage;
+            var result = new ArrayList<SizedIngredient>();
+            var iterator = left.iterator();
             if (io == IO.IN) {
                 while (iterator.hasNext()) {
-                    Ingredient ingredient = iterator.next();
-                    SLOT_LOOKUP:
-                    for (int i = 0; i < capability.getSlots(); i++) {
-                        ItemStack itemStack = capability.getStackInSlot(i);
-                        //Does not look like a good implementation, but I think it's at least equal to vanilla Ingredient::test
-                        if (ingredient.test(itemStack)) {
-                            ItemStack[] ingredientStacks = ingredient.getItems();
-                            for (ItemStack ingredientStack : ingredientStacks) {
-                                if (ingredientStack.is(itemStack.getItem())) {
-                                    ItemStack extracted = capability.extractItem(i, ingredientStack.getCount(), false);
-                                    ingredientStack.setCount(ingredientStack.getCount() - extracted.getCount());
-                                    if (ingredientStack.isEmpty()) {
-                                        iterator.remove();
-                                        break SLOT_LOOKUP;
-                                    }
-                                }
+                    var sizedIngredient = iterator.next();
+                    var need = sizedIngredient.count();
+                    for (int i = 0; i < container.getSlots(); i++) {
+                        var itemStack = container.getStackInSlot(i);
+                        if (sizedIngredient.test(itemStack)) {
+                            var extracted = container.extractItem(i, need, false);
+                            need -= extracted.getCount();
+                            if (need <= 0) {
+                                break;
                             }
+                        }
+                    }
+                    if (need > 0) {
+                        if (need == sizedIngredient.count()) {
+                            result.add(sizedIngredient);
+                        } else {
+                            result.add(new SizedIngredient(sizedIngredient.ingredient(), need));
                         }
                     }
                 }
             } else if (io == IO.OUT) {
                 while (iterator.hasNext()) {
-                    Ingredient ingredient = iterator.next();
-                    var items = ingredient.getItems();
+                    var sizedIngredient = iterator.next();
+                    var items = sizedIngredient.getItems();
                     if (items.length == 0) {
-                        iterator.remove();
                         continue;
                     }
                     if (items.length == 1) {
                         ItemStack output = items[0];
-                        if (!output.isEmpty()) {
-                            for (int i = 0; i < capability.getSlots(); i++) {
-                                ItemStack leftStack = capability.insertItem(i, output.copy(), false);
-                                output.setCount(leftStack.getCount());
-                                if (output.isEmpty()) break;
+                        var leftCount = sizedIngredient.count();
+                        if (leftCount > 0) {
+                            for (int i = 0; i < container.getSlots(); i++) {
+                                var remainder = container.insertItem(i, output.copyWithCount(leftCount), false);
+                                leftCount = remainder.getCount();
+                                if (leftCount == 0) break;
                             }
                         }
-                        if (output.isEmpty()) iterator.remove();
+                        if (leftCount > 0) {
+                            result.add(leftCount == sizedIngredient.count() ?
+                                    sizedIngredient :
+                                    new SizedIngredient(sizedIngredient.ingredient(), leftCount));
+                        }
                     } else { // random output
                         var shuffledItems = Arrays.asList(Arrays.copyOf(items, items.length));
                         random.setSeed(getMachine().getOffsetTimer());
                         Collections.shuffle(shuffledItems, random);
+
+                        var probe = container.copy();
+
                         // find index
                         var index = -1;
                         for (int i = 0; i < shuffledItems.size(); i++) {
                             var output = shuffledItems.get(i).copy();
-                            if (!output.isEmpty()) {
-                                for (int slot = 0; slot < capability.getSlots(); slot++) {
-                                    var leftStack = capability.insertItem(slot, output.copy(), true);
-                                    output.setCount(leftStack.getCount());
-                                    if (output.isEmpty()) break;
+                            var leftCount = sizedIngredient.count();
+                            if (leftCount > 0) {
+                                for (int slot = 0; slot < probe.getSlots(); slot++) {
+                                    var leftStack = probe.insertItem(slot, output.copyWithCount(leftCount), true);
+                                    leftCount = leftStack.getCount();
+                                    if (leftCount == 0) break;
                                 }
                             }
-                            if (output.isEmpty()) {
+                            if (leftCount == 0) {
                                 index = i;
                                 break;
                             }
@@ -267,117 +326,82 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait implements IA
                         if (index != -1) {
                             if (!simulate) {
                                 var output = shuffledItems.get(index);
-                                for (int slot = 0; slot < capability.getSlots(); slot++) {
-                                    ItemStack leftStack = capability.insertItem(slot, output.copy(), true);
-                                    if (leftStack.getCount() < output.getCount()) {
-                                        leftStack = capability.insertItem(slot, output.copy(), false);
-                                        output.setCount(leftStack.getCount());
-                                        if (output.isEmpty()) break;
-                                    }
+                                var leftCount = sizedIngredient.count();
+                                for (int slot = 0; slot < container.getSlots(); slot++) {
+                                    var leftStack = container.insertItem(slot, output.copyWithCount(leftCount), false);
+                                    leftCount = leftStack.getCount();
+                                    if (leftCount == 0) break;
                                 }
                             }
-                            iterator.remove();
+                        } else {
+                            result.add(sizedIngredient);
                         }
                     }
                 }
             }
-            return left.isEmpty() ? null : left;
+            return result.isEmpty() ? null : result;
         }
     }
 
-    public class ItemDurabilityRecipeHandler extends RecipeHandlerTrait<Ingredient> {
+    public class ItemDurabilityRecipeHandler extends RecipeHandlerTrait<SizedIngredient> {
+
+
         protected ItemDurabilityRecipeHandler() {
             super(ItemSlotCapabilityTrait.this, ItemDurabilityRecipeCapability.CAP);
         }
 
         @Override
-        public List<Ingredient> handleRecipeInner(IO io, MBDRecipe recipe, List<Ingredient> left, @Nullable String slotName, boolean simulate) {
+        public List<SizedIngredient> handleRecipeInner(IO io, MBDRecipe recipe, List<SizedIngredient> left, @Nullable String slotName, boolean simulate) {
             if (!compatibleWith(io)) return left;
-            var capability = simulate ? storage.copy() : storage;
-            Iterator<Ingredient> iterator = left.iterator();
-            if (io == IO.IN) {
-                while (iterator.hasNext()) {
-                    Ingredient ingredient = iterator.next();
-                    SLOT_LOOKUP:
-                    for (int i = 0; i < capability.getSlots(); i++) {
-                        ItemStack itemStack = capability.getStackInSlot(i);
-                        //Does not look like a good implementation, but I think it's at least equal to vanilla Ingredient::test
-                        if (itemStack.isDamageableItem() && ingredient.test(itemStack)) {
-                            ItemStack[] ingredientStacks = Arrays.stream(ingredient.getItems()).filter(ItemStack::isDamageableItem).toArray(ItemStack[]::new);
-                            for (ItemStack ingredientStack : ingredientStacks) {
-                                if (ingredientStack.is(itemStack.getItem())) {
-                                    var damage = itemStack.getDamageValue();
-                                    var maxDamage = itemStack.getMaxDamage();
-                                    var availableDamage = Math.min(maxDamage - damage, ingredientStack.getCount());
-                                    if (availableDamage <= 0) continue;
-                                    itemStack.setDamageValue(damage + availableDamage);
-                                    capability.setStackInSlot(i, itemStack);
-                                    capability.onContentsChanged(i);
-                                    ingredientStack.setCount(ingredientStack.getCount() - availableDamage);
-                                    if (ingredientStack.isEmpty()) {
-                                        iterator.remove();
-                                        break SLOT_LOOKUP;
-                                    }
-                                    break;
-                                }
-                            }
-                        }
-                    }
+            var container = simulate ? storage.copy() : storage;
+            var it = left.listIterator();
+            while (it.hasNext()) {
+                var sized = it.next();
+                int need = sized.count();
+                if (need <= 0) {
+                    it.remove();
+                    continue;
                 }
-            } else if (io == IO.OUT) {
-                while (iterator.hasNext()) {
-                    Ingredient ingredient = iterator.next();
-                    SLOT_LOOKUP:
-                    for (int i = 0; i < capability.getSlots(); i++) {
-                        ItemStack itemStack = capability.getStackInSlot(i);
-                        //Does not look like a good implementation, but I think it's at least equal to vanilla Ingredient::test
-                        if (itemStack.isDamageableItem() && ingredient.test(itemStack)) {
-                            ItemStack[] ingredientStacks = Arrays.stream(ingredient.getItems()).filter(ItemStack::isDamageableItem).toArray(ItemStack[]::new);
-                            for (ItemStack ingredientStack : ingredientStacks) {
-                                if (ingredientStack.is(itemStack.getItem())) {
-                                    var damage = itemStack.getDamageValue();
-                                    var availableDamage = Math.min(damage, ingredientStack.getCount());
-                                    if (availableDamage <= 0) continue;
-                                    itemStack.setDamageValue(damage - availableDamage);
-                                    capability.setStackInSlot(i, itemStack);
-                                    capability.onContentsChanged(i);
-                                    ingredientStack.setCount(ingredientStack.getCount() - availableDamage);
-                                    if (ingredientStack.isEmpty()) {
-                                        iterator.remove();
-                                        break SLOT_LOOKUP;
-                                    }
-                                    break;
-                                }
-                            }
-                        }
+
+                var remaining = need;
+                for (int slot = 0; slot < container.getSlots() && remaining > 0; slot++) {
+                    ItemStack stack = container.getStackInSlot(slot);
+                    if (stack.isEmpty()) continue;
+                    if (!stack.isDamageableItem()) continue;
+                    if (!sized.test(stack)) continue;
+
+                    int damage = stack.getDamageValue();
+                    int maxDamage = stack.getMaxDamage();
+
+                    int transferable;
+                    if (io == IO.IN) {
+                        int room = maxDamage - damage;
+                        transferable = Math.min(room, remaining);
+                        if (transferable <= 0) continue;
+
+                        ItemStack copy = stack.copy();
+                        copy.setDamageValue(damage + transferable);
+                        container.setStackInSlot(slot, copy);
+
+                    } else { // IO.OUT
+                        transferable = Math.min(damage, remaining);
+                        if (transferable <= 0) continue;
+
+                        ItemStack copy = stack.copy();
+                        copy.setDamageValue(damage - transferable);
+                        container.setStackInSlot(slot, copy);
                     }
+
+                    remaining -= transferable;
+                }
+
+                if (remaining <= 0) {
+                    it.remove();
+                } else if (remaining != need) {
+                    it.set(new SizedIngredient(sized.ingredient(), remaining));
                 }
             }
             return left.isEmpty() ? null : left;
         }
     }
-
-    public class ItemHandlerCap implements ICapabilityProviderTrait<IItemHandler> {
-
-        @Override
-        public IO getCapabilityIO(@Nullable Direction side) {
-            return ItemSlotCapabilityTrait.this.getCapabilityIO(side);
-        }
-
-        @Override
-        public Capability<IItemHandler> getCapability() {
-            return ForgeCapabilities.ITEM_HANDLER;
-        }
-
-        @Override
-        public IItemHandler getCapContent(IO capbilityIO) {
-            return new ItemHandlerWrapper(storage, capbilityIO);
-        }
-
-        @Override
-        public IItemHandler mergeContents(List<IItemHandler> contents) {
-            return new ItemHandlerList(contents.toArray(new IItemHandler[0]));
-        }
-    }
-
 }
