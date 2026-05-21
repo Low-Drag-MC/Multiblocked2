@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.client.renderer.impl.UIResourceRenderer;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.gui.editor.view.UIEditorView;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.UITemplate;
@@ -135,7 +136,6 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
     private BlockEntityType<?> blockEntityType;
     private IRenderer blockRenderer;
     private IRenderer itemRenderer;
-    private UITemplate uiTemplate;
 
     protected MBDMachineDefinition(ResourceLocation id,
                                    @Nullable MachineState rootState,
@@ -216,43 +216,28 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
      *                 <br/> e.g. items, blocks and other registries are ready.
      */
     public MBDMachineDefinition loadProductiveTag(@Nullable File file, CompoundTag projectTag, Deque<Runnable> postTask) {
-        // todo load project
-//        this.projectFile = file;
-//        var rendererResource = new IRendererResource();
-//        rendererResource.deserializeNBT(projectTag.getCompound("resources").getCompound(IRendererResource.RESOURCE_NAME), Platform.getFrozenRegistry());
-//        UIResourceRenderer.setCurrentResource(rendererResource, false);
-//        var definitionTag = projectTag.getCompound("definition");
-//        id = ResourceLocation.parse(definitionTag.getString("id"));
-//        blockProperties.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("blockProperties"));
-//        itemProperties.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("itemProperties"));
-//        stateMachine.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("stateMachine"));
-//        UIResourceRenderer.clearCurrentResource();
-//        postTask.add(() -> {
-//            machineSettings.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("machineSettings"));
-//            if (definitionTag.contains("recipeLogicSettings")) {
-//                recipeLogicSettings.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("recipeLogicSettings"));
-//            } else {
-//                // compatible with old project
-//                var tag = definitionTag.getCompound("machineSettings");
-//                recipeLogicSettings.deserializeNBT(Platform.getFrozenRegistry(), tag);
-//                recipeLogicSettings.setEnable(tag.getBoolean("hasRecipeLogic"));
-//            }
-//            if (partSettings != null) {
-//                partSettings.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("partSettings"));
-//            }
+        this.projectFile = file;
+        var definitionTag = projectTag.getCompound("data").getCompound("definition");
+        id = ResourceLocation.parse(definitionTag.getString("id"));
+        blockProperties.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("blockProperties"));
+        itemProperties.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("itemProperties"));
+        stateMachine.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("stateMachine"));
+        postTask.add(() -> {
+            machineSettings.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("machineSettings"));
+            if (definitionTag.contains("recipeLogicSettings")) {
+                recipeLogicSettings.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("recipeLogicSettings"));
+            } else {
+                // compatible with old project
+                var tag = definitionTag.getCompound("machineSettings");
+                recipeLogicSettings.deserializeNBT(Platform.getFrozenRegistry(), tag);
+                recipeLogicSettings.setEnable(tag.getBoolean("hasRecipeLogic"));
+            }
+            if (partSettings != null) {
+                partSettings.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("partSettings"));
+            }
+            // todo machine events
 //            machineEvents.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("machineEvents"));
-//            if (machineSettings().hasUI()) {
-//                var texturesResource = new TexturesResource();
-//                texturesResource.deserializeNBT(projectTag.getCompound("resources").getCompound(TexturesResource.RESOURCE_NAME), Platform.getFrozenRegistry());
-//                var uiTag = projectTag.getCompound("ui");
-//                uiCreator = machine -> {
-//                    var machineUI = new WidgetGroup();
-//                    IConfigurableWidget.deserializeNBT(machineUI, uiTag, texturesResource, false, Platform.getFrozenRegistry());
-//                    bindMachineUI(machine, machineUI);
-//                    return machineUI;
-//                };
-//            }
-//        });
+        });
         return this;
     }
 
@@ -277,65 +262,6 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
                 }
             } catch (IOException ignored) {}
         }
-    }
-
-    protected void bindMachineUI(MBDMachine machine, UIElement ui) {
-        // todo ui
-//        WidgetUtils.widgetByIdForEach(ui, "^ui:machine_name$", TextTextureWidget.class,
-//                nameWidget -> nameWidget.setText(() -> {
-//                    if (machine.getCustomName() == null) return machine.getDefinition().block().getName();
-//                    return machine.getCustomName();
-//                }));
-//        WidgetUtils.widgetByIdForEach(ui, "^ui:progress_bar$", ProgressWidget.class,
-//                progressWidget -> progressWidget.setProgressSupplier(() -> machine.getRecipeLogic().getProgressPercent()));
-//        WidgetUtils.widgetByIdForEach(ui, "^ui:fuel_bar$", ProgressWidget.class,
-//                progressWidget -> progressWidget.setProgressSupplier(() -> machine.getRecipeLogic().getFuelProgressPercent()));
-//        WidgetUtils.widgetByIdForEach(ui, "^ui:xei_lookup$", ButtonWidget.class,
-//                buttonWidget -> buttonWidget.setOnPressCallback(cd -> {
-//                    if (cd.isRemote && (LDLib2.isReiLoaded() || LDLib2.isJeiLoaded() || LDLib2.isEmiLoaded()) && Editor.INSTANCE == null) {
-//                        var recipeType = machine.getRecipeType();
-//                        if (recipeType != MBDRecipeType.DUMMY && recipeType.isXEIVisible()) {
-//                            if (LDLib2.isReiLoaded()) {
-//                                ViewSearchBuilder.builder().addCategory(MBDRecipeTypeDisplayCategory.CATEGORIES.apply(recipeType)).open();
-//                            } else if (LDLib2.isJeiLoaded()) {
-//                                JEIPlugin.jeiRuntime.getRecipesGui().showTypes(List.of(MBDRecipeTypeCategory.TYPES.apply(recipeType)));
-//                            } else if (LDLib2.isEmiLoaded()) {
-//                                EmiApi.displayRecipeCategory(MBDRecipeTypeEmiCategory.CATEGORIES.apply(recipeType));
-//                            }
-//                        }
-//                    }
-//                }));
-//        for (var traitDefinition : machineSettings.traitDefinitions()) {
-//            if (traitDefinition instanceof IUIProviderTrait provider) {
-//                var trait = machine.getTraitByDefinition(traitDefinition);
-//                if (trait != null)
-//                    provider.initTraitUI(trait, ui);
-//            }
-//        }
-//        // proxy controller ui
-//        if (partSettings != null && partSettings.isEnable() && machine instanceof MBDPartMachine partMachine) {
-//            var prefix = "controller:";
-//            var midTag = "@ui:";
-//            for (Widget widget : ui.getWidgetsById("controller:.*?@ui:")) {
-//                var id = widget.getId();
-//                if (id.startsWith(prefix)) {
-//                    int atIndex = id.indexOf(midTag);
-//                    if (atIndex != -1) {
-//                        var traitName = id.substring(prefix.length(), atIndex);
-//                        var uiName = "ui:" + id.substring(atIndex + midTag.length());
-//                        for (var controller : partMachine.getControllers()) {
-//                            if (controller instanceof MBDMachine mbdMachine) {
-//                                var trait = mbdMachine.getTraitByName(traitName);
-//                                if (trait != null && trait.getDefinition() instanceof IUIProviderTrait provider && uiName.startsWith(provider.uiPrefixName())) {
-//                                    widget.setId(uiName);
-//                                    provider.initTraitUI(trait, ui);
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        }
     }
 
     public void onRegistry(RegisterEvent event) {

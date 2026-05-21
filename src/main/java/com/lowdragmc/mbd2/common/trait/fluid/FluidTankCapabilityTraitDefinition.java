@@ -1,18 +1,29 @@
 package com.lowdragmc.mbd2.common.trait.fluid;
 
+import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
+import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderTypes;
+import com.lowdragmc.lowdraglib2.client.utils.RenderBufferUtils;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.FluidSlot;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
-import com.lowdragmc.mbd2.api.capability.recipe.IO;
+import com.lowdragmc.lowdraglib2.utils.ColorUtils;
+import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.*;
+import com.mojang.blaze3d.vertex.PoseStack;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.Items;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.capabilities.BlockCapability;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
@@ -75,82 +86,64 @@ public class FluidTankCapabilityTraitDefinition extends SimpleCapabilityTraitDef
     }
 
     @Override
-    public void createTraitUITemplate(UI ui) {
-        // todo ui
-//        var prefix = uiPrefixName();
-//        for (var i = 0; i < this.tankSize; i++) {
-//            var tankWidget = new TankWidget();
-//            tankWidget.initTemplate();
-//            tankWidget.setSelfPosition(new Position(10 + i * 20, 10));
-//            tankWidget.setSize(new Size(20, 58));
-//            tankWidget.setOverlay(new ResourceTexture("mbd2:textures/gui/fluid_tank_overlay.png"));
-//            tankWidget.setId(prefix + "_" + i);
-//            tankWidget.setShowAmount(false);
-//            ui.addWidget(tankWidget);
-//        }
+    public void createTraitUITemplate(UIElement container) {
+        var prefix = uiId();
+        for (var i = 0; i < this.tankSize; i++) {
+            var slot = new FluidSlot();
+            slot.getLayout().width(20).height(58);
+            slot.getStyle().overlay(SpriteTexture.of("mbd2:textures/gui/fluid_tank_overlay.png"));
+            slot.amountLabel.setDisplay(false);
+            slot.setId(prefix + "_" + i);
+            container.addChild(slot);
+        }
     }
 
     @Override
-    public void initTraitUI(ITrait trait, UI group) {
-//        if (trait instanceof FluidTankCapabilityTrait fluidTankTrait) {
-//            var prefix = uiPrefixName();
-//            var guiIO = getGuiIO();
-//            var ingredientIO = guiIO == IO.IN ? IngredientIO.INPUT : guiIO == IO.OUT ? IngredientIO.OUTPUT : guiIO == IO.BOTH ? IngredientIO.BOTH : IngredientIO.RENDER_ONLY;
-//            WidgetUtils.widgetByIdForEach(group, "^%s_[0-9]+$".formatted(prefix), TankWidget.class, tankWidget -> {
-//                var index = WidgetUtils.widgetIdIndex(tankWidget);
-//                if (index >= 0 && index < fluidTankTrait.storages.length) {
-//                    tankWidget.setFluidTank(fluidTankTrait.storages[index]);
-//                    tankWidget.setIngredientIO(ingredientIO);
-//                    tankWidget.setAllowClickDrained(guiIO.support(IO.IN));
-//                    tankWidget.setAllowClickFilled(guiIO.support(IO.OUT));
-//                }
-//            });
-//        }
+    public void initTraitUI(ITrait trait, UI ui) {
+        if (trait instanceof FluidTankCapabilityTrait fluidTankTrait) {
+            var prefix = uiId();
+            ui.selectRegex("^%s_[0-9]+$".formatted(prefix), FluidSlot.class).forEach(fluidSlot -> {
+                var idStr = fluidSlot.getId();
+                var lastUnderscore = idStr.lastIndexOf('_');
+                if (lastUnderscore < 0) return;
+                int index;
+                try {
+                    index = Integer.parseInt(idStr.substring(lastUnderscore + 1));
+                } catch (NumberFormatException e) {
+                    return;
+                }
+                if (index >= 0 && index < fluidTankTrait.storages.length) {
+                    fluidSlot.bind(fluidTankTrait.storages[index], 0);
+                }
+            });
+        }
     }
 
-//    @Override
-//    public IRenderer getBESRenderer(IMachine machine) {
-//        return fancyRendererSettings.getFancyRenderer(machine);
-//    }
+    @Override
+    public IRenderer getBESRenderer(IMachine machine) {
+        return fancyRendererSettings.getFancyRenderer(machine);
+    }
 
-//    @Override
-//    @OnlyIn(Dist.CLIENT)
-//    public void renderAfterWorldInTraitPanel(MachineTraitPanel panel) {
-//        super.renderAfterWorldInTraitPanel(panel);
-//        if (!autoInput.enable && !autoOutput.enable) return;
-//        var poseStack = new PoseStack();
-//        var tessellator = Tesselator.getInstance();
-//        var buffer = tessellator.getBuilder();
-//
-//        RenderSystem.enableBlend();
-//        RenderSystem.disableDepthTest();
-//        RenderSystem.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-//
-//        poseStack.pushPose();
-//        RenderSystem.disableCull();
-//        RenderSystem.setShader(GameRenderer::getRendertypeLinesShader);
-//        buffer.begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
-//        RenderSystem.lineWidth(5);
-//
-//        if (autoOutput.enable) {
-//            var color = 0xffee6500;
-//            RenderBufferUtils.drawCubeFrame(poseStack, buffer,
-//                    (float)autoOutput.range.minX, (float)autoOutput.range.minY, (float)autoOutput.range.minZ,
-//                    (float)autoOutput.range.maxX, (float)autoOutput.range.maxY, (float)autoOutput.range.maxZ,
-//                    ColorUtils.red(color), ColorUtils.green(color), ColorUtils.blue(color), ColorUtils.alpha(color));
-//        }
-//
-//        if (autoInput.enable) {
-//            var color = 0xff11aaee;
-//            RenderBufferUtils.drawCubeFrame(poseStack, buffer,
-//                    (float) autoInput.range.minX, (float) autoInput.range.minY, (float) autoInput.range.minZ,
-//                    (float) autoInput.range.maxX, (float) autoInput.range.maxY, (float) autoInput.range.maxZ,
-//                    ColorUtils.red(color), ColorUtils.green(color), ColorUtils.blue(color), ColorUtils.alpha(color));
-//        }
-//        tessellator.end();
-//
-//        poseStack.popPose();
-//        RenderSystem.enableDepthTest();
-//        RenderSystem.enableCull();
-//    }
+    @Override
+    @OnlyIn(Dist.CLIENT)
+    public void renderInEditor(MultiBufferSource bufferSource, float partialTicks) {
+        var buffer = bufferSource.getBuffer(LDLibRenderTypes.noDepthLines());
+        var poseStack = new PoseStack();
+        if (autoOutput.isEnable()) {
+            var aabb = autoOutput.getRange();
+            var color = 0xffee6500;
+            RenderBufferUtils.drawCubeFrame(poseStack, buffer,
+                    (float) aabb.minX, (float) aabb.minY, (float) aabb.minZ,
+                    (float) aabb.maxX, (float) aabb.maxY, (float) aabb.maxZ,
+                    ColorUtils.red(color), ColorUtils.green(color), ColorUtils.blue(color), ColorUtils.alpha(color));
+        }
+        if (autoInput.isEnable()) {
+            var aabb = autoInput.getRange();
+            var color = 0xff11aaee;
+            RenderBufferUtils.drawCubeFrame(poseStack, buffer,
+                    (float) aabb.minX, (float) aabb.minY, (float) aabb.minZ,
+                    (float) aabb.maxX, (float) aabb.maxY, (float) aabb.maxZ,
+                    ColorUtils.red(color), ColorUtils.green(color), ColorUtils.blue(color), ColorUtils.alpha(color));
+        }
+    }
 }

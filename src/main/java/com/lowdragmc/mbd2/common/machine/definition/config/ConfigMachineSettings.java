@@ -3,6 +3,11 @@ package com.lowdragmc.mbd2.common.machine.definition.config;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.UITemplate;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.inventory.InventorySlots;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
@@ -12,9 +17,11 @@ import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.Direction;
 
 
+import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Accessors(fluent = true)
 @ParametersAreNonnullByDefault
@@ -62,6 +69,9 @@ public class ConfigMachineSettings implements IPersistedSerializable, IConfigura
     @Builder.Default
     @Configurable(name = "config.machine_settings.has_ui", tips = "config.machine_settings.has_ui.tooltip")
     private boolean hasUI = true;
+    @Builder.Default
+    @Persisted
+    private UITemplate uiTemplate = null;
     @Getter
     @Builder.Default
     @Configurable(name = "config.machine_settings.drop_machine_item", tips = {
@@ -75,38 +85,48 @@ public class ConfigMachineSettings implements IPersistedSerializable, IConfigura
     @Configurable(name = "config.machine_settings.signal_connection", subConfigurable = true,
             tips = {"config.machine_settings.signal_connection.tooltip.0", "config.machine_settings.signal_connection.tooltip.1"})
     private final SignalConnection signalConnection = new SignalConnection();
-    @Singular
+    @Builder.Default
     @Persisted
     @Getter
-    private List<TraitDefinition> traitDefinitions;
+    private final List<TraitDefinition> traitDefinitions = new ArrayList<>();
 
     public void addTraitDefinition(TraitDefinition definition) {
-        traitDefinitions = new ArrayList<>(traitDefinitions);
         traitDefinitions.add(definition);
     }
 
     public void removeTraitDefinition(TraitDefinition definition) {
-        traitDefinitions = this.traitDefinitions.stream().filter(s -> s != definition).toList();
+        traitDefinitions.removeIf(s -> s == definition);
     }
 
-    public void moveTraitDefinition(TraitDefinition toMoved, int newIndex) {
-        if (toMoved == null || traitDefinitions == null || traitDefinitions.isEmpty()) {
+    public void moveTraitDefinition(@Nullable TraitDefinition toMoved, int newIndex) {
+        if (toMoved == null || traitDefinitions.isEmpty()) {
             return;
         }
-        var definitions = new ArrayList<>(traitDefinitions);
-        int oldIndex = definitions.indexOf(toMoved);
+        int oldIndex = traitDefinitions.indexOf(toMoved);
         if (oldIndex < 0) {
             return;
         }
-        int boundedIndex = Math.max(0, Math.min(newIndex, definitions.size()));
+        int boundedIndex = Math.clamp(newIndex, 0, traitDefinitions.size());
         if (oldIndex < boundedIndex) {
             boundedIndex--;
         }
         if (oldIndex == boundedIndex) {
             return;
         }
-        definitions.remove(oldIndex);
-        definitions.add(boundedIndex, toMoved);
-        traitDefinitions = definitions;
+        traitDefinitions.remove(oldIndex);
+        traitDefinitions.add(boundedIndex, toMoved);
+    }
+
+    public UITemplate uiTemplate() {
+        if (uiTemplate == null) {
+            uiTemplate = UITemplate.of(new UIElement()
+                    .addChildren(
+                            new Label().setText("Machine UI"),
+                            new UIElement().layout(l -> l.height(40)),
+                            new InventorySlots()
+                    )
+                    .addClass("panel_bg"), StylesheetManager.MC);
+        }
+        return uiTemplate;
     }
 }

@@ -25,8 +25,8 @@ public class ForgeEnergyRecipeCapability extends RecipeCapability<Integer> {
     public final static ForgeEnergyRecipeCapability CAP = new ForgeEnergyRecipeCapability();
 
     public final static SpriteTexture ENERGY_ICON = SpriteTexture.of("mbd2:textures/gui/forge_energy.png");
-    public final static SpriteTexture ENERGY_BAR = SpriteTexture.of("mbd2:textures/gui/energy_bar_base.png");
-    public final static SpriteTexture ENERGY_BASE = SpriteTexture.of("mbd2:textures/gui/energy_bar_background.png").setSprite(1, 1, 42, 14);
+    public final static SpriteTexture ENERGY_BG = SpriteTexture.of("mbd2:textures/gui/energy_bar_background.png").setBorder(1).setWrapMode(SpriteTexture.WrapMode.REPEAT);
+    public final static SpriteTexture ENERGY_BAR = SpriteTexture.of("mbd2:textures/gui/energy_bar_base.png").setBorder(1).setWrapMode(SpriteTexture.WrapMode.REPEAT);
 
     protected ForgeEnergyRecipeCapability() {
         super("forge_energy", SerializerInteger.INSTANCE);
@@ -55,9 +55,10 @@ public class ForgeEnergyRecipeCapability extends RecipeCapability<Integer> {
     @Override
     public UIElement createXEITemplate() {
         var progress = new ProgressBar();
+        progress.getLayout().width(100).height(14);
         progress.barContainer.getLayout().paddingAll(0);
         progress.barContainer.getStyle().background(ENERGY_BAR);
-        progress.bar.getStyle().background(ENERGY_BASE);
+        progress.bar.getStyle().background(ENERGY_BG);
         progress.setProgress(1f);
         progress.label.setText("0 FE");
         return progress;

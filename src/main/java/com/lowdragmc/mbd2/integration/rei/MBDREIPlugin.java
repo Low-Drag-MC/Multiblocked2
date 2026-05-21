@@ -1,19 +1,21 @@
-//package com.lowdragmc.mbd2.integration.rei;
-//
-//import com.lowdragmc.mbd2.MBD2;
-//import com.lowdragmc.mbd2.api.registry.MBDRegistries;
-//import me.shedaniel.rei.api.client.plugins.REIClientPlugin;
-//import me.shedaniel.rei.api.client.registry.category.CategoryRegistry;
-//import me.shedaniel.rei.api.client.registry.display.DisplayRegistry;
-//import me.shedaniel.rei.forge.REIPluginClient;
-//import net.minecraft.MethodsReturnNonnullByDefault;
-//
-//import javax.annotation.ParametersAreNonnullByDefault;
-//
-//@REIPluginClient
-//@MethodsReturnNonnullByDefault
-//@ParametersAreNonnullByDefault
-//public class MBDREIPlugin implements REIClientPlugin {
+package com.lowdragmc.mbd2.integration.rei;
+
+import com.lowdragmc.mbd2.MBD2;
+import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
+import com.lowdragmc.mbd2.api.registry.MBDRegistries;
+import me.shedaniel.rei.api.client.plugins.REIClientPlugin;
+import me.shedaniel.rei.api.client.registry.category.CategoryRegistry;
+import me.shedaniel.rei.api.client.registry.display.DisplayRegistry;
+import me.shedaniel.rei.api.client.view.ViewSearchBuilder;
+import me.shedaniel.rei.forge.REIPluginClient;
+import net.minecraft.MethodsReturnNonnullByDefault;
+
+import javax.annotation.ParametersAreNonnullByDefault;
+
+@REIPluginClient
+@MethodsReturnNonnullByDefault
+@ParametersAreNonnullByDefault
+public class MBDREIPlugin implements REIClientPlugin {
 //    @Override
 //    public void registerCategories(CategoryRegistry registry) {
 //        registry.add(new MultiblockInfoDisplayCategory());
@@ -38,5 +40,9 @@
 //        MBDRecipeTypeFuelDisplayCategory.registerDisplays(registry);
 //        MultiblockInfoDisplayCategory.registerDisplays(registry);
 //    }
-//
-//}
+
+
+    public static void lookupRecipeType(MBDRecipeType recipeType) {
+//        ViewSearchBuilder.builder().addCategory(MBDRecipeTypeDisplayCategory.CATEGORIES.apply(recipeType)).open();
+    }
+}

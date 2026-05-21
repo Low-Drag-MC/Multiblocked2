@@ -1,27 +1,26 @@
-//package com.lowdragmc.mbd2.integration.jei;
-//
-//import com.lowdragmc.lowdraglib2.LDLib;
-//import com.lowdragmc.mbd2.MBD2;
-//import com.lowdragmc.mbd2.api.registry.MBDRegistries;
-//import mezz.jei.api.IModPlugin;
-//import mezz.jei.api.JeiPlugin;
-//import mezz.jei.api.registration.IRecipeCatalystRegistration;
-//import mezz.jei.api.registration.IRecipeCategoryRegistration;
-//import mezz.jei.api.registration.IRecipeRegistration;
-//import net.minecraft.MethodsReturnNonnullByDefault;
-//import net.minecraft.resources.ResourceLocation;
-//
-//import javax.annotation.ParametersAreNonnullByDefault;
-//
-//@JeiPlugin
-//@MethodsReturnNonnullByDefault
-//@ParametersAreNonnullByDefault
-//public class MBDJEIPlugin implements IModPlugin {
-//    @Override
-//    public ResourceLocation getPluginUid() {
-//        return MBD2.id("jei_plugin");
-//    }
-//
+package com.lowdragmc.mbd2.integration.jei;
+
+import com.lowdragmc.lowdraglib2.integration.xei.jei.LDLibJEIPlugin;
+import com.lowdragmc.mbd2.MBD2;
+import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
+import mezz.jei.api.IModPlugin;
+import mezz.jei.api.JeiPlugin;
+import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.resources.ResourceLocation;
+
+import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.List;
+
+@JeiPlugin
+@MethodsReturnNonnullByDefault
+@ParametersAreNonnullByDefault
+public class MBDJEIPlugin implements IModPlugin {
+
+    @Override
+    public ResourceLocation getPluginUid() {
+        return MBD2.id("jei_plugin");
+    }
+
 //    @Override
 //    public void registerCategories(IRecipeCategoryRegistration registry) {
 //        if (LDLib2.isReiLoaded() || LDLib2.isEmiLoaded()) return;
@@ -55,4 +54,10 @@
 //        MBDRecipeTypeCategory.registerRecipes(registration);
 //        MBDRecipeTypeFuelCategory.registerRecipes(registration);
 //    }
-//}
+
+    public static void lookupRecipeType(MBDRecipeType recipeType) {
+        if (LDLibJEIPlugin.jeiRuntime == null) return;
+//        LDLibJEIPlugin.jeiRuntime.getRecipesGui().showTypes(List.of(MBDRecipeTypeCategory.TYPES.apply(recipeType)));
+    }
+
+}

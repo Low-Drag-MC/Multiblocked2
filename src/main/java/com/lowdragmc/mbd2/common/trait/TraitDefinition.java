@@ -19,6 +19,10 @@ import lombok.Setter;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+
 import javax.annotation.Nullable;
 import java.util.function.Supplier;
 
@@ -93,11 +97,10 @@ public abstract class TraitDefinition implements IConfigurable, IPersistedSerial
         return "config.definition.%s.%s.name".formatted(this.group(), this.name());
     }
 
-    // todo trait view
-//    /**
-//     * Additional rendering after world rendering in trait panel for definition settings.
-//     */
-//    @OnlyIn(Dist.CLIENT)
-//    public void renderAfterWorldInTraitPanel(MachineTraitPanel panel) {
-//    }
+    /**
+     * Render editor highlights when this trait is selected in the trait editor view.
+     */
+    @OnlyIn(Dist.CLIENT)
+    public void renderInEditor(MultiBufferSource bufferSource, float partialTicks) {
+    }
 }

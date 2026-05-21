@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.common.machine;
 
+import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.RequireRerender;
@@ -23,6 +24,7 @@ import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.client.renderer.MultiblockInWorldPreviewRenderer;
 import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.event.*;
+import com.lowdragmc.mbd2.common.trait.IUIProviderTrait;
 import com.lowdragmc.mbd2.config.ConfigHolder;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
 import it.unimi.dsi.fastutil.longs.LongSet;
@@ -492,5 +494,35 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
             return originalBlock.getBlock().asItem().getDefaultInstance();
         }
         return super.getDropItem();
+    }
+
+    @Override
+    protected void bindMachineUI(UI ui) {
+        super.bindMachineUI(ui);
+
+        // proxy part ui
+        var prefix = "part:";
+        var midTag = "@ui:";
+        ui.selectRegex("part:.*?@ui:").forEach(element -> {
+            var id = element.getId();
+            if (id.startsWith(prefix)) {
+                int atIndex = id.indexOf(midTag);
+                if (atIndex != -1) {
+                    var traitName = id.substring(prefix.length(), atIndex);
+                    var uiName = "ui:" + id.substring(atIndex + midTag.length());
+                    for (var part : getParts()) {
+                        if (part instanceof MBDMachine mbdMachine) {
+                            var trait = mbdMachine.getTraitByName(traitName);
+                            if (trait != null &&
+                                    trait.getDefinition() instanceof IUIProviderTrait provider &&
+                                    uiName.startsWith(provider.uiId())) {
+                                element.setId(uiName);
+                                provider.initTraitUI(trait, ui);
+                            }
+                        }
+                    }
+                }
+            }
+        });
     }
 }

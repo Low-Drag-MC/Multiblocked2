@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.common.trait.entity;
 
+import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderTypes;
 import com.lowdragmc.lowdraglib2.client.utils.RenderBufferUtils;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
@@ -12,10 +13,9 @@ import com.lowdragmc.lowdraglib2.utils.ShapeUtils;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.ITrait;
 import com.lowdragmc.mbd2.common.trait.RecipeCapabilityTraitDefinition;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.*;
+import com.mojang.blaze3d.vertex.PoseStack;
 import lombok.Getter;
-import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -23,7 +23,6 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.AABB;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import org.lwjgl.opengl.GL11;
 
 import javax.annotation.Nullable;
 import java.util.EnumMap;
@@ -69,33 +68,14 @@ public class EntityHandlerTraitDefinition extends RecipeCapabilityTraitDefinitio
         return (direction == Direction.NORTH || direction == null) ? area : this.areaCache.computeIfAbsent(direction, dir -> ShapeUtils.rotate(area, dir));
     }
 
-    // todo trait view
-//    @Override
-//    @OnlyIn(Dist.CLIENT)
-//    public void renderAfterWorldInTraitPanel(MachineTraitPanel panel) {
-//        super.renderAfterWorldInTraitPanel(panel);
-//        var poseStack = new PoseStack();
-//
-//        RenderSystem.enableBlend();
-//        RenderSystem.disableDepthTest();
-//        RenderSystem.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-//
-//        poseStack.pushPose();
-//        RenderSystem.disableCull();
-//        RenderSystem.setShader(GameRenderer::getRendertypeLinesShader);
-//        var buffer = Tesselator.getInstance().begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
-//        RenderSystem.lineWidth(5);
-//
-//        var color = 0xff11aaee;
-//        RenderBufferUtils.drawCubeFrame(poseStack, buffer,
-//                (float)area.minX, (float)area.minY, (float)area.minZ,
-//                (float)area.maxX, (float)area.maxY, (float)area.maxZ,
-//                ColorUtils.red(color), ColorUtils.green(color), ColorUtils.blue(color), ColorUtils.alpha(color));
-//
-//        BufferUploader.drawWithShader(buffer.buildOrThrow());
-//
-//        poseStack.popPose();
-//        RenderSystem.enableDepthTest();
-//        RenderSystem.enableCull();
-//    }
+    @Override
+    @OnlyIn(Dist.CLIENT)
+    public void renderInEditor(MultiBufferSource bufferSource, float partialTicks) {
+        var buffer = bufferSource.getBuffer(LDLibRenderTypes.noDepthLines());
+        var color = 0xff11aaee;
+        RenderBufferUtils.drawCubeFrame(new PoseStack(), buffer,
+                (float) area.minX, (float) area.minY, (float) area.minZ,
+                (float) area.maxX, (float) area.maxY, (float) area.maxZ,
+                ColorUtils.red(color), ColorUtils.green(color), ColorUtils.blue(color), ColorUtils.alpha(color));
+    }
 }

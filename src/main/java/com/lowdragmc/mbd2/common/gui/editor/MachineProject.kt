@@ -15,19 +15,28 @@ import com.lowdragmc.lowdraglib2.utils.TagBuilder
 import com.lowdragmc.mbd2.MBD2
 import com.lowdragmc.mbd2.common.gui.editor.machine.MachineConfigView
 import com.lowdragmc.mbd2.common.gui.editor.machine.MachineTraitView
+import com.lowdragmc.mbd2.common.gui.editor.machine.MachineUIView
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState
 import com.lowdragmc.mbd2.common.machine.definition.config.StateMachine
 import net.minecraft.core.HolderLookup
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.resources.ResourceLocation
+import java.io.File
 
 open class MachineProject : IProject {
     companion object {
         var VERSION: Int = 1
-        val TYPE: ProjectType = ProjectType.of(IGuiTexture.EMPTY, "single_machine_project", ".sm", { MachineProject() })
+        val TYPE: ProjectType = MachineProjectType()
         val FURNACE_RENDERER: IRenderer = IModelRenderer(ResourceLocation.parse("block/furnace"))
     }
+
+    private class MachineProjectType: ProjectType(IGuiTexture.EMPTY, "single_machine_project", ".sm", { MachineProject() }) {
+        override fun getRootSavePath(project: IProject, projectRoot: File): File {
+            return projectRoot.resolve("mbd2/machine")
+        }
+    }
+
     val definition: MBDMachineDefinition = createDefinition()
 
     private val resources = createResources()
@@ -37,6 +46,8 @@ open class MachineProject : IProject {
     var machineConfigView: MachineConfigView? = null
         protected set
     var machineTraitView: MachineTraitView? = null
+        protected set
+    var machineUIView: MachineUIView? = null
         protected set
 
     init {
@@ -81,6 +92,7 @@ open class MachineProject : IProject {
             super.onLoad(editor)
             editor.centerWindow.getLeftTop().addView(createMachineConfigView(editor).also { this.machineConfigView = it })
             editor.centerWindow.getLeftTop().addView(createMachineTraitView(editor).also { this.machineTraitView = it })
+            editor.centerWindow.getLeftTop().addView(createMachineUIView(editor).also { this.machineUIView = it })
         }
     }
 
@@ -92,11 +104,18 @@ open class MachineProject : IProject {
         return MachineTraitView(editor, this)
     }
 
+    protected fun createMachineUIView(editor: MBDEditor): MachineUIView {
+        return MachineUIView(editor, this)
+    }
+
     override fun onClosed(editor: Editor) {
         this.machineConfigView?.removeSelf()
         this.machineConfigView = null
 
         this.machineTraitView?.removeSelf()
         this.machineTraitView = null
+
+        this.machineUIView?.removeSelf()
+        this.machineUIView = null
     }
 }

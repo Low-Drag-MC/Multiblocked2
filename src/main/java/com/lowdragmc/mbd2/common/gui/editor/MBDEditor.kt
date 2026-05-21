@@ -22,6 +22,7 @@ open class MBDEditor : Editor() {
     override fun initMenus() {
         super.initMenus()
         fileMenu.addProjectProvider(MachineProject.TYPE)
+        fileMenu.addProjectProvider(RecipeTypeProject.TYPE)
     }
 
     override fun createNewEditorInstance(): Editor {

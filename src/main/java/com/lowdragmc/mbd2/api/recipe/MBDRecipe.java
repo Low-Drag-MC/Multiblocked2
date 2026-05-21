@@ -1,6 +1,9 @@
 package com.lowdragmc.mbd2.api.recipe;
 
 import com.google.common.collect.Table;
+import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.capability.recipe.*;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
@@ -33,20 +36,24 @@ import java.util.function.Supplier;
 @SuppressWarnings({"ConstantValue", "rawtypes", "unchecked"})
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
-public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<RecipeInput> {
+public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<RecipeInput>, IConfigurable {
     public MBDRecipeType recipeType;
     public final ResourceLocation id;
     public final Map<RecipeCapability<?>, List<Content>> inputs;
     public final Map<RecipeCapability<?>, List<Content>> outputs;
     public final List<RecipeCondition> conditions;
     public CompoundTag data;
+    @Configurable(name = "recipe.duration", tips = "recipe.duration.common.tooltip")
+    @ConfigNumber(range = {1, Integer.MAX_VALUE})
     public int duration;
+    @Configurable(name = "recipe.priority", tips = "recipe.priority.tooltip")
     public int priority;
     public boolean isFuel;
+    @Configurable(name = "recipe.xei_hidden", tips = "recipe.xei_hidden.tooltip")
     public boolean isXEIHidden;
     private Boolean hasTick;
 
-    public MBDRecipe(MBDRecipeType recipeType,
+    public MBDRecipe(@Nullable MBDRecipeType recipeType,
                      @Nullable ResourceLocation id,
                      Map<RecipeCapability<?>, List<Content>> inputs,
                      Map<RecipeCapability<?>, List<Content>> outputs,

@@ -14,6 +14,7 @@ import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.Util;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.VisibleForTesting;
@@ -42,7 +43,7 @@ public class RecipeLogic implements IBlockEntityManaged {
     }
     @Getter
     public final IMachine machine;
-    public List<MBDRecipe> lastFailedMatches;
+    public List<RecipeHolder<MBDRecipe>> lastFailedMatches;
 
     @Getter @Persisted @DescSynced @RequireRerender
     private Status status = Status.IDLE;
@@ -60,7 +61,7 @@ public class RecipeLogic implements IBlockEntityManaged {
      * safe, it is the origin recipe before {@link IMachine#doModifyRecipe(MBDRecipe)}' which can be found from {@link RecipeManager}.
      */
     @Nullable @Getter @Persisted
-    protected MBDRecipe lastOriginRecipe;
+    protected RecipeHolder<MBDRecipe> lastOriginRecipe;
     @Getter @Persisted @Setter
     protected boolean consumeInputsAfterWorking;
     @Persisted
@@ -80,7 +81,7 @@ public class RecipeLogic implements IBlockEntityManaged {
     @Getter @Setter
     protected long totalContinuousRunningTime;
     @Nullable
-    protected CompletableFuture<List<MBDRecipe>> completableFuture = null;
+    protected CompletableFuture<List<RecipeHolder<MBDRecipe>>> completableFuture = null;
 
     public RecipeLogic(IMachine machine) {
         this.machine = machine;
@@ -102,12 +103,12 @@ public class RecipeLogic implements IBlockEntityManaged {
         setStatus(Status.IDLE);
     }
 
-    public double getProgressPercent() {
-        return duration == 0 ? 0.0 : progress / (duration * 1.0);
+    public float getProgressPercent() {
+        return duration == 0 ? 0f : progress / (duration * 1f);
     }
 
-    public double getFuelProgressPercent() {
-        return fuelMaxTime == 0 ? 0.0 : fuelTime / (fuelMaxTime * 1.0);
+    public float getFuelProgressPercent() {
+        return fuelMaxTime == 0 ? 0f : fuelTime / (fuelMaxTime * 1f);
     }
 
     public boolean needFuel() {
@@ -140,7 +141,7 @@ public class RecipeLogic implements IBlockEntityManaged {
             } else if (getMachine().getOffsetTimer() % 5 == 0) {
                 findAndHandleRecipe();
                 if (lastFailedMatches != null) {
-                    for (MBDRecipe match : lastFailedMatches) {
+                    for (var match : lastFailedMatches) {
                         if (checkMatchedRecipeAvailable(match)) break;
                     }
                 }
@@ -162,14 +163,17 @@ public class RecipeLogic implements IBlockEntityManaged {
     }
 
     /**
-     * Checks if a matched recipe is available, processes the recipe based on the machine's current state,
-     * and updates the recipe logic if the conditions are met.
+     * Verifies if a matched recipe is available and valid for processing in the machine.
+     * This method modifies the recipe using the machine's modification logic and
+     * checks if the conditions, match criteria, and tick requirements for the recipe are met.
+     * If valid, the recipe is set up for processing, and its status is updated.
      *
-     * @param match the MBDRecipe object representing the matched recipe to be checked and potentially set up.
-     * @return true if the matched recipe is successfully processed and set up in the machine, false otherwise.
+     * @param match the {@code RecipeHolder} containing the recipe to be checked and validated.
+     * @return {@code true} if the recipe is valid, matches the machine's requirements,
+     *         and can be processed; {@code false} otherwise.
      */
-    protected boolean checkMatchedRecipeAvailable(MBDRecipe match) {
-        var modified = machine.doModifyRecipe(match);
+    protected boolean checkMatchedRecipeAvailable(RecipeHolder<MBDRecipe> match) {
+        var modified = machine.doModifyRecipe(match.value());
         if (modified != null) {
             if (modified.checkConditions(this).isSuccess() &&
                     modified.matchRecipe(machine).isSuccess() &&
@@ -252,7 +256,7 @@ public class RecipeLogic implements IBlockEntityManaged {
         }
     }
 
-    protected List<MBDRecipe> searchRecipe() {
+    protected List<RecipeHolder<MBDRecipe>> searchRecipe() {
         return machine.getRecipeType().searchRecipe(getRecipeManager(), this.machine);
     }
 
@@ -306,7 +310,7 @@ public class RecipeLogic implements IBlockEntityManaged {
                 if (!lastFuture.isCancelled()) {
                     // if searching task is done, try to handle searched recipes.
                     try {
-                        var matches = lastFuture.join().stream().filter(match -> match.matchRecipe(machine).isSuccess()).toList();
+                        var matches = lastFuture.join().stream().filter(match -> match.value().matchRecipe(machine).isSuccess()).toList();
                         if (!matches.isEmpty()) {
                             handleSearchingRecipes(matches);
                         }
@@ -322,12 +326,12 @@ public class RecipeLogic implements IBlockEntityManaged {
         recipeDirty = false;
     }
 
-    private CompletableFuture<List<MBDRecipe>> supplyAsyncSearchingTask() {
+    private CompletableFuture<List<RecipeHolder<MBDRecipe>>> supplyAsyncSearchingTask() {
         return CompletableFuture.supplyAsync(Util.wrapThreadWithTaskName("Searching recipes", this::searchRecipe), Util.backgroundExecutor());
     }
 
-    private void handleSearchingRecipes(List<MBDRecipe> matches) {
-        for (MBDRecipe match : matches) {
+    private void handleSearchingRecipes(List<RecipeHolder<MBDRecipe>> matches) {
+        for (var match : matches) {
             // try to modify recipe by machine, such as overclock, tier checking.
             if (checkMatchedRecipeAvailable(match)) break;
             // cache matching recipes.
@@ -341,9 +345,10 @@ public class RecipeLogic implements IBlockEntityManaged {
     public boolean handleFuelRecipe() {
         if (!needFuel() || fuelTime > 0) return true;
         lastFuelRecipe = null;
-        for (MBDRecipe recipe : machine.getRecipeType().searchFuelRecipe(getRecipeManager(), machine)) {
+        for (var recipeHolder : machine.getRecipeType().searchFuelRecipe(getRecipeManager(), machine)) {
+            var recipe = recipeHolder.value();
             recipe = getMachine().modifyFuelRecipe(recipe);
-            if (recipe.checkConditions(this).isSuccess() && recipe.handleRecipeIO(IO.IN, this.machine)) {
+            if (recipe != null && recipe.checkConditions(this).isSuccess() && recipe.handleRecipeIO(IO.IN, this.machine)) {
                 fuelMaxTime = recipe.duration;
                 fuelTime = fuelMaxTime;
                 lastFuelRecipe = recipe;
@@ -481,7 +486,7 @@ public class RecipeLogic implements IBlockEntityManaged {
             }
             if (!recipeDirty && machine.alwaysTryModifyRecipe()) {
                 if (lastOriginRecipe != null) {
-                    var modified = machine.doModifyRecipe(lastOriginRecipe);
+                    var modified = machine.doModifyRecipe(lastOriginRecipe.value());
                     if (modified == null) {
                         markLastRecipeDirty();
                     } else {

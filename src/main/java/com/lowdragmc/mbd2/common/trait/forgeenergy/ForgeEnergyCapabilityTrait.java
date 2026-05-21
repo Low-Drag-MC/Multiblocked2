@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.common.trait.forgeenergy;
 
+import com.lowdragmc.lowdraglib2.syncdata.annotation.ConditionalSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
@@ -30,6 +31,7 @@ public class ForgeEnergyCapabilityTrait extends SimpleCapabilityTrait<IEnergySto
 
     @Persisted
     @DescSynced
+    // todo conditional synced
     public final CopiableEnergyStorage storage;
     private final ForgeEnergyRecipeHandler recipeHandler = new ForgeEnergyRecipeHandler();
     private final Map<BlockPos, EnumMap<Direction, BlockCapabilityCache<IEnergyStorage, @Nullable Direction>>> nearbyCache = new HashMap<>();

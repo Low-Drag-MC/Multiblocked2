@@ -21,3 +21,5 @@ classes/
 /runs
 .claude/settings.local.json
 CLAUDE.md
+.narrafork/
+AGENTS.md

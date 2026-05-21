@@ -167,8 +167,7 @@ open class MachineConfigView(editor: MBDEditor, project: MachineProject) : Machi
             scrollerView.layout.widthPercent(100f).flex(1f)
             scrollerView.addScrollViewChild(treeList
                 .setStaticTree(true)
-                .setClickToExpand(true)
-                .setDoubleClickToExpand(false)
+                .setDoubleClickToExpand(true)
                 .setSupportMultipleSelection(false)
                 .setNodeUISupplier(TreeList.optionalIconTextTemplate({ IGuiTexture.EMPTY}, { Component.literal(it.name) }))
                 .setOnNodeUICreated { node, nodeUI ->

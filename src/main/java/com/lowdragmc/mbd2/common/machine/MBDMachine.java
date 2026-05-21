@@ -4,7 +4,13 @@ import com.google.common.collect.Table;
 import com.google.common.collect.Tables;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.factory.BlockUIMenuType;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.DataBindingBuilder;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import com.lowdragmc.lowdraglib2.gui.ui.UI;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.ProgressBar;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
 import com.lowdragmc.lowdraglib2.syncdata.IManaged;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
@@ -26,7 +32,11 @@ import com.lowdragmc.mbd2.common.machine.definition.config.ConfigMachineSettings
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
 import com.lowdragmc.mbd2.common.machine.definition.config.event.*;
 import com.lowdragmc.mbd2.common.trait.ITrait;
+import com.lowdragmc.mbd2.common.trait.IUIProviderTrait;
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
+import com.lowdragmc.mbd2.integration.emi.MBDEMIPlugin;
+import com.lowdragmc.mbd2.integration.jei.MBDJEIPlugin;
+import com.lowdragmc.mbd2.integration.rei.MBDREIPlugin;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.client.Minecraft;
@@ -131,6 +141,12 @@ public class MBDMachine implements IMachine, IBlockEntityManaged, BlockUIMenuTyp
         recipeLogic = createRecipeLogic(args);
         // additional traits initialization
         loadAdditionalTraits();
+    }
+
+    public Component getMachineName() {
+        var customName = getCustomName();
+        if (customName == null) return getDefinition().block().getName();
+        return customName;
     }
 
     @Override
@@ -786,14 +802,53 @@ public class MBDMachine implements IMachine, IBlockEntityManaged, BlockUIMenuTyp
      */
     @Override
     public ModularUI createUI(BlockUIMenuType.BlockUIHolder holder) {
-        var ui = getDefinition().uiCreator().apply(this);
+        var ui = getDefinition().machineSettings().uiTemplate().createUI();
+        bindMachineUI(ui);
         var event = new MachineUIEvent(this, ui, holder.player);
-        NeoForge.EVENT_BUS.post(event.postKubeJSEvent());
+        NeoForge.EVENT_BUS.post(event.postCustomEvent());
         ui = event.getUi();
         if (ui == null) {
             return null;
         }
         return new ModularUI(ui, holder.player);
+    }
+
+    /**
+     * Binds the user interface (UI) to the machine, allowing the UI elements to reflect
+     * the machine's current state and characteristics. It initializes various UI components
+     * such as text, progress bars, fuel bars, and buttons with machine-specific data.
+     * Additionally, it integrates trait-based UI configurations and manages proxy-controller
+     * specific UI setups for part machines, if applicable.
+     *
+     * @param ui The UI instance that represents the user interface for the machine.
+     */
+    protected void bindMachineUI(UI ui) {
+        ui.selectId("ui:machine_name", TextElement.class).forEach(text -> text.setText(getMachineName()));
+        ui.selectId("ui:progress_bar", ProgressBar.class).forEach(progressBar -> {
+            progressBar.bind(DataBindingBuilder.floatValS2C(() -> getRecipeLogic().getProgressPercent()).build());
+            progressBar.label.bindDataSource(SupplierDataSource.of(() -> Component.literal(String.format("%.2f%%", getRecipeLogic().getProgressPercent() * 100))));
+        });
+        ui.selectId("ui:fuel_bar", ProgressBar.class).forEach(progressBar ->
+                progressBar.bind(DataBindingBuilder.floatValS2C(() -> getRecipeLogic().getFuelProgressPercent()).build())
+        );
+        ui.selectId("ui:xei_lookup", Button.class).forEach(button -> button.setOnClick(event -> {
+            var recipeType = getRecipeType();
+            if (recipeType != MBDRecipeType.DUMMY && recipeType.isXEIVisible()) {
+                if (LDLib2.isReiLoaded()) {
+                    MBDREIPlugin.lookupRecipeType(recipeType);
+                } else if (LDLib2.isJeiLoaded()) {
+                    MBDJEIPlugin.lookupRecipeType(recipeType);
+                } else if (LDLib2.isEmiLoaded()) {
+                    MBDEMIPlugin.lookupRecipeType(recipeType);
+                }
+            }
+        }));
+
+        for (var trait : getAdditionalTraits()) {
+            if (trait.getDefinition() instanceof IUIProviderTrait provider) {
+                provider.initTraitUI(trait, ui);
+            }
+        }
     }
 
     @Override

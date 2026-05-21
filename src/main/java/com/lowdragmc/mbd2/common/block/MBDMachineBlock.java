@@ -3,6 +3,9 @@ package com.lowdragmc.mbd2.common.block;
 import com.lowdragmc.lowdraglib2.client.model.ModelFactory;
 import com.lowdragmc.lowdraglib2.client.renderer.IBlockRendererProvider;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
+import com.lowdragmc.lowdraglib2.gui.factory.BlockUIMenuType;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.mbd2.api.block.RotationState;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
@@ -59,7 +62,7 @@ import java.util.Optional;
 @Getter
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
-public class MBDMachineBlock extends Block implements EntityBlock, IBlockRendererProvider, SimpleWaterloggedBlock {
+public class MBDMachineBlock extends Block implements EntityBlock, IBlockRendererProvider, SimpleWaterloggedBlock, BlockUIMenuType.BlockUI {
 
     private final MBDMachineDefinition definition;
     private final RotationState rotationState;
@@ -374,5 +377,13 @@ public class MBDMachineBlock extends Block implements EntityBlock, IBlockRendere
             }
             return i << 20 | j << 4;
         }
+    }
+
+    @Override
+    @Nullable
+    public ModularUI createUI(BlockUIMenuType.BlockUIHolder holder) {
+        return getMachine(holder.player.level(), holder.pos)
+                .map(machine -> machine.createUI(holder))
+                .orElseGet(() -> ModularUI.of(UI.empty()));
     }
 }

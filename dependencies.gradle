@@ -79,7 +79,7 @@ dependencies {
     localImplementation("maven.modrinth:jade:${jade_version}")
 
     // Ars Nouveau
-    localImplementation("com.hollingsworth.ars_nouveau:ars_nouveau-${minecraft_version}:${ars_nouveau_version}")
+//    localImplementation("com.hollingsworth.ars_nouveau:ars_nouveau-${minecraft_version}:${ars_nouveau_version}")
 
     // AE2
     localImplementation("org.appliedenergistics:appliedenergistics2:${ae2_version}")

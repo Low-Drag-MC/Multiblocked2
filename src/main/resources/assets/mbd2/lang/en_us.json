@@ -872,5 +872,7 @@
   "config.jade.plugin_mbd2.multiblock_provider": "Multiblock2 Multiblock Provider",
   "config.definition.trait.item_slot.slot_configs": "Slot Configs",
   "ToggleShape.shapes": "Shapes",
-  "EditorEntityDisplay": "Editor Entity Display"
+  "EditorEntityDisplay": "Editor Entity Display",
+  "editor.machine.machine_ui.generate_all": "Generate All",
+  "editor.machine.machine_ui.add_trait_ui": "Add Trait UI"
 }

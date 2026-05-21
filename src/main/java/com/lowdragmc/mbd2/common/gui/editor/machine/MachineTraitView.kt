@@ -21,6 +21,7 @@ import com.lowdragmc.mbd2.common.gui.editor.MachineProject
 import com.lowdragmc.mbd2.common.trait.ITrait
 import com.lowdragmc.mbd2.common.trait.TraitDefinition
 import dev.vfyjxf.taffy.style.FlexDirection
+import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.network.chat.Component
 
 open class MachineTraitView(editor: MBDEditor, project: MachineProject) : MachineSceneView("editor.machine.machine_traits", editor, project) {
@@ -210,6 +211,11 @@ open class MachineTraitView(editor: MBDEditor, project: MachineProject) : Machin
         treeList.expandAllNodesIf(treeList.root!!) { node ->
             expandedNodes.contains(node.key)
         }
+        reloadAdditionalTraits()
+    }
+
+    override fun renderAfterWorld(bufferSource: MultiBufferSource, partialTicks: Float) {
+        selectedTrait?.renderInEditor(bufferSource, partialTicks)
     }
 
     fun createMenu(): TreeBuilder.Menu {

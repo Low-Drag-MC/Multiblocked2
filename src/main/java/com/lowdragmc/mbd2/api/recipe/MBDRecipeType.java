@@ -3,6 +3,7 @@ package com.lowdragmc.mbd2.api.recipe;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.ArrayConfiguratorGroup;
@@ -11,9 +12,15 @@ import com.lowdragmc.lowdraglib2.configurator.ui.SearchComponentConfigurator;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.UITemplate;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.ProgressBar;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
 import com.lowdragmc.lowdraglib2.math.Size;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeCapabilityHolder;
@@ -102,11 +109,17 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
     @Getter
     protected UICreator uiCreator = UICreator.DEFAULT;
     @Setter
+    @Persisted
+    protected UITemplate uiTemplate = null;
+    @Setter
     @Getter
     protected Size uiSize = Size.of(50, 50);
     @Setter
     @Getter
     protected UICreator fuelUICreator = UICreator.DEFAULT;
+    @Setter
+    @Persisted
+    protected UITemplate fuelUITemplate = null;
     @Setter
     @Getter
     protected Size fuelUISize = Size.of(50, 50);
@@ -178,6 +191,39 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
         return new MBDRecipeType(MBD2.id("recipe_type"));
     }
 
+    public static UITemplate createDefaultRecipeTemplate(boolean fuel) {
+        var root = new UIElement();
+        root.getLayout()
+                .gapAll(4)
+                .paddingAll(4);
+        root.addClass("panel_bg");
+        root.addChild(new Label().setText(fuel ? "Fuel Recipe" : "Recipe"));
+        var progress = new ProgressBar();
+        progress.setId("@progress_bar");
+        progress.setProgress(0.5f);
+        progress.layout(layout -> layout.width(80).height(14));
+        root.addChild(progress);
+        var duration = new Label();
+        duration.setId("@duration");
+        duration.setText(Component.translatable("recipe.duration.value", 100));
+        root.addChild(duration);
+        return UITemplate.of(root, StylesheetManager.MC);
+    }
+
+    public UITemplate getFuelUITemplate() {
+        if (fuelUITemplate == null) {
+            fuelUITemplate = createDefaultRecipeTemplate(true);
+        }
+        return fuelUITemplate;
+    }
+
+    public UITemplate getUiTemplate() {
+        if (uiTemplate == null) {
+            uiTemplate = createDefaultRecipeTemplate(false);
+        }
+        return uiTemplate;
+    }
+
     /**
      * Create recipeType from project tag for product usage.\
      * @param file project file.
@@ -187,40 +233,18 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
      */
     public MBDRecipeType loadProductiveTag(@Nullable File file, CompoundTag tag, Deque<Runnable> postTask) {
         this.projectFile = file;
-        this.registryName = ResourceLocation.parse(tag.getCompound("recipe_type").getString("registryName"));
+        var projectTag = tag.contains("data") ? tag.getCompound("data") : tag;
+        this.registryName = ResourceLocation.parse(projectTag.getCompound("recipe_type").getString("registryName"));
         postTask.add(() -> {
-            // todo ui
-//            var texturesResource = new TexturesResource();
-//            texturesResource.deserializeNBT(tag.getCompound("resources").getCompound(TexturesResource.RESOURCE_NAME), Platform.getFrozenRegistry());
-//            UIResourceTexture.setCurrentResource(texturesResource, false);
-//            deserializeNBT(Platform.getFrozenRegistry(), tag.getCompound("recipe_type"));
-//            UIResourceTexture.clearCurrentResource();
-//            var uiTag = tag.getCompound("ui");
-//            var size = uiTag.getCompound("size");
-//            setUiSize(new Size(size.getInt("width"), size.getInt("height")));
-//            setUiCreator(recipe -> {
-//                var recipeUI = new WidgetGroup();
-//                recipeUI.setClientSideWidget();
-//                IConfigurableWidget.deserializeNBT(recipeUI, uiTag, texturesResource, false, Platform.getFrozenRegistry());
-//                bindXEIRecipeUI(recipeUI, recipe);
-//                recipeUI.setSelfPosition(0, 0);
-//                recipeUI.setBackground(IGuiTexture.EMPTY);
-//                return recipeUI;
-//            });
-//            if (requireFuelForWorking && tag.contains("fuelUI")) {
-//                var fuelUITag = tag.getCompound("fuelUI");
-//                var fuelSize= fuelUITag.getCompound("size");
-//                setFuelUISize(new Size(fuelSize.getInt("width"), fuelSize.getInt("height")));
-//                setFuelUICreator(recipe -> {
-//                    var recipeUI = new WidgetGroup();
-//                    recipeUI.setClientSideWidget();
-//                    IConfigurableWidget.deserializeNBT(recipeUI, fuelUITag, texturesResource, false, Platform.getFrozenRegistry());
-//                    bindXEIRecipeUI(recipeUI, recipe);
-//                    recipeUI.setSelfPosition(0, 0);
-//                    recipeUI.setBackground(IGuiTexture.EMPTY);
-//                    return recipeUI;
-//                });
-//            }
+            deserializeNBT(Platform.getFrozenRegistry(), projectTag.getCompound("recipe_type"));
+            if (projectTag.contains("ui")) {
+                uiTemplate = UITemplate.CODEC.parse(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), projectTag.get("ui")).getOrThrow();
+            }
+            if (projectTag.contains("fuel_ui")) {
+                fuelUITemplate = UITemplate.CODEC.parse(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), projectTag.get("fuel_ui")).getOrThrow();
+            } else if (projectTag.contains("fuelUI")) {
+                fuelUITemplate = UITemplate.CODEC.parse(Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE), projectTag.get("fuelUI")).getOrThrow();
+            }
         });
         return this;
     }
@@ -257,27 +281,24 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
         return ResourceLocation.fromNamespaceAndPath(registryName.getNamespace(), registryName.getPath() + ".fuel");
     }
 
-    public List<MBDRecipe> searchFuelRecipe(RecipeManager recipeManager, IRecipeCapabilityHolder holder) {
+    public List<RecipeHolder<MBDRecipe>> searchFuelRecipe(RecipeManager recipeManager, IRecipeCapabilityHolder holder) {
         if (!holder.hasProxies() || !isRequireFuelForWorking()) return Collections.emptyList();
-        List<MBDRecipe> matches = new ArrayList<>();
+        List<RecipeHolder<MBDRecipe>> matches = new ArrayList<>();
         for (var recipeHolder : recipeManager.getAllRecipesFor(this)) {
             var recipe = recipeHolder.value();
             if (recipe.isFuel && recipe.matchRecipe(holder).isSuccess() && recipe.matchTickRecipe(holder).isSuccess()) {
-                matches.add(recipe);
+                matches.add(recipeHolder);
             }
         }
-        matches.sort(Comparator.comparingInt(r -> r.priority));
+        matches.sort(Comparator.comparingInt(r -> r.value().priority));
         return matches;
     }
 
-    public List<MBDRecipe> searchRecipe(RecipeManager recipeManager, IRecipeCapabilityHolder holder) {
+    public List<RecipeHolder<MBDRecipe>> searchRecipe(RecipeManager recipeManager, IRecipeCapabilityHolder holder) {
         if (!holder.hasProxies()) return Collections.emptyList();
-        List<MBDRecipe> matches = recipeManager.getAllRecipesFor(this).parallelStream()
-                .map(RecipeHolder::value)
-                .filter(recipe -> !recipe.isFuel && recipe.matchRecipe(holder).isSuccess() && recipe.matchTickRecipe(holder).isSuccess())
-                .collect(Collectors.toList());
-        matches.sort(Comparator.comparingInt(r -> r.priority));
-        return matches;
+        return recipeManager.getAllRecipesFor(this).parallelStream()
+                .filter(recipe -> !recipe.value().isFuel && recipe.value().matchRecipe(holder).isSuccess() && recipe.value().matchTickRecipe(holder).isSuccess())
+                .sorted(Comparator.comparingInt(r -> r.value().priority)).collect(Collectors.toList());
     }
 
     //////////////////////////////////////
@@ -435,43 +456,52 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
     //////////////////////////////////////
 
     public void bindXEIRecipeUI(UI ui, MBDRecipe recipe) {
-        // todo ui
-//        WidgetUtils.widgetByIdForEach(ui, "^@progress_bar$", ProgressWidget.class,
-//                progress -> progress.setHoverTooltips(Component.translatable("recipe.duration.value", recipe.duration)));
-//        WidgetUtils.widgetByIdForEach(ui, "^@duration$", LabelWidget.class,
-//                label -> label.setComponent(Component.translatable("recipe.duration.value", recipe.duration)));
-//        WidgetUtils.widgetByIdForEach(ui, "^@condition$", TextBoxWidget.class,
-//                textBoxWidget -> textBoxWidget.setContent(recipe.conditions.stream().map(RecipeCondition::getTooltips).map(Component::getString).toList()));
+        ui.selectId("@progress_bar", ProgressBar.class).forEach(progress -> {
+            progress.setRange(0, Math.max(1, recipe.duration));
+            progress.setProgress(Math.max(1, recipe.duration));
+            progress.style(style -> style.tooltips(Component.translatable("recipe.duration.value", recipe.duration)));
+        });
+        ui.selectId("@duration", Label.class).forEach(label ->
+                label.setText(Component.translatable("recipe.duration.value", recipe.duration)));
+        ui.selectId("@condition", Label.class).forEach(label ->
+                label.setText(recipe.conditions.stream()
+                        .map(RecipeCondition::getTooltips)
+                        .map(Component::getString)
+                        .collect(Collectors.joining("\n"))));
 //        bindCapIOUI(ui, recipe.inputs, IO.IN);
-//        bindCapIOUI(ui, recipe.outputs, IO.OUT);
+        bindCapIOUI(ui, recipe.inputs, IO.IN);
+        bindCapIOUI(ui, recipe.outputs, IO.OUT);
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     private static void bindCapIOUI(UI ui, Map<RecipeCapability<?>, List<Content>> values, IO io) {
-//        values.forEach((cap, contents) -> {
-//            for (int i = 0; i < contents.size(); i++) {
-//                var content = contents.get(i);
-//                var id = content.uiName.isEmpty() ? "^@%s_%s_%d$".formatted(cap.name, io.name, i) : Pattern.quote(content.uiName);
-//                for (var widget : WidgetUtils.getWidgetsById(ui, id)) {
-//                    cap.bindXEIWidget(widget, content, io);
-//                    var tooltips = new ArrayList<Component>();
-//                    content.appendTooltip(tooltips);
-//                    if (!tooltips.isEmpty()) {
-//                        widget.appendHoverTooltips(tooltips);
-//                    }
-//                }
-//            }
-//        });
+        values.forEach((cap, contents) -> {
+            for (int i = 0; i < contents.size(); i++) {
+                var content = contents.get(i);
+                var id = content.uiName.isEmpty() ? "@%s_%s_%d".formatted(cap.name, io.name, i) : content.uiName;
+                ui.selectRegex(Pattern.quote(id)).forEach(widget -> {
+                    ((RecipeCapability) cap).bindXEIWidget(widget, content, io);
+                    var tooltips = new ArrayList<Component>();
+                    content.appendTooltip(tooltips);
+                    if (!tooltips.isEmpty()) {
+                        widget.style(style -> style.tooltips(tooltips.toArray(Component[]::new)));
+                    }
+                });
+            }
+        });
     }
 
     public UI createRecipeUI(MBDRecipe recipe) {
-        var ui = uiCreator.create(recipe);
+        var ui = uiCreator == UICreator.DEFAULT ? uiTemplate.createUI() : uiCreator.create(recipe);
+        bindXEIRecipeUI(ui, recipe);
         var event = new RecipeUIEvent(this, recipe, ui);
         NeoForge.EVENT_BUS.post(event.postKubeJSEvent());
         return event.getUi();
     }
 
     public UI createFuelUI(MBDRecipe recipe) {
-        var ui = fuelUICreator.create(recipe);
+        var ui = fuelUICreator == UICreator.DEFAULT ? fuelUITemplate.createUI() : fuelUICreator.create(recipe);
+        bindXEIRecipeUI(ui, recipe);
         var event = new FuelRecipeUIEvent(this, recipe, ui);
         NeoForge.EVENT_BUS.post(event.postKubeJSEvent());
         return event.getUi();

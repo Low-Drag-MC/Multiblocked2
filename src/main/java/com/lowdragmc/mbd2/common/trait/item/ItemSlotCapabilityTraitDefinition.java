@@ -1,17 +1,30 @@
 package com.lowdragmc.mbd2.common.trait.item;
 
+import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
+import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderTypes;
+import com.lowdragmc.lowdraglib2.client.utils.RenderBufferUtils;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture;
+import com.lowdragmc.lowdraglib2.gui.slot.ItemHandlerSlot;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
+import com.lowdragmc.lowdraglib2.utils.ColorUtils;
+import com.lowdragmc.mbd2.api.capability.recipe.IO;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.*;
+import com.mojang.blaze3d.vertex.PoseStack;
 import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.Items;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.capabilities.BlockCapability;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.items.IItemHandler;
@@ -65,103 +78,70 @@ public class ItemSlotCapabilityTraitDefinition extends SimpleCapabilityTraitDefi
     }
 
     @Override
-    public void createTraitUITemplate(UI ui) {
-        // todo ui
-
-//        var row = Math.ceil(Math.sqrt(slotSize));
-//        var prefix = uiPrefixName();
-//        for (var i = 0; i < this.slotSize; i++) {
-//            var slotWidget = new SlotWidget();
-//            slotWidget.setSelfPosition(new Position(10 + i % (int) row * 18, 10 + i / (int) row * 18));
-//            slotWidget.initTemplate();
-//            slotWidget.setId(prefix + "_" + i);
-//            ui.addWidget(slotWidget);
-//        }
+    public void createTraitUITemplate(UIElement container) {
+        var prefix = uiId();
+        for (var i = 0; i < this.slotSize; i++) {
+            var slot = new ItemSlot();
+            slot.setId(prefix + "_" + i);
+            container.addChild(slot);
+        }
     }
 
     @Override
     public void initTraitUI(ITrait trait, UI ui) {
-//        if (trait instanceof ItemSlotCapabilityTrait itemSlotTrait) {
-//            var prefix = uiPrefixName();
-//            var guiIO = getGuiIO();
-//            var ingredientIO = guiIO == IO.IN ? IngredientIO.INPUT : guiIO == IO.OUT ? IngredientIO.OUTPUT : guiIO == IO.BOTH ? IngredientIO.BOTH : IngredientIO.RENDER_ONLY;
-//            WidgetUtils.widgetByIdForEach(group, "^%s_[0-9]+$".formatted(prefix), SlotWidget.class, slotWidget -> {
-//                var index = WidgetUtils.widgetIdIndex(slotWidget);
-//                if (index >= 0 && index < itemSlotTrait.storage.getSlots()) {
-//                    slotWidget.setHandlerSlot(itemSlotTrait.storage, index);
-//                    slotWidget.setIngredientIO(ingredientIO);
-//                    slotWidget.setCanTakeItems(guiIO.support(IO.OUT));
-//                    slotWidget.setCanPutItems(guiIO.support(IO.IN));
-//                }
-//            });
-//        }
+        if (trait instanceof ItemSlotCapabilityTrait itemSlotTrait) {
+            var prefix = uiId();
+            var guiIO = getGuiIO();
+            ui.selectRegex("^%s_[0-9]+$".formatted(prefix), ItemSlot.class).forEach(itemSlot -> {
+                var idStr = itemSlot.getId();
+                var lastUnderscore = idStr.lastIndexOf('_');
+                if (lastUnderscore < 0) return;
+                int index;
+                try {
+                    index = Integer.parseInt(idStr.substring(lastUnderscore + 1));
+                } catch (NumberFormatException e) {
+                    return;
+                }
+                if (index >= 0 && index < itemSlotTrait.storage.getSlots()) {
+                    itemSlot.bind(itemSlotTrait.storage, index);
+                    if (itemSlot.getSlot() instanceof ItemHandlerSlot handlerSlot) {
+                        if (!guiIO.support(IO.IN)) {
+                            handlerSlot.setCanPlace(stack -> false);
+                        }
+                        if (!guiIO.support(IO.OUT)) {
+                            handlerSlot.setCanTake(player -> false);
+                        }
+                    }
+                }
+            });
+        }
     }
 
-//    @Override
-//    public IRenderer getBESRenderer(IMachine machine) {
-//        return itemRendererSettings.getFancyRenderer(machine);
-//    }
+    @Override
+    public IRenderer getBESRenderer(IMachine machine) {
+        return itemRendererSettings.getFancyRenderer(machine);
+    }
 
-//    @Override
-//    @OnlyIn(Dist.CLIENT)
-//    public void renderAfterWorldInTraitPanel(MachineTraitPanel panel) {
-//        super.renderAfterWorldInTraitPanel(panel);
-//        if (!autoInput.enable && !autoOutput.enable) return;
-//        var poseStack = new PoseStack();
-//        var buffer = Tesselator.getInstance().begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
-//
-//        RenderSystem.enableBlend();
-//        RenderSystem.disableDepthTest();
-//        RenderSystem.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-//
-//        poseStack.pushPose();
-//        RenderSystem.disableCull();
-//        RenderSystem.setShader(GameRenderer::getRendertypeLinesShader);
-//        RenderSystem.lineWidth(5);
-//
-//        if (autoOutput.enable) {
-//            var color = 0xffee6500;
-//            RenderBufferUtils.drawCubeFrame(poseStack, buffer,
-//                    (float)autoOutput.range.minX, (float)autoOutput.range.minY, (float)autoOutput.range.minZ,
-//                    (float)autoOutput.range.maxX, (float)autoOutput.range.maxY, (float)autoOutput.range.maxZ,
-//                    ColorUtils.red(color), ColorUtils.green(color), ColorUtils.blue(color), ColorUtils.alpha(color));
-//        }
-//
-//        if (autoInput.enable) {
-//            var color = 0xff11aaee;
-//            RenderBufferUtils.drawCubeFrame(poseStack, buffer,
-//                    (float) autoInput.range.minX, (float) autoInput.range.minY, (float) autoInput.range.minZ,
-//                    (float) autoInput.range.maxX, (float) autoInput.range.maxY, (float) autoInput.range.maxZ,
-//                    ColorUtils.red(color), ColorUtils.green(color), ColorUtils.blue(color), ColorUtils.alpha(color));
-//        }
-//        BufferUploader.drawWithShader(buffer.buildOrThrow());
-//
-//        poseStack.popPose();
-//        RenderSystem.enableDepthTest();
-//        RenderSystem.enableCull();
-//    }
-
-//    private Configurator buildItemSlotConfigurator(Supplier<ItemSlotConfig> getter, Consumer<ItemSlotConfig> setter) {
-//        var configurator = new ConfiguratorGroup().hideTitle();
-//        configurator.setCollapse(false);
-//        getter.get().buildConfigurator(configurator);
-//        return configurator;
-//    }
-//
-//    private ItemSlotConfig addDefaultItemSlot() {
-//        return new ItemSlotConfig(this);
-//    }
-//
-//    private IntTag itemSlotSerialize(List<ItemSlotConfig> configs) {
-//        return IntTag.valueOf(configs.size());
-//    }
-//
-//    private List<ItemSlotConfig> itemSlotDeserialize(IntTag tag) {
-//        var configs = new ArrayList<ItemSlotConfig>();
-//        for (int i = 0; i < tag.getAsInt(); i++) {
-//            configs.add(addDefaultItemSlot());
-//        }
-//        return configs;
-//    }
-
+    @Override
+    @OnlyIn(Dist.CLIENT)
+    public void renderInEditor(MultiBufferSource bufferSource, float partialTicks) {
+        var buffer = bufferSource.getBuffer(LDLibRenderTypes.noDepthLines());
+        var poseStack = new PoseStack();
+        if (autoWorldOutput.isEnable()) {
+            var aabb = autoWorldOutput.getRange();
+            var color = 0xffee6500;
+            RenderBufferUtils.drawCubeFrame(poseStack, buffer,
+                    (float) aabb.minX, (float) aabb.minY, (float) aabb.minZ,
+                    (float) aabb.maxX, (float) aabb.maxY, (float) aabb.maxZ,
+                    ColorUtils.red(color), ColorUtils.green(color), ColorUtils.blue(color), ColorUtils.alpha(color));
+        }
+        if (autoWorldInput.isEnable()) {
+            var aabb = autoWorldInput.getRange();
+            var color = 0xff11aaee;
+            RenderBufferUtils.drawCubeFrame(poseStack, buffer,
+                    (float) aabb.minX, (float) aabb.minY, (float) aabb.minZ,
+                    (float) aabb.maxX, (float) aabb.maxY, (float) aabb.maxZ,
+                    ColorUtils.red(color), ColorUtils.green(color), ColorUtils.blue(color), ColorUtils.alpha(color));
+        }
+    }
 }

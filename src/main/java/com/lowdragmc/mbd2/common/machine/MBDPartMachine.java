@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.common.machine;
 
+import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.RequireRerender;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
@@ -13,6 +14,7 @@ import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigPartSettings;
 import com.lowdragmc.mbd2.common.trait.IProxyAutoIOTrait;
 import com.lowdragmc.mbd2.common.trait.ITrait;
+import com.lowdragmc.mbd2.common.trait.IUIProviderTrait;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -221,6 +223,38 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
                     }
                 }
             }
+        }
+    }
+
+    @Override
+    protected void bindMachineUI(UI ui) {
+        super.bindMachineUI(ui);
+
+        // proxy controller ui
+        if (getDefinition().partSettings() != null && getDefinition().partSettings().isEnable()) {
+            var prefix = "controller:";
+            var midTag = "@ui:";
+            ui.selectRegex("controller:.*?@ui:").forEach(element -> {
+                var id = element.getId();
+                if (id.startsWith(prefix)) {
+                    int atIndex = id.indexOf(midTag);
+                    if (atIndex != -1) {
+                        var traitName = id.substring(prefix.length(), atIndex);
+                        var uiName = "ui:" + id.substring(atIndex + midTag.length());
+                        for (var controller : getControllers()) {
+                            if (controller instanceof MBDMachine mbdMachine) {
+                                var trait = mbdMachine.getTraitByName(traitName);
+                                if (trait != null &&
+                                        trait.getDefinition() instanceof IUIProviderTrait provider &&
+                                        uiName.startsWith(provider.uiId())) {
+                                    element.setId(uiName);
+                                    provider.initTraitUI(trait, ui);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.api.recipe;
 
+import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
@@ -34,7 +35,7 @@ public class MBDRecipeSerializer implements RecipeSerializer<MBDRecipe> {
     );
 
     public static final MapCodec<MBDRecipe> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-                    MBDRegistries.RECIPE_TYPES.codec().fieldOf("type").forGetter(val -> val.recipeType),
+                    ResourceLocation.CODEC.fieldOf("type").forGetter(val -> val.recipeType == null ? MBD2.id("dummy") : val.recipeType.getRegistryName()),
                     ResourceLocation.CODEC.lenientOptionalFieldOf("id").forGetter(val -> Optional.ofNullable(val.id)),
                     CONTENTS_CODEC.optionalFieldOf("inputs", Map.of()).forGetter(val -> val.inputs),
                     CONTENTS_CODEC.optionalFieldOf("outputs", Map.of()).forGetter(val -> val.outputs),
@@ -45,7 +46,8 @@ public class MBDRecipeSerializer implements RecipeSerializer<MBDRecipe> {
                     Codec.BOOL.optionalFieldOf("isXEIHidden", false).forGetter(val -> val.isXEIHidden),
                     Codec.INT.fieldOf("priority").forGetter(val -> val.priority))
             .apply(instance, (recipeType, id, inputs, outputs, conditions, data, duration, isFuel, isXEIHidden, priority) ->
-                    new MBDRecipe(recipeType, id.orElse(null), inputs, outputs, conditions, data, duration, isFuel, isXEIHidden, priority)));
+                    new MBDRecipe((MBDRecipeType) BuiltInRegistries.RECIPE_TYPE.getOptional(recipeType).orElse(MBDRecipeType.DUMMY),
+                            id.orElse(null), inputs, outputs, conditions, data, duration, isFuel, isXEIHidden, priority)));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, MBDRecipe> STREAM_CODEC = StreamCodec
             .of(MBDRecipeSerializer::toNetwork, MBDRecipeSerializer::fromNetwork);
@@ -74,7 +76,7 @@ public class MBDRecipeSerializer implements RecipeSerializer<MBDRecipe> {
     @NotNull
     public static MBDRecipe fromNetwork(@NotNull RegistryFriendlyByteBuf buf) {
         var id = buf.readResourceLocation();
-        var recipeType = buf.readUtf();
+        var recipeType = buf.readResourceLocation();
         var duration = buf.readVarInt();
         Map<RecipeCapability<?>, List<Content>> inputs = tuplesToMap(buf.readCollection(c -> new ArrayList<>(), MBDRecipeSerializer::entryReader));
         Map<RecipeCapability<?>, List<Content>> outputs = tuplesToMap(buf.readCollection(c -> new ArrayList<>(), MBDRecipeSerializer::entryReader));
@@ -83,12 +85,12 @@ public class MBDRecipeSerializer implements RecipeSerializer<MBDRecipe> {
         boolean isFuel = buf.readBoolean();
         boolean isXEIHidden = buf.readBoolean();
         int priority = buf.readVarInt();
-        return new MBDRecipe((MBDRecipeType) BuiltInRegistries.RECIPE_TYPE.get(ResourceLocation.parse(recipeType)), id, inputs, outputs, conditions, data, duration, isFuel, isXEIHidden, priority);
+        return new MBDRecipe((MBDRecipeType) BuiltInRegistries.RECIPE_TYPE.getOptional(recipeType).orElse(MBDRecipeType.DUMMY), id, inputs, outputs, conditions, data, duration, isFuel, isXEIHidden, priority);
     }
 
     public static void toNetwork(RegistryFriendlyByteBuf buf, MBDRecipe recipe) {
         buf.writeResourceLocation(recipe.id);
-        buf.writeUtf(recipe.recipeType == null ? "dummy" : recipe.recipeType.toString());
+        buf.writeResourceLocation(recipe.recipeType == null ? MBD2.id("dummy") : recipe.recipeType.getRegistryName());
         buf.writeVarInt(recipe.duration);
         buf.writeObjectCollection(recipe.inputs.entrySet(), MBDRecipeSerializer::entryWriter);
         buf.writeObjectCollection(recipe.outputs.entrySet(), MBDRecipeSerializer::entryWriter);

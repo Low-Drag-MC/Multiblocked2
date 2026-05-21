@@ -4,8 +4,8 @@ import com.lowdragmc.lowdraglib2.client.model.ModelFactory;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.core.mixins.accessor.MinecraftAccessor;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
-import com.lowdragmc.mbd2.api.capability.MBDCapabilities;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.FancyRendererSettings;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -62,7 +62,8 @@ public class ItemFancyRendererSettings extends FancyRendererSettings {
                     && machineBlockEntity.getMetaMachine() instanceof MBDMachine machine) {
                 if (machine.getTraitByDefinition(definition) instanceof ItemSlotCapabilityTrait trait) {
                     var itemRenderer = Minecraft.getInstance().getItemRenderer();
-                    float tick = blockEntity.getLevel().getGameTime() + partialTicks;
+
+                    float tick = ((MinecraftAccessor)Minecraft.getInstance()).ldlib2$getClientTickCount() + partialTicks;
                     for (int i = 0; i < trait.storage.getSlots(); i++) {
                         var itemStack = trait.storage.getStackInSlot(i);
                         if (itemStack.isEmpty()) continue;

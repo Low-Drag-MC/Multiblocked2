@@ -278,9 +278,7 @@ public class MultiblockMachineDefinition extends MBDMachineDefinition {
         return new BlockPattern(predicate, structureDir, aisleRepetitions, centerOffset);
     }
 
-    @Override
     protected void bindMachineUI(MBDMachine machine, UIElement ui) {
-        super.bindMachineUI(machine, ui);
 //        // proxy part ui
 //        if (machine instanceof MBDMultiblockMachine multiblock) {
 //            var prefix = "part:";
