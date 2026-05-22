@@ -14,6 +14,7 @@ import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.Util;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -61,7 +62,7 @@ public class RecipeLogic implements IBlockEntityManaged {
      * safe, it is the origin recipe before {@link IMachine#doModifyRecipe(MBDRecipe)}' which can be found from {@link RecipeManager}.
      */
     @Nullable @Getter @Persisted
-    protected RecipeHolder<MBDRecipe> lastOriginRecipe;
+    protected ResourceLocation lastOriginRecipe;
     @Getter @Persisted @Setter
     protected boolean consumeInputsAfterWorking;
     @Persisted
@@ -181,7 +182,7 @@ public class RecipeLogic implements IBlockEntityManaged {
                 setupRecipe(modified);
             }
             if (lastRecipe != null && getStatus() == Status.WORKING) {
-                lastOriginRecipe = match;
+                lastOriginRecipe = match.id();
                 lastFailedMatches = null;
                 return true;
             }
@@ -485,8 +486,11 @@ public class RecipeLogic implements IBlockEntityManaged {
                 markLastRecipeDirty();
             }
             if (!recipeDirty && machine.alwaysTryModifyRecipe()) {
-                if (lastOriginRecipe != null) {
-                    var modified = machine.doModifyRecipe(lastOriginRecipe.value());
+                if (lastOriginRecipe != null && getRecipeManager()
+                        .byKey(lastOriginRecipe)
+                        .map(RecipeHolder::value)
+                        .orElse(null) instanceof MBDRecipe recipe) {
+                    var modified = machine.doModifyRecipe(recipe);
                     if (modified == null) {
                         markLastRecipeDirty();
                     } else {

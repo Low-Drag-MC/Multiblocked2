@@ -1,14 +1,11 @@
 package com.lowdragmc.mbd2.integration.kubejs.events;
 
-import com.lowdragmc.mbd2.MBD2;
-import com.lowdragmc.mbd2.api.recipe.event.FuelRecipeUIEvent;
 import com.lowdragmc.mbd2.api.recipe.event.RecipeTypeEvent;
 import com.lowdragmc.mbd2.api.recipe.event.RecipeUIEvent;
 import com.lowdragmc.mbd2.common.machine.definition.config.event.*;
 import dev.latvian.mods.kubejs.event.EventHandler;
 import dev.latvian.mods.kubejs.event.EventResult;
 import dev.latvian.mods.kubejs.event.EventTargetType;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -40,11 +37,6 @@ public interface MBDClientEvents {
             RecipeUIEvent.class,
             MBDRecipeTypeEvents.RecipeUIEventJS.class,
             MBDRecipeTypeEvents.RecipeUIEventJS::new);
-
-    EventHandler FUEL_RECIPE_UI = registerRecipeTypeEvent("onFuelRecipeUI",
-            FuelRecipeUIEvent.class,
-            MBDRecipeTypeEvents.FuelRecipeUIEventJS.class,
-            MBDRecipeTypeEvents.FuelRecipeUIEventJS::new);
 
     // todo geckolib
 //    static EventHandler createCustomKeyframeEvent() {

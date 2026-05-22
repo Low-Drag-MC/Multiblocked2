@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.common.machine.definition.config;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.IToggleConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSearch;
@@ -103,8 +104,8 @@ public class ConfigRecipeLogicSettings implements IToggleConfigurable {
                 var path = new File(MBD2.getLocation(), "recipe_type");
                 FileUtils.loadNBTFiles(path, ".rt", (file, tag) -> {
                     if (Thread.currentThread().isInterrupted()) return;
-                    var recipeType = tag.getCompound("recipe_type").getString("registryName");
-                    if (!recipeType.isEmpty() && ResourceLocation.isValidPath(recipeType)) {
+                    var recipeType = tag.getCompound("data").getCompound("recipe_type").getString("registryName");
+                    if (!recipeType.isEmpty() && LDLib2.isValidResourceLocation(recipeType)) {
                         searchHandler.accept(ResourceLocation.parse(recipeType));
                     }
                 });

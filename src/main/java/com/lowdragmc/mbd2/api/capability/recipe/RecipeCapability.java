@@ -85,7 +85,7 @@ public abstract class RecipeCapability<T> implements ILDLRegister<RecipeCapabili
      * <br>
      * it will be used for ui editor. the widget will be resized to (18, 18)
      */
-    public abstract UIElement createPreviewWidget(T content);
+    public abstract UIElement createPreview(Supplier<T> content);
 
     /**
      * create a widget for recipe viewer (XEI).

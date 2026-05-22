@@ -46,16 +46,17 @@ public class ItemDurabilityRecipeCapability extends RecipeCapability<SizedIngred
     }
 
     @Override
-    public UIElement createPreviewWidget(SizedIngredient content) {
+    public UIElement createPreview(Supplier<SizedIngredient> content) {
         return new ItemSlot().selfCall(element -> ((ItemSlot) element).bindDataSource(SupplierDataSource.of(() -> {
             var mui = element.getModularUI();
-            var items = Arrays.stream(content.getItems()).filter(ItemStack::isDamageableItem).toList();
+            var items = Arrays.stream(content.get().getItems()).filter(ItemStack::isDamageableItem).toList();
             return parseDamageItems(mui == null ? 0 : (int) mui.getTickCounter(), items);
         })));
     }
 
     @NotNull
     private ItemStack parseDamageItems(int tickCount, List<ItemStack> items) {
+        if (items.isEmpty()) return ItemStack.EMPTY;
         var stack = items.get((tickCount / 20) % items.size());
         if (!stack.isDamageableItem()) return stack.copy();
         var percentage = System.currentTimeMillis() % 2000 / 2000f;

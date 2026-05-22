@@ -292,7 +292,6 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
     }
 
     public void registerCapabilities(RegisterCapabilitiesEvent event) {
-        // TODO capabilities
         event.registerBlockEntity(
                 MBDCapabilities.CAPABILITY_MACHINE,
                 blockEntityType,
@@ -303,7 +302,6 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
                     return null;
                 }
         );
-        // todo register all capabilities
         for (var definition : machineSettings.traitDefinitions()) {
             if (definition instanceof ICapabilityProviderTrait capabilityProvider) {
                 capabilityProvider.registerCapability(this, event);

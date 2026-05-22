@@ -64,6 +64,7 @@ public class CommonProxy {
         MBDRegistries.BLOCKS.register(eventBus);
         MBDRegistries.BLOCK_ENTITY_TYPES.register(eventBus);
         MBDRegistries.RECIPE_SERIALIZERS.register("mbd_recipe_serializer", () -> MBDRecipeSerializer.SERIALIZER);
+        MBDRegistries.RECIPE_SERIALIZERS.register(eventBus);
         // Register Editor UI
         PlayerUIMenuType.register(MBDEditor.WINDOW_ID, ignored -> player -> {
             if (player.level().isClientSide) {

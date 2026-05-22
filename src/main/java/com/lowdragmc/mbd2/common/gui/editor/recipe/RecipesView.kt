@@ -4,24 +4,18 @@ import com.lowdragmc.lowdraglib2.configurator.IConfigurable
 import com.lowdragmc.lowdraglib2.configurator.ui.BooleanConfigurator
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup
 import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator
-import com.lowdragmc.lowdraglib2.configurator.ui.StringConfigurator
 import com.lowdragmc.lowdraglib2.editor.ui.View
+import com.lowdragmc.lowdraglib2.gui.ColorPattern
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture
 import com.lowdragmc.lowdraglib2.gui.texture.Icons
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement
-import com.lowdragmc.lowdraglib2.gui.ui.elements.Button
-import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog
-import com.lowdragmc.lowdraglib2.gui.ui.elements.Label
-import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView
-import com.lowdragmc.lowdraglib2.gui.ui.elements.StructuredTagEditor
-import com.lowdragmc.lowdraglib2.gui.ui.elements.Tab
-import com.lowdragmc.lowdraglib2.gui.ui.elements.TabView
-import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField
-import com.lowdragmc.lowdraglib2.gui.ui.elements.splitViewHorizontal
-import com.lowdragmc.lowdraglib2.gui.ui.elements.withLeft
-import com.lowdragmc.lowdraglib2.gui.ui.elements.withPercentage
-import com.lowdragmc.lowdraglib2.gui.ui.elements.withRight
+import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap
+import com.lowdragmc.lowdraglib2.gui.ui.dsl
+import com.lowdragmc.lowdraglib2.gui.ui.element
+import com.lowdragmc.lowdraglib2.gui.ui.elements.*
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents
 import com.lowdragmc.lowdraglib2.gui.ui.layout.pct
+import com.lowdragmc.lowdraglib2.gui.ui.layout.px
 import com.lowdragmc.lowdraglib2.gui.ui.layoutDsl
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder
 import com.lowdragmc.mbd2.api.capability.recipe.IO
@@ -35,8 +29,9 @@ import com.lowdragmc.mbd2.common.gui.editor.RecipeTypeProject
 import dev.vfyjxf.taffy.style.AlignItems
 import dev.vfyjxf.taffy.style.FlexDirection
 import net.minecraft.nbt.CompoundTag
+import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
-import java.util.LinkedHashSet
+import org.lwjgl.glfw.GLFW
 
 open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject) :
     View("editor.machine.recipe_type.recipes", Icons.FILE) {
@@ -50,8 +45,16 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
     private var contentClipboard: ContentClipboard? = null
     private var conditionClipboard: RecipeCondition? = null
     private lateinit var removeRecipesButton: Button
+    private val contentListRoots = mutableMapOf<IO, UIElement>()
+    private val contentRows = mutableMapOf<Content, UIElement>()
+    private val contentToolbars = mutableMapOf<IO, ToolbarButtons>()
+    private var conditionListRoot: UIElement? = null
+    private val conditionRows = mutableMapOf<RecipeCondition, UIElement>()
+    private var conditionToolbar: ToolbarButtons? = null
+    private var editingRecipe: ResourceLocation? = null
 
     private data class ContentClipboard(val capability: RecipeCapability<*>, val content: Content)
+    private data class ToolbarButtons(val remove: Button, val copy: Button, val paste: Button)
 
     init {
         addChild(splitViewHorizontal {
@@ -88,6 +91,22 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
                 gap { all(2f) }
             })
         }
+        pane.addChild(Button().apply {
+            setText("editor.machine.recipe_type")
+            setOnClick { e ->
+                if (e.button == 0) {
+                    inspectRecipeType()
+                    e.stopPropagation()
+                }
+            }
+            layout { it.widthPercent(100f) }
+            style { it.tooltips(project.recipeType.registryName.toString()) }
+            label {
+                element.layout { e -> e.widthPercent(100f).flex(1f) }
+                element.textStyle { it.textWrap(TextWrap.HOVER_ROLL).adaptiveWidth(false) }
+                element.setOverflowVisible(false)
+            }
+        })
         val buttons = UIElement().layoutDsl {
             width(100.pct)
             height(18f)
@@ -126,33 +145,138 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
         updateRemoveRecipeButton()
     }
 
-    private fun createRecipeRow(recipe: MBDRecipe): Button {
+    private fun createRecipeRow(recipe: MBDRecipe): UIElement {
         val selected = selectedRecipes.contains(recipe.id)
-        return Button().apply {
-            setText(if (selected) "> ${recipe.id}" else recipe.id.toString())
-            setOnClick { e ->
-                if (e.button == 0) {
-                    selectRecipe(recipe.id, UIElement.isCtrlDown())
-                    e.stopPropagation()
-                }
+        return UIElement().layoutDsl {
+            width(100.pct)
+            height(20f)
+            flexDirection(FlexDirection.ROW)
+            alignItems(AlignItems.CENTER)
+            gap { all(3f) }
+            padding { all(2f) }
+        }.apply {
+            style {
+                it.backgroundTexture(if (selected) ColorPattern.T_BLUE.rectTexture() else IGuiTexture.EMPTY)
+                it.tooltips(recipe.id.toString())
             }
-            layout { it.widthPercent(100f).height(18f) }
-            style { it.tooltips(recipe.id.toString()) }
+            if (editingRecipe == recipe.id) {
+                val field = createRecipeRenameField(recipe)
+                addChild(field)
+                field.focus()
+            } else {
+                addEventListener(UIEvents.MOUSE_DOWN) { e ->
+                    if (e.button == 0) {
+                        selectRecipe(recipe.id, UIElement.isCtrlDown())
+                        e.stopPropagation()
+                    }
+                }
+                addChild(Label().apply {
+                    setText(recipe.id.toString())
+                    layout { it.flex(1f) }
+                    textStyle { it.textWrap(TextWrap.HOVER_ROLL) }
+                    setOverflowVisible(false)
+                })
+                addChild(Button().apply {
+                    setText("R")
+                    setOnClick { e ->
+                        if (e.button == 0) {
+                            editingRecipe = recipe.id
+                            reloadRecipeList()
+                            e.stopPropagation()
+                        }
+                    }
+                    layout { it.width(18f).height(18f) }
+                    style { it.tooltips("Rename") }
+                })
+            }
         }
     }
 
     private fun selectRecipe(id: ResourceLocation, additive: Boolean) {
+        val previousSelection = selectedRecipes.toList()
         if (additive) {
             if (!selectedRecipes.add(id)) selectedRecipes.remove(id)
         } else {
             selectedRecipes.clear()
             selectedRecipes.add(id)
         }
+        clearItemSelections()
+        reloadRecipeList()
+        if (previousSelection != selectedRecipes.toList()) {
+            reloadDetail()
+        }
+        val selected = selectedRecipes.mapNotNull { project.recipeType.builtinRecipes[it] }
+        if (selected.size == 1) {
+            mbdEditor.inspectorView.inspect(selected.first(), null, null)
+        } else {
+            mbdEditor.inspectorView.clear()
+        }
+    }
+
+    private fun createRecipeRenameField(recipe: MBDRecipe): TextField {
+        val initial = recipe.id.toString()
+        val field = TextField().apply {
+            setText(initial, false)
+            setResourceLocationOnly()
+            layout { it.flex(1f).height(18f) }
+        }
+        var done = false
+        fun commit() {
+            if (done) return
+            done = true
+            renameRecipe(recipe, field.value)
+            editingRecipe = null
+            reloadRecipeList()
+        }
+        fun cancel() {
+            if (done) return
+            done = true
+            editingRecipe = null
+            reloadRecipeList()
+        }
+        field.addEventListener(UIEvents.KEY_DOWN) { e ->
+            when (e.keyCode) {
+                GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> {
+                    commit()
+                    e.stopPropagation()
+                }
+                GLFW.GLFW_KEY_ESCAPE -> {
+                    cancel()
+                    e.stopPropagation()
+                }
+            }
+        }
+        field.addEventListener(UIEvents.BLUR) { commit() }
+        return field
+    }
+
+    private fun renameRecipe(recipe: MBDRecipe, text: String?) {
+        val id = text?.let(ResourceLocation::tryParse) ?: return
+        if (id == recipe.id || project.recipeType.builtinRecipes.containsKey(id)) return
+        val copied = recipe.deepCopied(id)
+        project.recipeType.builtinRecipes.remove(recipe.id)
+        project.recipeType.builtinRecipes[id] = copied
+        if (selectedRecipes.remove(recipe.id)) {
+            selectedRecipes.add(id)
+            reloadDetail()
+            mbdEditor.inspectorView.inspect(copied, null, null)
+        }
+    }
+
+    private fun inspectRecipeType() {
+        selectedRecipes.clear()
+        clearItemSelections()
+        reloadRecipeList()
+        reloadDetail()
+        mbdEditor.inspectorView.inspect(project.recipeType, null, null)
+    }
+
+    private fun clearItemSelections() {
         selectedInputs.clear()
         selectedOutputs.clear()
         selectedConditions.clear()
-        reloadRecipeList()
-        reloadDetail()
+        updateContentRowStyles()
+        updateConditionRowStyles()
     }
 
     private fun showAddRecipeDialog() {
@@ -165,12 +289,13 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
             if (project.recipeType.builtinRecipes.containsKey(id)) return@stringEditorDialog
             val builder = project.recipeType.recipeBuilder(id)
             builder.duration = 100
-            builder.isFuel = false
             builder.saveAsBuiltinRecipe()
             selectedRecipes.clear()
             selectedRecipes.add(id)
+            clearItemSelections()
             reloadRecipeList()
             reloadDetail()
+            mbdEditor.inspectorView.inspect(project.recipeType.builtinRecipes[id], null, null)
         }.show(modularUI)
     }
 
@@ -224,9 +349,10 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
             flexDirection(FlexDirection.COLUMN)
             gap { all(5f) }
         }.apply {
-            addChild(createContentSection(recipe, recipe.inputs, IO.IN, selectedInputs, "Inputs"))
+            setOverflowVisible(false)
+            addChild(createContentSection(recipe, recipe.inputs, IO.IN, selectedInputs, "recipe.inputs"))
             addChild(createRecipeMetaSection(recipe))
-            addChild(createContentSection(recipe, recipe.outputs, IO.OUT, selectedOutputs, "Outputs"))
+            addChild(createContentSection(recipe, recipe.outputs, IO.OUT, selectedOutputs, "recipe.outputs"))
         }
     }
 
@@ -262,22 +388,20 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
             onPaste = { _, _ -> pasteContent(contents, io) },
             removeActive = selection.isNotEmpty(),
             copyActive = selection.size == 1,
-            pasteActive = contentClipboard != null
+            pasteActive = contentClipboard != null,
+            buttonSink = { contentToolbars[io] = it }
         ))
         section.addChild(createContentHeader())
+        val listRoot = UIElement().layoutDsl {
+            width(100.pct)
+            flexDirection(FlexDirection.COLUMN)
+            gap { all(1f) }
+        }
+        contentListRoots[io] = listRoot
+        reloadContentList(contents, io, selection)
         val scroller = ScrollerView().apply {
             layoutDsl { width(100.pct); flex(1f) }
-            addScrollViewChild(UIElement().layoutDsl {
-                width(100.pct)
-                flexDirection(FlexDirection.COLUMN)
-                gap { all(1f) }
-            }.apply {
-                contents.forEach { (capability, list) ->
-                    list.forEach { content ->
-                        addChild(createContentRow(recipe, capability, content, io, selection))
-                    }
-                }
-            })
+            addScrollViewChild(listRoot)
         }
         section.addChild(scroller)
         return section
@@ -291,7 +415,8 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
         onPaste: (Float, Float) -> Unit,
         removeActive: Boolean,
         copyActive: Boolean,
-        pasteActive: Boolean
+        pasteActive: Boolean,
+        buttonSink: (ToolbarButtons) -> Unit = {}
     ): UIElement {
         return UIElement().layoutDsl {
             width(100.pct)
@@ -301,16 +426,24 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
             alignItems(AlignItems.CENTER)
         }.apply {
             addChild(Label().setText(title).layout { it.flex(1f).height(18f) })
-            addChild(iconButton("+", "Add", onAdd))
-            addChild(iconButton("-", "Remove", onRemove).setActive(removeActive))
-            addChild(iconButton("C", "Copy", onCopy).setActive(copyActive))
-            addChild(iconButton("P", "Paste", onPaste).setActive(pasteActive))
+            addChild(iconButton("+", IGuiTexture.EMPTY,"Add", onAdd))
+            val remove = iconButton("-", IGuiTexture.EMPTY,"Remove", onRemove).setActive(removeActive) as Button
+            val copy = iconButton("", Icons.COPY,"Copy", onCopy).setActive(copyActive) as Button
+            val paste = iconButton("", Icons.PASTE,"Paste", onPaste).setActive(pasteActive) as Button
+            addChild(remove)
+            addChild(copy)
+            addChild(paste)
+            buttonSink(ToolbarButtons(remove, copy, paste))
         }
     }
 
-    private fun iconButton(text: String, tooltip: String, action: (Float, Float) -> Unit): Button {
+    private fun iconButton(text: String, icon: IGuiTexture, tooltip: String, action: (Float, Float) -> Unit): Button {
         return Button().apply {
-            setText(text)
+            if (text.isEmpty()) noText() else setText(text)
+            if (icon != IGuiTexture.EMPTY) {
+                addPreIcon(icon)
+                addClass("__white_icon__")
+            }
             setOnClick { e ->
                 if (e.button == 0) {
                     action(e.x, e.y)
@@ -323,19 +456,39 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
     }
 
     private fun createContentHeader(): UIElement {
-        return UIElement().layoutDsl {
-            width(100.pct)
-            height(14f)
-            flexDirection(FlexDirection.ROW)
-            gap { all(3f) }
-            alignItems(AlignItems.CENTER)
-        }.apply {
-            addChild(headerLabel("Content", 52f))
-            addChild(headerLabel("Tick", 26f))
-            addChild(headerLabel("Chance", 44f))
-            addChild(headerLabel("Tier", 44f))
-            addChild(headerLabel("Slot", 64f))
-            addChild(headerLabel("UI", 64f))
+        return element({
+            layout = {
+                width(100.pct)
+                height(14f)
+                flexDirection(FlexDirection.ROW)
+                padding { all(3f) }
+                gap { all(3f) }
+                alignItems(AlignItems.CENTER)
+            }
+        }) {
+            label({
+                layout = { width(71f) }
+                textStyle = { textWrap(TextWrap.HOVER_ROLL) }
+                style = { overflowVisible(false) }
+                text = Component.translatable("content.content")
+            }) {  }
+            label({
+                layout = { width(28) }
+                text("/t")
+            }) {  }
+            for (tab in listOf(
+                "editor.machine.recipe_type.content.chance",
+                "editor.machine.recipe_type.content.tier_chance_boost",
+                "editor.machine.recipe_type.content.slot_name",
+                "editor.machine.recipe_type.content.ui_name"
+            )) {
+                label({
+                    layout = { flex(1f) }
+                    textStyle = { textWrap(TextWrap.HOVER_ROLL) }
+                    style = { overflowVisible(false) }
+                    text = Component.translatable(tab)
+                }) {  }
+            }
         }
     }
 
@@ -347,73 +500,125 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
     }
 
     private fun createContentRow(
-        recipe: MBDRecipe,
         capability: RecipeCapability<*>,
         content: Content,
         io: IO,
         selection: LinkedHashSet<Content>
     ): UIElement {
-        val selected = selection.contains(content)
-        return UIElement().layoutDsl {
-            width(100.pct)
-            height(22f)
-            flexDirection(FlexDirection.ROW)
-            gap { all(3f) }
-            alignItems(AlignItems.CENTER)
+        return element({
+            layout = {
+                width(100.pct)
+                height(22f)
+                flexDirection(FlexDirection.ROW)
+                padding { all(3f) }
+                gap { all(3f) }
+                alignItems(AlignItems.CENTER)
+            }
+        }) {
+            events {
+                UIEvents.MOUSE_DOWN += {
+                    if (it.button == 0) {
+                        selectContent(capability, content, io, selection, isCtrlDown())
+                        it.stopPropagation()
+                    }
+                }
+            }
+            add(preview(capability, content).dsl({}))
+            label({
+                layout = { width(50f) }
+                textStyle = { textWrap(TextWrap.HOVER_ROLL) }
+                style = { overflowVisible(false) }
+                text = capability.traslateComponent
+            }) {  }
+            switch({
+                isOn = content.perTick
+            }) {
+                dataSource { content.perTick }
+                observer { content.perTick = it }
+                element.setOnSwitchChanged { content.perTick = it }
+            }
+            textField({
+                layout = { flex(1) }
+                text = content.chance
+            }) {
+                asNumeric(0f, 1f)
+                dataSource { content.chance.toString() }
+                observer { content.chance = it.toFloatOrNull()?.coerceIn(0f, 1f) ?: 0f }
+            }
+            textField({
+                layout = { flex(1) }
+                text = content.tierChanceBoost
+            }) {
+                asNumeric(0f, 1f)
+                dataSource { content.tierChanceBoost.toString() }
+                observer { content.tierChanceBoost = it.toFloatOrNull()?.coerceIn(0f, 1f) ?: 0f }
+            }
+            textField({
+                layout = { flex(1) }
+                text = content.slotName
+            }) {
+                asNumeric(0f, 1f)
+                dataSource { content.slotName }
+                observer { content.slotName = it }
+            }
+            textField({
+                layout = { flex(1) }
+                text = content.uiName
+            }) {
+                asNumeric(0f, 1f)
+                dataSource { content.uiName }
+                observer { content.uiName = it }
+            }
         }.apply {
-            addChild(preview(capability, content))
-            addChild(Button().apply {
-                setText(if (selected) "*" else capability.name)
-                setOnClick { e ->
-                    if (e.button == 0) {
-                        selectContent(capability, content, io, selection, UIElement.isCtrlDown())
-                        e.stopPropagation()
-                    }
-                }
-                layout { it.width(31f).height(18f) }
-                style { it.tooltips(capability.getTraslateComponent()) }
+            updateContentRowStyle(this, content)
+            contentRows[content] = this
+        }
+    }
+
+    private fun reloadContentList(
+        contents: MutableMap<RecipeCapability<*>, MutableList<Content>>,
+        io: IO,
+        selection: LinkedHashSet<Content>
+    ) {
+        val root = contentListRoots[io] ?: return
+        selection.retainAll(contents.values.flatten().toSet())
+        root.clearAllChildren()
+        contents.forEach { (capability, list) ->
+            list.forEach { content ->
+                root.addChild(createContentRow(capability, content, io, selection))
+            }
+        }
+        updateContentToolbar(io, selection)
+    }
+
+    private fun updateContentRowStyles() {
+        contentRows.forEach { (content, row) -> updateContentRowStyle(row, content) }
+        updateContentToolbar(IO.IN, selectedInputs)
+        updateContentToolbar(IO.OUT, selectedOutputs)
+    }
+
+    private fun updateContentRowStyle(row: UIElement, content: Content) {
+        row.style {
+            it.backgroundTexture(if (selectedInputs.contains(content) || selectedOutputs.contains(content)) {
+                ColorPattern.T_BLUE.rectTexture()
+            } else {
+                IGuiTexture.EMPTY
             })
-            addChild(Button().apply {
-                setText(if (content.perTick) "T" else "-")
-                setOnClick { e ->
-                    if (e.button == 0) {
-                        content.perTick = !content.perTick
-                        reloadDetail()
-                        e.stopPropagation()
-                    }
-                }
-                layout { it.width(26f).height(18f) }
-            })
-            addChild(floatField(content.chance, 0f, 1f) { content.chance = it })
-            addChild(floatField(content.tierChanceBoost, 0f, 1f) { content.tierChanceBoost = it })
-            addChild(stringField(content.slotName) { content.slotName = it })
-            addChild(stringField(content.uiName) { content.uiName = it })
+        }
+    }
+
+    private fun updateContentToolbar(io: IO, selection: LinkedHashSet<Content>) {
+        contentToolbars[io]?.let {
+            it.remove.setActive(selection.isNotEmpty())
+            it.copy.setActive(selection.size == 1)
+            it.paste.setActive(contentClipboard != null)
         }
     }
 
     @Suppress("UNCHECKED_CAST")
     private fun preview(capability: RecipeCapability<*>, content: Content): UIElement {
         val cap = capability as RecipeCapability<Any>
-        return cap.createPreviewWidget(cap.of(content.content)).layout { it.width(18f).height(18f) }
-    }
-
-    private fun floatField(value: Float, min: Float, max: Float, setter: (Float) -> Unit): TextField {
-        return TextField().apply {
-            setNumbersOnlyFloat(min, max)
-            setText(value.toString(), false)
-            setTextResponder { text ->
-                text.toFloatOrNull()?.let { setter(it.coerceIn(min, max)) }
-            }
-            layout { it.width(44f).height(18f) }
-        }
-    }
-
-    private fun stringField(value: String, setter: (String) -> Unit): TextField {
-        return TextField().apply {
-            setText(value, false)
-            setTextResponder(setter)
-            layout { it.width(64f).height(18f) }
-        }
+        return cap.createPreview({ cap.of(content.content) }).layout { it.width(18f).height(18f) }
     }
 
     private fun selectContent(
@@ -423,19 +628,25 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
         selection: LinkedHashSet<Content>,
         additive: Boolean
     ) {
+        if (io == IO.IN) {
+            selectedOutputs.clear()
+        } else {
+            selectedInputs.clear()
+        }
+        selectedConditions.clear()
         if (additive) {
             if (!selection.add(content)) selection.remove(content)
         } else {
-            selectedInputs.clear()
-            selectedOutputs.clear()
+            selection.clear()
             selection.add(content)
         }
+        updateContentRowStyles()
+        updateConditionRowStyles()
         if (selection.size == 1) {
             inspectContent(capability, content, io)
         } else {
             mbdEditor.inspectorView.clear()
         }
-        reloadDetail()
     }
 
     private fun showAddContentMenu(
@@ -447,7 +658,7 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
     ) {
         val menu = TreeBuilder.Menu.start().apply {
             for (capability in MBDRegistries.RECIPE_CAPABILITIES) {
-                leaf(Icons.ADD, capability.name) {
+                leaf(IGuiTexture.EMPTY, capability.name) {
                     val content = Content(capability.createDefaultContent(), false, 1f, 0f)
                     contents.computeIfAbsent(capability) { mutableListOf() }.add(content)
                     if (io == IO.IN) {
@@ -458,7 +669,7 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
                         selectedOutputs.add(content)
                     }
                     inspectContent(capability, content, io)
-                    reloadDetail()
+                    reloadContentList(contents, io, if (io == IO.IN) selectedInputs else selectedOutputs)
                 }
             }
         }
@@ -473,7 +684,7 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
         contents.entries.removeIf { it.value.isEmpty() }
         selection.clear()
         mbdEditor.inspectorView.clear()
-        reloadDetail()
+        reloadContentList(contents, if (selection === selectedInputs) IO.IN else IO.OUT, selection)
     }
 
     private fun copySelectedContent(
@@ -483,7 +694,8 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
         val content = selection.singleOrNull() ?: return
         val capability = contents.entries.firstOrNull { it.value.contains(content) }?.key ?: return
         contentClipboard = ContentClipboard(capability, content.deepCopy(capability, null))
-        reloadDetail()
+        updateContentToolbar(IO.IN, selectedInputs)
+        updateContentToolbar(IO.OUT, selectedOutputs)
     }
 
     private fun pasteContent(contents: MutableMap<RecipeCapability<*>, MutableList<Content>>, io: IO) {
@@ -498,22 +710,14 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
             selectedOutputs.add(pasted)
         }
         inspectContent(clipboard.capability, pasted, io)
-        reloadDetail()
+        reloadContentList(contents, io, if (io == IO.IN) selectedInputs else selectedOutputs)
     }
 
     @Suppress("UNCHECKED_CAST")
     private fun inspectContent(capability: RecipeCapability<*>, content: Content, io: IO) {
         val cap = capability as RecipeCapability<Any>
         mbdEditor.inspectorView.inspect(IConfigurable.create { group ->
-            group.addConfigurators(
-                BooleanConfigurator("editor.machine.recipe_type.content.per_tick", { content.perTick }, { content.perTick = it }, false, true),
-                NumberConfigurator("editor.machine.recipe_type.content.chance", { content.chance }, { content.chance = it.toFloat() }, 1f, true)
-                    .setRange(0f, 1f),
-                NumberConfigurator("editor.machine.recipe_type.content.tier_chance_boost", { content.tierChanceBoost }, { content.tierChanceBoost = it.toFloat() }, 0f, true)
-                    .setRange(0f, 1f),
-                StringConfigurator("editor.machine.recipe_type.content.slot_name", { content.slotName }, { content.slotName = it }, "", true),
-                StringConfigurator("editor.machine.recipe_type.content.ui_name", { content.uiName }, { content.uiName = it }, "", true)
-            )
+            content.buildConfigurator(group)
             cap.createContentConfigurator(group, { cap.of(content.content) }, { content.content = it })
         }, null, null)
     }
@@ -525,49 +729,95 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
             flexDirection(FlexDirection.COLUMN)
             gap { all(3f) }
         }.apply {
-            addChild(createSectionToolbar("Conditions",
+            addChild(createSectionToolbar("recipe.conditions",
                 onAdd = { x, y -> showAddConditionMenu(recipe, x, y) },
                 onRemove = { _, _ -> removeSelectedConditions(recipe) },
                 onCopy = { _, _ -> copySelectedCondition() },
                 onPaste = { _, _ -> pasteCondition(recipe) },
                 removeActive = selectedConditions.isNotEmpty(),
                 copyActive = selectedConditions.size == 1,
-                pasteActive = conditionClipboard != null
+                pasteActive = conditionClipboard != null,
+                buttonSink = { conditionToolbar = it }
             ))
+            val rows = UIElement().layoutDsl {
+                width(100.pct)
+                flexDirection(FlexDirection.COLUMN)
+                gap { all(2f) }
+            }
+            conditionListRoot = rows
+            reloadConditionList(recipe)
             addChild(ScrollerView().apply {
                 layoutDsl { width(100.pct); flex(1f) }
-                addScrollViewChild(UIElement().layoutDsl {
-                    width(100.pct)
-                    flexDirection(FlexDirection.COLUMN)
-                    gap { all(2f) }
-                }.apply {
-                    recipe.conditions.forEach { addChild(createConditionRow(it)) }
-                })
+                addScrollViewChild(rows)
             })
         }
     }
 
     private fun createConditionRow(condition: RecipeCondition): UIElement {
-        val selected = selectedConditions.contains(condition)
-        return UIElement().layoutDsl {
-            width(100.pct)
-            height(18f)
-            flexDirection(FlexDirection.ROW)
-            gap { all(4f) }
-            alignItems(AlignItems.CENTER)
-        }.apply {
-            addChild(UIElement().layout { it.width(14f).height(14f) }.style { it.background(condition.icon) })
-            addChild(Button().apply {
-                setText(if (selected) "> ${condition.type}" else condition.type)
-                setOnClick { e ->
-                    if (e.button == 0) {
-                        selectCondition(condition, UIElement.isCtrlDown())
-                        e.stopPropagation()
+        return element({
+            layout = {
+                width(100.pct)
+                height(18f)
+                flexDirection(FlexDirection.ROW)
+                gap { all(4f) }
+                alignItems(AlignItems.CENTER)
+            }
+        }) {
+            events {
+                UIEvents.MOUSE_DOWN += {
+                    if (it.button == 0) {
+                        selectCondition(condition, isCtrlDown())
+                        it.stopPropagation()
                     }
                 }
-                layout { it.flex(1f).height(18f) }
-                style { it.tooltips(condition.tooltips) }
+            }
+            api {
+                updateConditionRowStyle(element, condition)
+            }
+            element({
+                layout = { size(14.px) }
+                style = { background(condition.icon) }
+            }) {}
+            label({
+                layout = { flex(1f) }
+                textStyle = { textWrap(TextWrap.HOVER_ROLL) }
+                style = { overflowVisible(false) }
+            }) {
+                dataSource { condition.tooltips }
+            }
+        }.apply {
+            conditionRows[condition] = this
+        }
+    }
+
+    private fun reloadConditionList(recipe: MBDRecipe) {
+        selectedConditions.retainAll(recipe.conditions.toSet())
+        val root = conditionListRoot ?: return
+        root.clearAllChildren()
+        recipe.conditions.forEach { root.addChild(createConditionRow(it)) }
+        updateConditionToolbar()
+    }
+
+    private fun updateConditionRowStyles() {
+        conditionRows.forEach { (condition, row) -> updateConditionRowStyle(row, condition) }
+        updateConditionToolbar()
+    }
+
+    private fun updateConditionRowStyle(row: UIElement, condition: RecipeCondition) {
+        row.style {
+            it.backgroundTexture(if (selectedConditions.contains(condition)) {
+                ColorPattern.T_BLUE.rectTexture()
+            } else {
+                IGuiTexture.EMPTY
             })
+        }
+    }
+
+    private fun updateConditionToolbar() {
+        conditionToolbar?.let {
+            it.remove.setActive(selectedConditions.isNotEmpty())
+            it.copy.setActive(selectedConditions.size == 1)
+            it.paste.setActive(conditionClipboard != null)
         }
     }
 
@@ -575,15 +825,18 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
         if (additive) {
             if (!selectedConditions.add(condition)) selectedConditions.remove(condition)
         } else {
+            selectedInputs.clear()
+            selectedOutputs.clear()
             selectedConditions.clear()
             selectedConditions.add(condition)
         }
+        updateContentRowStyles()
+        updateConditionRowStyles()
         if (selectedConditions.size == 1) {
             mbdEditor.inspectorView.inspect(selectedConditions.first(), null, null)
         } else {
             mbdEditor.inspectorView.clear()
         }
-        reloadDetail()
     }
 
     private fun showAddConditionMenu(recipe: MBDRecipe, x: Float, y: Float) {
@@ -596,7 +849,7 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
                     selectedConditions.clear()
                     selectedConditions.add(condition)
                     mbdEditor.inspectorView.inspect(condition, null, null)
-                    reloadDetail()
+                    reloadConditionList(recipe)
                 }
             }
         }
@@ -607,12 +860,12 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
         recipe.conditions.removeAll(selectedConditions)
         selectedConditions.clear()
         mbdEditor.inspectorView.clear()
-        reloadDetail()
+        reloadConditionList(recipe)
     }
 
     private fun copySelectedCondition() {
         conditionClipboard = selectedConditions.singleOrNull()?.copy()
-        reloadDetail()
+        updateConditionToolbar()
     }
 
     private fun pasteCondition(recipe: MBDRecipe) {
@@ -621,7 +874,7 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
         selectedConditions.clear()
         selectedConditions.add(condition)
         mbdEditor.inspectorView.inspect(condition, null, null)
-        reloadDetail()
+        reloadConditionList(recipe)
     }
 
     private fun createCustomDataTab(recipe: MBDRecipe): StructuredTagEditor {
@@ -635,7 +888,7 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
     }
 
     private fun recipes(): List<MBDRecipe> {
-        return project.recipeType.builtinRecipes.values.filter { !it.isFuel }.sortedBy { it.id.toString() }
+        return project.recipeType.builtinRecipes.values.sortedBy { it.id.toString() }
     }
 
     private fun autoRecipeId(): ResourceLocation {

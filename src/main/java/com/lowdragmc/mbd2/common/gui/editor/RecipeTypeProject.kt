@@ -56,7 +56,6 @@ open class RecipeTypeProject : IProject {
         return TagBuilder.compound()
             .add("recipe_type", recipeType.serializeNBT(provider))
             .add("ui", UITemplate.CODEC.encodeStart(ops, recipeType.uiTemplate).getOrThrow())
-            .add("fuel_ui", UITemplate.CODEC.encodeStart(ops, recipeType.fuelUITemplate).getOrThrow())
             .build()
     }
 
@@ -65,9 +64,6 @@ open class RecipeTypeProject : IProject {
         val ops = provider.createSerializationContext(NbtOps.INSTANCE)
         if (tag.contains("ui")) {
             recipeType.uiTemplate = UITemplate.CODEC.parse(ops, tag.get("ui")).getOrThrow()
-        }
-        if (tag.contains("fuel_ui")) {
-            recipeType.fuelUITemplate = UITemplate.CODEC.parse(ops, tag.get("fuel_ui")).getOrThrow()
         }
     }
 

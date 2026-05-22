@@ -14,6 +14,7 @@ import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.api.recipe.content.SerializerSizedFluidIngredient;
 import com.lowdragmc.mbd2.common.capability.recipe.configurators.fluid.FluidIngredientConfigurator;
+import com.lowdragmc.mbd2.common.gui.recipe.SupplierScrollDataSource;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.crafting.DataComponentFluidIngredient;
@@ -47,8 +48,8 @@ public class FluidRecipeCapability extends RecipeCapability<SizedFluidIngredient
     }
 
     @Override
-    public UIElement createPreviewWidget(SizedFluidIngredient content) {
-        return new FluidSlot().bindDataSource(ScrollDataSource.of(Arrays.stream(content.getFluids()).toList()));
+    public UIElement createPreview(Supplier<SizedFluidIngredient> content) {
+        return new FluidSlot().bindDataSource(SupplierScrollDataSource.of(() -> Arrays.stream(content.get().getFluids()).toList()));
     }
 
     @Override

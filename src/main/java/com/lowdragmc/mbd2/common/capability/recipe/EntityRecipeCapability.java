@@ -1,6 +1,7 @@
 package com.lowdragmc.mbd2.common.capability.recipe;
 
 import com.lowdragmc.lowdraglib2.configurator.ui.*;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
@@ -43,8 +44,10 @@ public class EntityRecipeCapability extends RecipeCapability<EntityIngredient> {
     }
 
     @Override
-    public UIElement createPreviewWidget(EntityIngredient content) {
-        return new EntityIngredientSlot().slotStyle(slotStyle -> slotStyle.hoverOverlay(IGuiTexture.EMPTY));
+    public UIElement createPreview(Supplier<EntityIngredient> content) {
+        return new EntityIngredientSlot()
+                .slotStyle(slotStyle -> slotStyle.hoverOverlay(IGuiTexture.EMPTY))
+                .bindDataSource(SupplierDataSource.of(content));
     }
 
     @Override

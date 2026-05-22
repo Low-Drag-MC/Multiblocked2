@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.api.recipe.content;
 
+import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiRenderable;
@@ -24,7 +25,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.Function;
 
-public class Content {
+public class Content implements IConfigurable {
     public static final Function<RecipeCapability<?>, Codec<Content>> CODEC = Util.memoize(Content::codec);
     public static <T> Codec<Content> codec(RecipeCapability<T> capability) {
         return RecordCodecBuilder.create(instance -> instance.group(

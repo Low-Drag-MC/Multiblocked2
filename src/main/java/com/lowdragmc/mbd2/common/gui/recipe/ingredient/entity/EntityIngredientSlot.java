@@ -6,7 +6,6 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib2.gui.texture.ShaderTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
@@ -54,7 +53,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import org.appliedenergistics.yoga.YogaEdge;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.lwjgl.opengl.GL11;
@@ -108,7 +106,7 @@ public class EntityIngredientSlot extends BindableUIElement<EntityIngredient> {
     // editor support
     @Configurable(name = "EditorEntityDisplay")
     private EntityIngredient editorEntityDisplay = EntityIngredient.EMPTY;
-    @Configurable(name = "EditorAllowXEILookup")
+    @Configurable(name = "EditorAllowLookup")
     private boolean allowXEILookup = true;
     // runtime
     private TrackedDummyWorld dummyWorld;
@@ -118,9 +116,10 @@ public class EntityIngredientSlot extends BindableUIElement<EntityIngredient> {
     private EntityIngredient entityIngredient = EntityIngredient.EMPTY;
 
     public EntityIngredientSlot() {
-        getLayout().setWidth(18);
-        getLayout().setHeight(18);
-        getLayout().setPadding(YogaEdge.ALL, 1);
+        addClass("fluid-slot");
+        getLayout().width(18);
+        getLayout().height(18);
+        getLayout().paddingAll(1);
         getStyle().backgroundTexture(Sprites.RECT_DARK);
         addEventListener(UIEvents.HOVER_TOOLTIPS, this::onHoverTooltips);
         if (LDLib2.isJeiLoaded()) {
@@ -134,7 +133,7 @@ public class EntityIngredientSlot extends BindableUIElement<EntityIngredient> {
         }
 
         countLabel.addClass("__fluid-slot_amount-label__");
-        countLabel.layout(layout -> layout.setWidthPercent(100).setHeightPercent(100));
+        countLabel.layout(layout -> layout.widthPercent(100).heightPercent(100));
         countLabel.textStyle(textStyle -> textStyle
                 .textAlignVertical(Vertical.BOTTOM)
                 .textAlignHorizontal(Horizontal.RIGHT)

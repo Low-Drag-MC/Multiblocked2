@@ -3,6 +3,7 @@ package com.lowdragmc.mbd2.common.capability.recipe;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.ScrollDataSource;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
 import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
@@ -12,6 +13,7 @@ import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.api.recipe.content.SerializerSizedIngredient;
 import com.lowdragmc.mbd2.common.capability.recipe.configurators.item.IngredientConfigurator;
+import com.lowdragmc.mbd2.common.gui.recipe.SupplierScrollDataSource;
 import com.lowdragmc.mbd2.core.mixins.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Items;
@@ -43,8 +45,8 @@ public class ItemRecipeCapability extends RecipeCapability<SizedIngredient> {
     }
 
     @Override
-    public UIElement createPreviewWidget(SizedIngredient content) {
-        return new ItemSlot().bindDataSource(ScrollDataSource.of(Arrays.stream(content.getItems()).toList()));
+    public UIElement createPreview(Supplier<SizedIngredient> content) {
+        return new ItemSlot().bindDataSource(SupplierScrollDataSource.of(() -> Arrays.stream(content.get().getItems()).toList()));
     }
 
     @Override

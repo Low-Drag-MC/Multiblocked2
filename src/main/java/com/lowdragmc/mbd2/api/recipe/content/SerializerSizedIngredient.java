@@ -18,7 +18,9 @@ public class SerializerSizedIngredient implements IContentSerializer<SizedIngred
     @Override
     @SuppressWarnings({"unchecked", "rawtypes"})
     public SizedIngredient of(Object o) {
-        if (o instanceof Ingredient ingredient) {
+        if (o instanceof SizedIngredient sizedIngredient) {
+            return sizedIngredient;
+        } else if (o instanceof Ingredient ingredient) {
             return new SizedIngredient(ingredient, 1);
         } else if (o instanceof ItemStack itemStack) {
             return SizedIngredient.of(itemStack.getItem(), itemStack.getCount());

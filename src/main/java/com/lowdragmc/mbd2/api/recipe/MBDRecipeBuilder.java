@@ -55,8 +55,6 @@ public class MBDRecipeBuilder {
     @Setter
     public float tierChanceBoost = 0;
     @Setter
-    public boolean isFuel = false;
-    @Setter
     public boolean isXEIHidden = false;
     @Setter
     public int priority = 0;
@@ -76,16 +74,11 @@ public class MBDRecipeBuilder {
         this.conditions.addAll(toCopy.conditions);
         this.data = toCopy.data.copy();
         this.duration = toCopy.duration;
-        this.isFuel = toCopy.isFuel;
         this.isXEIHidden = toCopy.isXEIHidden;
     }
 
     public static MBDRecipeBuilder of(ResourceLocation id, MBDRecipeType recipeType) {
         return new MBDRecipeBuilder(id, recipeType);
-    }
-
-    public static MBDRecipeBuilder ofRaw() {
-        return new MBDRecipeBuilder(MBD2.id("raw"), null);
     }
 
     public MBDRecipeBuilder copy(String id) {
@@ -101,7 +94,6 @@ public class MBDRecipeBuilder {
         copy.duration = this.duration;
         copy.chance = this.chance;
         copy.perTick = this.perTick;
-        copy.isFuel = this.isFuel;
         copy.uiName = this.uiName;
         copy.slotName = this.slotName;
         copy.onSave = this.onSave;
@@ -309,10 +301,7 @@ public class MBDRecipeBuilder {
         return this;
     }
 
-    //////////////////////////////////////
-    //*******     CONDITIONS    ********//
-    //////////////////////////////////////
-
+    /// CONDITIONS
     public MBDRecipeBuilder dimension(ResourceLocation dimension, boolean reverse) {
         return addCondition(new DimensionCondition(dimension).setReverse(reverse));
     }
@@ -368,7 +357,7 @@ public class MBDRecipeBuilder {
     }
 
     public MBDRecipe buildRawRecipe() {
-        return new MBDRecipe(recipeType, id, input, output, conditions, data, duration, isFuel, isXEIHidden, priority);
+        return new MBDRecipe(recipeType, id, input, output, conditions, data, duration, isXEIHidden, priority);
     }
 
 }

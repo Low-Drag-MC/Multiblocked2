@@ -144,7 +144,6 @@ open class RecipeTypeUIView(
     private fun maxContents(io: IO): Map<RecipeCapability<*>, Int> {
         val result = linkedMapOf<RecipeCapability<*>, Int>()
         project.recipeType.builtinRecipes.values
-            .filter { !it.isFuel }
             .forEach { recipe ->
                 val contents = if (io == IO.OUT) recipe.outputs else recipe.inputs
                 contents.forEach { (capability, values) ->

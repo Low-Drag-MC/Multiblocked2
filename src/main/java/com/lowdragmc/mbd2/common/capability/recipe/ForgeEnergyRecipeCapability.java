@@ -2,6 +2,7 @@ package com.lowdragmc.mbd2.common.capability.recipe;
 
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
 import com.lowdragmc.lowdraglib2.gui.texture.*;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
@@ -39,16 +40,20 @@ public class ForgeEnergyRecipeCapability extends RecipeCapability<Integer> {
     }
 
     @Override
-    public UIElement createPreviewWidget(Integer content) {
+    public UIElement createPreview(Supplier<Integer> content) {
         return new UIElement()
                 .style(style -> style.background(ENERGY_ICON))
                 .layout(layout -> layout.width(18).height(18))
-                .addChild(new Label().textStyle(textStyle -> textStyle
+                .addChild(new Label()
+                        .bindDataSource(SupplierDataSource.of(() ->
+                                Component.literal(EnergyFormattingUtil.formatCompact(of(content.get()))))
+                        )
+                        .textStyle(textStyle -> textStyle
                                 .textAlignVertical(Vertical.BOTTOM)
                                 .textAlignHorizontal(Horizontal.RIGHT)
                                 .fontSize(4.5f)
-                        ).setText(EnergyFormattingUtil.formatCompact(of(content)))
-                        .layout(layout -> layout.setWidthPercent(100).setHeightPercent(100))
+                        )
+                        .layout(layout -> layout.widthPercent(100).heightPercent(100))
                 );
     }
 
