@@ -1,139 +1,92 @@
-//package com.lowdragmc.mbd2.integration.mekanism.trait.chemical;
-//
-//import mekanism.api.Action;
-//import mekanism.api.chemical.Chemical;
-//import mekanism.api.chemical.ChemicalStack;
-//import mekanism.api.chemical.IChemicalHandler;
-//import mekanism.api.chemical.gas.GasStack;
-//import mekanism.api.chemical.gas.IGasHandler;
-//import mekanism.api.chemical.infuse.IInfusionHandler;
-//import mekanism.api.chemical.infuse.InfusionStack;
-//import mekanism.api.chemical.pigment.IPigmentHandler;
-//import mekanism.api.chemical.pigment.PigmentStack;
-//import mekanism.api.chemical.slurry.ISlurryHandler;
-//import mekanism.api.chemical.slurry.SlurryStack;
-//import net.minecraft.MethodsReturnNonnullByDefault;
-//import org.jetbrains.annotations.NotNull;
-//
-//import javax.annotation.ParametersAreNonnullByDefault;
-//import java.util.Arrays;
-//
-//@MethodsReturnNonnullByDefault
-//@ParametersAreNonnullByDefault
-//public abstract class ChemicalHandlerList<CHEMICAL extends Chemical<CHEMICAL>, STACK extends ChemicalStack<CHEMICAL>> implements IChemicalHandler<CHEMICAL, STACK> {
-//
-//    public final STACK emptyStack;
-//    public final IChemicalHandler<CHEMICAL, STACK>[] handlers;
-//
-//    public ChemicalHandlerList(STACK emptyStack, IChemicalHandler<CHEMICAL, STACK>[] handlers) {
-//        this.emptyStack = emptyStack;
-//        this.handlers = handlers;
-//    }
-//
-//    @Override
-//    public int getTanks() {
-//        return Arrays.stream(handlers).mapToInt(IChemicalHandler::getTanks).sum();
-//    }
-//
-//    @Override
-//    public STACK getChemicalInTank(int tank) {
-//        int index = 0;
-//        for (var handler : handlers) {
-//            if (tank - index < handler.getTanks()) {
-//                return handler.getChemicalInTank(tank - index);
-//            }
-//            index += handler.getTanks();
-//        }
-//        return emptyStack;
-//    }
-//
-//    @Override
-//    public void setChemicalInTank(int tank, STACK stack) {
-//        int index = 0;
-//        for (var handler : handlers) {
-//            if (tank - index < handler.getTanks()) {
-//                handler.setChemicalInTank(tank - index, stack);
-//                return;
-//            }
-//            index += handler.getTanks();
-//        }
-//    }
-//
-//    @Override
-//    public long getTankCapacity(int tank) {
-//        int index = 0;
-//        for (var handler : handlers) {
-//            if (tank - index < handler.getTanks()) {
-//                return handler.getTankCapacity(tank - index);
-//            }
-//            index += handler.getTanks();
-//        }
-//        return 0;
-//    }
-//
-//    @Override
-//    public boolean isValid(int tank, STACK stack) {
-//        int index = 0;
-//        for (var handler : handlers) {
-//            if (tank - index < handler.getTanks()) {
-//                return handler.isValid(tank - index, stack);
-//            }
-//            index += handler.getTanks();
-//        }
-//        return false;
-//    }
-//
-//    @Override
-//    public STACK insertChemical(int tank, STACK stack, Action action) {
-//        int index = 0;
-//        for (var handler : handlers) {
-//            if (tank - index < handler.getTanks()) {
-//                return handler.insertChemical(tank - index, stack, action);
-//            }
-//            index += handler.getTanks();
-//        }
-//        return stack;
-//    }
-//
-//    @Override
-//    public STACK extractChemical(int tank, long amount, Action action) {
-//        int index = 0;
-//        for (var handler : handlers) {
-//            if (tank - index < handler.getTanks()) {
-//                return handler.extractChemical(tank - index, amount, action);
-//            }
-//            index += handler.getTanks();
-//        }
-//        return emptyStack;
-//    }
-//
-//    @Override
-//    public @NotNull STACK getEmptyStack() {
-//        return emptyStack;
-//    }
-//
-//    public static class Gas extends ChemicalHandlerList<mekanism.api.chemical.gas.Gas, GasStack> implements IGasHandler {
-//        public Gas(IChemicalHandler<mekanism.api.chemical.gas.Gas, GasStack>[] handlers) {
-//            super(GasStack.EMPTY, handlers);
-//        }
-//    }
-//
-//    public static class Infuse extends ChemicalHandlerList<mekanism.api.chemical.infuse.InfuseType, InfusionStack> implements IInfusionHandler {
-//        public Infuse(IChemicalHandler<mekanism.api.chemical.infuse.InfuseType, InfusionStack>[] handlers) {
-//            super(InfusionStack.EMPTY, handlers);
-//        }
-//    }
-//
-//    public static class Pigment extends ChemicalHandlerList<mekanism.api.chemical.pigment.Pigment, PigmentStack> implements IPigmentHandler {
-//        public Pigment(IChemicalHandler<mekanism.api.chemical.pigment.Pigment, PigmentStack>[] handlers) {
-//            super(PigmentStack.EMPTY, handlers);
-//        }
-//    }
-//
-//    public static class Slurry extends ChemicalHandlerList<mekanism.api.chemical.slurry.Slurry, SlurryStack> implements ISlurryHandler {
-//        public Slurry(IChemicalHandler<mekanism.api.chemical.slurry.Slurry, SlurryStack>[] handlers) {
-//            super(SlurryStack.EMPTY, handlers);
-//        }
-//    }
-//
-//}
+package com.lowdragmc.mbd2.integration.mekanism.trait.chemical;
+
+import mekanism.api.Action;
+import mekanism.api.chemical.ChemicalStack;
+import mekanism.api.chemical.IChemicalHandler;
+
+import java.util.Arrays;
+
+public record ChemicalHandlerList(IChemicalHandler[] handlers) implements IChemicalHandler {
+
+    @Override
+    public int getChemicalTanks() {
+        return Arrays.stream(handlers).mapToInt(IChemicalHandler::getChemicalTanks).sum();
+    }
+
+    private record Resolved(IChemicalHandler handler, int localTank) {}
+
+    private Resolved resolve(int tank) {
+        int index = 0;
+        for (var handler : handlers) {
+            var count = handler.getChemicalTanks();
+            if (tank - index < count) return new Resolved(handler, tank - index);
+            index += count;
+        }
+        return null;
+    }
+
+    @Override
+    public ChemicalStack getChemicalInTank(int tank) {
+        var r = resolve(tank);
+        return r == null ? ChemicalStack.EMPTY : r.handler.getChemicalInTank(r.localTank);
+    }
+
+    @Override
+    public void setChemicalInTank(int tank, ChemicalStack stack) {
+        var r = resolve(tank);
+        if (r != null) r.handler.setChemicalInTank(r.localTank, stack);
+    }
+
+    @Override
+    public long getChemicalTankCapacity(int tank) {
+        var r = resolve(tank);
+        return r == null ? 0 : r.handler.getChemicalTankCapacity(r.localTank);
+    }
+
+    @Override
+    public boolean isValid(int tank, ChemicalStack stack) {
+        var r = resolve(tank);
+        return r != null && r.handler.isValid(r.localTank, stack);
+    }
+
+    @Override
+    public ChemicalStack insertChemical(int tank, ChemicalStack stack, Action action) {
+        var r = resolve(tank);
+        return r == null ? stack : r.handler.insertChemical(r.localTank, stack, action);
+    }
+
+    @Override
+    public ChemicalStack extractChemical(int tank, long amount, Action action) {
+        var r = resolve(tank);
+        return r == null ? ChemicalStack.EMPTY : r.handler.extractChemical(r.localTank, amount, action);
+    }
+
+    @Override
+    public ChemicalStack insertChemical(ChemicalStack stack, Action action) {
+        if (stack.isEmpty()) return stack;
+        ChemicalStack remaining = stack.copy();
+        for (var handler : handlers) {
+            if (remaining.isEmpty()) break;
+            remaining = handler.insertChemical(remaining, action);
+        }
+        return remaining;
+    }
+
+    @Override
+    public ChemicalStack extractChemical(long amount, Action action) {
+        if (amount <= 0) return ChemicalStack.EMPTY;
+        ChemicalStack total = ChemicalStack.EMPTY;
+        long remaining = amount;
+        for (var handler : handlers) {
+            if (remaining <= 0) break;
+            ChemicalStack extracted = total.isEmpty()
+                    ? handler.extractChemical(remaining, action)
+                    : handler.extractChemical(total.copyWithAmount(remaining), action);
+            if (extracted.isEmpty()) continue;
+            if (total.isEmpty()) total = extracted;
+            else total.grow(extracted.getAmount());
+            remaining -= extracted.getAmount();
+        }
+        return total;
+    }
+}

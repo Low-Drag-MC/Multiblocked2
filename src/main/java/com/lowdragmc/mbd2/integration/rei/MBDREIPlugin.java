@@ -1,6 +1,5 @@
 package com.lowdragmc.mbd2.integration.rei;
 
-import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import me.shedaniel.rei.api.client.plugins.REIClientPlugin;
@@ -16,33 +15,28 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
 public class MBDREIPlugin implements REIClientPlugin {
-//    @Override
-//    public void registerCategories(CategoryRegistry registry) {
-//        registry.add(new MultiblockInfoDisplayCategory());
-//        MBD2.LOGGER.info("REI register categories");
-//        for (var recipeType : MBDRegistries.RECIPE_TYPES) {
-//            if (recipeType.isXEIVisible()) {
-//                registry.add(new MBDRecipeTypeDisplayCategory(recipeType));
-//                if (recipeType.isRequireFuelForWorking()) {
-//                    registry.add(new MBDRecipeTypeFuelDisplayCategory(recipeType));
-//                }
-//            }
-//        }
-//        MBDRecipeTypeDisplayCategory.registerWorkStations(registry);
-//        MBDRecipeTypeFuelDisplayCategory.registerWorkStations(registry);
-//        MultiblockInfoDisplayCategory.registerWorkStations(registry);
-//    }
-//
-//    @Override
-//    public void registerDisplays(DisplayRegistry registry) {
-//        MBD2.LOGGER.info("REI register displays");
-//        MBDRecipeTypeDisplayCategory.registerDisplays(registry);
-//        MBDRecipeTypeFuelDisplayCategory.registerDisplays(registry);
-//        MultiblockInfoDisplayCategory.registerDisplays(registry);
-//    }
 
+    @Override
+    public void registerCategories(CategoryRegistry registry) {
+        registry.add(new MultiblockInfoDisplayCategory());
+        for (var recipeType : MBDRegistries.RECIPE_TYPES) {
+            if (recipeType.isXEIVisible()) {
+                registry.add(new MBDRecipeTypeDisplayCategory(recipeType));
+            }
+        }
+        MultiblockInfoDisplayCategory.registerWorkstations(registry);
+        MBDRecipeTypeDisplayCategory.registerWorkstations(registry);
+    }
+
+    @Override
+    public void registerDisplays(DisplayRegistry registry) {
+        try {
+            MultiblockInfoDisplayCategory.registerDisplays(registry);
+        } catch (NullPointerException ignored) {}
+        MBDRecipeTypeDisplayCategory.registerDisplays(registry);
+    }
 
     public static void lookupRecipeType(MBDRecipeType recipeType) {
-//        ViewSearchBuilder.builder().addCategory(MBDRecipeTypeDisplayCategory.CATEGORIES.apply(recipeType)).open();
+        ViewSearchBuilder.builder().addCategory(MBDRecipeTypeDisplayCategory.CATEGORIES.apply(recipeType)).open();
     }
 }

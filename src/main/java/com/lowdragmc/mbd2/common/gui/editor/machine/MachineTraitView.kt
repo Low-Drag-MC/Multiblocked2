@@ -126,7 +126,7 @@ open class MachineTraitView(editor: MBDEditor, project: MachineProject) : Machin
                                         if (nodeUI.isAncestorOf(modularUI?.lastMouseDownElement) && isMouseDown(0) && treeList.getSelected().size == 1) {
                                             nodeUI.startDrag(
                                                 DraggingTrait(node),
-                                                TextTexture(node.key.name())
+                                                TextTexture(node.key.name)
                                             )
                                         }
                                     }
@@ -221,9 +221,10 @@ open class MachineTraitView(editor: MBDEditor, project: MachineProject) : Machin
     fun createMenu(): TreeBuilder.Menu {
         return TreeBuilder.Menu.start().apply {
             branch(Icons.ADD, "editor.machine.machine_traits.add_trait", { it.apply {
-                for (holder in MBDRegistries.TRAIT_DEFINITION_TYPES) {
-                    holder.value.get().apply {
-                        leaf(icon, holder.annotation.name, {
+                for (type in MBDRegistries.TRAIT_DEFINITION_TYPES) {
+                    if (type == TraitDefinition.EMPTY_TYPE) continue
+                    type.createDefinition().apply {
+                        leaf(icon, type.name, {
                             project.definition.machineSettings().addTraitDefinition(this)
                             reloadTraits()
                         })

@@ -27,6 +27,7 @@ import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.client.MachineSound;
+import com.lowdragmc.mbd2.common.gui.MBDBindingIDs;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigMachineSettings;
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
@@ -274,6 +275,7 @@ public class MBDMachine implements IMachine, IBlockEntityManaged, BlockUIMenuTyp
             additionalTraits.clear();
             definition.machineSettings().traitDefinitions().stream().sorted((a, b) -> b.getPriority() - a.getPriority()).forEach(traitDefinition -> {
                 var trait = traitDefinition.createTrait(this);
+                if (trait == null) return;
                 additionalTraits.add(trait);
                 if (trait instanceof IManaged managed) {
                     for (var ref : managed.getSyncStorage().getPersistedFields()) {
@@ -823,15 +825,15 @@ public class MBDMachine implements IMachine, IBlockEntityManaged, BlockUIMenuTyp
      * @param ui The UI instance that represents the user interface for the machine.
      */
     protected void bindMachineUI(UI ui) {
-        ui.selectId("ui:machine_name", TextElement.class).forEach(text -> text.setText(getMachineName()));
-        ui.selectId("ui:progress_bar", ProgressBar.class).forEach(progressBar -> {
+        ui.selectId(MBDBindingIDs.MACHINE_NAME, TextElement.class).forEach(text -> text.setText(getMachineName()));
+        ui.selectId(MBDBindingIDs.PROGRESS_BAR, ProgressBar.class).forEach(progressBar -> {
             progressBar.bind(DataBindingBuilder.floatValS2C(() -> getRecipeLogic().getProgressPercent()).build());
             progressBar.label.bindDataSource(SupplierDataSource.of(() -> Component.literal(String.format("%.2f%%", getRecipeLogic().getProgressPercent() * 100))));
         });
-        ui.selectId("ui:fuel_bar", ProgressBar.class).forEach(progressBar ->
+        ui.selectId(MBDBindingIDs.FUEL_BAR, ProgressBar.class).forEach(progressBar ->
                 progressBar.bind(DataBindingBuilder.floatValS2C(() -> getRecipeLogic().getFuelProgressPercent()).build())
         );
-        ui.selectId("ui:xei_lookup", Button.class).forEach(button -> button.setOnClick(event -> {
+        ui.selectId(MBDBindingIDs.XEI_LOOKUP, Button.class).forEach(button -> button.setOnClick(event -> {
             var recipeType = getRecipeType();
             if (recipeType != MBDRecipeType.DUMMY && recipeType.isXEIVisible()) {
                 if (LDLib2.isReiLoaded()) {

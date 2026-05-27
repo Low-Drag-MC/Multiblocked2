@@ -116,7 +116,7 @@ public class EntityIngredientSlot extends BindableUIElement<EntityIngredient> {
     private EntityIngredient entityIngredient = EntityIngredient.EMPTY;
 
     public EntityIngredientSlot() {
-        addClass("fluid-slot");
+        addClass("fluid-slot_bg");
         getLayout().width(18);
         getLayout().height(18);
         getLayout().paddingAll(1);

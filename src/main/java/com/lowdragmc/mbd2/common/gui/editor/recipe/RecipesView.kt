@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture
 import com.lowdragmc.lowdraglib2.gui.texture.Icons
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap
+import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical
 import com.lowdragmc.lowdraglib2.gui.ui.dsl
 import com.lowdragmc.lowdraglib2.gui.ui.element
 import com.lowdragmc.lowdraglib2.gui.ui.elements.*
@@ -136,6 +137,12 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
         buttons.addChild(removeRecipesButton)
         pane.addChildren(scroller, buttons)
         return pane
+    }
+
+    fun singleSelectedRecipe(): MBDRecipe? {
+        val ids = selectedRecipes.toList()
+        if (ids.size != 1) return null
+        return project.recipeType.builtinRecipes[ids.first()]
     }
 
     private fun reloadRecipeList() {
@@ -324,7 +331,7 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
                 mbdEditor.inspectorView.clear()
                 detailRoot.addChild(Label().setText("Select a recipe"))
             }
-            1 -> detailRoot.addChild(createRecipeTabs(selected.first()))
+            1 -> detailRoot.addChild(createRecipeTabs(ensureEditableRecipe(selected.first())))
             else -> {
                 mbdEditor.inspectorView.clear()
                 detailRoot.addChild(Label().setText("${selected.size} recipes selected"))
@@ -340,6 +347,26 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
             addTab(Tab().setText("Conditions"), createConditionsTab(recipe))
             addTab(Tab().setText("Custom Data"), createCustomDataTab(recipe))
         }
+    }
+
+    private fun ensureEditableRecipe(recipe: MBDRecipe): MBDRecipe {
+        val editableInputs = linkedMapOf<RecipeCapability<*>, MutableList<Content>>()
+        val editableOutputs = linkedMapOf<RecipeCapability<*>, MutableList<Content>>()
+        recipe.inputs.forEach { (capability, contents) -> editableInputs[capability] = ArrayList(contents) }
+        recipe.outputs.forEach { (capability, contents) -> editableOutputs[capability] = ArrayList(contents) }
+        val editable = MBDRecipe(
+            recipe.recipeType,
+            recipe.id,
+            editableInputs,
+            editableOutputs,
+            ArrayList(recipe.conditions),
+            recipe.data,
+            recipe.duration,
+            recipe.isXEIHidden,
+            recipe.priority
+        )
+        project.recipeType.builtinRecipes[recipe.id] = editable
+        return editable
     }
 
     private fun createContentsTab(recipe: MBDRecipe): UIElement {
@@ -358,7 +385,6 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
 
     private fun createRecipeMetaSection(recipe: MBDRecipe): ConfiguratorGroup {
         return ConfiguratorGroup("Recipe", false).apply {
-            setCanCollapse(false)
             addConfigurators(
                 NumberConfigurator("recipe.duration", { recipe.duration }, { recipe.duration = it.toInt() }, 100, true)
                     .setRange(1, Int.MAX_VALUE),
@@ -425,7 +451,9 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
             gap { all(3f) }
             alignItems(AlignItems.CENTER)
         }.apply {
-            addChild(Label().setText(title).layout { it.flex(1f).height(18f) })
+            addChild(Label().setText(title)
+                .textStyle { it.textAlignVertical(Vertical.CENTER)}
+                .layout { it.flex(1f).height(18f) })
             addChild(iconButton("+", IGuiTexture.EMPTY,"Add", onAdd))
             val remove = iconButton("-", IGuiTexture.EMPTY,"Remove", onRemove).setActive(removeActive) as Button
             val copy = iconButton("", Icons.COPY,"Copy", onCopy).setActive(copyActive) as Button
@@ -557,7 +585,6 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
                 layout = { flex(1) }
                 text = content.slotName
             }) {
-                asNumeric(0f, 1f)
                 dataSource { content.slotName }
                 observer { content.slotName = it }
             }
@@ -565,7 +592,6 @@ open class RecipesView(val mbdEditor: MBDEditor, val project: RecipeTypeProject)
                 layout = { flex(1) }
                 text = content.uiName
             }) {
-                asNumeric(0f, 1f)
                 dataSource { content.uiName }
                 observer { content.uiName = it }
             }

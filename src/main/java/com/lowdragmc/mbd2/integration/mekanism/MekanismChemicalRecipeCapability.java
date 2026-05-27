@@ -1,282 +1,113 @@
-//package com.lowdragmc.mbd2.integration.mekanism;
-//
-//import com.google.gson.JsonElement;
-//import com.google.gson.JsonObject;
-//import com.lowdragmc.lowdraglib2.gui.editor.configurator.ConfiguratorGroup;
-//import com.lowdragmc.lowdraglib2.gui.editor.configurator.NumberConfigurator;
-//import com.lowdragmc.lowdraglib2.gui.editor.configurator.SearchComponentConfigurator;
-//import com.lowdragmc.lowdraglib2.gui.texture.GuiTextureGroup;
-//import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
-//import com.lowdragmc.lowdraglib2.gui.texture.ResourceTexture;
-//import com.lowdragmc.lowdraglib2.gui.widget.Widget;
-//import com.lowdragmc.lowdraglib2.gui.widget.WidgetGroup;
-//import com.lowdragmc.lowdraglib2.jei.IngredientIO;
-//import com.lowdragmc.lowdraglib2.utils.LocalizationUtils;
-//import com.lowdragmc.lowdraglib2.utils.Size;
-//import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
-//import com.lowdragmc.mbd2.api.recipe.content.Content;
-//import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
-//import com.lowdragmc.mbd2.api.recipe.content.IContentSerializer;
-//import mekanism.api.Action;
-//import mekanism.api.MekanismAPI;
-//import mekanism.api.chemical.*;
-//import mekanism.api.chemical.gas.Gas;
-//import mekanism.api.chemical.gas.GasStack;
-//import mekanism.api.chemical.infuse.InfuseType;
-//import mekanism.api.chemical.infuse.InfusionStack;
-//import mekanism.api.chemical.pigment.Pigment;
-//import mekanism.api.chemical.pigment.PigmentStack;
-//import mekanism.api.chemical.slurry.Slurry;
-//import mekanism.api.chemical.slurry.SlurryStack;
-//import mekanism.common.registries.MekanismGases;
-//import mekanism.common.registries.MekanismInfuseTypes;
-//import net.minecraft.network.RegistryFriendlyByteBuf;
-//import net.minecraft.network.chat.Component;
-//import net.minecraft.resources.ResourceLocation;
-//import net.neoforged.registries.IForgeRegistry;
-//import org.jetbrains.annotations.Nullable;
-//
-//import java.util.List;
-//import java.util.function.BiFunction;
-//import java.util.function.Consumer;
-//import java.util.function.Function;
-//import java.util.function.Supplier;
-//
-//public class MekanismChemicalRecipeCapability<CHEMICAL extends Chemical<CHEMICAL>, STACK extends ChemicalStack<CHEMICAL>> extends RecipeCapability<STACK> {
-//    public static final MekanismChemicalRecipeCapability<Gas, GasStack> CAP_GAS =
-//            new MekanismChemicalRecipeCapability<>("mek_gas",
-//                    MekanismAPI.EMPTY_GAS,
-//                    MekanismGases.HYDROGEN::getChemical,
-//                    MekanismAPI::gasRegistry,
-//                    GasStack::new,
-//                    ChemicalTankBuilder.GAS,
-//                    GasStack::readFromPacket,
-//                    ChemicalTankWidget.Gas::new);
-//
-//    public static final MekanismChemicalRecipeCapability<InfuseType, InfusionStack> CAP_INFUSE =
-//            new MekanismChemicalRecipeCapability<>("mek_infuse",
-//                    MekanismAPI.EMPTY_INFUSE_TYPE,
-//                    MekanismInfuseTypes.DIAMOND::getChemical,
-//                    MekanismAPI::infuseTypeRegistry,
-//                    InfusionStack::new,
-//                    ChemicalTankBuilder.INFUSION,
-//                    InfusionStack::readFromPacket,
-//                    ChemicalTankWidget.Infuse::new);
-//
-//    public static final MekanismChemicalRecipeCapability<Pigment, PigmentStack> CAP_PIGMENT =
-//            new MekanismChemicalRecipeCapability<>("mek_pigment",
-//                    MekanismAPI.EMPTY_PIGMENT,
-//                    null,
-//                    MekanismAPI::pigmentRegistry,
-//                    PigmentStack::new,
-//                    ChemicalTankBuilder.PIGMENT,
-//                    PigmentStack::readFromPacket,
-//                    ChemicalTankWidget.Pigment::new);
-//
-//    public static final MekanismChemicalRecipeCapability<Slurry, SlurryStack> CAP_SLURRY =
-//            new MekanismChemicalRecipeCapability<>("mek_slurry",
-//                    MekanismAPI.EMPTY_SLURRY,
-//                    null,
-//                    MekanismAPI::slurryRegistry,
-//                    SlurryStack::new,
-//                    ChemicalTankBuilder.SLURRY,
-//                    SlurryStack::readFromPacket,
-//                    ChemicalTankWidget.Slurry::new);
-//
-//    public final CHEMICAL empty;
-//    @Nullable
-//    public final Supplier<CHEMICAL> defaultChemical;
-//    public final Supplier<IForgeRegistry<CHEMICAL>> registry;
-//    public final BiFunction<CHEMICAL, Long, STACK> createStack;
-//    public final ChemicalTankBuilder<CHEMICAL, STACK, ? extends IChemicalTank<CHEMICAL, STACK>> tankBuilder;
-//    public final Supplier<ChemicalTankWidget<CHEMICAL, STACK>> createTankWidget;
-//
-//    protected MekanismChemicalRecipeCapability(String name,
-//                                               CHEMICAL empty,
-//                                               @Nullable Supplier<CHEMICAL> defaultChemical,
-//                                               Supplier<IForgeRegistry<CHEMICAL>> registry,
-//                                               BiFunction<CHEMICAL, Long, STACK> createStack,
-//                                               ChemicalTankBuilder<CHEMICAL, STACK, ? extends IChemicalTank<CHEMICAL, STACK>> tankBuilder,
-//                                               Function<RegistryFriendlyByteBuf, STACK> readFromBuffer, Supplier<ChemicalTankWidget<CHEMICAL, STACK>> createTankWidget) {
-//        super(name, new ChemicalStackIContentSerializer<>(readFromBuffer, empty, registry, createStack));
-//        this.empty = empty;
-//        this.defaultChemical = defaultChemical;
-//        this.registry = registry;
-//        this.createStack = createStack;
-//        this.tankBuilder = tankBuilder;
-//        this.createTankWidget = createTankWidget;
-//    }
-//
-//    public CHEMICAL createDefaultChemical() {
-//        return defaultChemical == null ? registry.get().getValues().stream().findAny().orElse(empty) : defaultChemical.get();
-//    }
-//
-//    @Override
-//    public STACK createDefaultContent() {
-//        return createStack.apply(createDefaultChemical(), 1000L);
-//    }
-//
-//    @Override
-//    public Widget createPreviewWidget(STACK content) {
-//        var previewGroup = new WidgetGroup(0, 0, 18, 18);
-//        var tankWidget = createTankWidget.get();
-//        var ingredient = of(content);
-//        if (tankBuilder.create(ingredient.getAmount(), null) instanceof IChemicalHandler handler) {
-//            handler.insertChemical(ingredient, Action.EXECUTE);
-//            tankWidget.setChemicalTank(handler, 0);
-//        }
-//        previewGroup.addWidget(tankWidget);
-//        return previewGroup;
-//    }
-//
-//    @Override
-//    public Widget createXEITemplate() {
-//        var tankWidget = createTankWidget.get();
-//        tankWidget.initTemplate();
-//        tankWidget.setSize(new Size(20, 58));
-//        tankWidget.setOverlay(new ResourceTexture("mbd2:textures/gui/fluid_tank_overlay.png"));
-//        tankWidget.setShowAmount(false);
-//        return tankWidget;
-//    }
-//
-//    @Override
-//    public void bindXEIWidget(Widget widget, Content content, IngredientIO ingredientIO) {
-//        if (widget instanceof ChemicalTankWidget tankWidget) {
-//            var ingredient = of(content.content);
-//            if (tankBuilder.create(ingredient.getAmount(), null) instanceof IChemicalHandler handler) {
-//                handler.insertChemical(ingredient, Action.EXECUTE);
-//                tankWidget.setChemicalTank(handler, 0);
-//            }
-//            if (tankWidget.getOverlay() == null || tankWidget.getOverlay() == IGuiTexture.EMPTY) {
-//                tankWidget.setOverlay(content.createOverlay());
-//            } else {
-//                var groupTexture = new GuiTextureGroup(tankWidget.getOverlay(), content.createOverlay());
-//                tankWidget.setOverlay(groupTexture);
-//            }
-//            tankWidget.setIngredientIO(ingredientIO);
-//            tankWidget.setAllowClickDrained(false);
-//            tankWidget.setAllowClickFilled(false);
-//            tankWidget.setXEIChance(content.chance);
-//        }
-//    }
-//
-//    @Override
-//    public Component getLeftErrorInfo(List<STACK> left) {
-//        var result = Component.empty();
-//        for (int i = 0; i < left.size(); i++) {
-//            var stack = left.get(i);
-//            result.append(stack.getAmount() + "x ");
-//            result.append(stack.getTextComponent());
-//            if (i < left.size() - 1) {
-//                result.append(", ");
-//            }
-//        }
-//        return result;
-//    }
-//
-//    @Override
-//    public void createContentConfigurator(ConfiguratorGroup father, Supplier<STACK> supplier, Consumer<STACK> onUpdate) {
-//        father.addConfigurators(new SearchComponentConfigurator<>("recipe.capability.mek_chemical.type",
-//                () -> supplier.get().getType(), value -> onUpdate.accept(createStack.apply(value, Math.max(1, supplier.get().getAmount()))),
-//                empty, true, (word, find) -> {
-//            var lowerCase = word.toLowerCase();
-//            if ("empty".contains(lowerCase)) {
-//                find.accept(empty);
-//                return;
-//            }
-//            var words = lowerCase.split(" ");
-//            for (var entry : registry.get().getEntries()) {
-//                var key = entry.getKey();
-//                var chemical = entry.getValue();
-//                for (String s : words) {
-//                    if (key.toString().toLowerCase().contains(s) ||
-//                            LocalizationUtils.format(chemical.getTranslationKey()).toLowerCase().contains(s)) {
-//                        find.accept(chemical);
-//                        break;
-//                    }
-//                }
-//            }
-//        }, value -> {
-//            if (value.isEmptyType()) {
-//                return "empty";
-//            }
-//            var key = registry.get().getKey(value);
-//            return key == null ? "empty" : key.toString();
-//        }));
-//        father.addConfigurators(new NumberConfigurator("recipe.capability.mek_chemical.amount",
-//                () -> supplier.get().getAmount(),
-//                number -> onUpdate.accept(createStack.apply(supplier.get().getType(), number.longValue())), 1, true).setRange(1, Long.MAX_VALUE));
-//    }
-//
-//    private record ChemicalStackIContentSerializer<CHEMICAL extends Chemical<CHEMICAL>, STACK extends ChemicalStack<CHEMICAL>>(
-//            Function<RegistryFriendlyByteBuf, STACK> readFromBuffer, CHEMICAL empty,
-//            Supplier<IForgeRegistry<CHEMICAL>> registry,
-//            BiFunction<CHEMICAL, Long, STACK> createStack) implements IContentSerializer<STACK> {
-//
-//        @Override
-//        public void toNetwork(RegistryFriendlyByteBuf buf, STACK content) {
-//            content.writeToPacket(buf);
-//        }
-//
-//        @Override
-//        public STACK fromNetwork(RegistryFriendlyByteBuf buf) {
-//            return readFromBuffer.apply(buf);
-//        }
-//
-//        @Override
-//        public STACK fromJson(JsonElement json) {
-//            ResourceLocation type = ResourceLocation.parse(json.getAsJsonObject().get("type").getAsString());
-//            long amount = json.getAsJsonObject().get("amount").getAsLong();
-//            CHEMICAL chemical = ChemicalUtils.readChemicalFromRegistry(type, empty, registry.get());
-//            return createStack.apply(chemical, amount);
-//        }
-//
-//        @Override
-//        public JsonElement toJson(STACK content) {
-//            JsonObject jsonObj = new JsonObject();
-//            jsonObj.addProperty("type", content.getType().getRegistryName().toString());
-//            jsonObj.addProperty("amount", content.getAmount());
-//            return jsonObj;
-//        }
-//
-//        public STACK of(Object o) {
-//            if (o instanceof ChemicalStack<?> chemicalStack && ChemicalType.getTypeFor(chemicalStack.getType()) == ChemicalType.getTypeFor(empty)) {
-//                return (STACK) chemicalStack;
-//            } else if (o instanceof CharSequence) {
-//                String str = o.toString();
-//                // parse "Nx ID"
-//
-//                int x = str.indexOf('x');
-//                if (x > 0 && x < str.length() - 2 && str.charAt(x + 1) == ' ') {
-//                    try {
-//                        var chemical = registry.get().getValue(ResourceLocation.parse(str.substring(x + 2)));
-//                        var amount = Long.parseLong(str.substring(0, x));
-//                        return createStack.apply(chemical, amount);
-//                    } catch (Exception ignore) {
-//                        throw new IllegalStateException("Invalid chemical input: " + str);
-//                    }
-//                } else {
-//                    return createStack.apply(registry.get().getValue(ResourceLocation.parse(str)), 1L);
-//                }
-//            }
-//            return (STACK) empty.getStack(0);
-//        }
-//
-//        @Override
-//        public STACK copyInner(STACK content) {
-//            return (STACK) content.copy();
-//        }
-//
-//        @Override
-//        public STACK copyWithModifier(STACK content, ContentModifier modifier) {
-//            STACK copy = (STACK) content.copy();
-//            copy.setAmount(modifier.apply(copy.getAmount()).longValue());
-//            return copy;
-//        }
-//
-//        @Override
-//        public STACK deepCopyInner(STACK content) {
-//            return (STACK) content.copy();
-//        }
-//    }
-//}
+package com.lowdragmc.mbd2.integration.mekanism;
+
+import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.ScrollDataSource;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
+import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.mbd2.api.capability.recipe.IO;
+import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
+import com.lowdragmc.mbd2.api.recipe.content.Content;
+import com.lowdragmc.mbd2.common.gui.recipe.SupplierScrollDataSource;
+import com.lowdragmc.mbd2.integration.mekanism.configurator.ChemicalIngredientConfigurator;
+import mekanism.api.chemical.Chemical;
+import mekanism.api.chemical.ChemicalStack;
+import mekanism.api.recipes.ingredients.ChemicalStackIngredient;
+import mekanism.api.recipes.ingredients.creator.IngredientCreatorAccess;
+import mekanism.common.registries.MekanismChemicals;
+import net.minecraft.network.chat.Component;
+
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+public class MekanismChemicalRecipeCapability extends RecipeCapability<ChemicalStackIngredient> {
+    @LDLRegister(name = "mek_chemical", registry = "mbd2:recipe_capability", modID = "mekanism")
+    public static final MekanismChemicalRecipeCapability CAP = new MekanismChemicalRecipeCapability();
+
+    protected MekanismChemicalRecipeCapability() {
+        super("mek_chemical", SerializerChemicalStackIngredient.INSTANCE);
+    }
+
+    @Override
+    public ChemicalStackIngredient createDefaultContent() {
+        return new ChemicalStackIngredient(IngredientCreatorAccess.chemical().of(MekanismChemicals.HYDROGEN), 1000L);
+    }
+
+    @Override
+    public UIElement createPreview(Supplier<ChemicalStackIngredient> content) {
+        return new ChemicalSlot().bindDataSource(SupplierScrollDataSource.of(() -> stacks(content.get())));
+    }
+
+    @Override
+    public UIElement createXEITemplate() {
+        var widget = new ChemicalSlot();
+        widget.getLayout().width(20).height(58);
+        return widget;
+    }
+
+    @Override
+    public void bindXEIWidget(UIElement widget, Content content, IO io) {
+        if (widget instanceof ChemicalSlot tankWidget) {
+            var ingredient = of(content.content);
+            var possible = stacks(ingredient);
+            if (possible.isEmpty()) return;
+            if (possible.size() == 1) {
+                tankWidget.setChemical(possible.getFirst());
+            } else {
+                tankWidget.bindDataSource(ScrollDataSource.of(possible));
+            }
+
+            var ingredientIO = switch (io) {
+                case IN -> IngredientIO.INPUT;
+                case OUT -> IngredientIO.OUTPUT;
+                default -> IngredientIO.NONE;
+            };
+            tankWidget.xeiRecipeIngredient(ingredientIO);
+            tankWidget.xeiRecipeSlot(ingredientIO, content.chance);
+        }
+    }
+
+    private static List<ChemicalStack> stacks(ChemicalStackIngredient ingredient) {
+        return ingredient.ingredient().getChemicalHolders().stream()
+                .map(holder -> new ChemicalStack(holder, ingredient.amount()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public void createContentConfigurator(ConfiguratorGroup father, Supplier<ChemicalStackIngredient> supplier, Consumer<ChemicalStackIngredient> onUpdate) {
+        father.addConfigurators(
+                new NumberConfigurator("recipe.capability.mek_chemical.amount",
+                        () -> supplier.get().amount(),
+                        number -> onUpdate.accept(new ChemicalStackIngredient(supplier.get().ingredient(), Math.max(1L, number.longValue()))),
+                        1, true).setRange(1, Long.MAX_VALUE),
+                new ChemicalIngredientConfigurator("",
+                        () -> supplier.get().ingredient(),
+                        ingredient -> onUpdate.accept(new ChemicalStackIngredient(ingredient, supplier.get().amount())),
+                        IngredientCreatorAccess.chemical().of(MekanismChemicals.HYDROGEN),
+                        true)
+        );
+    }
+
+    @Override
+    public Component getLeftErrorInfo(List<ChemicalStackIngredient> left) {
+        var result = Component.empty();
+        for (int i = 0; i < left.size(); i++) {
+            var ingredient = left.get(i);
+            result.append(ingredient.amount() + "x ");
+            var holders = ingredient.ingredient().getChemicalHolders();
+            if (!holders.isEmpty()) {
+                Chemical chemical = holders.getFirst().value();
+                result.append(chemical.getTextComponent());
+            } else {
+                result.append("Unknown");
+            }
+            if (i < left.size() - 1) {
+                result.append(", ");
+            }
+        }
+        return result;
+    }
+}

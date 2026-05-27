@@ -4,7 +4,6 @@ import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.configurator.ui.NumberConfigurator;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.ScrollDataSource;
 
-import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.FluidSlot;
 import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
@@ -14,6 +13,7 @@ import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.api.recipe.content.SerializerSizedFluidIngredient;
 import com.lowdragmc.mbd2.common.capability.recipe.configurators.fluid.FluidIngredientConfigurator;
+import com.lowdragmc.mbd2.common.gui.MBDSprites;
 import com.lowdragmc.mbd2.common.gui.recipe.SupplierScrollDataSource;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.material.Fluids;
@@ -33,10 +33,6 @@ import java.util.function.Supplier;
 public class FluidRecipeCapability extends RecipeCapability<SizedFluidIngredient> {
     @LDLRegister(name = "fluid", registry = "mbd2:recipe_capability")
     public final static FluidRecipeCapability CAP = new FluidRecipeCapability();
-    public final static SpriteTexture FLUID_SLOT_OVERLAY = SpriteTexture.of("mbd2:textures/gui/fluid_tank_overlay.png");
-
-    public static final String FLUID_TYPE = "recipe.capability.fluid.ingredient.values.fluid";
-    public static final String TAG_TYPE = "recipe.capability.fluid.ingredient.values.tag";
 
     protected FluidRecipeCapability() {
         super("fluid", SerializerSizedFluidIngredient.INSTANCE);
@@ -56,7 +52,7 @@ public class FluidRecipeCapability extends RecipeCapability<SizedFluidIngredient
     public UIElement createXEITemplate() {
         var fluidSlot = new FluidSlot();
         fluidSlot.getLayout().width(20).height(58);
-        fluidSlot.getStyle().overlay(FLUID_SLOT_OVERLAY);
+        fluidSlot.getStyle().overlay(MBDSprites.FLUID_SLOT_OVERLAY);
         fluidSlot.amountLabel.setDisplay(false);
         return fluidSlot;
     }
@@ -82,10 +78,10 @@ public class FluidRecipeCapability extends RecipeCapability<SizedFluidIngredient
             };
 
             if (ingredientIO != IngredientIO.NONE) {
-                fluidSlot.xeiRecipeIngredient(ingredientIO, Arrays.stream(ingredient.getFluids()));
+                fluidSlot.xeiRecipeIngredient(ingredientIO, () -> Arrays.stream(ingredient.getFluids()));
             }
 
-            fluidSlot.xeiRecipeSlot(ingredientIO, content.chance, ingredient.amount(), Arrays.stream(ingredient.getFluids()));
+            fluidSlot.xeiRecipeSlot(ingredientIO, content.chance, ingredient.amount(), () -> Arrays.stream(ingredient.getFluids()));
         }
     }
 

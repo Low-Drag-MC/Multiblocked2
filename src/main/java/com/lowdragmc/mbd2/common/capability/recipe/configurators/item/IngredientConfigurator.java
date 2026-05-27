@@ -4,7 +4,6 @@ import com.google.gson.JsonParser;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.ui.*;
-import com.lowdragmc.mbd2.core.mixins.IngredientAccessor;
 import com.lowdragmc.mbd2.core.mixins.ItemValueAccessor;
 import com.lowdragmc.mbd2.core.mixins.TagValueAccessor;
 import com.mojang.serialization.JsonOps;
@@ -49,12 +48,9 @@ public class IngredientConfigurator extends ValueConfigurator<Ingredient> {
                 (type, group) -> {
                     currentType = type;
                     if (type == IngredientType.VANILLA) {
-                        var ingredient = getter.get();
-                        //noinspection ConstantValue
-                        if (!(((Object) ingredient) instanceof IngredientAccessor vanillaIngredient)) return;
                         // vanilla ingredient
                         var valuesGroup = new ArrayConfiguratorGroup<>("recipe.capability.item.ingredient.candidates", false,
-                                () -> Arrays.stream(ingredient.getValues()).collect(Collectors.toList()),
+                                () -> Arrays.stream(getter.get().getValues()).collect(Collectors.toList()),
                                 (valueGetter, valueSetter) -> {
                                     // check values type
                                     return new ConfiguratorSelectorConfigurator<>("recipe.capability.item.ingredient.values.type",
@@ -86,8 +82,7 @@ public class IngredientConfigurator extends ValueConfigurator<Ingredient> {
                         }, true);
                         valuesGroup.setAddDefault(() -> new Ingredient.ItemValue(Items.IRON_INGOT.getDefaultInstance()));
                         valuesGroup.setOnUpdate(values -> {
-                            vanillaIngredient.setValues(values.toArray(Ingredient.Value[]::new));
-                            vanillaIngredient.setItemStacks(null);
+                            setter.accept(Ingredient.fromValues(values.stream()));
                         });
                         group.addConfigurators(valuesGroup);
                     } else if (type == IngredientType.JSON) {
@@ -98,9 +93,14 @@ public class IngredientConfigurator extends ValueConfigurator<Ingredient> {
                                         .map(s -> s.split("\n"))
                                         .result().orElseGet(() -> new String[0]),
                                 lines -> {
-                            setter.accept(Ingredient.CODEC.parse(op, JsonParser.parseString(String.join("\n", lines)))
-                                    .result()
-                                    .orElse(Ingredient.EMPTY));
+                                    var text = String.join("\n", lines);
+                                    if (text.isBlank()) return;
+                                    try {
+                                        var json = JsonParser.parseString(text);
+                                        Ingredient.CODEC.parse(op, json).result().ifPresent(setter);
+                                    } catch (Exception ignored) {
+                                        // partial / invalid JSON while user is typing — keep their text, don't reset
+                                    }
                                 }, """
                                 {
                                   "type": "neoforge:compound",
@@ -109,7 +109,7 @@ public class IngredientConfigurator extends ValueConfigurator<Ingredient> {
                                      { "item": "minecraft:charcoal" }
                                   ]
                                 }
-                                """.split("\n"), true));
+                                """.split("\n"), false));
                     }
                 }));
     }

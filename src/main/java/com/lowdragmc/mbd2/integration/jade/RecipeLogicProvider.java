@@ -18,8 +18,6 @@ import snownee.jade.impl.ui.ElementHelper;
 import snownee.jade.impl.ui.ProgressElement;
 import snownee.jade.impl.ui.SimpleProgressStyle;
 
-import static snownee.jade.impl.ui.ElementHelper.DEFAULT_PROGRESS_BASE;
-
 public class RecipeLogicProvider implements IBlockComponentProvider, IServerDataProvider<BlockAccessor> {
 
     @Override
@@ -31,14 +29,12 @@ public class RecipeLogicProvider implements IBlockComponentProvider, IServerData
             var status = data.getString("status");
             tooltip.add(Component.translatable("recipe_logic.status." + status.toLowerCase()));
 
-            var boxStyle = BoxStyle.getSprite(DEFAULT_PROGRESS_BASE, null);
-
             if (data.contains("duration")) {
                 var progress = data.getInt("progress");
                 var duration = data.getInt("duration");
                 tooltip.add(ElementHelper.INSTANCE.progress(progress * 1f / duration,
                         Component.literal("%.2fs / %.2fs".formatted(progress / 20f, duration / 20f)).withStyle(ChatFormatting.WHITE),
-                        new SimpleProgressStyle().color(ColorPattern.GREEN.color), boxStyle, true));
+                        new SimpleProgressStyle().color(ColorPattern.GREEN.color), BoxStyle.getNestedBox(), true));
             }
 
             if (data.contains("fuel")) {
@@ -46,7 +42,7 @@ public class RecipeLogicProvider implements IBlockComponentProvider, IServerData
                 var maxFuel = data.getInt("maxFuel");
                 tooltip.add(new ProgressElement(fuel * 1f / maxFuel,
                         Component.literal("%.2f / %.2f ".formatted(fuel / 20f, maxFuel / 20f)).withStyle(ChatFormatting.WHITE),
-                        new SimpleProgressStyle().color(ColorPattern.ORANGE.color), boxStyle, true));
+                        new SimpleProgressStyle().color(ColorPattern.ORANGE.color), BoxStyle.getNestedBox(), true));
             }
             if (data.contains("waitingReason")) {
                 var reason = Component.Serializer.fromJson(data.getString("waitingReason"), Platform.getFrozenRegistry());

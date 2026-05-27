@@ -3,7 +3,6 @@ package com.lowdragmc.mbd2.common.trait.forgeenergy;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
-import com.lowdragmc.lowdraglib2.gui.sync.SyncValue;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.DataBindingBuilder;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
@@ -15,9 +14,11 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.mbd2.api.machine.IMachine;
+import com.lowdragmc.mbd2.common.gui.MBDSprites;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.ITrait;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTraitDefinition;
+import com.lowdragmc.mbd2.common.trait.TraitDefinitionType;
 import com.lowdragmc.mbd2.common.trait.ToggleAutoIO;
 import com.lowdragmc.mbd2.utils.EnergyFormattingUtil;
 import lombok.Getter;
@@ -32,11 +33,26 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.lowdragmc.mbd2.common.capability.recipe.ForgeEnergyRecipeCapability.ENERGY_BAR;
-import static com.lowdragmc.mbd2.common.capability.recipe.ForgeEnergyRecipeCapability.ENERGY_BG;
-
-@LDLRegister(name = "forge_energy_storage", registry = "mbd2:trait_definition_type", group = "trait", priority = -100)
 public class ForgeEnergyCapabilityTraitDefinition extends SimpleCapabilityTraitDefinition<IEnergyStorage, @Nullable Direction> {
+    @LDLRegister(name = "forge_energy_storage", registry = "mbd2:trait_definition_type", group = "trait", priority = -100)
+    public static final SimpleCapabilityTraitDefinition.Type<IEnergyStorage, @Nullable Direction, ForgeEnergyCapabilityTraitDefinition> TYPE =
+            new SimpleCapabilityTraitDefinition.Type<>("forge_energy_storage", "trait") {
+        @Override
+        public ForgeEnergyCapabilityTraitDefinition createDefinition() {
+            return new ForgeEnergyCapabilityTraitDefinition();
+        }
+
+        @Override
+        protected BlockCapability<IEnergyStorage, @Nullable Direction> getCapability() {
+            return Capabilities.EnergyStorage.BLOCK;
+        }
+
+        @Override
+        protected IEnergyStorage merge(List<IEnergyStorage> contents) {
+            return new EnergyStorageList(contents.toArray(IEnergyStorage[]::new));
+        }
+    };
+
     @Getter
     @Setter
     @Configurable(name = "config.definition.trait.forge_energy_storage.capacity")
@@ -65,21 +81,13 @@ public class ForgeEnergyCapabilityTraitDefinition extends SimpleCapabilityTraitD
     }
 
     @Override
-    protected @Nullable IEnergyStorage getCapContent(MBDMachine machine, @Nullable Direction context) {
-        return new EnergyStorageList(machine.getAdditionalTraits().stream().filter(trait -> trait instanceof ForgeEnergyCapabilityTrait)
-                .map(ForgeEnergyCapabilityTrait.class::cast)
-                .map(trait -> trait.getCapContent(trait.getCapabilityIO(context)))
-                .toArray(IEnergyStorage[]::new));
-    }
-
-    @Override
-    public BlockCapability<IEnergyStorage, @Nullable Direction> getCapability() {
-        return Capabilities.EnergyStorage.BLOCK;
+    public TraitDefinitionType<?> type() {
+        return TYPE;
     }
 
     @Override
     public IGuiTexture getIcon() {
-        return SpriteTexture.of("mbd2:textures/gui/forge_energy.png");
+        return MBDSprites.ENERGY_ICON;
     }
 
     @Override
@@ -96,12 +104,12 @@ public class ForgeEnergyCapabilityTraitDefinition extends SimpleCapabilityTraitD
     public void createTraitUITemplate(UIElement container) {
         var progress = new ProgressBar();
         progress.barContainer.getLayout().paddingAll(0);
-        progress.barContainer.getStyle().background(ENERGY_BG);
-        progress.bar.getStyle().background(ENERGY_BAR);
+        progress.barContainer.getStyle().background(MBDSprites.ENERGY_BG);
+        progress.bar.getStyle().background(MBDSprites.ENERGY_BAR);
         progress.setProgress(1f);
         progress.label.setText("0/0 FE");
         progress.setId(uiId());
-        progress.layout(layout -> layout.width(100).height(14));
+        progress.layout(layout -> layout.flex(1).height(14));
         container.addChild(progress);
     }
 

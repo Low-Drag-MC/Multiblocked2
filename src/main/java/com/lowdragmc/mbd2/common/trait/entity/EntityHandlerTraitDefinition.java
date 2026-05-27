@@ -13,6 +13,7 @@ import com.lowdragmc.lowdraglib2.utils.ShapeUtils;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.ITrait;
 import com.lowdragmc.mbd2.common.trait.RecipeCapabilityTraitDefinition;
+import com.lowdragmc.mbd2.common.trait.TraitDefinitionType;
 import com.mojang.blaze3d.vertex.PoseStack;
 import lombok.Getter;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -28,8 +29,14 @@ import javax.annotation.Nullable;
 import java.util.EnumMap;
 import java.util.Map;
 
-@LDLRegister(name = "entity_handler", registry = "mbd2:trait_definition_type", group = "trait", priority = -99)
 public class EntityHandlerTraitDefinition extends RecipeCapabilityTraitDefinition {
+    @LDLRegister(name = "entity_handler", registry = "mbd2:trait_definition_type", group = "trait", priority = -99)
+    public static final TraitDefinitionType<EntityHandlerTraitDefinition> TYPE = new TraitDefinitionType<>("entity_handler", "trait") {
+        @Override
+        public EntityHandlerTraitDefinition createDefinition() {
+            return new EntityHandlerTraitDefinition();
+        }
+    };
 
     @Getter
     @Configurable(name = "config.definition.trait.entity_handler.area", tips = {
@@ -45,6 +52,11 @@ public class EntityHandlerTraitDefinition extends RecipeCapabilityTraitDefinitio
     @Override
     public ITrait createTrait(MBDMachine machine) {
         return new EntityHandlerTrait(machine, this);
+    }
+
+    @Override
+    public TraitDefinitionType<?> type() {
+        return TYPE;
     }
 
     @Override

@@ -60,11 +60,11 @@ runs {
 
     client {
         // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
-        systemProperty 'forge.enabledGameTestNamespaces', project.mod_id
+        systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
     }
 
     server {
-        systemProperty 'forge.enabledGameTestNamespaces', project.mod_id
+        systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
         programArgument '--nogui'
     }
 
@@ -72,7 +72,7 @@ runs {
     // By default, the server will crash when no gametests are provided.
     // The gametest system is also enabled by default for other run configs under the /test command.
     gameTestServer {
-        systemProperty 'forge.enabledGameTestNamespaces', project.mod_id
+        systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
     }
 
     data {
@@ -93,6 +93,16 @@ sourceSets.main.resources {
     exclude '.cache/'
 }
 sourceSets.main.kotlin { srcDir("src/main/java") }
+
+// Run once to (re)generate the empty test structure NBT files:
+//   gradlew generateEmptyStructures
+tasks.register('generateEmptyStructures', JavaExec) {
+    group = 'mbd2-test'
+    description = 'Generates the empty gametest structure NBT files under src/main/resources/data/mbd2/structures'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.lowdragmc.mbd2.test.framework.EmptyStructureGenerator'
+    workingDir = projectDir
+}
 
 tasks.withType(ProcessResources).configureEach {
     // set up properties for filling into metadata

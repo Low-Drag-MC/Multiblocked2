@@ -15,6 +15,7 @@ import com.lowdragmc.mbd2.api.pattern.predicates.PatternPredicate;
 import com.lowdragmc.mbd2.api.pattern.predicates.PredicateBlocks;
 import com.lowdragmc.mbd2.api.pattern.util.RelativeDirection;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
+import com.lowdragmc.mbd2.common.gui.editor.MultiblockMachineProject;
 import com.lowdragmc.mbd2.common.gui.editor.multiblopck.PredicateResource;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine;
@@ -45,8 +46,15 @@ import java.util.function.Supplier;
  */
 @Getter
 @Accessors(fluent = true)
-@LDLRegister(name = "multiblock", registry = "mbd2:machine_definition_type")
 public class MultiblockMachineDefinition extends MBDMachineDefinition {
+    @LDLRegister(name = "multiblock", registry = "mbd2:machine_definition_type")
+    public static final MachineDefinitionType<MultiblockMachineDefinition> TYPE = new MachineDefinitionType<>("multiblock", "multiblock", ".mb") {
+        @Override
+        public MultiblockMachineDefinition createDefinition() {
+            return MultiblockMachineDefinition.createDefault();
+        }
+    };
+
     public static final Map<Block, Set<MultiblockMachineDefinition>> CATALYST_CANDIDATES = Collections.synchronizedMap(new HashMap<>());
     @FunctionalInterface
     public interface ConfigMultiblockSettingsFactory extends Supplier<ConfigMultiblockSettings> { }
@@ -112,56 +120,54 @@ public class MultiblockMachineDefinition extends MBDMachineDefinition {
     @Override
     public MultiblockMachineDefinition loadProductiveTag(@Nullable File file, CompoundTag projectTag, Deque<Runnable> postTask) {
         super.loadProductiveTag(file, projectTag, postTask);
-        // todo load project
-//        postTask.add(() -> {
-//            // load multiblock settings
-//            multiblockSettings.deserializeNBT(Platform.getFrozenRegistry(), projectTag.getCompound("definition").getCompound("multiblockSettings"));
-//            // setup catalyst candidates
-//            if (multiblockSettings.catalyst().isEnable() && multiblockSettings.catalyst().getCandidates().isEnable()) {
-//                for (var block : multiblockSettings.catalyst().getCandidates().getValue()) {
-//                    CATALYST_CANDIDATES.computeIfAbsent(block, b -> new HashSet<>()).add(this);
-//                }
-//            }
-//            // setup block pattern
-//            var predicateResource = new PredicateResource();
-//            predicateResource.deserializeNBT(projectTag.getCompound("resources").getCompound(PredicateResource.RESOURCE_NAME), Platform.getFrozenRegistry());
-//            var placeholders = MultiblockMachineProject.deserializeBlockPlaceholders(projectTag.getCompound("placeholders"), predicateResource);
-//            var layerAxis = Direction.Axis.valueOf(projectTag.getString("layer_axis"));
-//            var aisleLength = switch (layerAxis) {
-//                case X -> placeholders.length;
-//                case Y -> placeholders[0].length;
-//                case Z -> placeholders[0][0].length;
-//            };
-//            var aisleRepetitions = new int[aisleLength][2];
-//            var repetitions = projectTag.getIntArray("aisle_repetitions");
-//            for (int i = 0; i < aisleLength; i++) {
-//                aisleRepetitions[i][0] = repetitions[i * 2];
-//                aisleRepetitions[i][1] = repetitions[i * 2 + 1];
-//            }
-//            var blockPattern = createBlockPattern(placeholders, layerAxis, aisleRepetitions, this);
-//            blockPatternFactory(controller -> blockPattern);
-//            // setup shape info
-//            shapeInfoFactory(Util.memoize(definition -> {
-//                var shapeInfos = new ArrayList<>(projectTag.getList("shape_infos", Tag.TAG_COMPOUND).stream()
-//                        .map(CompoundTag.class::cast)
-//                        .map(tag -> MultiblockShapeInfo.loadFromTag(Platform.getFrozenRegistry(), tag))
-//                        .toList());
-//                if (shapeInfos.isEmpty()) {
-//                    // generate builtin shape info from pattern
-//                    var repetition = Arrays.stream(aisleRepetitions).mapToInt(range -> range[0]).toArray();
-//                    shapeInfos.add(new MultiblockShapeInfo(blockPattern.getPreview(repetition)));
-//                    for (int layer = 0; layer < aisleRepetitions.length; layer++) {
-//                        var range = aisleRepetitions[layer];
-//                        for (int i = range[0] + 1; i <= range[1]; i++) {
-//                            repetition[layer] = i;
-//                            shapeInfos.add(new MultiblockShapeInfo(blockPattern.getPreview(repetition)));
-//                            repetition[layer] = range[0];
-//                        }
-//                    }
-//                }
-//                return shapeInfos.toArray(new MultiblockShapeInfo[0]);
-//            }));
-//        });
+        var dataTag = projectTag.getCompound("data");
+        var definitionTag = dataTag.getCompound("definition");
+        postTask.add(() -> {
+            multiblockSettings.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("multiblockSettings"));
+            if (multiblockSettings.catalyst().isEnable() && multiblockSettings.catalyst().getCandidates().isEnable()) {
+                for (var block : multiblockSettings.catalyst().getCandidates().getValue()) {
+                    CATALYST_CANDIDATES.computeIfAbsent(block, b -> new HashSet<>()).add(this);
+                }
+            }
+            var placeholders = MultiblockMachineProject.deserializeBlockPlaceholders(dataTag.getCompound("placeholders"));
+            var layerAxis = dataTag.contains("layer_axis") ? Direction.Axis.valueOf(dataTag.getString("layer_axis")) : Direction.Axis.Y;
+            var aisleLength = switch (layerAxis) {
+                case X -> placeholders.length;
+                case Y -> placeholders[0].length;
+                case Z -> placeholders[0][0].length;
+            };
+            var aisleRepetitions = new int[aisleLength][2];
+            for (int i = 0; i < aisleLength; i++) {
+                aisleRepetitions[i][0] = 1;
+                aisleRepetitions[i][1] = 1;
+            }
+            var repetitions = dataTag.getIntArray("aisle_repetitions");
+            for (int i = 0; i < aisleLength && i * 2 + 1 < repetitions.length; i++) {
+                aisleRepetitions[i][0] = repetitions[i * 2];
+                aisleRepetitions[i][1] = repetitions[i * 2 + 1];
+            }
+            var blockPattern = createBlockPattern(placeholders, layerAxis, aisleRepetitions, this);
+            blockPatternFactory(controller -> blockPattern);
+            shapeInfoFactory(Util.memoize(definition -> {
+                var shapeInfos = new ArrayList<>(dataTag.getList("shape_infos", Tag.TAG_COMPOUND).stream()
+                        .map(CompoundTag.class::cast)
+                        .map(tag -> MultiblockShapeInfo.loadFromTag(Platform.getFrozenRegistry(), tag))
+                        .toList());
+                if (shapeInfos.isEmpty()) {
+                    var repetition = Arrays.stream(aisleRepetitions).mapToInt(range -> range[0]).toArray();
+                    shapeInfos.add(new MultiblockShapeInfo(blockPattern.getPreview(repetition)));
+                    for (int layer = 0; layer < aisleRepetitions.length; layer++) {
+                        var range = aisleRepetitions[layer];
+                        for (int i = range[0] + 1; i <= range[1]; i++) {
+                            repetition[layer] = i;
+                            shapeInfos.add(new MultiblockShapeInfo(blockPattern.getPreview(repetition)));
+                            repetition[layer] = range[0];
+                        }
+                    }
+                }
+                return shapeInfos.toArray(new MultiblockShapeInfo[0]);
+            }));
+        });
         return this;
     }
 

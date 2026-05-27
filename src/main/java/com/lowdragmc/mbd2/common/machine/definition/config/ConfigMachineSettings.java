@@ -10,6 +10,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.inventory.InventorySlots;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
+import com.lowdragmc.mbd2.common.gui.MBDBindingIDs;
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 import lombok.*;
 import lombok.experimental.Accessors;
@@ -121,11 +122,11 @@ public class ConfigMachineSettings implements IPersistedSerializable, IConfigura
         if (uiTemplate == null) {
             uiTemplate = UITemplate.of(new UIElement()
                     .addChildren(
-                            new Label().setText("Machine UI"),
+                            new Label().setText("Machine UI").setId(MBDBindingIDs.MACHINE_NAME),
                             new UIElement().layout(l -> l.height(40)),
                             new InventorySlots()
                     )
-                    .addClass("panel_bg"), StylesheetManager.MC);
+                    .addClass("panel_bg"), StylesheetManager.MC_MERGED);
         }
         return uiTemplate;
     }

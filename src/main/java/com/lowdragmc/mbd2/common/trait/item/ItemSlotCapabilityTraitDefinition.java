@@ -30,9 +30,29 @@ import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.items.IItemHandler;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
+
 @Getter @Setter
-@LDLRegister(name = "item_slot", registry = "mbd2:trait_definition_type", priority = -100)
-public class ItemSlotCapabilityTraitDefinition extends SimpleCapabilityTraitDefinition<IItemHandler, @Nullable Direction> implements IUIProviderTrait, ICapabilityProviderTrait {
+public class ItemSlotCapabilityTraitDefinition extends SimpleCapabilityTraitDefinition<IItemHandler, @Nullable Direction> implements IUIProviderTrait {
+    @LDLRegister(name = "item_slot", registry = "mbd2:trait_definition_type", priority = -100)
+    public static final SimpleCapabilityTraitDefinition.Type<IItemHandler, @Nullable Direction, ItemSlotCapabilityTraitDefinition> TYPE =
+            new SimpleCapabilityTraitDefinition.Type<>("item_slot") {
+        @Override
+        public ItemSlotCapabilityTraitDefinition createDefinition() {
+            return new ItemSlotCapabilityTraitDefinition();
+        }
+
+        @Override
+        protected BlockCapability<IItemHandler, @Nullable Direction> getCapability() {
+            return Capabilities.ItemHandler.BLOCK;
+        }
+
+        @Override
+        protected IItemHandler merge(List<IItemHandler> contents) {
+            return new ItemHandlerList(contents.toArray(IItemHandler[]::new));
+        }
+    };
+
     @Configurable(name = "config.definition.trait.item_slot.slot_size", tips = "config.definition.trait.item_slot.slot_size.tooltip")
     @ConfigNumber(range = {1, Integer.MAX_VALUE})
     private int slotSize = 1;
@@ -60,16 +80,8 @@ public class ItemSlotCapabilityTraitDefinition extends SimpleCapabilityTraitDefi
     }
 
     @Override
-    public BlockCapability<IItemHandler, @Nullable Direction> getCapability() {
-        return Capabilities.ItemHandler.BLOCK;
-    }
-
-    @Override
-    protected @Nullable IItemHandler getCapContent(MBDMachine machine, @Nullable Direction context) {
-        return new ItemHandlerList(machine.getAdditionalTraits().stream().filter(trait -> trait instanceof ItemSlotCapabilityTrait)
-                .map(ItemSlotCapabilityTrait.class::cast)
-                .map(trait -> trait.getCapContent(trait.getCapabilityIO(context)))
-                .toArray(IItemHandler[]::new));
+    public TraitDefinitionType<?> type() {
+        return TYPE;
     }
 
     @Override

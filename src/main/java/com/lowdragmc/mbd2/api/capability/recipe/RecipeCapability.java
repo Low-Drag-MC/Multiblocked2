@@ -94,6 +94,16 @@ public abstract class RecipeCapability<T> implements ILDLRegister<RecipeCapabili
      */
     public abstract UIElement createXEITemplate();
 
+    public enum XEILayoutType { SLOT, BAR }
+
+    /**
+     * layout zone hint for the editor: SLOT capabilities flow into the IO slot columns,
+     * BAR capabilities flow into the bar container below the IO row.
+     */
+    public XEILayoutType xeiLayoutType() {
+        return XEILayoutType.SLOT;
+    }
+
     /**
      * bind the content to the widget. you should do the casting yourself.
      * @param io the ingredient io for the widget. mark it as inputs or outputs or render only..

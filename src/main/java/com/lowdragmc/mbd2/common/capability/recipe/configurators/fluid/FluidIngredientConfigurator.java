@@ -75,9 +75,14 @@ public class FluidIngredientConfigurator extends ValueConfigurator<FluidIngredie
                                         .map(s -> s.split("\n"))
                                         .result().orElseGet(() -> new String[0]),
                                 lines -> {
-                            setter.accept(FluidIngredient.CODEC.parse(op, JsonParser.parseString(String.join("\n", lines)))
-                                    .result()
-                                    .orElse(FluidIngredient.empty()));
+                                    var text = String.join("\n", lines);
+                                    if (text.isBlank()) return;
+                                    try {
+                                        var json = JsonParser.parseString(text);
+                                        FluidIngredient.CODEC.parse(op, json).result().ifPresent(setter);
+                                    } catch (Exception ignored) {
+                                        // partial / invalid JSON while user is typing — keep their text, don't reset
+                                    }
                                 }, """
                                 {
                                   "type": "neoforge:compound",
@@ -86,7 +91,7 @@ public class FluidIngredientConfigurator extends ValueConfigurator<FluidIngredie
                                      { "fluid": "minecraft:water" }
                                   ]
                                 }
-                                """.split("\n"), true));
+                                """.split("\n"), false));
                     }
                 }));
     }

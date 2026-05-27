@@ -54,7 +54,7 @@ open class MachineProject : IProject {
         definition.loadFactory()
     }
 
-    protected fun createResources(): Resources {
+    protected open fun createResources(): Resources {
         return Resources.of(
             IRendererResource.INSTANCE,
             ColorsResource.INSTANCE,
@@ -63,7 +63,7 @@ open class MachineProject : IProject {
         )
     }
 
-    protected fun createDefinition(): MBDMachineDefinition {
+    protected open fun createDefinition(): MBDMachineDefinition {
         // use vanilla furnace model as an example
         return MBDMachineDefinition.builder()
             .id(MBD2.id("new_machine"))

@@ -93,10 +93,10 @@ public class ItemDurabilityRecipeCapability extends RecipeCapability<SizedIngred
             };
 
             if (ingredientIO != IngredientIO.NONE) {
-                itemSlot.xeiRecipeIngredient(ingredientIO, Arrays.stream(ingredient.getItems()));
+                itemSlot.xeiRecipeIngredient(ingredientIO, () -> Arrays.stream(ingredient.getItems()));
             }
 
-            itemSlot.xeiRecipeSlot(ingredientIO, content.chance, ingredient.count(), Arrays.stream(ingredient.getItems()));
+            itemSlot.xeiRecipeSlot(ingredientIO, content.chance, ingredient.count(), () -> Arrays.stream(ingredient.getItems()));
         }
     }
 

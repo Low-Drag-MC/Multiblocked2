@@ -1,7 +1,12 @@
 package com.lowdragmc.mbd2.client;
 
+import com.lowdragmc.lowdraglib2.editor.resource.EditorResourceEvent;
+import com.lowdragmc.lowdraglib2.editor.resource.ResourceInstance;
+import com.lowdragmc.lowdraglib2.editor.resource.TexturesResource;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.client.renderer.MultiblockInWorldPreviewRenderer;
+import com.lowdragmc.mbd2.common.gui.MBDSprites;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.commands.CommandSourceStack;
 import net.neoforged.api.distmarker.Dist;
@@ -41,5 +46,12 @@ public class ForgeClientEventListener {
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Pre event) {
         MultiblockInWorldPreviewRenderer.onClientTick();
+    }
+
+    @SubscribeEvent
+    public static void onLoadBuiltinEditorResource(EditorResourceEvent.LoadBuiltin event) {
+        if (event.resourceInstance.resource == TexturesResource.INSTANCE) {
+            MBDSprites.init((ResourceInstance<IGuiTexture>) event.resourceInstance);
+        }
     }
 }

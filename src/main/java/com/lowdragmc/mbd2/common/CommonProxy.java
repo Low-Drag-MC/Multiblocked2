@@ -12,6 +12,8 @@ import com.lowdragmc.mbd2.api.recipe.MBDRecipeSerializer;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.data.MBDRecipeCapabilities;
+import com.lowdragmc.mbd2.common.data.MBDMachineDefinitionTypes;
+import com.lowdragmc.mbd2.common.data.MBDTraitDefinitionTypes;
 import com.lowdragmc.mbd2.common.event.MBDRegistryEvent;
 import com.lowdragmc.mbd2.common.gui.editor.MBDEditor;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
@@ -23,6 +25,7 @@ import com.lowdragmc.mbd2.integration.kubejs.events.MBDMachineRegistryEventJS;
 import com.lowdragmc.mbd2.integration.kubejs.events.MBDRecipeTypeRegistryEventJS;
 import com.lowdragmc.mbd2.integration.kubejs.events.MBDStartupEvents;
 import com.lowdragmc.mbd2.test.MBDTest;
+import com.lowdragmc.mbd2.test.framework.MBDTestRegistry;
 import com.lowdragmc.mbd2.utils.FileUtils;
 import dev.latvian.mods.kubejs.script.ScriptType;
 import lombok.Getter;
@@ -53,6 +56,24 @@ public class CommonProxy {
         eventBus.register(this);
         if (Platform.isDevEnv()) {
             eventBus.register(new MBDTest());
+            eventBus.register(new MBDTestRegistry());
+            // force-load the smoke fixture class so its static initializer runs and
+            // registers itself with MBDTestRegistry before MBDRegistryEvent fires.
+            MBDTestRegistry.register(new com.lowdragmc.mbd2.test.tests.MBDSmokeFixtures());
+            MBDTestRegistry.register(new com.lowdragmc.mbd2.test.tests.recipe.ItemRecipeCapabilityFixtures());
+            MBDTestRegistry.register(new com.lowdragmc.mbd2.test.tests.recipe.ItemDurabilityRecipeCapabilityFixtures());
+            MBDTestRegistry.register(new com.lowdragmc.mbd2.test.tests.recipe.FluidRecipeCapabilityFixtures());
+            MBDTestRegistry.register(new com.lowdragmc.mbd2.test.tests.recipe.ForgeEnergyRecipeCapabilityFixtures());
+            MBDTestRegistry.register(new com.lowdragmc.mbd2.test.tests.trait.ItemSlotTraitFixtures());
+            MBDTestRegistry.register(new com.lowdragmc.mbd2.test.tests.trait.FluidTankTraitFixtures());
+            MBDTestRegistry.register(new com.lowdragmc.mbd2.test.tests.trait.ForgeEnergyTraitFixtures());
+            MBDTestRegistry.register(new com.lowdragmc.mbd2.test.tests.multiblock.PatternBasicsFixtures());
+            MBDTestRegistry.register(new com.lowdragmc.mbd2.test.tests.multiblock.PatternPredicatesFixtures());
+            MBDTestRegistry.register(new com.lowdragmc.mbd2.test.tests.multiblock.PatternRepetitionFixtures());
+            if (net.neoforged.fml.ModList.get().isLoaded("mekanism")) {
+                MBDTestRegistry.register(new com.lowdragmc.mbd2.test.tests.trait.ChemicalTankTraitFixtures());
+                MBDTestRegistry.register(new com.lowdragmc.mbd2.test.tests.trait.MekHeatTraitFixtures());
+            }
         }
         eventBus.addListener(MBD2Network::registerPayloads);
         // Register our mod's ForgeConfigSpec so that Forge can create and load the config file for us
@@ -94,12 +115,10 @@ public class CommonProxy {
         MBDRegistries.MACHINE_DEFINITIONS.unfreeze();
         var event = new MBDRegistryEvent.Machine();
         MBD2.LOGGER.info("Loading machines");
-        var path = new File(MBD2.getLocation(), "machine");
-        // load single machine
-        FileUtils.loadNBTFiles(path, ".sm", (file, tag) -> event.register(MBDMachineDefinition.createDefault().loadProductiveTag(file, tag, postTask)));
-        // load multiblock machine
-        path = new File(MBD2.getLocation(), "multiblock");
-//        FileUtils.loadNBTFiles(path, ".mb", (file, tag) -> event.register(MultiblockMachineDefinition.createDefault().loadProductiveTag(file, tag, postTask)));
+        for (var type : MBDRegistries.MACHINE_DEFINITION_TYPES) {
+            var path = new File(MBD2.getLocation(), type.folder);
+            FileUtils.loadNBTFiles(path, type.fileSuffix, (file, tag) -> event.register(type.createDefinition().loadProductiveTag(file, tag, postTask)));
+        }
 //        if (MBD2.isCreateLoaded()) {
 //            // load kinetic machine
 //            path = new File(MBD2.getLocation(), "kinetic_machine");
@@ -130,6 +149,8 @@ public class CommonProxy {
     @SubscribeEvent
     public void constructMod(FMLConstructModEvent e) {
         e.enqueueWork(() -> {
+            MBDMachineDefinitionTypes.init();
+            MBDTraitDefinitionTypes.init();
             MBDRecipeCapabilities.init();
             registerRecipeType();
             registerMachine();

@@ -75,10 +75,10 @@ public class ItemRecipeCapability extends RecipeCapability<SizedIngredient> {
             };
 
             if (ingredientIO != IngredientIO.NONE) {
-                itemSlot.xeiRecipeIngredient(ingredientIO, Arrays.stream(ingredient.getItems()));
+                itemSlot.xeiRecipeIngredient(ingredientIO, () -> Arrays.stream(ingredient.getItems()));
             }
 
-            itemSlot.xeiRecipeSlot(ingredientIO, content.chance, ingredient.count(), Arrays.stream(ingredient.getItems()));
+            itemSlot.xeiRecipeSlot(ingredientIO, content.chance, ingredient.count(), () -> Arrays.stream(ingredient.getItems()));
         }
     }
 

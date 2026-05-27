@@ -1,10 +1,13 @@
 package com.lowdragmc.mbd2.api.recipe.content;
 
 import com.mojang.serialization.Codec;
+import net.minecraft.tags.TagKey;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.world.level.material.Fluid;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.crafting.EmptyFluidIngredient;
+import net.neoforged.neoforge.fluids.crafting.FluidIngredient;
 import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient;
 
 public class SerializerSizedFluidIngredient implements IContentSerializer<SizedFluidIngredient> {
@@ -14,12 +17,22 @@ public class SerializerSizedFluidIngredient implements IContentSerializer<SizedF
     private SerializerSizedFluidIngredient() {}
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public SizedFluidIngredient of(Object o) {
         if (o instanceof SizedFluidIngredient ingredient) {
             return ingredient;
         }
+        if (o instanceof FluidIngredient ingredient) {
+            return new SizedFluidIngredient(ingredient, 1000);
+        }
         if (o instanceof FluidStack stack) {
             return SizedFluidIngredient.of(stack.copy());
+        }
+        if (o instanceof Fluid fluid) {
+            return SizedFluidIngredient.of(fluid, 1000);
+        }
+        if (o instanceof TagKey<?> tag) {
+            return SizedFluidIngredient.of((TagKey<Fluid>) tag, 1000);
         }
         return new SizedFluidIngredient(EmptyFluidIngredient.INSTANCE, 1);
     }

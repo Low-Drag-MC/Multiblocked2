@@ -10,10 +10,12 @@ import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.FillDirection;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.FluidSlot;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
 import com.lowdragmc.mbd2.api.machine.IMachine;
+import com.lowdragmc.mbd2.common.gui.MBDSprites;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.*;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -29,8 +31,27 @@ import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import org.jetbrains.annotations.Nullable;
 
-@LDLRegister(name = "fluid_tank", registry = "mbd2:trait_definition_type", group = "trait", priority = -100)
+import java.util.List;
+
 public class FluidTankCapabilityTraitDefinition extends SimpleCapabilityTraitDefinition<IFluidHandler, @Nullable Direction> {
+    @LDLRegister(name = "fluid_tank", registry = "mbd2:trait_definition_type", group = "trait", priority = -100)
+    public static final SimpleCapabilityTraitDefinition.Type<IFluidHandler, @Nullable Direction, FluidTankCapabilityTraitDefinition> TYPE =
+            new SimpleCapabilityTraitDefinition.Type<>("fluid_tank", "trait") {
+        @Override
+        public FluidTankCapabilityTraitDefinition createDefinition() {
+            return new FluidTankCapabilityTraitDefinition();
+        }
+
+        @Override
+        protected BlockCapability<IFluidHandler, @Nullable Direction> getCapability() {
+            return Capabilities.FluidHandler.BLOCK;
+        }
+
+        @Override
+        protected IFluidHandler merge(List<IFluidHandler> contents) {
+            return new FluidHandlerList(contents.toArray(IFluidHandler[]::new));
+        }
+    };
 
     @Getter
     @Setter
@@ -68,16 +89,8 @@ public class FluidTankCapabilityTraitDefinition extends SimpleCapabilityTraitDef
     }
 
     @Override
-    protected @Nullable IFluidHandler getCapContent(MBDMachine machine, @Nullable Direction context) {
-        return new FluidHandlerList(machine.getAdditionalTraits().stream().filter(trait -> trait instanceof FluidTankCapabilityTrait)
-                .map(FluidTankCapabilityTrait.class::cast)
-                .map(trait -> trait.getCapContent(trait.getCapabilityIO(context)))
-                .toArray(IFluidHandler[]::new));
-    }
-
-    @Override
-    public BlockCapability<IFluidHandler, @Nullable Direction> getCapability() {
-        return Capabilities.FluidHandler.BLOCK;
+    public TraitDefinitionType<?> type() {
+        return TYPE;
     }
 
     @Override
@@ -91,7 +104,8 @@ public class FluidTankCapabilityTraitDefinition extends SimpleCapabilityTraitDef
         for (var i = 0; i < this.tankSize; i++) {
             var slot = new FluidSlot();
             slot.getLayout().width(20).height(58);
-            slot.getStyle().overlay(SpriteTexture.of("mbd2:textures/gui/fluid_tank_overlay.png"));
+            slot.getStyle().overlay(MBDSprites.FLUID_SLOT_OVERLAY);
+            slot.getSlotStyle().fillDirection(FillDirection.DOWN_TO_UP);
             slot.amountLabel.setDisplay(false);
             slot.setId(prefix + "_" + i);
             container.addChild(slot);

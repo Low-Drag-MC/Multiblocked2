@@ -2,29 +2,36 @@ package com.lowdragmc.mbd2.common.gui.editor.machine
 
 import com.lowdragmc.lowdraglib2.gui.editor.view.UIEditorView
 import com.lowdragmc.lowdraglib2.gui.editor.view.UITreeNode
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture
 import com.lowdragmc.lowdraglib2.gui.texture.Icons
+import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement
 import com.lowdragmc.lowdraglib2.gui.ui.UITemplate
+import com.lowdragmc.lowdraglib2.gui.ui.data.FillDirection
 import com.lowdragmc.lowdraglib2.gui.ui.element
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label
+import com.lowdragmc.lowdraglib2.gui.ui.elements.ProgressBar
 import com.lowdragmc.lowdraglib2.gui.ui.elements.button
-import com.lowdragmc.lowdraglib2.gui.ui.elements.dsl
 import com.lowdragmc.lowdraglib2.gui.ui.elements.inventory.InventorySlots
+import com.lowdragmc.lowdraglib2.gui.ui.elements.progressBar
 import com.lowdragmc.lowdraglib2.gui.ui.layout.px
 import com.lowdragmc.lowdraglib2.gui.ui.layoutDsl
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder
 import com.lowdragmc.mbd2.api.capability.recipe.IO
+import com.lowdragmc.mbd2.common.gui.MBDBindingIDs
+import com.lowdragmc.mbd2.common.gui.MBDSprites
 import com.lowdragmc.mbd2.common.gui.editor.MBDEditor
 import com.lowdragmc.mbd2.common.gui.editor.MachineProject
+import com.lowdragmc.mbd2.common.machine.MBDMachine
 import com.lowdragmc.mbd2.common.trait.IUIProviderTrait
 import com.lowdragmc.mbd2.common.trait.IUIProviderTrait.TraitUILayoutType
 import com.lowdragmc.mbd2.common.trait.RecipeCapabilityTraitDefinition
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTraitDefinition
 import dev.vfyjxf.taffy.style.AlignItems
 import dev.vfyjxf.taffy.style.FlexDirection
-import dev.vfyjxf.taffy.style.FlexWrap
+import net.minecraft.world.item.Items
 
 open class MachineUIView(val mbdEditor: MBDEditor, val project: MachineProject) : UIEditorView() {
 
@@ -64,7 +71,7 @@ open class MachineUIView(val mbdEditor: MBDEditor, val project: MachineProject) 
             style = {
                 tooltips("editor.machine.machine_ui.add_trait_ui")
             }
-        }){ api { addPreIcon(Icons.ADD) } })
+        }){ api { addPreIcon(Icons.ADD) } }.addClass("__white_icon__"))
     }
 
     override fun screenTick() {
@@ -79,11 +86,24 @@ open class MachineUIView(val mbdEditor: MBDEditor, val project: MachineProject) 
             .filterIsInstance<IUIProviderTrait>()
 
         return TreeBuilder.Menu.start().apply {
+            // traits
             for (provider in traits) {
                 val def = provider.definition
                 leaf(def.icon, def.name) {
                     addTraitUIToTemplate(provider)
                 }
+            }
+            // progress bar
+            leaf(MBDSprites.ARROW_BAR, "editor.machine.machine_ui.progress") {
+                addUIElementToTemplate(createProgressBar(), ID_CENTER)
+            }
+            // fuel bar
+            leaf(MBDSprites.FUEL_BAR, "editor.machine.machine_ui.fuel_progress") {
+                addUIElementToTemplate(createFuelBar(), ID_CENTER)
+            }
+            // XEI lookup button
+            leaf(ItemStackTexture(Items.KNOWLEDGE_BOOK), "editor.machine.machine_ui.xei_lookup") {
+                addUIElementToTemplate(createXEILookupButton(), ID_CENTER)
             }
             if (traits.isNotEmpty()) {
                 leaf(Icons.WIDGET_BASIC, "editor.machine.machine_ui.generate_all") {
@@ -95,37 +115,29 @@ open class MachineUIView(val mbdEditor: MBDEditor, val project: MachineProject) 
 
     /**
      * Adds a single trait's UI elements into the appropriate container
-     * (input/output/bar) in the current template. Falls back to root if no container found.
+     * (input/output/bar) in the current template. Falls back to before player inventory.
      */
     private fun addTraitUIToTemplate(provider: IUIProviderTrait) {
-        val root = currentUI?.rootElement ?: return
+        if (currentUI?.rootElement == null) return
 
         val container = element({
-            layout = {
-                flexDirection(FlexDirection.ROW)
-                wrap(FlexWrap.WRAP)
-                gap { all(2f) }
-            }
+            id = provider.definition.name
         }){ }
         provider.createTraitUITemplate(container)
 
         // find the appropriate target container by layout type and IO
-        val target = when (provider.traitUILayoutType) {
-            TraitUILayoutType.BAR -> findElementById(root, ID_BAR) ?: root
+        val targetId = when (provider.traitUILayoutType) {
+            TraitUILayoutType.BAR -> ID_BAR
             TraitUILayoutType.SLOT -> {
                 val io = (provider as? RecipeCapabilityTraitDefinition)?.recipeHandlerIO ?: IO.BOTH
                 when (io) {
-                    IO.OUT -> findElementById(root, ID_OUTPUT) ?: root
-                    else -> findElementById(root, ID_INPUT) ?: root
+                    IO.OUT -> ID_OUTPUT
+                    else -> ID_INPUT
                 }
             }
         }
 
-        target.addChild(container)
-        markAsDirty()
-
-        // expand and select the added container in hierarchy
-        selectInHierarchy(container)
+        addUIElementToTemplate(container, targetId)
     }
 
     /**
@@ -171,13 +183,11 @@ open class MachineUIView(val mbdEditor: MBDEditor, val project: MachineProject) 
             flex(1)
         }.apply { id = ID_OUTPUT }
 
+        // trait UI templates
         for (provider in slotTraits) {
             val io = (provider as? SimpleCapabilityTraitDefinition<*, *>)?.guiIO ?: IO.BOTH
-            val container = UIElement().layoutDsl {
-                flexDirection(FlexDirection.ROW)
-                wrap(FlexWrap.WRAP)
-                gap { all(2f) }
-            }
+            val container = UIElement()
+            container.id = provider.definition.name
             provider.createTraitUITemplate(container)
             when (io) {
                 IO.OUT -> outputCol.addChild(container)
@@ -185,6 +195,8 @@ open class MachineUIView(val mbdEditor: MBDEditor, val project: MachineProject) 
             }
         }
 
+        // progress bar
+        centerCol.addChild(createProgressBar())
 
         if (inputCol.children.isNotEmpty()) {
             ioRow.addChild(inputCol)
@@ -205,12 +217,10 @@ open class MachineUIView(val mbdEditor: MBDEditor, val project: MachineProject) 
 
         val barTraits = traits.filter { it.traitUILayoutType == TraitUILayoutType.BAR }
         for (provider in barTraits) {
-            val wrapper = UIElement().layoutDsl {
-                flexDirection(FlexDirection.ROW)
-                gap { all(2f) }
-            }
-            provider.createTraitUITemplate(wrapper)
-            barContainer.addChild(wrapper)
+            val container = UIElement()
+            container.id = provider.definition.name
+            provider.createTraitUITemplate(container)
+            barContainer.addChild(container)
         }
         root.addChild(barContainer)
 
@@ -229,6 +239,74 @@ open class MachineUIView(val mbdEditor: MBDEditor, val project: MachineProject) 
                 data = it.data.copy()
                 copyStylesFrom(it)
             }
+        }
+    }
+
+    private fun createProgressBar(): ProgressBar {
+        return progressBar({
+            layout = { size(20.px) }
+            progressBarStyle = { interpolate(false) }
+            id = MBDBindingIDs.PROGRESS_BAR
+        }){}.apply {
+            barContainer.layout { it.paddingAll(0f) }
+            barContainer.style { it.background(MBDSprites.ARROW_BG) }
+            bar.style { it.background(IGuiTexture.EMPTY).overflowVisible(false) }
+            bar.addChild(element({
+                layout = { size(20.px) }
+                style = { background(MBDSprites.ARROW_BAR) }
+            }) {  })
+            label.setDisplay(false)
+        }
+    }
+
+    private fun createFuelBar(): ProgressBar {
+        return progressBar({
+            layout = { size(18.px) }
+            progressBarStyle = {
+                interpolate(false)
+                fillDirection(FillDirection.DOWN_TO_UP)
+            }
+            id = MBDBindingIDs.FUEL_BAR
+        }){}.apply {
+            barContainer.layout { it.paddingAll(0f) }
+            barContainer.style { it.background(MBDSprites.FUEL_BG) }
+            bar.style { it.background(IGuiTexture.EMPTY).overflowVisible(false) }
+            bar.addChild(element({
+                layout = { size(18.px) }
+                style = { background(MBDSprites.FUEL_BAR) }
+            }) {  })
+            label.setDisplay(false)
+        }
+    }
+
+    private fun createXEILookupButton(): Button {
+        return button({
+            layout = { size(18.px) }
+            id = MBDBindingIDs.XEI_LOOKUP
+        }){}.apply {
+            noText()
+            addPreIcon(ItemStackTexture(Items.KNOWLEDGE_BOOK))
+        }
+    }
+
+    private fun addUIElementToTemplate(element: UIElement, targetId: String) {
+        val root = currentUI?.rootElement ?: return
+        val target = findElementById(root, targetId)
+        if (target != null) {
+            target.addChild(element)
+        } else {
+            addChildBeforeInventory(root, element)
+        }
+        markAsDirty()
+        selectInHierarchy(element)
+    }
+
+    private fun addChildBeforeInventory(root: UIElement, child: UIElement) {
+        val inventoryIndex = root.children.indexOfFirst { it is InventorySlots }
+        if (inventoryIndex >= 0) {
+            root.addChildAt(child, inventoryIndex)
+        } else {
+            root.addChild(child)
         }
     }
 
@@ -264,5 +342,10 @@ open class MachineUIView(val mbdEditor: MBDEditor, val project: MachineProject) 
             if (found != null) return found
         }
         return null
+    }
+
+    override fun startSimulation() {
+        super.startSimulation()
+        // simulation
     }
 }

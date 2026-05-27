@@ -34,7 +34,7 @@ public class MBDRegistryEvent extends Event implements IModBusEvent {
             try {
                 var tag = NbtIo.read(path);
                 if (tag == null) throw new Exception("tag is null");
-                register(definitionType.value().get().loadProductiveTag(null, tag, CommonProxy.getPostTask()));
+                register(definitionType.createDefinition().loadProductiveTag(null, tag, CommonProxy.getPostTask()));
             } catch (Exception e) {
                 LDLib2.LOGGER.error("error could not load the project from file {}", path, e);
             }
@@ -57,7 +57,7 @@ public class MBDRegistryEvent extends Event implements IModBusEvent {
             }
             try {
                 var tag = NbtIo.read(new DataInputStream(inputstream));
-                register(definitionType.value().get().loadProductiveTag(null, tag, CommonProxy.getPostTask()));
+                register(definitionType.createDefinition().loadProductiveTag(null, tag, CommonProxy.getPostTask()));
             } catch (Exception e) {
                 LDLib2.LOGGER.error("error could not load the project from resource {}", projectFile, e);
             }

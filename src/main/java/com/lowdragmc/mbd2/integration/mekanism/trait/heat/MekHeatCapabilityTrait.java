@@ -1,171 +1,153 @@
-//package com.lowdragmc.mbd2.integration.mekanism.trait.heat;
-//
-//import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
-//import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
-//import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
-//import com.lowdragmc.mbd2.api.capability.recipe.IO;
-//import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
-//import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
-//import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
-//import com.lowdragmc.mbd2.common.machine.MBDMachine;
-//import com.lowdragmc.mbd2.common.trait.ICapabilityProviderTrait;
-//import com.lowdragmc.mbd2.common.trait.RecipeHandlerTrait;
-//import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
-//import com.lowdragmc.mbd2.integration.mekanism.MEKTemperatureCondition;
-//import com.lowdragmc.mbd2.integration.mekanism.MekanismHeatRecipeCapability;
-//import lombok.Getter;
-//import mekanism.api.heat.HeatAPI;
-//import mekanism.api.heat.IHeatHandler;
-//import mekanism.common.capabilities.Capabilities;
-//import mekanism.common.capabilities.heat.CachedAmbientTemperature;
-//import mekanism.common.util.CapabilityUtils;
-//import mekanism.common.util.EnumUtils;
-//import mekanism.common.util.WorldUtils;
-//import net.minecraft.core.Direction;
-//import net.neoforged.common.capabilities.Capability;
-//import org.jetbrains.annotations.Nullable;
-//
-//import java.util.List;
-//
-//@Getter
-//public class MekHeatCapabilityTrait extends SimpleCapabilityTrait {
-//    public static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(MekHeatCapabilityTrait.class);
-//    @Override
-//    public ManagedFieldHolder getFieldHolder() { return MANAGED_FIELD_HOLDER; }
-//
-//    @Persisted
-//    @DescSynced
-//    public final CopiableHeatContainer container;
-//    private final HeatRecipeHandler recipeHandler = new HeatRecipeHandler();
-//    private final HeatHandlerCap heatHandlerCap = new HeatHandlerCap();
-//    private final CachedAmbientTemperature ambientTemperature = new CachedAmbientTemperature(() -> getMachine().getLevel(), () -> getMachine().getPos());
-//
-//
-//    public MekHeatCapabilityTrait(MBDMachine machine, MekHeatCapabilityTraitDefinition definition) {
-//        super(machine, definition);
-//        container = createStorages();
-//        container.setOnContentsChanged(this::notifyListeners);
-//    }
-//
-//    @Override
-//    public MekHeatCapabilityTraitDefinition getDefinition() {
-//        return (MekHeatCapabilityTraitDefinition) super.getDefinition();
-//    }
-//
-//    @Override
-//    public void onLoadingTraitInPreview() {
-//        container.handleHeat(container.capacity * HeatAPI.AMBIENT_TEMP);
-//    }
-//
-//    protected CopiableHeatContainer createStorages() {
-//        return new CopiableHeatContainer(getDefinition().getCapacity(),getDefinition().getInverseConduction());
-//    }
-//
-//    protected double getTotalInverseConductionCoefficient() {
-//        var heatCapacitorCount = container.getHeatCapacitorCount();
-//        if (heatCapacitorCount == 0) {
-//            return HeatAPI.DEFAULT_INVERSE_CONDUCTION;
-//        } else if (heatCapacitorCount == 1) {
-//            return container.getInverseConduction(0);
-//        }
-//        var sum = 0d;
-//        var totalCapacity = container.getTotalHeatCapacity();
-//        for (var capacitor = 0; capacitor < heatCapacitorCount; capacitor++) {
-//            sum += container.getInverseConduction(capacitor) * (container.getHeatCapacity(capacitor) / totalCapacity);
-//        }
-//        return sum;
-//    }
-//
-//    @Override
-//    public void serverTick() {
-//        super.serverTick();
-//        if (getDefinition().isSimulateEnvironment()) {
-//            var heatCapacity = container.getTotalHeatCapacity();
-//            //transfer to air otherwise
-//            var invConduction = HeatAPI.AIR_INVERSE_COEFFICIENT + HeatAPI.DEFAULT_INVERSE_INSULATION + getTotalInverseConductionCoefficient();
-//            //transfer heat difference based on environment temperature (ambient)
-//            var tempToTransfer = (container.getTotalTemperature() - HeatAPI.AMBIENT_TEMP) / invConduction;
-//            container.handleHeat(-tempToTransfer * heatCapacity);
-//        }
-//        var autoIO = getDefinition().getAutoIO();
-//        if (autoIO.isEnable() && getMachine().getOffsetTimer() % autoIO.getInterval() == 0) {
-//            var front = getMachine().getFrontFacing().orElse(Direction.NORTH);
-//            for (var side : EnumUtils.DIRECTIONS) {
-//                var io = autoIO.getIO(front, side);
-//                if (io.support(IO.OUT)) {
-//                    var adj = WorldUtils.getTileEntity(getMachine().getLevel(), getMachine().getPos().relative(side));
-//                    var sink = CapabilityUtils.getCapability(adj, Capabilities.HEAT_HANDLER, side.getOpposite()).resolve().orElse(null);
-//                    if (sink != null) {
-//                        double heatCapacity = container.getTotalHeatCapacity();
-//                        double invConduction = sink.getTotalInverseConduction() + getTotalInverseConductionCoefficient();
-//                        double tempToTransfer = (container.getTotalTemperature() - ambientTemperature.getTemperature(side)) / invConduction;
-//                        double heatToTransfer = tempToTransfer * heatCapacity;
-//                        container.handleHeat(-heatToTransfer);
-//                        sink.handleHeat(heatToTransfer);
-//                    }
-//                }
-//            }
-//        }
-//
-//    }
-//
-//    @Override
-//    public List<IRecipeHandlerTrait<?>> getRecipeHandlerTraits() {
-//        return List.of(recipeHandler);
-//    }
-//
-//    @Override
-//    public List<ICapabilityProviderTrait<?>> getCapabilityProviderTraits() {
-//        return List.of(heatHandlerCap);
-//    }
-//
-//    public class HeatRecipeHandler extends RecipeHandlerTrait<Double> {
-//        protected HeatRecipeHandler() {
-//            super(MekHeatCapabilityTrait.this, MekanismHeatRecipeCapability.CAP);
-//        }
-//
-//        @Override
-//        public List<Double> handleRecipeInner(IO io, MBDRecipe recipe, List<Double> left, @Nullable String slotName, boolean simulate) {
-//            if (!compatibleWith(io)) return left;
-//            double required = left.stream().reduce(0d, Double::sum);
-//            var capability = simulate ? container.copy() : container;
-//            // check heat condition first
-//            for (RecipeCondition condition : recipe.conditions) {
-//                if (condition instanceof MEKTemperatureCondition heatCondition) {
-//                    var temp = capability.getTemperature(0);
-//                    if (heatCondition.getMinTemperature() > temp || heatCondition.getMaxTemperature() < temp) {
-//                        return left;
-//                    }
-//                }
-//            }
-//            if (io == IO.IN) {
-//                capability.handleHeat(-required);
-//            } else if (io == IO.OUT) {
-//                capability.handleHeat(required);
-//            }
-//            return null;
-//        }
-//    }
-//
-//    public class HeatHandlerCap implements ICapabilityProviderTrait<IHeatHandler> {
-//        @Override
-//        public IO getCapabilityIO(@Nullable Direction side) {
-//            return MekHeatCapabilityTrait.this.getCapabilityIO(side);
-//        }
-//
-//        @Override
-//        public Capability<IHeatHandler> getCapability() {
-//            return Capabilities.HEAT_HANDLER;
-//        }
-//
-//        @Override
-//        public IHeatHandler getCapContent(IO capbilityIO) {
-//            return new HeatContainerWrapper(container, capbilityIO);
-//        }
-//
-//        @Override
-//        public IHeatHandler mergeContents(List<IHeatHandler> contents) {
-//            return new HeatContainerList(contents.toArray(new IHeatHandler[0]));
-//        }
-//    }
-//}
+package com.lowdragmc.mbd2.integration.mekanism.trait.heat;
+
+import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
+import com.lowdragmc.mbd2.api.capability.recipe.IO;
+import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
+import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
+import com.lowdragmc.mbd2.common.machine.MBDMachine;
+import com.lowdragmc.mbd2.common.trait.AutoIO;
+import com.lowdragmc.mbd2.common.trait.IAutoIOTrait;
+import com.lowdragmc.mbd2.common.trait.RecipeHandlerTrait;
+import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
+import com.lowdragmc.mbd2.integration.mekanism.MekanismHeatRecipeCapability;
+import lombok.Getter;
+import mekanism.api.Action;
+import mekanism.api.heat.HeatAPI;
+import mekanism.api.heat.IHeatHandler;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerLevel;
+import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Getter
+public class MekHeatCapabilityTrait extends SimpleCapabilityTrait<IHeatHandler, @Nullable Direction> implements IAutoIOTrait {
+    public static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(MekHeatCapabilityTrait.class);
+
+    @Override
+    public ManagedFieldHolder getFieldHolder() { return MANAGED_FIELD_HOLDER; }
+
+    @Persisted
+    @DescSynced
+    public final CopiableHeatContainer storage;
+    private final HeatRecipeHandler recipeHandler = new HeatRecipeHandler();
+    private final Map<BlockPos, EnumMap<Direction, BlockCapabilityCache<IHeatHandler, @Nullable Direction>>> nearbyCache = new HashMap<>();
+
+    public MekHeatCapabilityTrait(MBDMachine machine, MekHeatCapabilityTraitDefinition definition) {
+        super(machine, definition);
+        storage = new CopiableHeatContainer(definition.getHeatCapacity(), definition.getInverseConductionCoefficient());
+        storage.setOnContentsChanged(this::notifyListeners);
+    }
+
+    @Override
+    public MekHeatCapabilityTraitDefinition getDefinition() {
+        return (MekHeatCapabilityTraitDefinition) super.getDefinition();
+    }
+
+    @Override
+    public IHeatHandler getCapContent(IO capabilityIO) {
+        return new HeatContainerWrapper(storage, capabilityIO);
+    }
+
+    @Override
+    public List<IRecipeHandlerTrait<?>> getRecipeHandlerTraits() {
+        return List.of(recipeHandler);
+    }
+
+    @Override
+    public @Nullable AutoIO getAutoIO() {
+        return getDefinition().getAutoIO().isEnable() ? getDefinition().getAutoIO() : null;
+    }
+
+    @Override
+    public void serverTick() {
+        IAutoIOTrait.super.serverTick();
+        simulateEnvironment();
+    }
+
+    /**
+     * Bleed heat to (or absorb from) the surrounding biome to model passive cooling.
+     */
+    private void simulateEnvironment() {
+        var level = getMachine().getLevel();
+        if (!(level instanceof ServerLevel serverLevel)) return;
+        var pos = getMachine().getPos();
+        double ambient = HeatAPI.getAmbientTemp(serverLevel, pos);
+        double temperature = storage.getTemperature(0);
+        double delta = temperature - ambient;
+        if (Math.abs(delta) < HeatAPI.EPSILON) return;
+        double conduction = storage.getInverseConduction(0) + HeatAPI.AIR_INVERSE_COEFFICIENT;
+        double transfer = -(delta * storage.getHeatCapacity(0)) / conduction;
+        storage.handleHeat(0, transfer);
+    }
+
+    @NotNull
+    public BlockCapabilityCache<IHeatHandler, @Nullable Direction> getNearbyCache(ServerLevel serverLevel, BlockPos pos, Direction side) {
+        return nearbyCache.computeIfAbsent(pos, p -> new EnumMap<>(Direction.class))
+                .computeIfAbsent(side, direction -> BlockCapabilityCache.create(
+                        mekanism.common.capabilities.Capabilities.HEAT, serverLevel, pos, direction));
+    }
+
+    @Override
+    public void handleAutoIO(BlockPos port, @NotNull Direction side, IO io) {
+        if (!(getMachine().getLevel() instanceof ServerLevel serverLevel)) return;
+        var neighbor = getNearbyCache(serverLevel, port, side).getCapability();
+        if (neighbor == null) return;
+        if (io.support(IO.OUT)) {
+            transfer(storage, neighbor);
+        }
+        if (io.support(IO.IN)) {
+            transfer(neighbor, storage);
+        }
+    }
+
+    private static void transfer(IHeatHandler source, IHeatHandler target) {
+        double srcTemp = source.getTemperature(0);
+        double tgtTemp = target.getTemperature(0);
+        double delta = srcTemp - tgtTemp;
+        if (delta <= HeatAPI.EPSILON) return;
+        double conduction = source.getInverseConduction(0) + target.getInverseConduction(0);
+        double srcCap = source.getHeatCapacity(0);
+        double transfer = (delta * srcCap) / conduction;
+        if (transfer < HeatAPI.EPSILON) return;
+        source.handleHeat(0, -transfer);
+        target.handleHeat(0, transfer);
+    }
+
+    public class HeatRecipeHandler extends RecipeHandlerTrait<Double> {
+        protected HeatRecipeHandler() {
+            super(MekHeatCapabilityTrait.this, MekanismHeatRecipeCapability.CAP);
+        }
+
+        @Override
+        public List<Double> handleRecipeInner(IO io, MBDRecipe recipe, List<Double> left, @Nullable String slotName, boolean simulate) {
+            if (!compatibleWith(io)) return left;
+            double required = left.stream().mapToDouble(Double::doubleValue).sum();
+            var target = simulate ? storage.copy() : storage;
+            if (io == IO.IN) {
+                // recipe consumes heat from the machine
+                double available = Math.max(0, target.getTemperature(0)) * target.getHeatCapacity(0);
+                double consumed = Math.min(available, required);
+                if (consumed > 0) target.handleHeat(0, -consumed);
+                required -= consumed;
+            } else {
+                // recipe produces heat into the machine
+                target.handleHeat(0, required);
+                required = 0;
+            }
+            return required > 0 ? List.of(required) : null;
+        }
+
+        public double getTemperature() {
+            return storage.getTemperature(0);
+        }
+    }
+}

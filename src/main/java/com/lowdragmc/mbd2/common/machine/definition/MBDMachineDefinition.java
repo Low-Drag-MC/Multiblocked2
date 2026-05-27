@@ -10,13 +10,13 @@ import com.lowdragmc.lowdraglib2.gui.editor.view.UIEditorView;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.UITemplate;
-import com.lowdragmc.lowdraglib2.registry.ILDLRegister;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
 import com.lowdragmc.mbd2.api.capability.MBDCapabilities;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
+import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.client.renderer.MBDBESRenderer;
 import com.lowdragmc.mbd2.client.renderer.MBDBlockRenderer;
 import com.lowdragmc.mbd2.client.renderer.MBDItemRenderer;
@@ -26,7 +26,6 @@ import com.lowdragmc.mbd2.common.item.MBDMachineItem;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.machine.MBDPartMachine;
 import com.lowdragmc.mbd2.common.machine.definition.config.*;
-import com.lowdragmc.mbd2.common.trait.ICapabilityProviderTrait;
 import com.lowdragmc.mbd2.common.trait.IUIProviderTrait;
 
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
@@ -75,8 +74,15 @@ import java.util.function.Supplier;
  */
 @Getter
 @Accessors(fluent = true)
-@LDLRegister(name = "single_machine", registry = "mbd2:machine_definition_type")
-public class MBDMachineDefinition implements IConfigurable, IPersistedSerializable, ILDLRegister<MBDMachineDefinition, Supplier<MBDMachineDefinition>> {
+public class MBDMachineDefinition implements IConfigurable, IPersistedSerializable {
+    @LDLRegister(name = "single_machine", registry = "mbd2:machine_definition_type")
+    public static final MachineDefinitionType<MBDMachineDefinition> TYPE = new MachineDefinitionType<>("single_machine", "machine", ".sm") {
+        @Override
+        public MBDMachineDefinition createDefinition() {
+            return MBDMachineDefinition.createDefault();
+        }
+    };
+
     @FunctionalInterface
     public interface ConfigMachineSettingsFactory extends Supplier<ConfigMachineSettings> {}
 
@@ -302,10 +308,8 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
                     return null;
                 }
         );
-        for (var definition : machineSettings.traitDefinitions()) {
-            if (definition instanceof ICapabilityProviderTrait capabilityProvider) {
-                capabilityProvider.registerCapability(this, event);
-            }
+        for (var type : MBDRegistries.TRAIT_DEFINITION_TYPES) {
+            type.registerCapabilities(this, event);
         }
     }
 

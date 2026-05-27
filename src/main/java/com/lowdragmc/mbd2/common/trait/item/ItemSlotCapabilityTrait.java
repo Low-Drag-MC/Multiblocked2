@@ -368,7 +368,9 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
                     ItemStack stack = container.getStackInSlot(slot);
                     if (stack.isEmpty()) continue;
                     if (!stack.isDamageableItem()) continue;
-                    if (!sized.test(stack)) continue;
+                    // For durability recipes, sized.count() is the damage amount to consume,
+                    // not the stack count required. Test only the ingredient predicate.
+                    if (!sized.ingredient().test(stack)) continue;
 
                     int damage = stack.getDamageValue();
                     int maxDamage = stack.getMaxDamage();

@@ -5,7 +5,6 @@ import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib2.registry.ILDLRegister;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.utils.PersistedParser;
@@ -24,12 +23,23 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 import javax.annotation.Nullable;
-import java.util.function.Supplier;
 
 @Getter @Setter
-public abstract class TraitDefinition implements IConfigurable, IPersistedSerializable, ILDLRegister<TraitDefinition, Supplier<TraitDefinition>> {
-    @LDLRegister(name = "empty", registry = "mbd2:trait_definition_type", manual = true)
+public abstract class TraitDefinition implements IConfigurable, IPersistedSerializable {
+    @LDLRegister(name = "empty", registry = "mbd2:trait_definition_type")
+    public static final TraitDefinitionType<TraitDefinition> EMPTY_TYPE = new TraitDefinitionType<>("empty") {
+        @Override
+        public TraitDefinition createDefinition() {
+            return new EmptyTraitDefinition();
+        }
+    };
+
     private static final class EmptyTraitDefinition extends TraitDefinition {
+        @Override
+        public TraitDefinitionType<?> type() {
+            return EMPTY_TYPE;
+        }
+
         @Override
         public @Nullable ITrait createTrait(MBDMachine machine) {
             return null;
@@ -45,23 +55,22 @@ public abstract class TraitDefinition implements IConfigurable, IPersistedSerial
 
     public final static Codec<TraitDefinition> CODEC = createCodec();
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     static Codec<TraitDefinition> createCodec() {
-        return MBDRegistries.TRAIT_DEFINITION_TYPES.optionalCodec().dispatch(ILDLRegister::getRegistryHolderOptional,
-                optional -> optional.map(holder ->
-                                MapCodec.assumeMapUnsafe(PersistedParser.createCodec(holder.value())))
-                        .orElseGet(() -> MapCodec.unit(EMPTY)));
+        return MBDRegistries.TRAIT_DEFINITION_TYPES.codec().dispatch(TraitDefinition::type,
+                type -> MapCodec.assumeMapUnsafe(PersistedParser.createCodec(type::createDefinition)));
     }
 
     public final static StreamCodec<RegistryFriendlyByteBuf, TraitDefinition> STREAM_CODEC = createStreamCodec();
 
     static StreamCodec<RegistryFriendlyByteBuf, TraitDefinition> createStreamCodec() {
-        return MBDRegistries.TRAIT_DEFINITION_TYPES.streamCodec().dispatch(ILDLRegister::getRegistryHolder,
-                holder -> PersistedParser.createStreamCodec(holder.value())
+        return MBDRegistries.TRAIT_DEFINITION_TYPES.streamCodec().dispatch(TraitDefinition::type,
+                type -> PersistedParser.createStreamCodec(type::createDefinition)
         );
     }
 
     @Configurable(name = "config.definition.trait.name")
-    private String name = name();
+    private String name = type().name;
 
     @Configurable(name = "config.definition.trait.priority", tips = "config.definition.trait.priority.tooltip")
     @ConfigNumber(range = {Integer.MIN_VALUE, Integer.MAX_VALUE})
@@ -72,6 +81,11 @@ public abstract class TraitDefinition implements IConfigurable, IPersistedSerial
      */
     @Nullable
     public abstract ITrait createTrait(MBDMachine machine);
+
+    /**
+     * Get the unique registered type that creates and handles this definition kind.
+     */
+    public abstract TraitDefinitionType<?> type();
 
     /**
      * Get icon for editor.
@@ -92,9 +106,8 @@ public abstract class TraitDefinition implements IConfigurable, IPersistedSerial
         return IRenderer.EMPTY;
     }
 
-    @Override
     public String getTranslateKey() {
-        return "config.definition.%s.%s.name".formatted(this.group(), this.name());
+        return "config.definition.%s.%s.name".formatted(this.type().group, this.getName());
     }
 
     /**

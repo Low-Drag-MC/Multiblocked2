@@ -11,12 +11,13 @@ import com.lowdragmc.mbd2.api.pattern.predicates.PatternPredicate;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
 import com.lowdragmc.mbd2.common.item.MBDGadgetsItem;
+import com.lowdragmc.mbd2.common.machine.definition.MachineDefinitionType;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigBlockProperties;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigItemProperties;
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleCreativeTab;
-import com.lowdragmc.mbd2.common.trait.TraitDefinition;
+import com.lowdragmc.mbd2.common.trait.TraitDefinitionType;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import net.minecraft.core.registries.Registries;
@@ -69,11 +70,9 @@ public class MBDRegistries {
             .create(MBD2.id("pattern_predicate"), PatternPredicate.class, AutoRegistry::noArgsCreator);
     public final static AutoRegistry.LDLibRegister<RecipeCondition, Supplier<RecipeCondition>> RECIPE_CONDITIONS = AutoRegistry.LDLibRegister
             .create(MBD2.id("recipe_condition"), RecipeCondition.class, AutoRegistry::noArgsCreator);
-    public final static AutoRegistry.LDLibRegister<MBDMachineDefinition, Supplier<MBDMachineDefinition>> MACHINE_DEFINITION_TYPES = AutoRegistry.LDLibRegister
-            .create(MBD2.id("machine_definition_type"), MBDMachineDefinition.class, AutoRegistry::noArgsCreator);
-    public final static AutoRegistry.LDLibRegister<TraitDefinition, Supplier<TraitDefinition>> TRAIT_DEFINITION_TYPES = AutoRegistry.LDLibRegister
-            .create(MBD2.id("trait_definition_type"), TraitDefinition.class, AutoRegistry::noArgsCreator);
 
+    public static final MBDRegistry.String<MachineDefinitionType<?>> MACHINE_DEFINITION_TYPES = new MBDRegistry.String<>(MBD2.id("machine_definition_type"));
+    public static final MBDRegistry.String<TraitDefinitionType<?>> TRAIT_DEFINITION_TYPES = new MBDRegistry.String<>(MBD2.id("trait_definition_type"));
     public static final MBDRegistry.RL<MBDMachineDefinition> MACHINE_DEFINITIONS = new MBDRegistry.RL<>(MBD2.id("machine_definition"));
     public static final MBDRegistry.RL<MBDRecipeType> RECIPE_TYPES = new MBDRegistry.RL<>(MBD2.id("recipe_type"));
     public static final MBDRegistry.String<RecipeCapability<?>> RECIPE_CAPABILITIES = new MBDRegistry.String<>(MBD2.id("recipe_capability"));
@@ -88,11 +87,6 @@ public class MBDRegistries {
                 PatternPredicate.ANY.getClass().getAnnotation(LDLRegister.class),
                 PatternPredicate.ANY.getClass(),
                 () -> PatternPredicate.ANY)
-        );
-        TRAIT_DEFINITION_TYPES.register("empty", AutoRegistry.Holder.of(
-                TraitDefinition.EMPTY.getClass().getAnnotation(LDLRegister.class),
-                TraitDefinition.EMPTY.getClass(),
-                () -> TraitDefinition.EMPTY)
         );
     }
 }

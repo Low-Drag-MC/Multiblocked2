@@ -10,15 +10,27 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigList;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.SearchComponentConfigurator;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.UITemplate;
+import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ProgressBar;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
+import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
+import com.lowdragmc.lowdraglib2.gui.ui.utils.ModularUITooltipComponent;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
+import dev.vfyjxf.taffy.style.AlignItems;
+import dev.vfyjxf.taffy.style.FlexDirection;
+import net.minecraft.client.resources.language.I18n;
 import com.lowdragmc.lowdraglib2.math.Size;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
@@ -30,6 +42,7 @@ import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.api.recipe.event.RecipeUIEvent;
 import com.lowdragmc.mbd2.api.recipe.event.TransferProxyRecipeEvent;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
+import com.lowdragmc.mbd2.common.gui.MBDSprites;
 import com.lowdragmc.mbd2.utils.FileUtils;
 import com.lowdragmc.mbd2.utils.FormattingUtil;
 import dev.latvian.mods.rhino.util.HideFromJS;
@@ -44,6 +57,7 @@ import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
 import net.minecraft.world.item.crafting.*;
 import net.minecraft.world.level.ItemLike;
 import net.neoforged.neoforge.common.NeoForge;
@@ -69,6 +83,7 @@ import java.util.stream.Collectors;
 @RemapPrefixForJS("kjs$")
 public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<CompoundTag>, IConfigurable, IPersistedSerializable {
     public static final MBDRecipeType DUMMY = new MBDRecipeType(MBD2.id("dummy"));
+    public static final Size MAX_UI_SIZE = Size.of(176, 350);
 
     @Configurable(name = "recipe_type.registry_name", tips = {
             "recipe_type.registry_name.tooltip",
@@ -82,7 +97,7 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
     @Setter
     @Getter
     @Configurable(name = "recipe_type.icon", tips = "recipe_type.icon.tooltip")
-    private IGuiTexture icon = SpriteTexture.of(LDLib2.id("textures/gui/icon.png"));
+    private IGuiTexture icon = MBDSprites.ICON;
     @Getter
     @Configurable(name = "fuelRecipeConfig", tips = "fuelRecipeConfig.tooltip", subConfigurable = true)
     private final FuelRecipeConfig fuelRecipeConfig = new FuelRecipeConfig();
@@ -103,8 +118,8 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
     @Persisted
     protected UITemplate uiTemplate = null;
     @Setter
-    @Getter
-    protected Size uiSize = Size.of(50, 50);
+    @Nullable
+    protected Size uiSize = null;
 
     // run-time
     @Nullable
@@ -169,6 +184,8 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
     public UITemplate createDefaultRecipeTemplate() {
         var root = new UIElement();
         root.getLayout()
+                .width(176)
+                .height(80)
                 .gapAll(4)
                 .paddingAll(4);
         root.addClass("panel_bg");
@@ -190,6 +207,16 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
             uiTemplate = createDefaultRecipeTemplate();
         }
         return uiTemplate;
+    }
+
+    public Size getUiSize() {
+        if (uiSize == null) {
+            // simulate
+            var modularUI = ModularUI.of(getUiTemplate().createUI());
+            modularUI.init(MAX_UI_SIZE.width, MAX_UI_SIZE.height);
+            uiSize = Size.of(Mth.ceil(modularUI.getWidth()), Mth.ceil(modularUI.getHeight()));
+        }
+        return Size.of(176, uiSize.height);
     }
 
     /**
@@ -366,19 +393,78 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
 
     /// UI
     public void bindXEIRecipeUI(UI ui, MBDRecipe recipe) {
+        // animated progress bar (loops 0..1 by time) + duration tooltip
         ui.selectId("@progress_bar", ProgressBar.class).forEach(progress -> {
-            progress.setRange(0, Math.max(1, recipe.duration));
-            progress.setProgress(Math.max(1, recipe.duration));
-            progress.style(style -> style.tooltips(Component.translatable("recipe.duration.value", recipe.duration)));
+            progress.setRange(0, 1);
+            progress.bindDataSource(SupplierDataSource.of(() ->
+                    (System.currentTimeMillis() % 2000L) / 2000f).frequency(1));
+            progress.style(style -> style.tooltips(
+                    Component.translatable("recipe.duration.value", recipe.duration)));
         });
+        // optional plain duration label, kept for backward compatibility
         ui.selectId("@duration", Label.class).forEach(label ->
                 label.setText(Component.translatable("recipe.duration.value", recipe.duration)));
-        ui.selectId("@condition", Label.class).forEach(label ->
-                label.setText(recipe.conditions.stream()
-                        .map(RecipeCondition::getTooltips)
-                        .map(Component::getString)
-                        .collect(Collectors.joining("\n"))));
-//        bindCapIOUI(ui, recipe.inputs, IO.IN);
+        // condition icon hover-tooltip rendering one row per condition (icon + text)
+        ui.selectId("@condition").forEach(el -> {
+            if (recipe.conditions.isEmpty()) {
+                el.setDisplay(false);
+                return;
+            }
+            var tooltipRoot = new UIElement().layout(layout -> {
+                layout.gapAll(2);
+                layout.paddingAll(2);
+                layout.widthAuto();
+                layout.heightAuto();
+            });
+            for (var cond : recipe.conditions) {
+                var row = new UIElement().layout(layout -> {
+                    layout.flexDirection(FlexDirection.ROW);
+                    layout.gapAll(2);
+                });
+                row.addChild(new UIElement()
+                        .layout(layout -> { layout.width(10); layout.height(10); })
+                        .style(style -> style.background(cond.getIcon())));
+                row.addChild(new Label().setText(cond.getTooltips()).textStyle(style -> style.adaptiveWidth(true)));
+                tooltipRoot.addChild(row);
+            }
+            var tooltipComponent = new ModularUITooltipComponent(tooltipRoot);
+            el.addEventListener(UIEvents.HOVER_TOOLTIPS, event ->
+                    event.hoverTooltips = new HoverTooltips(List.of(Component.translatable("recipe.conditions")), tooltipComponent, null, null));
+        });
+        // custom data button — click opens a dialog with pretty-printed NBT
+        ui.selectId("@custom_data", Button.class).forEach(btn -> {
+            if (recipe.data == null || recipe.data.isEmpty()) {
+                btn.setDisplay(false);
+                return;
+            }
+            btn.setOnClick(e -> {
+                if (e.button != 0) return;
+                var mui = btn.getModularUI();
+                if (mui == null) return;
+                var dialog = new Dialog()
+                        .setTitle(I18n.get("editor.machine.recipe_type_ui_view.custom_data"))
+                        .setAutoClose(true)
+                        .setClickOutsideClose(true)
+                        .darkenBackground();
+                dialog.overlay.layout(layout -> {
+                    layout.widthPercent(90);
+                    layout.heightPercent(90);
+                });
+                dialog.contentContainer.layout(layout -> {
+                    layout.widthPercent(100);
+                    layout.flex(1);
+                });
+                var scroller = new ScrollerView();
+                scroller.getLayout().widthPercent(100).heightPercent(100);
+                var text = new TextElement().setText(NbtUtils.toPrettyComponent(recipe.data));
+                text.textStyle(style -> style.textWrap(TextWrap.WRAP).adaptiveHeight(true));
+                text.getLayout().widthPercent(100);
+                scroller.addScrollViewChild(text);
+                dialog.contentContainer.addChild(scroller);
+                dialog.show(mui);
+                e.stopPropagation();
+            });
+        });
         bindCapIOUI(ui, recipe.inputs, IO.IN);
         bindCapIOUI(ui, recipe.outputs, IO.OUT);
     }

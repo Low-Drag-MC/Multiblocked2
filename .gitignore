@@ -23,3 +23,6 @@ classes/
 CLAUDE.md
 .narrafork/
 AGENTS.md
+/.kotlin
+/docs
+/logs
