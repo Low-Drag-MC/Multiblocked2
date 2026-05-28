@@ -66,4 +66,17 @@ repositories {
             includeGroup 'com.gregtechceu.gtceu'
         }
     }
+    maven {
+        name = "Valkyrien Skies"
+        url = "https://maven.valkyrienskies.org"
+        content {
+            excludeGroup("org.spongepowered")
+            excludeGroup("net.jodah")
+            excludeGroup("net.minecraftforge")
+        }
+    }
+    maven {
+        name = "Kotlin for Forge"
+        url = "https://thedarkcolour.github.io/KotlinForForge/"
+    }
 }

@@ -919,6 +919,8 @@
     "graph_processor.node.mbd2.machine.photon.force_death.tips.2": "if true, emitter will remove and particles from rendering and ticking immediately when the fx was removed.",
     "graph_processor.node.mbd2.machine.photon.replace_existing.tips.0": "If true, the existing fx with the same identifier will be replaced.",
     "graph_processor.node.mbd2.machine.photon.replace_existing.tips.1": "If false, this fx won't shown if the existing fx with the same identifier found.",
+    "graph_processor.node.mbd2.machine.valkyrienskies": "Valkrien Skies",
+
     "pattern_preview.page": "switch pages",
     "pattern_preview.layer": "switch layers",
     "pattern_preview.formed": "switch structure formed",
