@@ -22,6 +22,28 @@ public class MBDTestRegistry {
         PROVIDERS.add(provider);
     }
 
+    public static void init() {
+        // force-load the smoke fixture class so its static initializer runs and
+        // registers itself with MBDTestRegistry before MBDRegistryEvent fires.
+        register(new com.lowdragmc.mbd2.test.tests.MBDSmokeFixtures());
+        register(new com.lowdragmc.mbd2.test.tests.recipe.ItemRecipeCapabilityFixtures());
+        register(new com.lowdragmc.mbd2.test.tests.recipe.ItemDurabilityRecipeCapabilityFixtures());
+        register(new com.lowdragmc.mbd2.test.tests.recipe.FluidRecipeCapabilityFixtures());
+        register(new com.lowdragmc.mbd2.test.tests.recipe.ForgeEnergyRecipeCapabilityFixtures());
+        register(new com.lowdragmc.mbd2.test.tests.recipe.EntityRecipeCapabilityFixtures());
+        register(new com.lowdragmc.mbd2.test.tests.trait.ItemSlotTraitFixtures());
+        register(new com.lowdragmc.mbd2.test.tests.trait.FluidTankTraitFixtures());
+        register(new com.lowdragmc.mbd2.test.tests.trait.ForgeEnergyTraitFixtures());
+        register(new com.lowdragmc.mbd2.test.tests.multiblock.PatternBasicsFixtures());
+        register(new com.lowdragmc.mbd2.test.tests.multiblock.PatternPredicatesFixtures());
+        register(new com.lowdragmc.mbd2.test.tests.multiblock.PatternRepetitionFixtures());
+        register(new com.lowdragmc.mbd2.test.tests.multiblock.MultiblockWithPartsFixtures());
+        if (net.neoforged.fml.ModList.get().isLoaded("mekanism")) {
+            register(new com.lowdragmc.mbd2.test.tests.trait.ChemicalTankTraitFixtures());
+            register(new com.lowdragmc.mbd2.test.tests.trait.MekHeatTraitFixtures());
+        }
+    }
+
     @SubscribeEvent
     public void onRegisterMachines(MBDRegistryEvent.Machine event) {
         for (TestFixtureProvider provider : PROVIDERS) {

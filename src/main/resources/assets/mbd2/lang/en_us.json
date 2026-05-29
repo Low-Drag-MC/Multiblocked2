@@ -784,6 +784,8 @@
   "geckolib_renderer.animation_stage.additional_ticks": "waiting ticks",
   "geckolib_renderer.animation.animation_name": "Raw Animation Name",
   "geckolib_renderer.animation.animation_name.tips": "The name of the animation that can be triggered, it should be §cstandalone§r in one renderer.",
+  "geckolib_renderer.animation_file_info": "Animation File Info",
+  "geckolib_renderer.animation_file_info.play": "Play",
   "geckolib_renderer.animation_group": "Raw Animation Group",
   "editor.select_from_file": "Select from file",
   "content_modifier.multiplier": "Multiplier",
@@ -904,5 +906,6 @@
   "config.definition.trait.filter.chemical_tags": "Chemical Tags",
   "config.definition.trait.mek_heat_container.heat_capacity": "Heat Capacity",
   "config.definition.trait.mek_heat_container.inverse_conduction": "Inverse Conduction Coefficient",
-  "config.definition.trait.mek_heat_container.auto_io.tooltip": "Auto exchange heat with adjacent Mekanism heat handlers"
+  "config.definition.trait.mek_heat_container.auto_io.tooltip": "Auto exchange heat with adjacent Mekanism heat handlers",
+  "geckolib_model": "Geckolib Model"
 }

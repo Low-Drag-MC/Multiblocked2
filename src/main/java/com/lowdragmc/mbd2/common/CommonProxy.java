@@ -16,7 +16,6 @@ import com.lowdragmc.mbd2.common.data.MBDMachineDefinitionTypes;
 import com.lowdragmc.mbd2.common.data.MBDTraitDefinitionTypes;
 import com.lowdragmc.mbd2.common.event.MBDRegistryEvent;
 import com.lowdragmc.mbd2.common.gui.editor.MBDEditor;
-import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
 import com.lowdragmc.mbd2.common.network.MBD2Network;
@@ -24,7 +23,6 @@ import com.lowdragmc.mbd2.config.ConfigHolder;
 import com.lowdragmc.mbd2.integration.kubejs.events.MBDMachineRegistryEventJS;
 import com.lowdragmc.mbd2.integration.kubejs.events.MBDRecipeTypeRegistryEventJS;
 import com.lowdragmc.mbd2.integration.kubejs.events.MBDStartupEvents;
-import com.lowdragmc.mbd2.test.MBDTest;
 import com.lowdragmc.mbd2.test.framework.MBDTestRegistry;
 import com.lowdragmc.mbd2.utils.FileUtils;
 import dev.latvian.mods.kubejs.script.ScriptType;
@@ -43,6 +41,7 @@ import net.neoforged.fml.event.lifecycle.FMLConstructModEvent;
 import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+import net.neoforged.neoforge.gametest.GameTestHooks;
 import net.neoforged.neoforge.registries.RegisterEvent;
 
 import java.io.File;
@@ -55,24 +54,9 @@ public class CommonProxy {
     public CommonProxy(IEventBus eventBus, ModContainer modContainer) {
         eventBus.register(this);
         if (Platform.isDevEnv()) {
-            eventBus.register(new MBDTest());
             eventBus.register(new MBDTestRegistry());
-            // force-load the smoke fixture class so its static initializer runs and
-            // registers itself with MBDTestRegistry before MBDRegistryEvent fires.
-            MBDTestRegistry.register(new com.lowdragmc.mbd2.test.tests.MBDSmokeFixtures());
-            MBDTestRegistry.register(new com.lowdragmc.mbd2.test.tests.recipe.ItemRecipeCapabilityFixtures());
-            MBDTestRegistry.register(new com.lowdragmc.mbd2.test.tests.recipe.ItemDurabilityRecipeCapabilityFixtures());
-            MBDTestRegistry.register(new com.lowdragmc.mbd2.test.tests.recipe.FluidRecipeCapabilityFixtures());
-            MBDTestRegistry.register(new com.lowdragmc.mbd2.test.tests.recipe.ForgeEnergyRecipeCapabilityFixtures());
-            MBDTestRegistry.register(new com.lowdragmc.mbd2.test.tests.trait.ItemSlotTraitFixtures());
-            MBDTestRegistry.register(new com.lowdragmc.mbd2.test.tests.trait.FluidTankTraitFixtures());
-            MBDTestRegistry.register(new com.lowdragmc.mbd2.test.tests.trait.ForgeEnergyTraitFixtures());
-            MBDTestRegistry.register(new com.lowdragmc.mbd2.test.tests.multiblock.PatternBasicsFixtures());
-            MBDTestRegistry.register(new com.lowdragmc.mbd2.test.tests.multiblock.PatternPredicatesFixtures());
-            MBDTestRegistry.register(new com.lowdragmc.mbd2.test.tests.multiblock.PatternRepetitionFixtures());
-            if (net.neoforged.fml.ModList.get().isLoaded("mekanism")) {
-                MBDTestRegistry.register(new com.lowdragmc.mbd2.test.tests.trait.ChemicalTankTraitFixtures());
-                MBDTestRegistry.register(new com.lowdragmc.mbd2.test.tests.trait.MekHeatTraitFixtures());
+            if (GameTestHooks.isGametestEnabled()) {
+                MBDTestRegistry.init();
             }
         }
         eventBus.addListener(MBD2Network::registerPayloads);

@@ -847,6 +847,8 @@
     "geckolib_renderer.animation_stage.additional_ticks": "等待时间",
     "geckolib_renderer.animation.animation_name": "原始动画名称",
     "geckolib_renderer.animation.animation_name.tips": "可以触发的动画名称，它应该在一个渲染器中§c独立§r。",
+    "geckolib_renderer.animation_file_info": "动画文件信息",
+    "geckolib_renderer.animation_file_info.play": "播放",
     "geckolib_renderer.animation_group": "原始动画组",
     "editor.select_from_file": "从文件选择",
 

@@ -625,6 +625,8 @@
     "geckolib_renderer.animation_stage.additional_ticks": "待機ティック",
     "geckolib_renderer.animation.animation_name": "生アニメーション名",
     "geckolib_renderer.animation.animation_name.tips": "トリガー可能なアニメーションの名前で、1つのレンダラー内では§cstandalone§rである必要があります。",
+    "geckolib_renderer.animation_file_info": "アニメーションファイル情報",
+    "geckolib_renderer.animation_file_info.play": "再生",
     "geckolib_renderer.animation_group": "生アニメーショングループ",
     "editor.select_from_file": "ファイルから選択",
 

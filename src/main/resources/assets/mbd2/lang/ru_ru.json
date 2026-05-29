@@ -814,6 +814,8 @@
     "geckolib_renderer.animation_stage.additional_ticks": "такты ожидания",
     "geckolib_renderer.animation.animation_name": "Имя необработанной анимации",
     "geckolib_renderer.animation.animation_name.tips": "Имя анимации, которая может быть запущена, она должна быть §cstandalone§r в одном рендерере.",
+    "geckolib_renderer.animation_file_info": "Информация о файле анимации",
+    "geckolib_renderer.animation_file_info.play": "Воспроизвести",
     "geckolib_renderer.animation_group": "Группа необработанной анимации",
     "editor.select_from_file": "Выбрать из файла",
 
