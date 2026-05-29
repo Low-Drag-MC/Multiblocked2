@@ -51,7 +51,7 @@ public class MBDRegistries {
         return MBDMachineDefinition.builder()
                 .id(MBD2.id("fake_machine"))
                 .rootState(MachineState.baseBuilder()
-                        .renderer(IRenderer.EMPTY)
+                        .renderer(() -> IRenderer.EMPTY)
                         .shape(Shapes.block())
                         .lightLevel(0)
                         .build())

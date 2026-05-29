@@ -1,8 +1,10 @@
 package com.lowdragmc.mbd2.integration.kubejs.events;
 
+import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.recipe.event.RecipeTypeEvent;
 import com.lowdragmc.mbd2.api.recipe.event.RecipeUIEvent;
 import com.lowdragmc.mbd2.common.machine.definition.config.event.*;
+import com.lowdragmc.mbd2.integration.geckolib.MachineCustomKeyframeEvent;
 import dev.latvian.mods.kubejs.event.EventHandler;
 import dev.latvian.mods.kubejs.event.EventResult;
 import dev.latvian.mods.kubejs.event.EventTargetType;
@@ -29,8 +31,7 @@ public interface MBDClientEvents {
             MBDMachineEvents.MachineCustomDataUpdateEventJS.class,
             MBDMachineEvents.MachineCustomDataUpdateEventJS::new);
 
-//    @Nullable
-//    EventHandler CUSTOM_KEYFRAME = createCustomKeyframeEvent();
+    EventHandler CUSTOM_KEYFRAME = createCustomKeyframeEvent();
 
     // Recipe events
     EventHandler RECIPE_UI = registerRecipeTypeEvent("onRecipeUI",
@@ -38,16 +39,15 @@ public interface MBDClientEvents {
             MBDRecipeTypeEvents.RecipeUIEventJS.class,
             MBDRecipeTypeEvents.RecipeUIEventJS::new);
 
-    // todo geckolib
-//    static EventHandler createCustomKeyframeEvent() {
-//        if (MBD2.isGeckolibLoaded()) {
-//            return registerMachineEvent("onCustomKeyframe",
-//                    MachineCustomKeyframeEvent.class,
-//                    MBDMachineEvents.MachineCustomKeyframeEventJS.class,
-//                    MBDMachineEvents.MachineCustomKeyframeEventJS::new);
-//        }
-//        return null;
-//    }
+    static EventHandler createCustomKeyframeEvent() {
+        if (MBD2.isGeckolibLoaded()) {
+            return registerMachineEvent("onCustomKeyframe",
+                    MachineCustomKeyframeEvent.class,
+                    MBDMachineEvents.MachineCustomKeyframeEventJS.class,
+                    MBDMachineEvents.MachineCustomKeyframeEventJS::new);
+        }
+        return null;
+    }
 
     static void init() {
         // NO-OP

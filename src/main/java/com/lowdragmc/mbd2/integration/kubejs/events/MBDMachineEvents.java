@@ -1,6 +1,7 @@
 package com.lowdragmc.mbd2.integration.kubejs.events;
 
 import com.lowdragmc.mbd2.common.machine.definition.config.event.*;
+import com.lowdragmc.mbd2.integration.geckolib.MachineCustomKeyframeEvent;
 import dev.latvian.mods.kubejs.event.EventGroup;
 import dev.latvian.mods.kubejs.event.KubeEvent;
 import lombok.Getter;
@@ -173,10 +174,9 @@ public class MBDMachineEvents {
         }
     }
 
-    // todo geckolib
-//    public static class MachineCustomKeyframeEventJS extends MachineEventJS<MachineCustomKeyframeEvent> {
-//        public MachineCustomKeyframeEventJS(MachineCustomKeyframeEvent event) {
-//            super(event);
-//        }
-//    }
+    public static class MachineCustomKeyframeEventJS extends MachineEventJS<MachineCustomKeyframeEvent> {
+        public MachineCustomKeyframeEventJS(MachineCustomKeyframeEvent event) {
+            super(event);
+        }
+    }
 }

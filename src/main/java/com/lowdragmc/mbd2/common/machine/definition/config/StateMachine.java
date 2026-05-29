@@ -28,7 +28,7 @@ public class StateMachine<T extends MachineState> implements INBTSerializable<Co
 
     public static <T extends MachineState> T createSingleDefault(Supplier<MachineState.Builder<T>> builderCreator, IRenderer renderer) {
         var builder = builderCreator.get()
-                .renderer(renderer)
+                .renderer(() -> renderer)
                 .shape(Shapes.block())
                 .lightLevel(0)
                 .child("working", working -> working
@@ -39,7 +39,7 @@ public class StateMachine<T extends MachineState> implements INBTSerializable<Co
 
     public static <T extends MachineState> T createMultiblockDefault(Supplier<MachineState.Builder<T>> builderCreator, IRenderer renderer) {
         var builder = builderCreator.get()
-                .renderer(renderer)
+                .renderer(() -> renderer)
                 .shape(Shapes.block())
                 .lightLevel(0)
                 .child("formed", formed -> formed

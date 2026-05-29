@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.common.machine.definition.config;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.client.renderer.impl.IModelRenderer;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
@@ -10,7 +11,9 @@ import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.utils.ShapeUtils;
 import com.lowdragmc.mbd2.client.MachineSound;
+import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.*;
+import com.lowdragmc.mbd2.integration.geckolib.GeckolibRenderer;
 import lombok.*;
 import lombok.experimental.Accessors;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -32,6 +35,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.*;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 @Accessors(fluent = true)
 @Getter
@@ -337,17 +341,25 @@ public class MachineState implements ITreeNode<MachineState, Void>, IConfigurabl
             return child(name, Consumers.nop());
         }
 
-        public Builder<T> modelRenderer(ResourceLocation modelPath) {
-            return renderer(new IModelRenderer(modelPath));
+        public Builder<T> renderer(Supplier<IRenderer> renderer) {
+            if (LDLib2.isClient()) {
+                this.renderer = renderer.get();
+            } else {
+                this.renderer = IRenderer.EMPTY;
+            }
+            return this;
         }
 
-//        @HideFromJS
-//        public Builder<T> geckolibRenderer(ResourceLocation modelPath, ResourceLocation texturePath, ResourceLocation animationPath) {
-//            if (MBD2.isGeckolibLoaded()) {
-//                return renderer(new GeckolibRenderer(modelPath, texturePath, animationPath));
-//            }
-//            return this;
-//        }
+        public Builder<T> modelRenderer(ResourceLocation modelPath) {
+            return renderer(() -> new IModelRenderer(modelPath));
+        }
+
+        public Builder<T> geckolibRenderer(ResourceLocation modelPath, ResourceLocation texturePath, ResourceLocation animationPath) {
+            if (MBD2.isGeckolibLoaded()) {
+                return renderer(() -> new GeckolibRenderer(modelPath, texturePath, animationPath));
+            }
+            return this;
+        }
 
         public T build() {
             return build(null);

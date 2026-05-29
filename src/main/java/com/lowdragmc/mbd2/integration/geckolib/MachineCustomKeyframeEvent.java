@@ -1,26 +1,21 @@
-//package com.lowdragmc.mbd2.common.machine.definition.config.event;
-//
-//import com.lowdragmc.lowdraglib2.gui.editor.annotation.LDLRegister;
-//import com.lowdragmc.mbd2.common.graphprocessor.GraphParameterGet;
-//import com.lowdragmc.mbd2.common.machine.MBDMachine;
-//import com.lowdragmc.mbd2.integration.geckolib.AnimatableMachine;
-//import lombok.Getter;
-//import lombok.Setter;
-//import software.bernie.geckolib.core.keyframe.event.CustomInstructionKeyframeEvent;
-//
-//@Getter
-//@Setter
-//@LDLRegister(name = "MachineCustomKeyframeEvent", group = "MachineEvent", modID = "geckolib")
-//public class MachineCustomKeyframeEvent extends MachineEvent {
-//    public CustomInstructionKeyframeEvent<AnimatableMachine> event;
-//    @GraphParameterGet
-//    public String instruction;
-//
-//    public MachineCustomKeyframeEvent(MBDMachine machine, CustomInstructionKeyframeEvent<AnimatableMachine> event) {
-//        super(machine);
-//        this.event = event;
-//
-//        instruction = event.getKeyframeData().getInstructions();
-//    }
-//
-//}
+package com.lowdragmc.mbd2.integration.geckolib;
+
+import com.lowdragmc.mbd2.common.machine.MBDMachine;
+import com.lowdragmc.mbd2.common.machine.definition.config.event.MachineEvent;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class MachineCustomKeyframeEvent extends MachineEvent {
+    public String instruction;
+    public String controllerName;
+    public double animationTick;
+
+    public MachineCustomKeyframeEvent(MBDMachine machine, String instruction, String controllerName, double animationTick) {
+        super(machine);
+        this.instruction = instruction;
+        this.controllerName = controllerName;
+        this.animationTick = animationTick;
+    }
+}

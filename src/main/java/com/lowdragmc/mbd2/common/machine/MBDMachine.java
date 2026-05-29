@@ -3,6 +3,7 @@ package com.lowdragmc.mbd2.common.machine;
 import com.google.common.collect.Table;
 import com.google.common.collect.Tables;
 import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.gui.factory.BlockUIMenuType;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.DataBindingBuilder;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
@@ -14,11 +15,13 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
 import com.lowdragmc.lowdraglib2.syncdata.IManaged;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.RPCMethod;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.UpdateListener;
 import com.lowdragmc.lowdraglib2.syncdata.holder.blockentity.IBlockEntityManaged;
 import com.lowdragmc.lowdraglib2.syncdata.storage.FieldManagedStorage;
 import com.lowdragmc.lowdraglib2.syncdata.storage.IManagedStorage;
 import com.lowdragmc.lowdraglib2.syncdata.storage.MultiManagedStorage;
+import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
 import com.lowdragmc.mbd2.api.capability.recipe.*;
 import com.lowdragmc.mbd2.api.machine.IMachine;
@@ -36,6 +39,8 @@ import com.lowdragmc.mbd2.common.trait.ITrait;
 import com.lowdragmc.mbd2.common.trait.IUIProviderTrait;
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 import com.lowdragmc.mbd2.integration.emi.MBDEMIPlugin;
+import com.lowdragmc.mbd2.integration.geckolib.AnimatableMachine;
+import com.lowdragmc.mbd2.integration.geckolib.GeckolibRenderer;
 import com.lowdragmc.mbd2.integration.jei.MBDJEIPlugin;
 import com.lowdragmc.mbd2.integration.rei.MBDREIPlugin;
 import lombok.Getter;
@@ -102,8 +107,7 @@ public class MBDMachine implements IMachine, IBlockEntityManaged, BlockUIMenuTyp
     private String machineState;
     @Getter
     private final List<ITrait> additionalTraits = new ArrayList<>();
-//    @Getter
-//    private Map<IRenderer, Object> animatableMachine = new HashMap<>(); // it's used for Geckolib
+    private final Map<IRenderer, Object> animatableMachine = new HashMap<>(); // used for client-side GeckoLib animatables
 //    @Getter
 //    private Map<String, Object> photonFXs = new HashMap<>(); // it's used for Photon
     @Persisted
@@ -905,37 +909,38 @@ public class MBDMachine implements IMachine, IBlockEntityManaged, BlockUIMenuTyp
         }
     }
 
-//    public void triggerGeckolibAnim(String animName, float speed){
-//        triggerGeckolibAnim("", animName, speed);
-//    }
+    public void triggerGeckolibAnim(String animName, float speed) {
+        triggerGeckolibAnim("", animName, speed);
+    }
 
     /**
      * Trigger the geckolib animation by name.
      * <br>
      * It's safe to call this method on both side.
      */
-//    @RPCMethod
-//    public void triggerGeckolibAnim(String controllerName, String animName, float speed){
-//        if (MBD2.isGeckolibLoaded()) {
-//            if (isRemote()) {
-//                if (controllerName.isEmpty()) {
-//                    controllerName = "base_controller";
-//                }
-//                if (getMachineState().getRenderer() instanceof GeckolibRenderer renderer) {
-//                    var controller = renderer.getAnimatableFromMachine(this).getAnimatableInstanceCache()
-//                            .getManagerForId(0)
-//                            .getAnimationControllers()
-//                            .get(controllerName);
-//                    if (controller != null) {
-//                        controller.setAnimationSpeed(Math.max(speed, 0));
-//                        controller.tryTriggerAnimation(animName);
-//                    }
-//                }
-//            } else {
-//                rpcToTracking("triggerGeckolibAnim", controllerName, animName, speed);
-//            }
-//        }
-//    }
+    @RPCMethod
+    public void triggerGeckolibAnim(String controllerName, String animName, float speed) {
+        if (!MBD2.isGeckolibLoaded()) {
+            return;
+        }
+        if (isRemote()) {
+            if (controllerName == null || controllerName.isEmpty()) {
+                controllerName = AnimatableMachine.DEFAULT_CONTROLLER;
+            }
+            if (getMachineState().getRealRenderer() instanceof GeckolibRenderer renderer) {
+                var controller = renderer.getAnimatableFromMachine(this).getAnimatableInstanceCache()
+                        .getManagerForId(0)
+                        .getAnimationControllers()
+                        .get(controllerName);
+                if (controller != null) {
+                    controller.setAnimationSpeed(Math.max(speed, 0));
+                    controller.tryTriggerAnimation(animName);
+                }
+            }
+        } else {
+            rpcToTracking("triggerGeckolibAnim", controllerName, animName, speed);
+        }
+    }
 
     /**
      * Emit the photon fx.
