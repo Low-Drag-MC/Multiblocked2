@@ -9,11 +9,13 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ProgressBar;
+import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.MCSprites;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.api.recipe.content.SerializerDouble;
+import com.lowdragmc.mbd2.common.gui.MBDSprites;
 import mekanism.common.registries.MekanismBlocks;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
@@ -58,8 +60,10 @@ public class MekanismHeatRecipeCapability extends RecipeCapability<Double> {
     @Override
     public UIElement createXEITemplate() {
         var progress = new ProgressBar();
-        progress.getLayout().flex(1).height(14);
-        progress.barContainer.getLayout().paddingAll(0);
+        progress.getLayout().height(14);
+        progress.barContainer.getLayout().paddingAll(1);
+        progress.barContainer.getStyle().background(MCSprites.RECT_1);
+        progress.bar.getStyle().background(MBDSprites.MEK_HEAT_BAR);
         progress.setProgress(1f);
         progress.label.setText("0 heat");
         return progress;

@@ -10,7 +10,13 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.ArrayConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
+import com.lowdragmc.lowdraglib2.configurator.ui.StringConfigurator;
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
+import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
@@ -25,6 +31,8 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
+import dev.vfyjxf.taffy.style.AlignItems;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.client.Minecraft;
@@ -74,11 +82,14 @@ import software.bernie.geckolib.util.RenderUtil;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.io.File;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Locale;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 @LDLRegisterClient(name = "geckolib_model", registry = "ldlib2:renderer", group = "renderer", modID = "geckolib")
 @Getter
@@ -91,15 +102,12 @@ public class GeckolibRenderer implements IRenderer, GeoRenderer<GeoAnimatable> {
 
     @Setter
     @Persisted
-    @Configurable(name = "geckolib_renderer.model_path")
     protected ResourceLocation modelPath;
     @Setter
     @Persisted
-    @Configurable(name = "geckolib_renderer.texture_path")
     protected ResourceLocation texturePath;
     @Setter
     @Persisted
-    @Configurable(name = "geckolib_renderer.animation_path")
     protected ResourceLocation animationPath;
     @Persisted
     @Configurable(name = "geckolib_renderer.item_transform_model", tips = "geckolib_renderer.item_transform_model.tips")
@@ -471,6 +479,7 @@ public class GeckolibRenderer implements IRenderer, GeoRenderer<GeoAnimatable> {
     public void buildConfigurator(ConfiguratorGroup father) {
         attachAnimationInfoSources();
         createPreview(father);
+        createResourcePathConfigurators(father);
         ConfiguratorParser.createConfigurators(father, new HashMap<>(), getClass(), this);
         father.addConfigurators(createAnimationInfoGroup());
         var animationGroup = new ArrayConfiguratorGroup<>(
@@ -525,9 +534,29 @@ public class GeckolibRenderer implements IRenderer, GeoRenderer<GeoAnimatable> {
 
     protected Configurator createAnimationInfoRow(AnimationInfo info) {
         var row = new Configurator(info.name());
-        row.addInlineChild(new Label().setText(Component.literal(String.format(Locale.ROOT, "%.2f ticks", info.length()))));
-        row.addInlineChild(new Label().setText(Component.literal(info.loop() ? "loop" : "once")));
-        row.addInlineChild(new Label().setText(Component.literal(info.loopType())));
+        var isMaxLength = info.length() == Double.MAX_VALUE;
+        var infoRow = new UIElement().layout(l -> {
+            l.gapAll(2);
+            l.flexDirection(FlexDirection.ROW);
+            l.height(14);
+            l.alignItems(AlignItems.CENTER);
+        }).addChildren(
+                new Label().setText(isMaxLength ?
+                        Component.literal("-") :
+                        Component.literal(String.format(Locale.ROOT, "%.2fs", info.length() / 20f)))
+                        .textStyle(s -> s.textWrap(TextWrap.HOVER_ROLL).textAlignHorizontal(Horizontal.CENTER))
+                        .layout(l -> l.flex(1))
+                        .setOverflowVisible(false),
+                new Label().setText(Component.literal(info.loop() ? "loop" : "once"))
+                        .textStyle(s -> s.textWrap(TextWrap.HOVER_ROLL).textAlignHorizontal(Horizontal.CENTER))
+                        .layout(l -> l.flex(1))
+                        .setOverflowVisible(false),
+                new Label().setText(Component.literal(info.loopType()))
+                        .textStyle(s -> s.textWrap(TextWrap.HOVER_ROLL).textAlignHorizontal(Horizontal.CENTER))
+                        .layout(l -> l.flex(1))
+                        .setOverflowVisible(false)
+        );
+        row.addInlineChild(infoRow);
         row.addInlineChild(new Button()
                 .setText(Component.translatable("geckolib_renderer.animation_file_info.play"))
                 .setOnClick(event -> playPreviewAnimation(info)));
@@ -536,5 +565,98 @@ public class GeckolibRenderer implements IRenderer, GeoRenderer<GeoAnimatable> {
 
     protected void playPreviewAnimation(AnimationInfo info) {
         staticAnimatable.playPreview(RawAnimation.begin().then(info.name(), info.geckoLoopType()));
+    }
+
+    protected void createResourcePathConfigurators(ConfiguratorGroup father) {
+        father.addConfigurators(
+                createResourcePathConfigurator(
+                        "geckolib_renderer.model_path",
+                        () -> modelPath,
+                        value -> modelPath = value,
+                        DEFAULT_MODEL_PATH,
+                        "geo",
+                        Dialog.suffixFilter(".geo.json")),
+                createResourcePathConfigurator(
+                        "geckolib_renderer.texture_path",
+                        () -> texturePath,
+                        value -> texturePath = value,
+                        DEFAULT_TEXTURE_PATH,
+                        "textures",
+                        Dialog.suffixFilter(".png")),
+                createResourcePathConfigurator(
+                        "geckolib_renderer.animation_path",
+                        () -> animationPath,
+                        value -> animationPath = value,
+                        DEFAULT_ANIMATION_PATH,
+                        "animations",
+                        Dialog.suffixFilter(".animation.json"))
+        );
+    }
+
+    protected Configurator createResourcePathConfigurator(String name,
+                                                         Supplier<ResourceLocation> supplier,
+                                                         Consumer<ResourceLocation> consumer,
+                                                         ResourceLocation defaultValue,
+                                                         String assetFolder,
+                                                         java.util.function.Predicate<com.lowdragmc.lowdraglib2.gui.util.FileNode> valid) {
+        var configurator = new StringConfigurator(name,
+                () -> supplier.get().toString(),
+                value -> {
+                    if (LDLib2.isValidResourceLocation(value)) {
+                        consumer.accept(ResourceLocation.parse(value));
+                    }
+                },
+                defaultValue.toString(),
+                true).setResourceLocation(true);
+        configurator.setPastable(String.class, pasted -> {
+            if (pasted != null && LDLib2.isValidResourceLocation(pasted)) {
+                consumer.accept(ResourceLocation.parse(pasted));
+                configurator.notifyChanges();
+            }
+        });
+        configurator.inlineContainer.getLayout().flexDirection(FlexDirection.ROW).gapAll(2);
+        configurator.textField.layout(l -> l.flex(1));
+        configurator.addInlineChild(createResourceFileSelectButton(name, supplier, consumer, configurator, assetFolder, valid));
+        return configurator;
+    }
+
+    protected Button createResourceFileSelectButton(String title,
+                                                    Supplier<ResourceLocation> supplier,
+                                                    Consumer<ResourceLocation> consumer,
+                                                    Configurator configurator,
+                                                    String assetFolder,
+                                                    java.util.function.Predicate<com.lowdragmc.lowdraglib2.gui.util.FileNode> valid) {
+        var button = new Button().noText();
+        button.layout(layout -> {
+            layout.width(14);
+            layout.height(14);
+            layout.paddingAll(3);
+        });
+        button.addChild(new UIElement()
+                .layout(layout -> {
+                    layout.widthPercent(100);
+                    layout.heightPercent(100);
+                })
+                .style(style -> style.backgroundTexture(Icons.OPEN_FILE)));
+        button.setOnClick(event -> Dialog.showFileDialog(
+                title,
+                getResourceDialogDirectory(supplier.get(), assetFolder).toFile(),
+                true,
+                valid,
+                file -> GeckolibResourcePath.fromAssetFile(file).ifPresent(resourceLocation -> {
+                    consumer.accept(resourceLocation);
+                    configurator.notifyChanges();
+                })).show(button.getModularUI()));
+        button.addClass("__white_icon__");
+        return button;
+    }
+
+    protected Path getResourceDialogDirectory(ResourceLocation currentValue, String assetFolder) {
+        var assetsDirectory = GeckolibResourcePath.projectAssetsDirectory();
+        var directory = assetsDirectory
+                .resolve(currentValue.getNamespace())
+                .resolve(assetFolder)
+                .normalize();
+        return directory.toFile().isDirectory() ? directory : assetsDirectory;
     }
 }

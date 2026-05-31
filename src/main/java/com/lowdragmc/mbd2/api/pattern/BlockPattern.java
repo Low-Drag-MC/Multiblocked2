@@ -315,7 +315,9 @@ public class BlockPattern {
                                     }
                                     player.awardStat(Stats.ITEM_USED.get(itemBucket));
                                     var emptyBucket = BucketItem.getEmptySuccessItem(found, player);
-                                    player.getInventory().setItem(foundSlot, emptyBucket);
+                                    if (foundSlot >= 0 && !player.isCreative()) {
+                                        player.getInventory().setItem(foundSlot, emptyBucket);
+                                    }
                                 }
                             }
 

@@ -2,6 +2,7 @@ package com.lowdragmc.mbd2.common.machine.definition;
 
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.editor.project.ProjectType;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.data.BlockInfo;
@@ -15,6 +16,7 @@ import com.lowdragmc.mbd2.api.pattern.predicates.PatternPredicate;
 import com.lowdragmc.mbd2.api.pattern.predicates.PredicateBlocks;
 import com.lowdragmc.mbd2.api.pattern.util.RelativeDirection;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
+import com.lowdragmc.mbd2.common.gui.editor.MachineProject;
 import com.lowdragmc.mbd2.common.gui.editor.MultiblockMachineProject;
 import com.lowdragmc.mbd2.common.gui.editor.multiblopck.PredicateResource;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
@@ -52,6 +54,11 @@ public class MultiblockMachineDefinition extends MBDMachineDefinition {
         @Override
         public MultiblockMachineDefinition createDefinition() {
             return MultiblockMachineDefinition.createDefault();
+        }
+
+        @Override
+        public ProjectType getEditorProjectType() {
+            return MultiblockMachineProject.Companion.getTYPE();
         }
     };
 

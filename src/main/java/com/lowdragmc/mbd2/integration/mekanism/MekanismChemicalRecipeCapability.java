@@ -9,6 +9,7 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
+import com.lowdragmc.mbd2.common.gui.MBDSprites;
 import com.lowdragmc.mbd2.common.gui.recipe.SupplierScrollDataSource;
 import com.lowdragmc.mbd2.integration.mekanism.configurator.ChemicalIngredientConfigurator;
 import mekanism.api.chemical.Chemical;
@@ -43,9 +44,11 @@ public class MekanismChemicalRecipeCapability extends RecipeCapability<ChemicalS
 
     @Override
     public UIElement createXEITemplate() {
-        var widget = new ChemicalSlot();
-        widget.getLayout().width(20).height(58);
-        return widget;
+        var slot = new ChemicalSlot();
+        slot.getLayout().width(20).height(58);
+        slot.getStyle().overlay(MBDSprites.FLUID_SLOT_OVERLAY);
+        slot.amountLabel.setDisplay(false);
+        return slot;
     }
 
     @Override

@@ -2,7 +2,6 @@ package com.lowdragmc.mbd2.common.gui.editor
 
 import com.lowdragmc.lowdraglib2.editor.project.IProject
 import com.lowdragmc.lowdraglib2.editor.project.ProjectType
-import com.lowdragmc.lowdraglib2.editor.resource.BuiltinPath
 import com.lowdragmc.lowdraglib2.editor.resource.BuiltinResourceProvider
 import com.lowdragmc.lowdraglib2.editor.resource.ColorsResource
 import com.lowdragmc.lowdraglib2.editor.resource.FileResourceProvider
@@ -30,6 +29,7 @@ import com.lowdragmc.mbd2.common.machine.definition.config.StateMachine
 import net.minecraft.core.Direction
 import net.minecraft.core.HolderLookup
 import com.lowdragmc.lowdraglib2.editor.ui.Editor
+import com.lowdragmc.mbd2.client.MBDRenderers
 import com.lowdragmc.mbd2.utils.ControllerBlockInfo
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
@@ -155,7 +155,13 @@ open class MultiblockMachineProject : MachineProject() {
     override fun createDefinition(): MultiblockMachineDefinition {
         return MultiblockMachineDefinition(
             MBD2.id("new_multiblock"),
-            StateMachine.createMultiblockDefault({ MachineState.baseBuilder() }, FURNACE_RENDERER),
+            StateMachine.createMultiblockDefault({ MachineState.baseBuilder() },
+                {MBDRenderers.MACHINE_UNFORMED},
+                {MBDRenderers.MACHINE_FORMED},
+                {MBDRenderers.MACHINE_WORKING},
+                {MBDRenderers.MACHINE_WAITING},
+                {MBDRenderers.MACHINE_WAITING},
+                ),
             null,
             null,
             null,

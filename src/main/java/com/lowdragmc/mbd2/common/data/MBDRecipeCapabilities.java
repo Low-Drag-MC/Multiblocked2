@@ -43,8 +43,7 @@ public class MBDRecipeCapabilities {
 //            MBDRegistries.RECIPE_CAPABILITIES.register(MekanismHeatRecipeCapability.CAP.name, MekanismHeatRecipeCapability.CAP);
 //        }
 //        if (MBD2.isCreateLoaded()) {
-//             MBDRegistries.RECIPE_CAPABILITIES.register(CreateStressRecipeCapability.CAP.name, CreateStressRecipeCapability.CAP);
-//             MBDRegistries.RECIPE_CAPABILITIES.register(CreateRPMRecipeCapability.CAP.name, CreateRPMRecipeCapability.CAP);
+//             MBDRegistries.RECIPE_CAPABILITIES.register(CreateRotationRecipeCapability.CAP.name, CreateRotationRecipeCapability.CAP);
 //        }
 //        if (MBD2.isNaturesAuraLoaded()) {
 //            MBDRegistries.RECIPE_CAPABILITIES.register(NaturesAuraRecipeCapability.CAP.name, NaturesAuraRecipeCapability.CAP);

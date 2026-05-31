@@ -109,7 +109,7 @@ public class ForgeEnergyCapabilityTraitDefinition extends SimpleCapabilityTraitD
         progress.setProgress(1f);
         progress.label.setText("0/0 FE");
         progress.setId(uiId());
-        progress.layout(layout -> layout.flex(1).height(14));
+        progress.layout(layout -> layout.height(14));
         container.addChild(progress);
     }
 

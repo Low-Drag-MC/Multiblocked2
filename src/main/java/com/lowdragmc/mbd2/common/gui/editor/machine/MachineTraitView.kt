@@ -221,9 +221,13 @@ open class MachineTraitView(editor: MBDEditor, project: MachineProject) : Machin
     fun createMenu(): TreeBuilder.Menu {
         return TreeBuilder.Menu.start().apply {
             branch(Icons.ADD, "editor.machine.machine_traits.add_trait", { it.apply {
+                val existing = project.definition.machineSettings().traitDefinitions()
                 for (type in MBDRegistries.TRAIT_DEFINITION_TYPES) {
                     if (type == TraitDefinition.EMPTY_TYPE) continue
-                    type.createDefinition().apply {
+                    val def = type.createDefinition()
+                    // Singleton traits (!allowMultiple) can't be added a second time.
+                    if (!def.allowMultiple() && existing.any { it.javaClass == def.javaClass }) continue
+                    def.apply {
                         leaf(icon, type.name, {
                             project.definition.machineSettings().addTraitDefinition(this)
                             reloadTraits()
@@ -232,10 +236,13 @@ open class MachineTraitView(editor: MBDEditor, project: MachineProject) : Machin
                 }
             }})
             selectedTrait?.let { trait ->
-                leaf(Icons.REMOVE, "editor.machine.machine_traits.remove_trait", {
-                    project.definition.machineSettings().removeTraitDefinition(trait)
-                    reloadTraits()
-                })
+                // Mandatory traits (e.g. CreateRotation) can never be removed.
+                if (!trait.isMandatory) {
+                    leaf(Icons.REMOVE, "editor.machine.machine_traits.remove_trait", {
+                        project.definition.machineSettings().removeTraitDefinition(trait)
+                        reloadTraits()
+                    })
+                }
             }
         }
     }

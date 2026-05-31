@@ -42,10 +42,10 @@ public class PatternError {
         var items = Component.empty();
         for (List<ItemStack> candidate : candidates) {
             if (!candidate.isEmpty()) {
-                items.append(candidate.get(0).getDisplayName());
+                items.append(candidate.getFirst().getDisplayName());
                 items.append(Component.literal(", "));
             }
         }
-        return Component.translatable("mbd2.multiblock.pattern.error", items, worldState.getPos());
+        return Component.translatable("mbd2.multiblock.pattern.error", items, Component.literal(worldState.getPos().toString()));
     }
 }

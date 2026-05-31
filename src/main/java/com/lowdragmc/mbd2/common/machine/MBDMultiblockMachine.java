@@ -427,7 +427,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
     @Override
     public InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player, BlockHitResult hit) {
         var result = super.useWithoutItem(state, world, pos, player, hit);
-            if (result != InteractionResult.PASS && !isFormed() && player.isShiftKeyDown()) {
+        if (result == InteractionResult.PASS && !isFormed() && player.isShiftKeyDown()) {
             if (world.isClientSide()) {
                 MultiblockInWorldPreviewRenderer.showPreview(pos, this, ConfigHolder.MULTIBLOCK_PREVIEW_DURATION.get() * 20);
             }

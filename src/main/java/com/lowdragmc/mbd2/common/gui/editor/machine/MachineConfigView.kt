@@ -36,8 +36,10 @@ open class MachineConfigView(editor: MBDEditor, project: MachineProject) : Machi
     val machineStateHierarchy: MachineStateHierarchy = MachineStateHierarchy()
     private val drawShapeData: TrackData<Boolean> = TrackData(true)
     private val drawRenderingBoxData: TrackData<Boolean> = TrackData(false)
+    private val drawAxesData: TrackData<Boolean> = TrackData(false)
     var isDrawShape by drawShapeData
     var isDrawRenderingBox by drawRenderingBoxData
+    var isDrawAxes by drawAxesData
 
     // runtime
     var selectedState: MachineState? = null
@@ -67,6 +69,10 @@ open class MachineConfigView(editor: MBDEditor, project: MachineProject) : Machi
             // draw rendering box
             toggle(toggleSpec(Icons.icon(MBD2.MOD_ID, "cube_outline"), ColorPattern.YELLOW.color, "editor.machine_scene.draw_rendering_box_frame_lines")) {
                 bindUIData(drawRenderingBoxData)
+            }
+            // draw XYZ axes
+            toggle(toggleSpec(Icons.TRANSFORM_TRANSLATE, ColorPattern.CYAN.color, "editor.machine_scene.draw_axes")) {
+                bindUIData(drawAxesData)
             }
         })
         // inspect by default
@@ -108,6 +114,16 @@ open class MachineConfigView(editor: MBDEditor, project: MachineProject) : Machi
                         ColorUtils.alpha(color)
                     )
                 }
+            }
+            if (isDrawAxes) {
+                val buffer = bufferSource.getBuffer(LDLibRenderTypes.noDepthLines())
+                // X axis (red), Y axis (green), Z axis (blue) — one block long from the origin.
+                buffer.addVertex(0f, 0f, 0f).setColor(0xffff5555.toInt()).setNormal(1f, 0f, 0f)
+                buffer.addVertex(100f, 0f, 0f).setColor(0xffff5555.toInt()).setNormal(1f, 0f, 0f)
+                buffer.addVertex(0f, 0f, 0f).setColor(0xff55ff55.toInt()).setNormal(0f, 1f, 0f)
+                buffer.addVertex(0f, 100f, 0f).setColor(0xff55ff55.toInt()).setNormal(0f, 1f, 0f)
+                buffer.addVertex(0f, 0f, 0f).setColor(0xff5555ff.toInt()).setNormal(0f, 0f, 1f)
+                buffer.addVertex(0f, 0f, 100f).setColor(0xff5555ff.toInt()).setNormal(0f, 0f, 1f)
             }
         }
     }
@@ -257,14 +273,17 @@ open class MachineConfigView(editor: MBDEditor, project: MachineProject) : Machi
                         editor.inspectorView.inspect(state, null, {
                             treeList.removeSelected(state, false)
                             selectedState = null
+                            previewMachine?.setMachineState(project.definition.stateMachine().rootState.name())
                         })
                         selectedState = state
+                        previewMachine?.setMachineState(state.name())
                     } else {
                         if (selectedState == null) return@setOnSelectedChanged
                         if (editor.inspectorView.inspector.inspectedConfigurable == selectedState) {
                             editor.inspectorView.clear()
                         }
                         selectedState = null
+                        previewMachine?.setMachineState(project.definition.stateMachine().rootState.name())
                     }
                 }
                 .setRoot(this@MachineConfigView.project.definition.stateMachine().rootState)

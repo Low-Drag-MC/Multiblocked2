@@ -63,10 +63,10 @@ public class ForgeEnergyRecipeCapability extends RecipeCapability<Integer> {
     @Override
     public UIElement createXEITemplate() {
         var progress = new ProgressBar();
-        progress.getLayout().flex(1).height(14);
+        progress.getLayout().height(14);
         progress.barContainer.getLayout().paddingAll(0);
-        progress.barContainer.getStyle().background(MBDSprites.ENERGY_BAR);
-        progress.bar.getStyle().background(MBDSprites.ENERGY_BG);
+        progress.barContainer.getStyle().background(MBDSprites.ENERGY_BG);
+        progress.bar.getStyle().background(MBDSprites.ENERGY_BAR);
         progress.setProgress(1f);
         progress.label.setText("0 FE");
         return progress;

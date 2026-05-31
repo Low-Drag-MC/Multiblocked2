@@ -4,11 +4,15 @@ import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.integration.geckolib.Animation;
 import com.lowdragmc.mbd2.integration.geckolib.AnimationInfo;
 import com.lowdragmc.mbd2.integration.geckolib.AnimationStage;
+import com.lowdragmc.mbd2.integration.geckolib.GeckolibResourcePath;
+import com.lowdragmc.lowdraglib2.LDLib2;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
+import java.io.File;
 import java.util.List;
 
 @GameTestHolder(MBD2.MOD_ID)
@@ -72,6 +76,22 @@ public class GeckolibAnimationConfigTests {
 
         if (!List.of("machine.reload").equals(copy.getStages().getFirst().getAvailableAnimationNames())) {
             helper.fail("Animation info source did not refresh after reattach");
+        }
+
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void asset_file_paths_are_converted_to_resource_locations(GameTestHelper helper) {
+        var file = new File(LDLib2.getAssetsDir(), "mbd2/animations/fire_pedestal.animation.json");
+        var resourceLocation = GeckolibResourcePath.fromAssetFile(file).orElse(null);
+
+        if (!ResourceLocation.fromNamespaceAndPath("mbd2", "animations/fire_pedestal.animation.json").equals(resourceLocation)) {
+            helper.fail("LDLib2 asset file path did not convert to the expected resource location");
+        }
+        if (!LDLib2.getAssetsDir().toPath().toAbsolutePath().normalize().equals(GeckolibResourcePath.projectAssetsDirectory())) {
+            helper.fail("GeckoLib file selector should use LDLib2 assets directory");
         }
 
         helper.succeed();

@@ -31,8 +31,8 @@ dependencies {
 
     // Botania
 //    compileOnly("vazkii.botania:botania-neoforge-${minecraft_version}:${botania_version}:api")
-    localImplementation("vazkii.botania:botania-neoforge-${minecraft_version}:${botania_version}")
-    runtimeOnly("top.theillusivec4.curios:curios-neoforge:${curios_version}")
+//    localImplementation("vazkii.botania:botania-neoforge-${minecraft_version}:${botania_version}")
+//    runtimeOnly("top.theillusivec4.curios:curios-neoforge:${curios_version}")
     runtimeOnly("vazkii.patchouli:Patchouli:${patchouli_version}")
 
     // Mekanism
@@ -43,7 +43,6 @@ dependencies {
     runtimeOnly("mekanism:Mekanism:${mekanism_version}:tools")// Mekanism: Tools
 
     // GTM
-    // TODO
 //    compileOnly("com.gregtechceu.gtceu:gtceu-${minecraft_version}:${gtm_version}") { transitive = false }
 //    compileOnly("com.tterrag.registrate:Registrate:${registrate_version}")
 

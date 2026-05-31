@@ -42,6 +42,19 @@ public class MBDTestRegistry {
             register(new com.lowdragmc.mbd2.test.tests.trait.ChemicalTankTraitFixtures());
             register(new com.lowdragmc.mbd2.test.tests.trait.MekHeatTraitFixtures());
         }
+        if (net.neoforged.fml.ModList.get().isLoaded("naturesaura")) {
+            register(new com.lowdragmc.mbd2.test.tests.trait.naturesaura.AuraHandlerTraitFixtures());
+            register(new com.lowdragmc.mbd2.test.tests.recipe.naturesaura.NaturesAuraRecipeCapabilityFixtures());
+        }
+        if (net.neoforged.fml.ModList.get().isLoaded("pneumaticcraft")) {
+            register(new com.lowdragmc.mbd2.test.tests.trait.pneumaticcraft.PNCHeatTraitFixtures());
+            register(new com.lowdragmc.mbd2.test.tests.trait.pneumaticcraft.PNCPressureTraitFixtures());
+            register(new com.lowdragmc.mbd2.test.tests.recipe.pneumaticcraft.PNCHeatRecipeCapabilityFixtures());
+            register(new com.lowdragmc.mbd2.test.tests.recipe.pneumaticcraft.PNCPressureAirRecipeCapabilityFixtures());
+        }
+        if (net.neoforged.fml.ModList.get().isLoaded("create")) {
+            register(new com.lowdragmc.mbd2.test.tests.trait.create.CreateKineticMachineFixtures());
+        }
     }
 
     @SubscribeEvent

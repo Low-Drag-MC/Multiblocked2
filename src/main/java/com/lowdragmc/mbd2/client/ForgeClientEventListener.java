@@ -1,6 +1,8 @@
 package com.lowdragmc.mbd2.client;
 
+import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.editor.resource.EditorResourceEvent;
+import com.lowdragmc.lowdraglib2.editor.resource.IRendererResource;
 import com.lowdragmc.lowdraglib2.editor.resource.ResourceInstance;
 import com.lowdragmc.lowdraglib2.editor.resource.TexturesResource;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
@@ -39,7 +41,7 @@ public class ForgeClientEventListener {
         if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_BLOCK_ENTITIES) {
             // to render the preview after block entities, before the translucent. so it can be seen through the
             // transparent blocks.
-            MultiblockInWorldPreviewRenderer.renderInWorldPreview(event.getPoseStack(), event.getCamera(), event.getPartialTick().getGameTimeDeltaTicks());
+            MultiblockInWorldPreviewRenderer.renderInWorldPreview(event);
         }
     }
 
@@ -49,9 +51,13 @@ public class ForgeClientEventListener {
     }
 
     @SubscribeEvent
+    @SuppressWarnings("unchecked")
     public static void onLoadBuiltinEditorResource(EditorResourceEvent.LoadBuiltin event) {
         if (event.resourceInstance.resource == TexturesResource.INSTANCE) {
             MBDSprites.init((ResourceInstance<IGuiTexture>) event.resourceInstance);
+        }
+        if (event.resourceInstance.resource == IRendererResource.INSTANCE) {
+            MBDRenderers.init((ResourceInstance<IRenderer>) event.resourceInstance);
         }
     }
 }

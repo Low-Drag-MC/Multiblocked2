@@ -100,6 +100,15 @@ public abstract class TraitDefinition implements IConfigurable, IPersistedSerial
     }
 
     /**
+     * Whether this trait is mandatory for the machine it belongs to. Mandatory traits are
+     * auto-included by their definition's {@code loadFactory()} and cannot be removed from
+     * the trait editor UI.
+     */
+    public boolean isMandatory() {
+        return false;
+    }
+
+    /**
      * Get a fancy renderer for block entity.
      */
     public IRenderer getBESRenderer(IMachine machine) {

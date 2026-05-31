@@ -6,7 +6,9 @@ import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.FillDirection;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.mbd2.common.gui.MBDSprites;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.ITrait;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTraitDefinition;
@@ -99,11 +101,13 @@ public class ChemicalTankCapabilityTraitDefinition extends SimpleCapabilityTrait
     public void createTraitUITemplate(UIElement container) {
         var prefix = uiId();
         for (int i = 0; i < tankSize; i++) {
-            var widget = new ChemicalSlot();
-            widget.getLayout().width(20).height(58);
-            widget.setCapacity(capacity);
-            widget.setId(prefix + "_" + i);
-            container.addChild(widget);
+            var slot = new ChemicalSlot();
+            slot.getLayout().width(20).height(58);
+            slot.getStyle().overlay(MBDSprites.FLUID_SLOT_OVERLAY);
+            slot.setFillDirection(FillDirection.DOWN_TO_UP);
+            slot.amountLabel.setDisplay(false);
+            slot.setId(prefix + "_" + i);
+            container.addChild(slot);
         }
     }
 
@@ -111,8 +115,8 @@ public class ChemicalTankCapabilityTraitDefinition extends SimpleCapabilityTrait
     public void initTraitUI(ITrait trait, UI ui) {
         if (trait instanceof ChemicalTankCapabilityTrait chemicalTrait) {
             var prefix = uiId();
-            ui.selectRegex("^%s_[0-9]+$".formatted(prefix), ChemicalSlot.class).forEach(widget -> {
-                var idStr = widget.getId();
+            ui.selectRegex("^%s_[0-9]+$".formatted(prefix), ChemicalSlot.class).forEach(slot -> {
+                var idStr = slot.getId();
                 var lastUnderscore = idStr.lastIndexOf('_');
                 if (lastUnderscore < 0) return;
                 int index;
@@ -122,8 +126,8 @@ public class ChemicalTankCapabilityTraitDefinition extends SimpleCapabilityTrait
                     return;
                 }
                 if (index >= 0 && index < chemicalTrait.storages.length) {
-                    widget.setCapacity(chemicalTrait.storages[index].getCapacity());
-                    widget.bind(chemicalTrait.getCapContent(getGuiIO()), index);
+                    slot.setCapacity(chemicalTrait.storages[index].getCapacity());
+                    slot.bind(chemicalTrait.getCapContent(getGuiIO()), index);
                 }
             });
         }

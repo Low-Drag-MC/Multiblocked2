@@ -341,7 +341,8 @@ public class MachineState implements ITreeNode<MachineState, Void>, IConfigurabl
             return child(name, Consumers.nop());
         }
 
-        public Builder<T> renderer(Supplier<IRenderer> renderer) {
+        public Builder<T> renderer(@Nullable Supplier<IRenderer> renderer) {
+            if (renderer == null) return this;
             if (LDLib2.isClient()) {
                 this.renderer = renderer.get();
             } else {

@@ -3,37 +3,29 @@ package com.lowdragmc.mbd2.common.machine.definition;
 import com.google.common.collect.Queues;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
-import com.lowdragmc.lowdraglib2.client.renderer.impl.UIResourceRenderer;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
-import com.lowdragmc.lowdraglib2.gui.editor.view.UIEditorView;
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
-import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.UITemplate;
+import com.lowdragmc.lowdraglib2.editor.project.ProjectType;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
 import com.lowdragmc.mbd2.api.capability.MBDCapabilities;
-import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.client.renderer.MBDBESRenderer;
 import com.lowdragmc.mbd2.client.renderer.MBDBlockRenderer;
 import com.lowdragmc.mbd2.client.renderer.MBDItemRenderer;
 import com.lowdragmc.mbd2.common.block.MBDMachineBlock;
 import com.lowdragmc.mbd2.common.blockentity.MachineBlockEntity;
+import com.lowdragmc.mbd2.common.gui.editor.MachineProject;
 import com.lowdragmc.mbd2.common.item.MBDMachineItem;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.machine.MBDPartMachine;
 import com.lowdragmc.mbd2.common.machine.definition.config.*;
-import com.lowdragmc.mbd2.common.trait.IUIProviderTrait;
 
-import com.lowdragmc.mbd2.common.trait.TraitDefinition;
-import dev.emi.emi.api.EmiApi;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import me.shedaniel.rei.api.client.view.ViewSearchBuilder;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
@@ -57,6 +49,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.registries.RegisterEvent;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
@@ -64,7 +57,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Deque;
 import java.util.List;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -80,6 +72,11 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
         @Override
         public MBDMachineDefinition createDefinition() {
             return MBDMachineDefinition.createDefault();
+        }
+
+        @Override
+        public ProjectType getEditorProjectType() {
+            return MachineProject.Companion.getTYPE();
         }
     };
 

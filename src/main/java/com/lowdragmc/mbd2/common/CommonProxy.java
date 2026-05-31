@@ -11,6 +11,7 @@ import com.lowdragmc.mbd2.api.blockentity.ProxyPartBlockEntity;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeSerializer;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
+import com.lowdragmc.mbd2.common.data.MBDDataComponents;
 import com.lowdragmc.mbd2.common.data.MBDRecipeCapabilities;
 import com.lowdragmc.mbd2.common.data.MBDMachineDefinitionTypes;
 import com.lowdragmc.mbd2.common.data.MBDTraitDefinitionTypes;
@@ -54,8 +55,8 @@ public class CommonProxy {
     public CommonProxy(IEventBus eventBus, ModContainer modContainer) {
         eventBus.register(this);
         if (Platform.isDevEnv()) {
-            eventBus.register(new MBDTestRegistry());
-            if (GameTestHooks.isGametestEnabled()) {
+            if (GameTestHooks.isGametestServer()) {
+                eventBus.register(new MBDTestRegistry());
                 MBDTestRegistry.init();
             }
         }
@@ -70,6 +71,7 @@ public class CommonProxy {
         MBDRegistries.BLOCK_ENTITY_TYPES.register(eventBus);
         MBDRegistries.RECIPE_SERIALIZERS.register("mbd_recipe_serializer", () -> MBDRecipeSerializer.SERIALIZER);
         MBDRegistries.RECIPE_SERIALIZERS.register(eventBus);
+        MBDDataComponents.COMPONENTS.register(eventBus);
         // Register Editor UI
         PlayerUIMenuType.register(MBDEditor.WINDOW_ID, ignored -> player -> {
             if (player.level().isClientSide) {

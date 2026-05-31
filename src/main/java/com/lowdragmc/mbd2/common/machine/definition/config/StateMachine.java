@@ -8,6 +8,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 
+import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,33 +27,49 @@ public class StateMachine<T extends MachineState> implements INBTSerializable<Co
         initStateMachine();
     }
 
-    public static <T extends MachineState> T createSingleDefault(Supplier<MachineState.Builder<T>> builderCreator, IRenderer renderer) {
-        var builder = builderCreator.get()
-                .renderer(() -> renderer)
+    public static <T extends MachineState> T createSingleDefault(Supplier<MachineState.Builder<T>> builderCreator, Supplier<IRenderer> baseRenderer) {
+        return createSingleDefault(builderCreator, baseRenderer, null, null, null);
+    }
+
+    public static <T extends MachineState> T createSingleDefault(Supplier<MachineState.Builder<T>> builderCreator,
+                                                                 Supplier<IRenderer> baseRenderer,
+                                                                 @Nullable Supplier<IRenderer> workingRenderer,
+                                                                 @Nullable Supplier<IRenderer> suspendRenderer,
+                                                                 @Nullable Supplier<IRenderer> waitingRenderer) {
+        var builder = builderCreator.get().renderer(baseRenderer)
                 .shape(Shapes.block())
                 .lightLevel(0)
-                .child("working", working -> working
-                        .child("waiting"))
-                .child("suspend");
+                .child("working", working -> working.renderer(workingRenderer)
+                        .child("waiting", waiting -> waiting.renderer(waitingRenderer))
+                )
+                .child("suspend", suspend -> suspend.renderer(suspendRenderer));
         return builder.build();
     }
 
-    public static <T extends MachineState> T createMultiblockDefault(Supplier<MachineState.Builder<T>> builderCreator, IRenderer renderer) {
-        var builder = builderCreator.get()
-                .renderer(() -> renderer)
+    public static <T extends MachineState> T createMultiblockDefault(Supplier<MachineState.Builder<T>> builderCreator, Supplier<IRenderer> baseRenderer) {
+        return createMultiblockDefault(builderCreator, baseRenderer, null, null, null, null);
+    }
+
+    public static <T extends MachineState> T createMultiblockDefault(Supplier<MachineState.Builder<T>> builderCreator,
+                                                                     Supplier<IRenderer> baseRenderer,
+                                                                     @Nullable Supplier<IRenderer> formedRenderer,
+                                                                     @Nullable Supplier<IRenderer> workingRenderer,
+                                                                     @Nullable Supplier<IRenderer> suspendRenderer,
+                                                                     @Nullable Supplier<IRenderer> waitingRenderer) {
+        var builder = builderCreator.get().renderer(baseRenderer)
                 .shape(Shapes.block())
                 .lightLevel(0)
-                .child("formed", formed -> formed
-                        .child("working", working -> working
-                                .child("waiting")
+                .child("formed", formed -> formed.renderer(formedRenderer)
+                        .child("working", working -> working.renderer(workingRenderer)
+                                .child("waiting", waiting -> waiting.renderer(waitingRenderer))
                         )
-                        .child("suspend")
+                        .child("suspend", suspend -> suspend.renderer(suspendRenderer))
                 );
         return builder.build();
     }
 
     public static <T extends MachineState> T createDefault(Supplier<MachineState.Builder<T>> builderCreator) {
-        return createSingleDefault(builderCreator, IRenderer.EMPTY);
+        return createSingleDefault(builderCreator, () -> IRenderer.EMPTY);
     }
 
     @Override

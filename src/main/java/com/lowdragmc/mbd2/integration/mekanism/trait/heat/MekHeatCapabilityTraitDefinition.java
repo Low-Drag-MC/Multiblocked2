@@ -11,7 +11,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ProgressBar;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.MCSprites;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
+import com.lowdragmc.mbd2.common.gui.MBDSprites;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.trait.ITrait;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTraitDefinition;
@@ -29,6 +31,7 @@ import net.neoforged.neoforge.capabilities.BlockCapability;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class MekHeatCapabilityTraitDefinition extends SimpleCapabilityTraitDefinition<IHeatHandler, @Nullable Direction> {
     @LDLRegister(name = "mek_heat_container", registry = "mbd2:trait_definition_type", group = "trait", priority = -100, modID = "mekanism")
@@ -89,10 +92,13 @@ public class MekHeatCapabilityTraitDefinition extends SimpleCapabilityTraitDefin
     @Override
     public void createTraitUITemplate(UIElement container) {
         var progress = new ProgressBar();
+        progress.barContainer.getLayout().paddingAll(1);
+        progress.barContainer.getStyle().background(MCSprites.RECT_1);
+        progress.bar.getStyle().background(MBDSprites.MEK_HEAT_BAR);
         progress.setProgress(0f);
         progress.label.setText("0K");
         progress.setId(uiId());
-        progress.layout(layout -> layout.flex(1).height(14));
+        progress.layout(layout -> layout.height(14));
         container.addChild(progress);
     }
 
@@ -106,17 +112,18 @@ public class MekHeatCapabilityTraitDefinition extends SimpleCapabilityTraitDefin
                     return (float) Math.min(1.0, temperature / max);
                 }).build());
 
-                var temperatureValue = DataBindingBuilder.floatValS2C(() ->
-                        (float) heatTrait.getStorage().getTemperature(0)).build();
-                bar.addSyncValue(temperatureValue.getSyncValue());
+                var temperature = new AtomicReference<>((float) heatTrait.getStorage().getTemperature(0));
+                var temperatureSync = DataBindingBuilder.floatValS2C(() -> (float) heatTrait.getStorage().getTemperature(0))
+                        .remoteSetter(temperature::set)
+                        .build();
+                bar.addSyncValue(temperatureSync.getSyncValue());
 
                 bar.label.bindDataSource(SupplierDataSource.of(() ->
-                        Component.literal(String.format("%.1fK", (double) temperatureValue.getSyncValue().getValue()))));
+                        Component.literal(String.format("%.1fK", temperature.get()))));
 
                 bar.addEventListener(UIEvents.HOVER_TOOLTIPS, event -> {
-                    var t = heatTrait.getStorage().getTemperature(0);
                     event.hoverTooltips = new HoverTooltips(List.of(
-                            Component.literal(String.format("Temperature: %.2f K", t))), null, null, null);
+                            Component.literal(String.format("Temperature: %.2f K", temperature.get()))), null, null, null);
                     event.stopPropagation();
                 });
             });

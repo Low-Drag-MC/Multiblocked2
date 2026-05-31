@@ -1,7 +1,5 @@
 package com.lowdragmc.mbd2.common.gui.editor
 
-import com.lowdragmc.lowdraglib2.client.renderer.IRenderer
-import com.lowdragmc.lowdraglib2.client.renderer.impl.IModelRenderer
 import com.lowdragmc.lowdraglib2.editor.project.IProject
 import com.lowdragmc.lowdraglib2.editor.project.ProjectType
 import com.lowdragmc.lowdraglib2.editor.resource.ColorsResource
@@ -13,6 +11,7 @@ import com.lowdragmc.lowdraglib2.editor.ui.Editor
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture
 import com.lowdragmc.lowdraglib2.utils.TagBuilder
 import com.lowdragmc.mbd2.MBD2
+import com.lowdragmc.mbd2.client.MBDRenderers
 import com.lowdragmc.mbd2.common.gui.editor.machine.MachineConfigView
 import com.lowdragmc.mbd2.common.gui.editor.machine.MachineTraitView
 import com.lowdragmc.mbd2.common.gui.editor.machine.MachineUIView
@@ -21,14 +20,12 @@ import com.lowdragmc.mbd2.common.machine.definition.config.MachineState
 import com.lowdragmc.mbd2.common.machine.definition.config.StateMachine
 import net.minecraft.core.HolderLookup
 import net.minecraft.nbt.CompoundTag
-import net.minecraft.resources.ResourceLocation
 import java.io.File
 
 open class MachineProject : IProject {
     companion object {
         var VERSION: Int = 1
         val TYPE: ProjectType = MachineProjectType()
-        val FURNACE_RENDERER: IRenderer = IModelRenderer(ResourceLocation.parse("block/furnace"))
     }
 
     private class MachineProjectType: ProjectType(IGuiTexture.EMPTY, "single_machine_project", ".sm", { MachineProject() }) {
@@ -67,7 +64,12 @@ open class MachineProject : IProject {
         // use vanilla furnace model as an example
         return MBDMachineDefinition.builder()
             .id(MBD2.id("new_machine"))
-            .rootState(StateMachine.createSingleDefault( { MachineState.baseBuilder() }, FURNACE_RENDERER))
+            .rootState(StateMachine.createSingleDefault( { MachineState.baseBuilder() },
+                { MBDRenderers.MACHINE },
+                { MBDRenderers.MACHINE_WORKING },
+                { MBDRenderers.MACHINE_WAITING },
+                { MBDRenderers.MACHINE_WAITING }
+            ))
             .build()
     }
 
@@ -96,7 +98,7 @@ open class MachineProject : IProject {
         }
     }
 
-    protected fun createMachineConfigView(editor: MBDEditor): MachineConfigView {
+    protected open fun createMachineConfigView(editor: MBDEditor): MachineConfigView {
         return MachineConfigView(editor, this)
     }
 

@@ -2,6 +2,7 @@ package com.lowdragmc.mbd2.integration.mekanism;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderTypes;
+import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEmitter;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEventBuilder;
@@ -60,16 +61,16 @@ import java.util.stream.Stream;
 public class ChemicalSlot extends BindableUIElement<ChemicalStack> {
 
     public final Label amountLabel = new Label();
-    @Getter @Setter
+    @Getter @Setter @Configurable
     private boolean allowClickFilled = true;
-    @Getter @Setter
+    @Getter @Setter @Configurable
     private boolean allowClickDrained = true;
     @Getter
     private ChemicalStack chemical = ChemicalStack.EMPTY;
     @Getter @Setter
     private long capacity;
-    @Getter @Setter
-    private FillDirection fillDirection = FillDirection.DOWN_TO_UP;
+    @Getter @Setter @Configurable
+    private FillDirection fillDirection = FillDirection.ALWAYS_FULL;
 
     private final RPCEmitter clickEvent;
 
@@ -80,6 +81,7 @@ public class ChemicalSlot extends BindableUIElement<ChemicalStack> {
     private ISubscription handlerSubscription;
 
     public ChemicalSlot() {
+        addClass("fluid-slot_bg");
         getLayout().width(18);
         getLayout().height(18);
         getLayout().paddingAll(1);

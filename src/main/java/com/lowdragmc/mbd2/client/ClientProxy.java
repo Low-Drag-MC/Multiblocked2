@@ -2,6 +2,9 @@ package com.lowdragmc.mbd2.client;
 
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
+import com.lowdragmc.mbd2.common.item.MBDGadgetsItem;
+import com.lowdragmc.mbd2.integration.create.machine.KineticInstanceRenderer;
+import net.createmod.catnip.render.SuperByteBufferCache;
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -9,6 +12,8 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+
+import java.util.Optional;
 
 /**
  * @author KilaBash
@@ -20,8 +25,7 @@ public class ClientProxy {
     public ClientProxy(IEventBus eventBus) {
         eventBus.register(this);
         if (MBD2.isCreateLoaded()) {
-            // todo kinetic
-//            SuperByteBufferCache.getInstance().registerCompartment(KineticInstanceRenderer.DIRECTIONAL_PARTIAL);
+            SuperByteBufferCache.getInstance().registerCompartment(KineticInstanceRenderer.DIRECTIONAL_PARTIAL);
         }
     }
 
@@ -34,6 +38,8 @@ public class ClientProxy {
     @SubscribeEvent
     public void clientSetup(final FMLClientSetupEvent e) {
         e.enqueueWork(()-> ItemProperties.register(MBDRegistries.GADGETS_ITEM(), MBD2.id("mode"),
-                (itemStack, clientWorld, entity, seed) -> itemStack.getDamageValue()));
+                (itemStack, clientWorld, entity, seed) ->
+                        Optional.ofNullable(MBDGadgetsItem.getMode(itemStack)).orElse(MBDGadgetsItem.Mode.RECIPE_DEBUGGER).id)
+        );
     }
 }

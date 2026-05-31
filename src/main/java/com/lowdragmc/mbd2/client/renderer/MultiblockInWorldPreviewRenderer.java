@@ -3,12 +3,16 @@ package com.lowdragmc.mbd2.client.renderer;
 
 import com.lowdragmc.lowdraglib2.client.scene.WorldSceneRenderer;
 import com.lowdragmc.lowdraglib2.client.utils.RenderUtils;
+import com.lowdragmc.lowdraglib2.utils.data.BlockInfo;
 import com.lowdragmc.lowdraglib2.utils.virtuallevel.TrackedDummyWorld;
+import com.lowdragmc.mbd2.api.block.RotationState;
+import com.lowdragmc.mbd2.common.block.MBDMachineBlock;
 import com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine;
+import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
+import com.lowdragmc.mbd2.utils.ControllerBlockInfo;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import lombok.Getter;
-import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
@@ -29,7 +33,9 @@ import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL11;
 
 import java.util.*;
@@ -112,155 +118,115 @@ public class MultiblockInWorldPreviewRenderer {
      * @param duration   the duration of the preview. in ticks.
      */
     public static void showPreview(BlockPos pos, MBDMultiblockMachine controller, int duration) {
-        // preview
-//        var front = controller.getFrontFacing().orElse(Direction.NORTH);
-//        var shapeInfos = controller.getDefinition().shapeInfoFactory().apply(controller.getDefinition());
-//        if (shapeInfos.length == 0) return;
-//        var shapeInfo = shapeInfos[0];
-//
-//        Map<BlockPos, BlockInfo> blockMap = new HashMap<>();
-//        IMultiController controllerBase = null;
-//        LEVEL = new TrackedDummyWorld();
-//
-//        var blocks = shapeInfo.getBlocks();
-//        BlockPos controllerPatternPos = null;
-//        var controllerPatternFront = Direction.NORTH;
-//        var maxY = 0;
-//
-//        // find the pos of controller
-//        for (int x = 0; x < blocks.length; x++) {
-//            BlockInfo[][] aisle = blocks[x];
-//            maxY = Math.max(maxY, aisle.length);
-//            for (int y = 0; y < aisle.length; y++) {
-//                BlockInfo[] column = aisle[y];
-//                for (int z = 0; z < column.length; z++) {
-//                    // if its controller record its position offset.
-//                    if (column[z] instanceof ControllerBlockInfo info) {
-//                        controllerPatternPos = new BlockPos(x, y, z);
-//                        controllerPatternFront = info.getFacing();
-//                    } else {
-//                        var blockState = column[z].getBlockState();
-//                        if (blockState != null && blockState.getBlock() instanceof MBDMachineBlock machineBlock &&
-//                                machineBlock.getDefinition() instanceof MultiblockMachineDefinition definition) {
-//                            controllerPatternPos = new BlockPos(x, y, z);
-//                            if (definition.blockProperties().rotationState().property.isPresent()) {
-//                                controllerPatternFront = blockState.getValue(definition.blockProperties().rotationState().property.get());
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//
-//        if (controllerPatternPos == null) { // if there is no controller found
-//            return;
-//        }
-//
-//        if (LAST_POS != null && LAST_POS.equals(pos)) {
-//            LAST_LAYER++;
-//            if (LAST_LAYER >= maxY) {
-//                LAST_LAYER = -1;
-//            }
-//        } else {
-//            LAST_LAYER = -1;
-//        }
-//        LAST_POS = pos;
-//
-//        for (int x = 0; x < blocks.length; x++) {
-//            BlockInfo[][] aisle = blocks[x];
-//            for (int y = 0; y < aisle.length; y++) {
-//                BlockInfo[] column = aisle[y];
-//                if (LAST_LAYER != -1 && LAST_LAYER != y) {
-//                    continue;
-//                }
-//                for (int z = 0; z < column.length; z++) {
-//                    var blockState = column[z].getBlockState();
-//                    var offset = new BlockPos(x, y, z).subtract(controllerPatternPos);
-//                    if (blockState == null || offset.equals(new BlockPos(0, 0, 0))) continue;
-//
-//                    // rotation
-//                    offset = switch (controllerPatternFront) {
-//                        case SOUTH -> offset.rotate(Rotation.CLOCKWISE_180);
-//                        case EAST -> offset.rotate(Rotation.COUNTERCLOCKWISE_90);
-//                        case WEST -> offset.rotate(Rotation.CLOCKWISE_90);
-//                        default -> offset.rotate(Rotation.NONE);
-//                    };
-//                    offset = switch (front) {
-//                        case SOUTH -> offset.rotate(Rotation.CLOCKWISE_180);
-//                        case EAST -> offset.rotate(Rotation.COUNTERCLOCKWISE_90);
-//                        case WEST -> offset.rotate(Rotation.CLOCKWISE_90);
-//                        default -> offset.rotate(Rotation.NONE);
-//                    };
-//
-//
-//                    // TODO rotation by front axis in the future
-//                    offset = rotateByFrontAxis(offset, front, Rotation.NONE);
-//
-//                    if (blockState.getBlock() instanceof MBDMachineBlock machineBlock) {
-//                        var rotationState = machineBlock.getRotationState();
-//                        if (rotationState != RotationState.NONE && rotationState.property.isPresent()) {
-//                            var face = blockState.getValue(rotationState.property.get());
-//                            if (face.getAxis() != Direction.Axis.Y) {
-//                                face = switch (front) {
-//                                    case NORTH, UP, DOWN -> front;
-//                                    case SOUTH -> face.getOpposite();
-//                                    case WEST -> face.getCounterClockWise();
-//                                    case EAST -> face.getClockWise();
-//                                };
-//                            }
-//                            if (rotationState.test(face)) {
-//                                blockState = blockState.setValue(rotationState.property.get(), face);
-//                            }
-//                        }
-//                    }
-//
-//                    BlockPos realPos = pos.offset(offset);
-//                    blockMap.put(realPos, BlockInfo.fromBlockState(blockState));
-//                }
-//            }
-//        }
-//
-//        LEVEL.addBlocks(blockMap);
-//
-//        prepareBuffers(LEVEL, blockMap.keySet(), duration);
+        var front = controller.getFrontFacing().orElse(Direction.NORTH);
+        var shapeInfos = controller.getDefinition().shapeInfoFactory().apply(controller.getDefinition());
+        if (shapeInfos == null || shapeInfos.length == 0) return;
+        var shapeInfo = shapeInfos[0];
+        var blocks = shapeInfo.getBlocks();
+        if (blocks.length == 0) return;
+
+        // Locate the controller cell within the pattern + its pattern-space facing.
+        BlockPos controllerPatternPos = null;
+        Direction controllerPatternFront = Direction.NORTH;
+        int maxY = 0;
+        for (int x = 0; x < blocks.length; x++) {
+            BlockInfo[][] aisle = blocks[x];
+            maxY = Math.max(maxY, aisle.length);
+            for (int y = 0; y < aisle.length; y++) {
+                BlockInfo[] column = aisle[y];
+                for (int z = 0; z < column.length; z++) {
+                    var info = column[z];
+                    if (info instanceof ControllerBlockInfo cInfo) {
+                        controllerPatternPos = new BlockPos(x, y, z);
+                        controllerPatternFront = cInfo.getFacing();
+                    } else if (info != null) {
+                        var blockState = info.getBlockState();
+                        if (blockState != null && blockState.getBlock() instanceof MBDMachineBlock machineBlock
+                                && machineBlock.getDefinition() instanceof MultiblockMachineDefinition def) {
+                            controllerPatternPos = new BlockPos(x, y, z);
+                            var property = def.blockProperties().rotationState().property;
+                            if (property.isPresent()) {
+                                controllerPatternFront = blockState.getValue(property.get());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (controllerPatternPos == null) return;
+
+        // Repeated invocations at the same world pos cycle through Y-layers, then "all".
+        if (LAST_POS != null && LAST_POS.equals(pos)) {
+            LAST_LAYER++;
+            if (LAST_LAYER >= maxY) {
+                LAST_LAYER = -1;
+            }
+        } else {
+            LAST_LAYER = -1;
+        }
+        LAST_POS = pos;
+
+        LEVEL = new TrackedDummyWorld();
+        Map<BlockPos, BlockInfo> blockMap = new HashMap<>();
+
+        for (int x = 0; x < blocks.length; x++) {
+            BlockInfo[][] aisle = blocks[x];
+            for (int y = 0; y < aisle.length; y++) {
+                if (LAST_LAYER != -1 && LAST_LAYER != y) continue;
+                BlockInfo[] column = aisle[y];
+                for (int z = 0; z < column.length; z++) {
+                    var info = column[z];
+                    if (info == null) continue;
+                    var blockState = info.getBlockState();
+                    if (blockState == null) continue;
+                    var offset = new BlockPos(x, y, z).subtract(controllerPatternPos);
+                    if (offset.equals(BlockPos.ZERO)) continue; // skip controller cell
+
+                    offset = rotateForFacing(offset, controllerPatternFront);
+                    offset = rotateForFacing(offset, front);
+
+                    if (blockState.getBlock() instanceof MBDMachineBlock machineBlock) {
+                        var rotationState = machineBlock.getRotationState();
+                        if (rotationState != RotationState.NONE && rotationState.property.isPresent()) {
+                            var property = rotationState.property.get();
+                            var face = blockState.getValue(property);
+                            if (face.getAxis() != Direction.Axis.Y) {
+                                face = switch (front) {
+                                    case SOUTH -> face.getOpposite();
+                                    case WEST -> face.getCounterClockWise();
+                                    case EAST -> face.getClockWise();
+                                    default -> face;
+                                };
+                            }
+                            if (rotationState.test(face)) {
+                                blockState = blockState.setValue(property, face);
+                            }
+                        }
+                    }
+
+                    BlockPos realPos = pos.offset(offset);
+                    BlockInfo resolved = blockState == info.getBlockState() ? info : BlockInfo.fromBlockState(blockState);
+                    blockMap.put(realPos, resolved);
+                    LEVEL.addBlock(realPos, resolved);
+                }
+            }
+        }
+
+        if (blockMap.isEmpty()) return;
+        prepareBuffers(LEVEL, blockMap.keySet(), duration);
     }
 
-    private static BlockPos rotateByFrontAxis(BlockPos pos, Direction front, Rotation rotation) {
-        if (front.getAxis() == Direction.Axis.X) {
-            return switch (rotation) {
-                case CLOCKWISE_90 -> new BlockPos(-pos.getX(), -front.getAxisDirection().getStep() * pos.getZ(),
-                        front.getAxisDirection().getStep() * -pos.getY());
-                case CLOCKWISE_180 -> new BlockPos(-pos.getX(), -pos.getY(), pos.getZ());
-                case COUNTERCLOCKWISE_90 -> new BlockPos(-pos.getX(), front.getAxisDirection().getStep() * pos.getZ(),
-                        front.getAxisDirection().getStep() * pos.getY());
-                default -> new BlockPos(-pos.getX(), pos.getY(), -pos.getZ());
-            };
-        } else if (front.getAxis() == Direction.Axis.Y) {
-            return switch (rotation) {
-                case CLOCKWISE_90 -> new BlockPos(pos.getY(),
-                        -front.getAxisDirection().getStep() * pos.getZ(),
-                        -front.getAxisDirection().getStep() * pos.getX());
-                case CLOCKWISE_180 -> new BlockPos(front.getAxisDirection().getStep() * pos.getX(),
-                        -front.getAxisDirection().getStep() * pos.getZ(),
-                        pos.getY());
-                case COUNTERCLOCKWISE_90 -> new BlockPos(-pos.getY(),
-                        -front.getAxisDirection().getStep() * pos.getZ(),
-                        front.getAxisDirection().getStep() * pos.getX());
-                default -> new BlockPos(-front.getAxisDirection().getStep() * pos.getX(),
-                        -front.getAxisDirection().getStep() * pos.getZ(),
-                        -pos.getY());
-            };
-        } else if (front.getAxis() == Direction.Axis.Z) {
-            return switch (rotation) {
-                case CLOCKWISE_90 -> new BlockPos(front.getAxisDirection().getStep() * pos.getY(),
-                        -front.getAxisDirection().getStep() * pos.getX(), pos.getZ());
-                case CLOCKWISE_180 -> new BlockPos(-pos.getX(), -pos.getY(), pos.getZ());
-                case COUNTERCLOCKWISE_90 -> new BlockPos(front.getAxisDirection().getStep() * -pos.getY(),
-                        front.getAxisDirection().getStep() * pos.getX(), pos.getZ());
-                default -> pos;
-            };
-        }
-        return pos;
+    private static BlockPos rotateForFacing(BlockPos offset, Direction facing) {
+        // Maps a pattern offset (authored facing NORTH) into the given world facing.
+        // Rotation.CLOCKWISE_90 sends a (0,0,-1) NORTH offset to (1,0,0) = EAST, matching
+        // Direction#getClockWise. Keep this consistent with the block-state face rewrite below.
+        return switch (facing) {
+            case SOUTH -> offset.rotate(Rotation.CLOCKWISE_180);
+            case EAST -> offset.rotate(Rotation.CLOCKWISE_90);
+            case WEST -> offset.rotate(Rotation.COUNTERCLOCKWISE_90);
+            default -> offset;
+        };
     }
 
     public static void onClientTick() {
@@ -276,7 +242,10 @@ public class MultiblockInWorldPreviewRenderer {
         }
     }
 
-    public static void renderInWorldPreview(PoseStack poseStack, Camera camera, float partialTicks) {
+    public static void renderInWorldPreview(RenderLevelStageEvent event) {
+        var poseStack = event.getPoseStack();
+        var camera = event.getCamera();
+        var partialTicks = event.getPartialTick().getGameTimeDeltaTicks();
         if (PATTERN_ERROR_POS != null) {
             poseStack.pushPose();
             Vec3 projectedView = camera.getPosition();
@@ -327,53 +296,15 @@ public class MultiblockInWorldPreviewRenderer {
 
                 // render cache vbo
                 layer.setupRenderState();
-                poseStack.pushPose();
                 ShaderInstance shaderInstance = RenderSystem.getShader();
 
-                for (int j = 0; j < 12; ++j) {
-                    int k = RenderSystem.getShaderTexture(j);
-                    shaderInstance.setSampler("Sampler" + j, k);
-                }
-
-                // setup shader uniform
-                if (shaderInstance.MODEL_VIEW_MATRIX != null) {
-                    shaderInstance.MODEL_VIEW_MATRIX.set(poseStack.last().pose());
-                }
-
-                if (shaderInstance.PROJECTION_MATRIX != null) {
-                    shaderInstance.PROJECTION_MATRIX.set(RenderSystem.getProjectionMatrix());
-                }
-
-                if (shaderInstance.COLOR_MODULATOR != null) {
-                    shaderInstance.COLOR_MODULATOR.set(RenderSystem.getShaderColor());
-                }
-
-                if (shaderInstance.FOG_START != null) {
-                    shaderInstance.FOG_START.set(Float.MAX_VALUE);
-                }
-
-                if (shaderInstance.FOG_END != null) {
-                    shaderInstance.FOG_END.set(RenderSystem.getShaderFogEnd());
-                }
-
-                if (shaderInstance.FOG_COLOR != null) {
-                    shaderInstance.FOG_COLOR.set(RenderSystem.getShaderFogColor());
-                }
-
-                if (shaderInstance.FOG_SHAPE != null) {
-                    shaderInstance.FOG_SHAPE.set(RenderSystem.getShaderFogShape().getIndex());
-                }
-
-                if (shaderInstance.TEXTURE_MATRIX != null) {
-                    shaderInstance.TEXTURE_MATRIX.set(RenderSystem.getTextureMatrix());
-                }
-
-                if (shaderInstance.GAME_TIME != null) {
-                    shaderInstance.GAME_TIME.set(RenderSystem.getShaderGameTime());
-                }
-
-                RenderSystem.setupShaderLights(shaderInstance);
-                shaderInstance.apply();
+                // Vanilla's RenderLevelStageEvent hands us a fresh, identity PoseStack — the
+                // camera/view rotation lives in event.getModelViewMatrix() (== frustumMatrix).
+                // Our poseStack only carries T(-cameraPos). Compose the two so geometry lands at
+                // its real world position instead of stuck to the screen.
+                var modelView = new Matrix4f(event.getModelViewMatrix()).mul(poseStack.last().pose());
+                shaderInstance.setDefaultUniforms(VertexFormat.Mode.QUADS,
+                        modelView, event.getProjectionMatrix(), Minecraft.getInstance().getWindow());
 
                 RenderSystem.setShaderColor(1, 1, 1, 1);
                 if (layer == RenderType.translucent()) { // TRANSLUCENT
@@ -386,13 +317,9 @@ public class MultiblockInWorldPreviewRenderer {
                     RenderSystem.depthMask(true);
                 }
 
-                RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-
+                shaderInstance.apply();
                 vertexbuffer.bind();
                 vertexbuffer.draw();
-
-                poseStack.popPose();
-
                 shaderInstance.clear();
                 VertexBuffer.unbind();
                 layer.clearRenderState();

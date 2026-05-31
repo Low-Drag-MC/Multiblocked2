@@ -8,13 +8,13 @@
       "predicate": {
         "mbd2:mode": 0
       },
-      "model": "mbd2:item/mbd_multiblock_builder"
+      "model": "mbd2:item/mbd_recipe_debugger"
     },
     {
       "predicate": {
         "mbd2:mode": 1
       },
-      "model": "mbd2:item/mbd_recipe_debugger"
+      "model": "mbd2:item/mbd_multiblock_builder"
     },
     {
       "predicate": {

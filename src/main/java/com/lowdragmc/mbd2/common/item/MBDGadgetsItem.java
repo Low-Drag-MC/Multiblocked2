@@ -2,17 +2,35 @@ package com.lowdragmc.mbd2.common.item;
 
 import com.lowdragmc.lowdraglib2.gui.factory.HeldItemUIMenuType;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import com.lowdragmc.lowdraglib2.gui.ui.UI;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
+import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
+import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
 import com.lowdragmc.mbd2.api.pattern.MultiblockState;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
+import com.lowdragmc.mbd2.common.data.MBDDataComponents;
+import com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine;
+import com.lowdragmc.mbd2.common.network.packets.SPatternErrorPosPacket;
+import com.mojang.serialization.Codec;
+import dev.vfyjxf.taffy.style.FlexDirection;
+import io.netty.buffer.ByteBuf;
 import net.minecraft.ChatFormatting;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.ByIdMap;
+import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
@@ -22,44 +40,76 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
+import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.IntFunction;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class MBDGadgetsItem extends Item implements HeldItemUIMenuType.HeldItemUI {
+    public static final ResourceLocation EMPTY_RECIPE = MBD2.id("empty");
+    public enum Mode implements StringRepresentable {
+        RECIPE_DEBUGGER("recipe_debugger", 0),
+        MULTIBLOCK_BUILDER("multiblock_builder", 1),
+        MULTIBLOCK_DEBUGGER("multiblock_debugger", 2);
+
+        public final String name;
+        public final int id;
+
+        Mode(String name, int id) {
+            this.name = name;
+            this.id = id;
+        }
+
+        public static final Codec<Mode> CODEC = StringRepresentable.fromValues(Mode::values);
+        public static final IntFunction<Mode> BY_ID = ByIdMap.continuous(mode -> mode.id, values(), ByIdMap.OutOfBoundsStrategy.ZERO);
+        public static final StreamCodec<ByteBuf, Mode> STREAM_CODEC = ByteBufCodecs.idMapper(BY_ID, mode -> mode.id);
+
+        @Override
+        public String getSerializedName() {
+            return "";
+        }
+    }
 
     public MBDGadgetsItem() {
         super(new Item.Properties()
+                .component(MBDDataComponents.GADGET_RECIPE, EMPTY_RECIPE)
+                .component(MBDDataComponents.GADGET_MODE, Mode.RECIPE_DEBUGGER)
                 .fireResistant()
                 .stacksTo(1));
     }
 
+    public static @Nullable Mode getMode(ItemStack stack) {
+        return stack.get(MBDDataComponents.GADGET_MODE);
+    }
+
+    public static void setMode(ItemStack stack, Mode mode) {
+        stack.set(MBDDataComponents.GADGET_MODE, mode);
+    }
+
     public boolean isMultiblockBuilder(ItemStack stack) {
-        return stack.getDamageValue() == 0;
+        return getMode(stack) == Mode.MULTIBLOCK_BUILDER;
     }
 
     public boolean isRecipeDebugger(ItemStack stack) {
-        return stack.getDamageValue() == 1;
+        return getMode(stack) == Mode.RECIPE_DEBUGGER;
     }
 
     public boolean isMultiblockDebugger(ItemStack stack) {
-        return stack.getDamageValue() == 2;
+        return getMode(stack) == Mode.MULTIBLOCK_DEBUGGER;
     }
 
     @Nullable
     public ResourceLocation getRecipe(ItemStack stack) {
-        // todo component
-        return null;
-//        var tag = stack.getTag();
-//        return tag != null ? (tag.contains("recipe") ? ResourceLocation.parse(tag.getString("recipe")) : null) : null;
+        return stack.get(MBDDataComponents.GADGET_RECIPE.get());
     }
 
     public void setRecipe(ItemStack stack, ResourceLocation recipe) {
-//        stack.getOrCreateTag().putString("recipe", recipe.toString());
+        stack.set(MBDDataComponents.GADGET_RECIPE.get(), recipe);
     }
 
     @Override
@@ -105,13 +155,13 @@ public class MBDGadgetsItem extends Item implements HeldItemUIMenuType.HeldItemU
         }
         if (pPlayer.isCrouching()) {
             if (isMultiblockBuilder(stack)) {
-                stack.setDamageValue(1);
+                setMode(stack, Mode.RECIPE_DEBUGGER);
                 return InteractionResultHolder.success(stack);
             } else if (isRecipeDebugger(stack)) {
-                stack.setDamageValue(2);
+                setMode(stack, Mode.MULTIBLOCK_DEBUGGER);
                 return InteractionResultHolder.success(stack);
             } else if (isMultiblockDebugger(stack)) {
-                stack.setDamageValue(0);
+                setMode(stack, Mode.MULTIBLOCK_BUILDER);
                 return InteractionResultHolder.success(stack);
             }
         } else if (pPlayer instanceof ServerPlayer serverPlayer && isRecipeDebugger(stack)) {
@@ -134,43 +184,43 @@ public class MBDGadgetsItem extends Item implements HeldItemUIMenuType.HeldItemU
                     return InteractionResult.SUCCESS;
                 }
             } else if (isMultiblockDebugger(stack)) {
-                // todo mb
-//                var controller = IMultiController.ofController(player.level(), context.getClickedPos()).orElse(null);
-//                if (controller != null) {
-//                    if (controller.isFormed()) {
-//                        serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.multiblock_debugger.is_formed"));
-//                    } else if (controller.checkPatternWithLock()) {
-//                        serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.multiblock_debugger.success"));
-//                        if (controller instanceof MBDMultiblockMachine multiblock && multiblock.getDefinition().multiblockSettings().catalyst().isEnable()) {
-//                            if (!multiblock.getDefinition().multiblockSettings().catalyst().getFilterItems().isEmpty()) {
-//                                var items = Component.literal("[");
-//                                for (ItemStack filterItem : multiblock.getDefinition().multiblockSettings().catalyst().getFilterItems()) {
-//                                    items.append(filterItem.getDisplayName()).append(Component.literal(", "));
-//                                }
-//                                items.append(Component.literal("]"));
-//                                serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.multiblock_debugger.catalyst.items", items));
-//                            }
-//                            if (!multiblock.getDefinition().multiblockSettings().catalyst().getFilterTags().isEmpty()) {
-//                                var tags = Component.literal("[");
-//                                for (ResourceLocation filterTag : multiblock.getDefinition().multiblockSettings().catalyst().getFilterTags()) {
-//                                    tags.append(Component.literal(filterTag.toString())).append(Component.literal(", "));
-//                                }
-//                                tags.append(Component.literal("]"));
-//                                serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.multiblock_debugger.catalyst.tags", tags));
-//                            }
-//                        }
-//                    } else {
-//                        var error = controller.getMultiblockState().error;
-//                        if (error != null) {
-//                            PacketDistributor.sendToPlayer(serverPlayer, new SPatternErrorPosPacket(error.getPos()));
-//                            serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.multiblock_debugger.failure.error.info", error.getErrorInfo()));
-//                        } else {
-//                            serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.multiblock_debugger.failure.no_error"));
-//                        }
-//                    }
-//                } else {
-//                    serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.multiblock_debugger.failure.error.not_controller"));
-//                }
+                var controller = IMultiController.ofController(player.level(), context.getClickedPos()).orElse(null);
+                if (controller == null) {
+                    serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.multiblock_debugger.failure.error.not_controller"));
+                } else if (controller.isFormed()) {
+                    serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.multiblock_debugger.is_formed"));
+                } else if (controller.checkPatternWithLock()) {
+                    serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.multiblock_debugger.success"));
+                    if (controller instanceof MBDMultiblockMachine multiblock
+                            && multiblock.getDefinition().multiblockSettings().catalyst().isEnable()) {
+                        var catalyst = multiblock.getDefinition().multiblockSettings().catalyst();
+                        if (!catalyst.getFilterItems().isEmpty()) {
+                            var items = Component.literal("[");
+                            for (ItemStack filterItem : catalyst.getFilterItems()) {
+                                items.append(filterItem.getDisplayName()).append(Component.literal(", "));
+                            }
+                            items.append(Component.literal("]"));
+                            serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.multiblock_debugger.catalyst.items", items));
+                        }
+                        if (!catalyst.getFilterTags().isEmpty()) {
+                            var tags = Component.literal("[");
+                            for (ResourceLocation filterTag : catalyst.getFilterTags()) {
+                                tags.append(Component.literal(filterTag.toString())).append(Component.literal(", "));
+                            }
+                            tags.append(Component.literal("]"));
+                            serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.multiblock_debugger.catalyst.tags", tags));
+                        }
+                    }
+                } else {
+                    var error = controller.getMultiblockState().error;
+                    if (error != null) {
+                        PacketDistributor.sendToPlayer(serverPlayer, new SPatternErrorPosPacket(error.getPos()));
+                        serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.multiblock_debugger.failure.error.info", error.getErrorInfo()));
+                    } else {
+                        serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.multiblock_debugger.failure.no_error"));
+                    }
+                }
+                isUsed = true;
                 return InteractionResult.SUCCESS;
             } else if (isRecipeDebugger(stack) && getRecipe(stack) != null && serverPlayer.getServer() != null) {
                 var machine = IMachine.ofMachine(player.level(), context.getClickedPos()).orElse(null);
@@ -257,55 +307,59 @@ public class MBDGadgetsItem extends Item implements HeldItemUIMenuType.HeldItemU
 
     @Override
     public ModularUI createUI(HeldItemUIMenuType.HeldItemUIHolder holder) {
-        // todo ui
-        return null;
-//        var x = (200 - 150) / 2;
-//        var y = (50 - 10) / 2;
-//        var searchComponent = new SearchComponentWidget<>(x, y, 150, 10,
-//                new SearchComponentWidget.IWidgetSearch<ResourceLocation>() {
-//                    @Override
-//                    public String resultDisplay(ResourceLocation value) {
-//                        return value.toString();
-//                    }
-//
-//                    @Override
-//                    public void selectResult(ResourceLocation value) {
-//                        setRecipe(holder.getHeld(), value);
-//                    }
-//
-//                    @Override
-//                    public void search(String word, Consumer<ResourceLocation> find) {
-//                        if (Platform.getMinecraftServer() != null) {
-//                            var recipeManager = Platform.getMinecraftServer().getRecipeManager();
-//                            for (MBDRecipeType recipeType : MBDRegistries.RECIPE_TYPES) {
-//                                if (Thread.currentThread().isInterrupted()) return;
-//                                for (var holder : recipeManager.getAllRecipesFor(recipeType)) {
-//                                    if (holder.id().toString().contains(word.toLowerCase())) {
-//                                        find.accept(holder.id());
-//                                    }
-//                                }
-//                            }
-//                        }
-//                    }
-//
-//                    @Override
-//                    public void serialize(ResourceLocation value, RegistryFriendlyByteBuf buf) {
-//                        buf.writeUtf(value.toString());
-//                    }
-//
-//                    @Override
-//                    public ResourceLocation deserialize(RegistryFriendlyByteBuf buf) {
-//                        return ResourceLocation.parse(buf.readUtf());
-//                    }
-//                }, true);
-//        var currentRecipe = getRecipe(holder.getHeld());
-//        searchComponent.setShowUp(true);
-//        searchComponent.setCapacity(5);
-//        var textFieldWidget = searchComponent.textFieldWidget;
-//        textFieldWidget.setCurrentString(currentRecipe == null ? "" : currentRecipe.toString());
-//        return new ModularUI(200, 50, holder, entityPlayer)
-//                .background(ResourceBorderTexture.BORDERED_BACKGROUND)
-//                .widget(searchComponent)
-//                .widget(new ImageWidget(x, y - 12, 150, 10, new TextTexture("item.mbd2.mbd_gadgets.recipe_debugger.recipe_id").setWidth(150)));
+        var root = new UIElement();
+        root.getLayout()
+                .width(220).height(140)
+                .paddingAll(6).gapAll(4)
+                .flexDirection(FlexDirection.COLUMN);
+
+        var title = new Label();
+        title.setText(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.recipe_id"));
+        title.getLayout().widthPercent(100);
+        root.addChild(title);
+
+        var current = getRecipe(holder.itemStack);
+        var textField = new TextField()
+                .setAnyString()
+                .setText(current == null ? "" : current.toString());
+        textField.getLayout().widthPercent(100).height(14);
+
+        var resultList = new ScrollerView();
+        resultList.getLayout().widthPercent(100).flex(1);
+        resultList.viewContainer.getLayout()
+                .gapAll(1)
+                .widthPercent(100);
+
+        Runnable refreshResults = () -> {
+            resultList.viewContainer.clearAllChildren();
+            var query = textField.getText().toLowerCase();
+            var level = holder.player.level();
+            if (level == null) return;
+            var recipeManager = level.getRecipeManager();
+            int count = 0;
+            outer:
+            for (MBDRecipeType recipeType : MBDRegistries.RECIPE_TYPES) {
+                for (var recipeHolder : recipeManager.getAllRecipesFor(recipeType)) {
+                    var id = recipeHolder.id();
+                    if (!query.isEmpty() && !id.toString().toLowerCase().contains(query)) continue;
+                    var btn = new Button()
+                            .setText(id.toString())
+                            .setOnClick(e -> {
+                                setRecipe(holder.player.getItemInHand(holder.hand), id);
+                                textField.setText(id.toString());
+                            });
+                    btn.getLayout().widthPercent(100).height(12);
+                    resultList.viewContainer.addChild(btn);
+                    if (++count >= 32) break outer;
+                }
+            }
+        };
+
+        textField.setTextResponder(value -> refreshResults.run());
+        refreshResults.run();
+
+        root.addChildren(textField, resultList);
+
+        return new ModularUI(UI.of(root, StylesheetManager.ORE_MERGED), holder.player);
     }
 }

@@ -1,6 +1,8 @@
 package com.lowdragmc.mbd2.common.machine.definition;
 
+import com.lowdragmc.lowdraglib2.editor.project.ProjectType;
 import lombok.Getter;
+import org.jetbrains.annotations.Nullable;
 
 @Getter
 public abstract class MachineDefinitionType<T extends MBDMachineDefinition> {
@@ -15,4 +17,7 @@ public abstract class MachineDefinitionType<T extends MBDMachineDefinition> {
     }
 
     public abstract T createDefinition();
+
+    @Nullable
+    public abstract ProjectType getEditorProjectType();
 }
