@@ -1,14 +1,14 @@
 package com.lowdragmc.mbd2.common.item;
 
 import com.lowdragmc.lowdraglib2.gui.factory.HeldItemUIMenuType;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.DataBindingBuilder;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.TextField;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.*;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
+import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
@@ -19,6 +19,7 @@ import com.lowdragmc.mbd2.common.data.MBDDataComponents;
 import com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine;
 import com.lowdragmc.mbd2.common.network.packets.SPatternErrorPosPacket;
 import com.mojang.serialization.Codec;
+import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.ChatFormatting;
@@ -40,6 +41,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 
@@ -108,7 +110,8 @@ public class MBDGadgetsItem extends Item implements HeldItemUIMenuType.HeldItemU
         return stack.get(MBDDataComponents.GADGET_RECIPE.get());
     }
 
-    public void setRecipe(ItemStack stack, ResourceLocation recipe) {
+    public void setRecipe(ItemStack stack, @Nullable ResourceLocation recipe) {
+        if (recipe == null) recipe = EMPTY_RECIPE;
         stack.set(MBDDataComponents.GADGET_RECIPE.get(), recipe);
     }
 
@@ -307,59 +310,47 @@ public class MBDGadgetsItem extends Item implements HeldItemUIMenuType.HeldItemU
 
     @Override
     public ModularUI createUI(HeldItemUIMenuType.HeldItemUIHolder holder) {
-        var root = new UIElement();
-        root.getLayout()
-                .width(220).height(140)
-                .paddingAll(6).gapAll(4)
-                .flexDirection(FlexDirection.COLUMN);
+        var root = new UIElement().addClass("panel_bg");
+        root.getLayout().width(150).alignItems(AlignItems.CENTER).gapAll(4);
 
         var title = new Label();
         title.setText(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.recipe_id"));
+        title.getTextStyle().textAlignHorizontal(Horizontal.CENTER);
         title.getLayout().widthPercent(100);
-        root.addChild(title);
 
-        var current = getRecipe(holder.itemStack);
-        var textField = new TextField()
-                .setAnyString()
-                .setText(current == null ? "" : current.toString());
-        textField.getLayout().widthPercent(100).height(14);
+        var searchComponent = new SearchComponent<ResourceLocation>(new SearchComponent.ISearchUI<>() {
+            @Override
+            public String resultText(ResourceLocation value) {
+                return value.toString();
+            }
 
-        var resultList = new ScrollerView();
-        resultList.getLayout().widthPercent(100).flex(1);
-        resultList.viewContainer.getLayout()
-                .gapAll(1)
-                .widthPercent(100);
-
-        Runnable refreshResults = () -> {
-            resultList.viewContainer.clearAllChildren();
-            var query = textField.getText().toLowerCase();
-            var level = holder.player.level();
-            if (level == null) return;
-            var recipeManager = level.getRecipeManager();
-            int count = 0;
-            outer:
-            for (MBDRecipeType recipeType : MBDRegistries.RECIPE_TYPES) {
-                for (var recipeHolder : recipeManager.getAllRecipesFor(recipeType)) {
-                    var id = recipeHolder.id();
-                    if (!query.isEmpty() && !id.toString().toLowerCase().contains(query)) continue;
-                    var btn = new Button()
-                            .setText(id.toString())
-                            .setOnClick(e -> {
-                                setRecipe(holder.player.getItemInHand(holder.hand), id);
-                                textField.setText(id.toString());
-                            });
-                    btn.getLayout().widthPercent(100).height(12);
-                    resultList.viewContainer.addChild(btn);
-                    if (++count >= 32) break outer;
+            @Override
+            public void onResultSelected(@Nullable ResourceLocation value) {
+                if (value != null) {
+                    setRecipe(holder.itemStack, value);
                 }
             }
-        };
 
-        textField.setTextResponder(value -> refreshResults.run());
-        refreshResults.run();
+            @Override
+            public void search(String word, IResultHandler<ResourceLocation> searchHandler) {
+                var level = holder.player.level();
+                var lowerWord = word.toLowerCase();
+                var recipeManager = level.getRecipeManager();
+                for (MBDRecipeType recipeType : MBDRegistries.RECIPE_TYPES) {
+                    for (var recipeHolder : recipeManager.getAllRecipesFor(recipeType)) {
+                        if (Thread.currentThread().isInterrupted()) return;
+                        var id = recipeHolder.id();
+                        if (!lowerWord.isEmpty() && !id.toString().contains(lowerWord)) continue;
+                        searchHandler.accept(id);
+                    }
+                }
+            }
+        }).setSearchOnServer(ResourceLocation[].class).bind(DataBindingBuilder
+                .create(() -> getRecipe(holder.itemStack), recipe -> setRecipe(holder.itemStack, recipe))
+                .syncType(ResourceLocation.class).build());
+        searchComponent.getLayout().widthPercent(100);
 
-        root.addChildren(textField, resultList);
-
+        root.addChildren(title, searchComponent);
         return new ModularUI(UI.of(root, StylesheetManager.ORE_MERGED), holder.player);
     }
 }
