@@ -235,6 +235,16 @@ public class MultiblockState {
         return cache.stream().map(BlockPos::of).collect(Collectors.toList());
     }
 
+    public void runInternalStructureInvaliding(Runnable action) {
+        boolean previous = isInternalStructureInvaliding;
+        isInternalStructureInvaliding = true;
+        try {
+            action.run();
+        } finally {
+            isInternalStructureInvaliding = previous;
+        }
+    }
+
     public void onBlockStateChanged(BlockPos pos, BlockState state) {
         if (world instanceof ServerLevel serverLevel) {
             if (pos.equals(controllerPos)) {

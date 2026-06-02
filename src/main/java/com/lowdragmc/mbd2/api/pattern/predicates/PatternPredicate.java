@@ -3,6 +3,7 @@ package com.lowdragmc.mbd2.api.pattern.predicates;
 import com.google.common.base.Suppliers;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
+import com.lowdragmc.lowdraglib2.configurator.IToggleConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
@@ -10,14 +11,22 @@ import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.TextTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.Style;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Inspector;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Menu;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Scene;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.TreeList;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegister;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib2.utils.PersistedParser;
 import com.lowdragmc.lowdraglib2.utils.data.BlockInfo;
 import com.lowdragmc.lowdraglib2.utils.virtuallevel.TrackedDummyWorld;
@@ -29,10 +38,11 @@ import com.lowdragmc.mbd2.api.pattern.error.PatternStringError;
 import com.lowdragmc.mbd2.api.pattern.error.SinglePredicateError;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleDirection;
+import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
+import com.lowdragmc.mbd2.common.machine.definition.config.StateMachine;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import it.unimi.dsi.fastutil.longs.Long2ObjectArrayMap;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -41,8 +51,11 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import org.appliedenergistics.yoga.YogaAlign;
 import org.appliedenergistics.yoga.YogaEdge;
+import lombok.Getter;
+import lombok.Setter;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -92,8 +105,8 @@ public class PatternPredicate implements IPersistedSerializable, IConfigurable, 
     @Configurable(name = "config.block_pattern.predicate.previewCount", tips = { "config.block_pattern.predicate.previewCount.tooltip.0", "config.block_pattern.predicate.previewCount.tooltip.1" })
     @ConfigNumber(range = {-1, Integer.MAX_VALUE})
     public int previewCount = -1;
-    @Configurable(name = "config.block_pattern.predicate.disableRenderFormed", tips = "config.block_pattern.predicate.disableRenderFormed.tooltip")
-    public boolean disableRenderFormed = false;
+    @Configurable(name = "config.block_pattern.predicate.proxyWhileFormed", tips = "config.block_pattern.predicate.proxyWhileFormed.tooltip", subConfigurable = true)
+    public ProxyWhileFormed proxyWhileFormed = new ProxyWhileFormed();
     @Configurable(name = "config.block_pattern.predicate.io", tips = "config.block_pattern.predicate.io.tooltip")
     public IO io = IO.BOTH;
     @Configurable(name = "config.block_pattern.predicate.slotName", tips = "config.block_pattern.predicate.slotName.tooltip")
@@ -232,7 +245,7 @@ public class PatternPredicate implements IPersistedSerializable, IConfigurable, 
                 var merged = tag.copy().merge(controllerNbt);
                 if (!tag.equals(merged)) {
                     blockWorldState.setError(new PatternStringError("The Controller NBT fails to match"));
-                    return true;
+                    return false;
                 }
             }
         }
@@ -249,13 +262,13 @@ public class PatternPredicate implements IPersistedSerializable, IConfigurable, 
         if (slotName != null && !slotName.isEmpty()) {
             Map<Long, Set<String>> slots = blockWorldState.getMatchContext().getOrCreate("slots", Long2ObjectArrayMap::new);
             slots.computeIfAbsent(blockWorldState.getPos().asLong(), s->new HashSet<>()).add(slotName);
-            return true;
         }
-        if (disableRenderFormed) {
-            blockWorldState.getMatchContext().getOrCreate("renderMask", LongOpenHashSet::new).add(blockWorldState.getPos().asLong());
+        if (proxyWhileFormed.isEnable()) {
+            Map<Long, ProxyWhileFormed> proxyMap = blockWorldState.getMatchContext().getOrCreate("proxyWhileFormed", HashMap::new);
+            proxyMap.put(blockWorldState.getPos().asLong(), proxyWhileFormed);
         }
         if (allowOpenUI) {
-            blockWorldState.getMatchContext().getOrCreate("openUIMask", LongOpenHashSet::new).add(blockWorldState.getPos().asLong());
+            blockWorldState.getMatchContext().getOrCreate("openUIMask", it.unimi.dsi.fastutil.longs.LongOpenHashSet::new).add(blockWorldState.getPos().asLong());
         }
         return true;
     }
@@ -355,5 +368,167 @@ public class PatternPredicate implements IPersistedSerializable, IConfigurable, 
         scene.style(style -> Style.defaultPipeline(style, s -> s.backgroundTexture(Sprites.BORDER1_RT1)));
         scene.addClass("preview_bg");
         return scene;
+    }
+
+    @Getter
+    @Setter
+    public static class ProxyWhileFormed implements IToggleConfigurable {
+        @Persisted
+        protected boolean enable;
+        @Persisted
+        protected StateMachine<MachineState> stateMachine = new StateMachine<>(MachineState.baseBuilder().build());
+
+        @Override
+        @OnlyIn(Dist.CLIENT)
+        public void buildConfigurator(ConfiguratorGroup father) {
+            IToggleConfigurable.super.buildConfigurator(father);
+            father.addConfigurator(new ProxyStateMachineConfigurator());
+        }
+
+        private StateMachine<MachineState> safeStateMachine() {
+            if (stateMachine == null) {
+                stateMachine = new StateMachine<>(MachineState.baseBuilder().build());
+            }
+            return stateMachine;
+        }
+
+        @OnlyIn(Dist.CLIENT)
+        private class ProxyStateMachineConfigurator extends Configurator {
+            private final TreeList<MachineState> treeList = new TreeList<>();
+            private final Inspector inspector = new Inspector();
+            @Nullable
+            private MachineState selectedState;
+
+            private ProxyStateMachineConfigurator() {
+                var stateScroller = new ScrollerView();
+                inlineContainer.layout(layout -> {
+                    layout.flexDirection(FlexDirection.COLUMN);
+                    layout.gapAll(2);
+                });
+                stateScroller.layout(layout -> {
+                    layout.widthPercent(100);
+                    layout.height(90);
+                });
+                inspector.layout(layout -> {
+                    layout.widthPercent(100);
+                    layout.height(180);
+                });
+                treeList.setStaticTree(true)
+                        .setDoubleClickToExpand(true)
+                        .setSupportMultipleSelection(false)
+                        .setNodeUISupplier(TreeList.optionalIconTextTemplate(state -> IGuiTexture.EMPTY,
+                                state -> Component.literal(state.name())))
+                        .setOnSelectedChanged(this::onSelectedChanged);
+                stateScroller.addScrollViewChild(treeList);
+                stateScroller.addEventListener(UIEvents.MOUSE_DOWN, event -> {
+                    if (event.button == 1) {
+                        var menu = createStateMenu();
+                        if (!menu.isEmpty() && getModularUI() != null) {
+                            getModularUI().ui.rootElement.addChild(new Menu<>(menu.build(), TreeBuilder.Menu::uiProvider)
+                                    .setHoverTextureProvider(TreeBuilder.Menu::hoverTextureProvider)
+                                    .setOnNodeClicked(TreeBuilder.Menu::handle)
+                                    .layout(layout -> {
+                                        var offset = getModularUI().ui.rootElement.worldToLocalLayoutOffset(new org.joml.Vector2f(event.x, event.y));
+                                        layout.left(offset.x);
+                                        layout.top(offset.y);
+                                    }));
+                            event.stopPropagation();
+                        }
+                    }
+                });
+                addInlineChildren(stateScroller, inspector);
+                reloadStateTree();
+            }
+
+            private void onSelectedChanged(Set<MachineState> selectedStates) {
+                if (selectedStates.size() == 1) {
+                    selectedState = selectedStates.iterator().next();
+                    inspector.inspect(selectedState, configurator -> notifyChanges(), () -> {
+                        var state = selectedState;
+                        if (state != null) {
+                            treeList.removeSelected(state, false);
+                        }
+                        selectedState = null;
+                    });
+                } else {
+                    inspector.clear();
+                    selectedState = null;
+                }
+            }
+
+            private void reloadStateTree() {
+                var expandedNodes = new HashSet<String>();
+                for (var state : treeList.getExpandedNodes()) {
+                    expandedNodes.add(state.name());
+                }
+                treeList.setRoot(safeStateMachine().getRootState());
+                if (treeList.getRoot() != null) {
+                    treeList.expandAllNodesIf(treeList.getRoot(), state -> expandedNodes.contains(state.name()));
+                }
+                safeStateMachine().initStateMachine();
+                notifyChanges();
+            }
+
+            private TreeBuilder.Menu createStateMenu() {
+                var menu = TreeBuilder.Menu.start();
+                menu.leaf(Icons.ADD, "editor.machine_state.add", () -> Dialog.stringEditorDialog(
+                        "editor.machine_state.name",
+                        "new_state",
+                        name -> !safeStateMachine().hasState(name),
+                        name -> {
+                            if (!safeStateMachine().hasState(name)) {
+                                var parent = selectedState == null ? safeStateMachine().getRootState() : selectedState;
+                                parent.addChild(name);
+                                reloadStateTree();
+                            }
+                        }).show(getModularUI()));
+                if (selectedState != null && selectedState.parent() != null) {
+                    menu.crossLine();
+                    menu.leaf(Icons.REMOVE, "editor.machine_state.remove", () -> {
+                        selectedState.parent().removeChild(selectedState);
+                        inspector.clear();
+                        selectedState = null;
+                        reloadStateTree();
+                    });
+                    menu.leaf("ldlib.gui.editor.menu.rename", () -> Dialog.stringEditorDialog(
+                            "editor.machine_state.name",
+                            selectedState.name(),
+                            name -> !safeStateMachine().hasState(name),
+                            name -> {
+                                if (!safeStateMachine().hasState(name) && selectedState != null && selectedState.parent() != null) {
+                                    var state = selectedState;
+                                    var parent = state.parent();
+                                    var children = new ArrayList<>(state.children());
+                                    var index = parent.getChildSiblingIndex(state);
+                                    parent.removeChild(state);
+                                    var renamed = copyStateWithName(state, parent, name);
+                                    parent.addChildAt(renamed, index);
+                                    for (var child : children) {
+                                        renamed.addChild(child);
+                                    }
+                                    selectedState = renamed;
+                                    reloadStateTree();
+                                    treeList.setSelected(Set.of(renamed), true);
+                                }
+                            }).show(getModularUI()));
+                }
+                return menu;
+            }
+
+            private MachineState copyStateWithName(MachineState state, MachineState parent, String name) {
+                var renamed = new MachineState(name, parent,
+                        state.renderer().getValue(),
+                        state.shape().getValue(),
+                        state.lightLevel().getValue(),
+                        state.renderingBox().getValue());
+                renamed.renderer().setEnable(state.renderer().isEnable());
+                renamed.shape().setEnable(state.shape().isEnable());
+                renamed.lightLevel().setEnable(state.lightLevel().isEnable());
+                renamed.renderingBox().setEnable(state.renderingBox().isEnable());
+                renamed.isGlobalVisible(state.isGlobalVisible());
+                renamed.renderingRadius(state.renderingRadius());
+                return renamed;
+            }
+        }
     }
 }

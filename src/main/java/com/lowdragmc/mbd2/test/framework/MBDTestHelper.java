@@ -2,6 +2,7 @@ package com.lowdragmc.mbd2.test.framework;
 
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
+import com.lowdragmc.mbd2.api.pattern.MultiblockWorldSavedData;
 import com.lowdragmc.mbd2.api.pattern.BlockPattern;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
@@ -110,6 +111,11 @@ public final class MBDTestHelper {
         if (!(machine instanceof MBDMultiblockMachine multiblock)) return false;
         if (!multiblock.checkPatternWithLock()) return false;
         multiblock.onStructureFormed();
+        if (multiblock.isFormed() && multiblock.getLevel() instanceof ServerLevel serverLevel) {
+            var mwsd = MultiblockWorldSavedData.getOrCreate(serverLevel);
+            mwsd.addMapping(multiblock.getMultiblockState());
+            mwsd.removeAsyncLogic(multiblock);
+        }
         return multiblock.isFormed();
     }
 

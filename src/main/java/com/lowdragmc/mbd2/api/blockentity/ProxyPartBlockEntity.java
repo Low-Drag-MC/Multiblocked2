@@ -2,8 +2,13 @@ package com.lowdragmc.mbd2.api.blockentity;
 
 import lombok.Getter;
 import lombok.Setter;
+import com.lowdragmc.mbd2.api.machine.IMachine;
+import com.lowdragmc.mbd2.common.machine.MBDMachine;
+import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
+import com.lowdragmc.mbd2.common.machine.definition.config.StateMachine;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
@@ -14,10 +19,13 @@ import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import net.neoforged.neoforge.registries.DeferredHolder;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.Objects;
 
 /**
  * @author KilaBash
@@ -45,23 +53,40 @@ public class ProxyPartBlockEntity extends BlockEntity {
     @Nullable
     @Getter
     private BlockPos controllerPos;
+    @Nullable
+    private StateMachine<MachineState> proxyStateMachine;
+    @Getter
+    private boolean restoringOriginalBlock;
 
     public ProxyPartBlockEntity(BlockPos pPos, BlockState pBlockState) {
         super(TYPE(), pPos, pBlockState);
     }
 
     public void setControllerData(BlockPos controllerPos) {
-        if (this.controllerPos != controllerPos) {
+        setProxyData(controllerPos, getProxyStateMachine());
+    }
+
+    public void setOriginalData(BlockState originalState, CompoundTag originalData, BlockPos controllerPos) {
+        setOriginalData(originalState, originalData, controllerPos, getProxyStateMachine());
+    }
+
+    public void setOriginalData(BlockState originalState, @Nullable CompoundTag originalData, BlockPos controllerPos, StateMachine<MachineState> proxyStateMachine) {
+        if (!Objects.equals(this.originalState, originalState) ||
+                !Objects.equals(this.originalData, originalData) ||
+                !Objects.equals(this.controllerPos, controllerPos) ||
+                this.proxyStateMachine != proxyStateMachine) {
+            this.originalState = originalState;
+            this.originalData = originalData;
             this.controllerPos = controllerPos;
+            this.proxyStateMachine = proxyStateMachine;
             sync();
         }
     }
 
-    public void setOriginalData(BlockState originalState, CompoundTag originalData, BlockPos controllerPos) {
-        if (this.originalState != originalState || this.originalData != originalData || this.controllerPos != controllerPos) {
-            this.originalState = originalState;
-            this.originalData = originalData;
+    public void setProxyData(BlockPos controllerPos, StateMachine<MachineState> proxyStateMachine) {
+        if (!Objects.equals(this.controllerPos, controllerPos) || this.proxyStateMachine != proxyStateMachine) {
             this.controllerPos = controllerPos;
+            this.proxyStateMachine = proxyStateMachine;
             sync();
         }
     }
@@ -70,7 +95,8 @@ public class ProxyPartBlockEntity extends BlockEntity {
      * Place the original block back to the world. and restore the original block entity data.
      */
     public void restoreOriginalBlock() {
-        if (originalState != null) {
+        if (level != null && originalState != null) {
+            restoringOriginalBlock = true;
             level.setBlockAndUpdate(getBlockPos(), originalState);
             if (originalData != null) {
                 var blockEntity = level.getBlockEntity(worldPosition);
@@ -78,7 +104,48 @@ public class ProxyPartBlockEntity extends BlockEntity {
                     blockEntity.loadWithComponents(originalData, level.registryAccess());
                 }
             }
+            restoringOriginalBlock = false;
         }
+    }
+
+    public StateMachine<MachineState> getProxyStateMachine() {
+        if (proxyStateMachine == null) {
+            proxyStateMachine = new StateMachine<>(MachineState.baseBuilder().build());
+        }
+        return proxyStateMachine;
+    }
+
+    public MachineState getProxyState() {
+        var stateMachine = getProxyStateMachine();
+        if (level != null && controllerPos != null) {
+            return IMachine.ofMachine(level, controllerPos)
+                    .filter(MBDMachine.class::isInstance)
+                    .map(MBDMachine.class::cast)
+                    .map(machine -> stateMachine.getState(machine.getMachineStateName()))
+                    .orElseGet(stateMachine::getRootState);
+        }
+        return stateMachine.getRootState();
+    }
+
+    public Direction getProxyFacing() {
+        if (level != null && controllerPos != null) {
+            return IMachine.ofMachine(level, controllerPos)
+                    .filter(MBDMachine.class::isInstance)
+                    .map(MBDMachine.class::cast)
+                    .flatMap(MBDMachine::getFrontFacing)
+                    .orElse(Direction.NORTH);
+        }
+        return Direction.NORTH;
+    }
+
+    public VoxelShape getProxyShape() {
+        return getProxyState().getShape(getProxyFacing());
+    }
+
+    @Nullable
+    public AABB getProxyRenderBoundingBox() {
+        var aabb = getProxyState().getRenderingBox(getProxyFacing());
+        return aabb == null ? null : aabb.move(getBlockPos());
     }
 
     @Override
@@ -94,6 +161,10 @@ public class ProxyPartBlockEntity extends BlockEntity {
 
         if (controllerPos != null) {
             tag.put("controllerPos", NbtUtils.writeBlockPos(controllerPos));
+        }
+
+        if (proxyStateMachine != null) {
+            tag.put("proxyStateMachine", proxyStateMachine.serializeNBT(provider));
         }
     }
 
@@ -113,6 +184,13 @@ public class ProxyPartBlockEntity extends BlockEntity {
             controllerPos = NbtUtils.readBlockPos(tag, "controllerPos").orElse(BlockPos.ZERO);
         }
 
+        if (tag.contains("proxyStateMachine")) {
+            proxyStateMachine = new StateMachine<>(MachineState.baseBuilder().build());
+            proxyStateMachine.deserializeNBT(provider, tag.getCompound("proxyStateMachine"));
+        } else {
+            proxyStateMachine = null;
+        }
+
     }
 
     @Override
@@ -129,6 +207,10 @@ public class ProxyPartBlockEntity extends BlockEntity {
 
         if (controllerPos != null) {
             tag.put("controllerPos", NbtUtils.writeBlockPos(controllerPos));
+        }
+
+        if (proxyStateMachine != null) {
+            tag.put("proxyStateMachine", proxyStateMachine.serializeNBT(provider));
         }
 
         return tag;

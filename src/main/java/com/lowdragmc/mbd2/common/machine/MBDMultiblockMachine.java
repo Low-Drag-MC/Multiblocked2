@@ -17,6 +17,7 @@ import com.lowdragmc.mbd2.api.machine.IMultiPart;
 import com.lowdragmc.mbd2.api.pattern.BlockPattern;
 import com.lowdragmc.mbd2.api.pattern.MultiblockState;
 import com.lowdragmc.mbd2.api.pattern.MultiblockWorldSavedData;
+import com.lowdragmc.mbd2.api.pattern.predicates.PatternPredicate;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
@@ -27,8 +28,6 @@ import com.lowdragmc.mbd2.common.machine.definition.config.event.*;
 import com.lowdragmc.mbd2.common.trait.IUIProviderTrait;
 import com.lowdragmc.mbd2.config.ConfigHolder;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
-import it.unimi.dsi.fastutil.longs.LongSet;
-import it.unimi.dsi.fastutil.longs.LongSets;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.core.BlockPos;
@@ -146,6 +145,20 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
             setMachineState("base");
         }
         NeoForge.EVENT_BUS.post(new MachineRecipeStatusChangedEvent(this, oldStatus, newStatus).postCustomEvent());
+    }
+
+    @Override
+    public void updateState(String newValue, String oldValue) {
+        super.updateState(newValue, oldValue);
+        var level = getLevel();
+        if (level == null || renderingDisabledPositions.isEmpty()) return;
+        for (var pos : renderingDisabledPositions) {
+            if (level.getBlockEntity(pos) instanceof ProxyPartBlockEntity) {
+                var state = level.getBlockState(pos);
+                level.sendBlockUpdated(pos, state, state, 11);
+                level.getChunkSource().getLightEngine().checkBlock(pos);
+            }
+        }
     }
 
     @Override
@@ -312,19 +325,19 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
         this.isFormedValid = true;
         this.parts.clear();
         this.renderingDisabledPositions.clear();
-        // disable rendering for formed parts
-        LongSet disabled = getMultiblockState().getMatchContext().getOrDefault("renderMask", LongSets.EMPTY_SET);
-        for (var pos : disabled) {
-            var blockPos = BlockPos.of(pos);
+        // replace configured formed blocks with proxy part blocks
+        Map<Long, PatternPredicate.ProxyWhileFormed> proxies = getMultiblockState().getMatchContext().getOrDefault("proxyWhileFormed", Collections.emptyMap());
+        for (var entry : proxies.entrySet()) {
+            var blockPos = BlockPos.of(entry.getKey());
             renderingDisabledPositions.add(blockPos);
             // if it not a part, replace it with the proxy part block
             if (IMultiPart.ofPart(getLevel(), blockPos).isEmpty()) {
                 // do not replace the proxy part block
                 if (getLevel().getBlockEntity(blockPos) instanceof ProxyPartBlockEntity proxyPartBlockEntity) {
                     // setup proxy part block with correct machine
-                    proxyPartBlockEntity.setControllerData(this.getPos());
+                    proxyPartBlockEntity.setProxyData(this.getPos(), entry.getValue().getStateMachine());
                 } else {
-                    ProxyPartBlock.replaceOriginalBlock(this.getPos(), getLevel(), blockPos);
+                    ProxyPartBlock.replaceOriginalBlock(this.getPos(), getLevel(), blockPos, entry.getValue().getStateMachine());
                 }
             }
         }
@@ -371,12 +384,14 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
         // refresh traits
         initCapabilitiesProxy();
         // restore original blocks
-        for (var pos : renderingDisabledPositions) {
-            if (getLevel().getBlockEntity(pos) instanceof ProxyPartBlockEntity proxyPartBlockEntity) {
-                proxyPartBlockEntity.restoreOriginalBlock();
+        getMultiblockState().runInternalStructureInvaliding(() -> {
+            for (var pos : new HashSet<>(renderingDisabledPositions)) {
+                if (getLevel().getBlockEntity(pos) instanceof ProxyPartBlockEntity proxyPartBlockEntity) {
+                    proxyPartBlockEntity.restoreOriginalBlock();
+                }
             }
-        }
-        this.renderingDisabledPositions.clear();
+            this.renderingDisabledPositions.clear();
+        });
         // post event
         NeoForge.EVENT_BUS.post(new MachineStructureInvalidEvent(this).postCustomEvent());
         // back to original block

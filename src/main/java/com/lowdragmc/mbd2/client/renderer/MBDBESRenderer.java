@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.client.renderer;
 
+import com.lowdragmc.mbd2.api.blockentity.ProxyPartBlockEntity;
 import com.lowdragmc.lowdraglib2.client.renderer.ATESRRendererProvider;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
@@ -46,6 +47,12 @@ public class MBDBESRenderer extends ATESRRendererProvider<BlockEntity> {
                 .map(MBDMachine.class::cast);
         if (machine.isPresent()) {
             var value = machine.get().getRenderBoundingBox();
+            if (value != null) {
+                return value;
+            }
+        }
+        if (blockEntity instanceof ProxyPartBlockEntity proxy) {
+            var value = proxy.getProxyRenderBoundingBox();
             if (value != null) {
                 return value;
             }

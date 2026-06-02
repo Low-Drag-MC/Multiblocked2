@@ -150,12 +150,22 @@ public class TraceabilityPredicate {
     }
 
     /**
-     * Set renderMask.
+     * Replace matched blocks with proxy blocks while the multiblock is formed.
      */
-    public TraceabilityPredicate disableRenderFormed() {
-        common.forEach(predicate -> predicate.disableRenderFormed = true);
-        limited.forEach(predicate -> predicate.disableRenderFormed = true);
+    public TraceabilityPredicate proxyWhileFormed(java.util.function.Consumer<PatternPredicate.ProxyWhileFormed> configurator) {
+        common.forEach(predicate -> {
+            predicate.proxyWhileFormed.setEnable(true);
+            configurator.accept(predicate.proxyWhileFormed);
+        });
+        limited.forEach(predicate -> {
+            predicate.proxyWhileFormed.setEnable(true);
+            configurator.accept(predicate.proxyWhileFormed);
+        });
         return this;
+    }
+
+    public TraceabilityPredicate proxyWhileFormed() {
+        return proxyWhileFormed(proxy -> {});
     }
 
     /**

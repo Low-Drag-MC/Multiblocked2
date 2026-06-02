@@ -3,6 +3,7 @@ package com.lowdragmc.mbd2.integration.ldlib;
 import com.lowdragmc.lowdraglib2.syncdata.AccessorRegistries;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.direct.CustomDirectAccessor;
 import com.lowdragmc.mbd2.MBD2;
+import com.lowdragmc.mbd2.api.pattern.predicates.PredicatePartialState;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
@@ -27,6 +28,12 @@ public class MBDSyncedFieldAccessors {
                 .codec(TraitDefinition.CODEC)
                 .streamCodec(TraitDefinition.STREAM_CODEC)
                 .codecMark()
+                .build());
+
+        AccessorRegistries.registerAccessor(CustomDirectAccessor.builder(PredicatePartialState.PropertyRequirement.class)
+                .codec(PredicatePartialState.PropertyRequirement.CODEC)
+                .streamCodec(PredicatePartialState.PropertyRequirement.STREAM_CODEC)
+                .copyMark(data -> new PredicatePartialState.PropertyRequirement(data.property(), data.value()))
                 .build());
 
         if (MBD2.isMekanismLoaded()) {
