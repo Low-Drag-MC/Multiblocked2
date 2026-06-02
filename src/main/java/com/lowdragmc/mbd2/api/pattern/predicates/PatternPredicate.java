@@ -4,8 +4,10 @@ import com.google.common.base.Suppliers;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.IToggleConfigurable;
+import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigList;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.ReadOnlyManaged;
 import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
 import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
@@ -37,6 +39,7 @@ import com.lowdragmc.mbd2.api.pattern.TraceabilityPredicate;
 import com.lowdragmc.mbd2.api.pattern.error.PatternStringError;
 import com.lowdragmc.mbd2.api.pattern.error.SinglePredicateError;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
+import com.lowdragmc.mbd2.common.machine.definition.config.ConfigPartSettings;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleDirection;
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
 import com.lowdragmc.mbd2.common.machine.definition.config.StateMachine;
@@ -46,6 +49,7 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectArrayMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.IntTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
@@ -376,7 +380,47 @@ public class PatternPredicate implements IPersistedSerializable, IConfigurable, 
         @Persisted
         protected boolean enable;
         @Persisted
-        protected StateMachine<MachineState> stateMachine = new StateMachine<>(MachineState.baseBuilder().build());
+        protected StateMachine<MachineState> stateMachine = createDefaultStateMachine();
+        @Configurable(name = "config.block_pattern.predicate.proxyWhileFormed.proxyCapabilities", tips = "config.block_pattern.predicate.proxyWhileFormed.proxyCapabilities.tooltip")
+        @ConfigList(configuratorMethod = "proxyCapabilitiesConfigurator", addDefaultMethod = "defaultProxyCapability")
+        @ReadOnlyManaged(serializeMethod = "proxyCapabilitiesSerialize", deserializeMethod = "proxyCapabilitiesDeserialize")
+        protected final List<ConfigPartSettings.ProxyCapability> proxyCapabilities = new ArrayList<>();
+
+        @OnlyIn(Dist.CLIENT)
+        @SuppressWarnings("unused")
+        protected Configurator proxyCapabilitiesConfigurator(Supplier<ConfigPartSettings.ProxyCapability> getter, java.util.function.Consumer<ConfigPartSettings.ProxyCapability> setter) {
+            var group = new ConfiguratorGroup("", false).hideTitle();
+            getter.get().buildConfigurator(group);
+            return group;
+        }
+
+        @SuppressWarnings("unused")
+        protected ConfigPartSettings.ProxyCapability defaultProxyCapability() {
+            return new ConfigPartSettings.ProxyCapability();
+        }
+
+        @SuppressWarnings("unused")
+        protected IntTag proxyCapabilitiesSerialize(List<ConfigPartSettings.ProxyCapability> list) {
+            return IntTag.valueOf(list.size());
+        }
+
+        @SuppressWarnings("unused")
+        protected List<ConfigPartSettings.ProxyCapability> proxyCapabilitiesDeserialize(IntTag tag) {
+            var list = new ArrayList<ConfigPartSettings.ProxyCapability>(tag.getAsInt());
+            for (int i = 0; i < tag.getAsInt(); i++) {
+                list.add(defaultProxyCapability());
+            }
+            return list;
+        }
+
+        public static StateMachine<MachineState> createDefaultStateMachine() {
+            return new StateMachine<>(MachineState.baseBuilder()
+                    .child("formed", formed -> formed
+                            .child("working", working -> working.child("waiting"))
+                            .child("suspend"))
+                    .child("unformed")
+                    .build());
+        }
 
         @Override
         @OnlyIn(Dist.CLIENT)
@@ -387,7 +431,7 @@ public class PatternPredicate implements IPersistedSerializable, IConfigurable, 
 
         private StateMachine<MachineState> safeStateMachine() {
             if (stateMachine == null) {
-                stateMachine = new StateMachine<>(MachineState.baseBuilder().build());
+                stateMachine = createDefaultStateMachine();
             }
             return stateMachine;
         }

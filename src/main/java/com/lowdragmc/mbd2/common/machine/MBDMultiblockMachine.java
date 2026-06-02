@@ -64,7 +64,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
     @RequireRerender
     protected boolean isFormed;
     @Getter
-    protected Set<BlockPos> renderingDisabledPositions = new HashSet<>();
+    protected Set<BlockPos> proxyWhileFormedPositions = new HashSet<>();
     @Getter
     private final Lock patternLock = new ReentrantLock();
     @Getter
@@ -78,6 +78,11 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
 
     public MBDMultiblockMachine(IMachineBlockEntity machineHolder, MultiblockMachineDefinition definition, Object... args) {
         super(machineHolder, definition, args);
+    }
+
+    @Deprecated
+    public Set<BlockPos> getRenderingDisabledPositions() {
+        return proxyWhileFormedPositions;
     }
 
     /**
@@ -151,11 +156,14 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
     public void updateState(String newValue, String oldValue) {
         super.updateState(newValue, oldValue);
         var level = getLevel();
-        if (level == null || renderingDisabledPositions.isEmpty()) return;
-        for (var pos : renderingDisabledPositions) {
+        if (level == null || proxyWhileFormedPositions.isEmpty()) return;
+        for (var pos : proxyWhileFormedPositions) {
             if (level.getBlockEntity(pos) instanceof ProxyPartBlockEntity) {
                 var state = level.getBlockState(pos);
                 level.sendBlockUpdated(pos, state, state, 11);
+                level.getChunkSource().getLightEngine().checkBlock(pos);
+            } else if (IMultiPart.ofPart(level, pos).orElse(null) instanceof MBDPartMachine part) {
+                part.notifyBlockUpdate();
                 level.getChunkSource().getLightEngine().checkBlock(pos);
             }
         }
@@ -324,20 +332,23 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
         setFormed(true);
         this.isFormedValid = true;
         this.parts.clear();
-        this.renderingDisabledPositions.clear();
+        this.proxyWhileFormedPositions.clear();
         // replace configured formed blocks with proxy part blocks
         Map<Long, PatternPredicate.ProxyWhileFormed> proxies = getMultiblockState().getMatchContext().getOrDefault("proxyWhileFormed", Collections.emptyMap());
         for (var entry : proxies.entrySet()) {
             var blockPos = BlockPos.of(entry.getKey());
-            renderingDisabledPositions.add(blockPos);
-            // if it not a part, replace it with the proxy part block
-            if (IMultiPart.ofPart(getLevel(), blockPos).isEmpty()) {
+            proxyWhileFormedPositions.add(blockPos);
+            var part = IMultiPart.ofPart(getLevel(), blockPos);
+            if (part.orElse(null) instanceof MBDPartMachine mbdPart) {
+                mbdPart.setProxyWhileFormedState(this.getPos(), entry.getValue().getStateMachine(), entry.getValue().getProxyCapabilities());
+            } else if (part.isEmpty()) {
+                // if it is not a part, replace it with the proxy part block
                 // do not replace the proxy part block
                 if (getLevel().getBlockEntity(blockPos) instanceof ProxyPartBlockEntity proxyPartBlockEntity) {
                     // setup proxy part block with correct machine
-                    proxyPartBlockEntity.setProxyData(this.getPos(), entry.getValue().getStateMachine());
+                    proxyPartBlockEntity.setProxyData(this.getPos(), entry.getValue().getStateMachine(), entry.getValue().getProxyCapabilities());
                 } else {
-                    ProxyPartBlock.replaceOriginalBlock(this.getPos(), getLevel(), blockPos, entry.getValue().getStateMachine());
+                    ProxyPartBlock.replaceOriginalBlock(this.getPos(), getLevel(), blockPos, entry.getValue().getStateMachine(), entry.getValue().getProxyCapabilities());
                 }
             }
         }
@@ -385,12 +396,12 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
         initCapabilitiesProxy();
         // restore original blocks
         getMultiblockState().runInternalStructureInvaliding(() -> {
-            for (var pos : new HashSet<>(renderingDisabledPositions)) {
+            for (var pos : new HashSet<>(proxyWhileFormedPositions)) {
                 if (getLevel().getBlockEntity(pos) instanceof ProxyPartBlockEntity proxyPartBlockEntity) {
                     proxyPartBlockEntity.restoreOriginalBlock();
                 }
             }
-            this.renderingDisabledPositions.clear();
+            this.proxyWhileFormedPositions.clear();
         });
         // post event
         NeoForge.EVENT_BUS.post(new MachineStructureInvalidEvent(this).postCustomEvent());

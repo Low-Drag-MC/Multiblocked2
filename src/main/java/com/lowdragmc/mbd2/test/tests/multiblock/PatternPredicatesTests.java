@@ -34,6 +34,8 @@ import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import net.neoforged.neoforge.network.connection.ConnectionType;
 
+import java.util.List;
+
 @GameTestHolder(MBD2.MOD_ID)
 public class PatternPredicatesTests {
     static { @SuppressWarnings("unused") var ignored = PatternPredicatesFixtures.ANY_ID; }
@@ -312,6 +314,20 @@ public class PatternPredicatesTests {
         if (!h.getBlockState(west).is(Blocks.STONE) || !h.getBlockState(east).is(Blocks.STONE)) {
             h.fail("Proxy blocks did not restore their original stone blocks");
             return;
+        }
+        h.succeed();
+    }
+
+    @GameTest(template = "empty_multiblock")
+    @PrefixGameTestTemplate(false)
+    public static void proxy_while_formed_default_state_machine_has_standard_states(GameTestHelper h) {
+        var proxy = new PatternPredicate.ProxyWhileFormed();
+        var stateMachine = proxy.getStateMachine();
+        for (var state : List.of("base", "formed", "unformed", "working", "waiting", "suspend")) {
+            if (!stateMachine.hasState(state)) {
+                h.fail("Default proxy state machine is missing state " + state);
+                return;
+            }
         }
         h.succeed();
     }

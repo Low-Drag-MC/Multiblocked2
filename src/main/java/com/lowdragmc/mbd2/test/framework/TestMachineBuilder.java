@@ -1,6 +1,7 @@
 package com.lowdragmc.mbd2.test.framework;
 
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
+import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.mbd2.api.pattern.BlockPattern;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.common.event.MBDRegistryEvent;
@@ -10,6 +11,7 @@ import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigBlockProperties;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigItemProperties;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigMachineSettings;
+import com.lowdragmc.mbd2.common.machine.definition.config.ConfigPartSettings;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigRecipeLogicSettings;
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
 import com.lowdragmc.mbd2.common.machine.definition.config.StateMachine;
@@ -35,8 +37,10 @@ public class TestMachineBuilder {
     private final ResourceLocation id;
     private final boolean multiblock;
     private final List<TraitDefinition> traits = new ArrayList<>();
+    private final List<Consumer<ConfigPartSettings>> partSettingsTweaks = new ArrayList<>();
     @Nullable private ResourceLocation recipeTypeId;
     @Nullable private Function<MBDMultiblockMachine, BlockPattern> blockPatternFactory;
+    @Nullable private MachineState rootState;
 
     private TestMachineBuilder(ResourceLocation id, boolean multiblock) {
         this.id = id;
@@ -112,6 +116,18 @@ public class TestMachineBuilder {
         return this;
     }
 
+    /**
+     * Mutate the part's {@link ConfigPartSettings} when it's created via the part settings factory.
+     * Only effective for non-multiblock (part) machines, since multiblock definitions don't allow part settings.
+     */
+    public TestMachineBuilder withPartSettings(Consumer<ConfigPartSettings> tweak) {
+        if (multiblock) {
+            throw new IllegalStateException("withPartSettings is only valid for simple(...) (part) machines");
+        }
+        partSettingsTweaks.add(tweak);
+        return this;
+    }
+
     /** Bind this machine to a recipe type (by id). */
     public TestMachineBuilder withRecipeType(ResourceLocation recipeTypeId) {
         this.recipeTypeId = recipeTypeId;
@@ -120,6 +136,11 @@ public class TestMachineBuilder {
 
     public TestMachineBuilder withRecipeType(MBDRecipeType recipeType) {
         return withRecipeType(recipeType.getRegistryName());
+    }
+
+    public TestMachineBuilder withRootState(MachineState rootState) {
+        this.rootState = rootState;
+        return this;
     }
 
     /** For multiblock machines only — supplies the controller's BlockPattern. */
@@ -137,7 +158,8 @@ public class TestMachineBuilder {
 
     /** Build, register on the event, and return the resulting definition. */
     public MBDMachineDefinition register(MBDRegistryEvent.Machine event) {
-        MachineState rootState = StateMachine.createDefault(MachineState::baseBuilder);
+        MachineState rootState = this.rootState != null ? this.rootState :
+                (multiblock ? StateMachine.createMultiblockDefault(MachineState::baseBuilder, () -> IRenderer.EMPTY) : StateMachine.createDefault(MachineState::baseBuilder));
         ConfigRecipeLogicSettings recipeLogic = ConfigRecipeLogicSettings.builder()
                 .recipeType(recipeTypeId != null ? recipeTypeId : MBDRecipeType.DUMMY.getRegistryName())
                 .build();
@@ -164,14 +186,21 @@ public class TestMachineBuilder {
             }
             definition = mb;
         } else {
-            definition = MBDMachineDefinition.builder()
+            var simpleBuilder = MBDMachineDefinition.builder()
                     .id(id)
                     .rootState(rootState)
                     .blockProperties(ConfigBlockProperties.builder().build())
                     .itemProperties(ConfigItemProperties.builder().build())
                     .machineSettings(msFactory)
-                    .recipeLogicSettings(recipeLogic)
-                    .build();
+                    .recipeLogicSettings(recipeLogic);
+            if (!partSettingsTweaks.isEmpty()) {
+                simpleBuilder.partSettings(() -> {
+                    var settings = ConfigPartSettings.builder().build();
+                    for (var tweak : partSettingsTweaks) tweak.accept(settings);
+                    return settings;
+                });
+            }
+            definition = simpleBuilder.build();
         }
         event.register(definition);
         return definition;

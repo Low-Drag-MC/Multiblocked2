@@ -648,7 +648,7 @@ public class MBDMachine implements IMachine, IBlockEntityManaged, BlockUIMenuTyp
      * Get the shape of this block, as well as collision boxes, it's used for interaction and selection.
      */
     public VoxelShape getShape(CollisionContext pContext) {
-        return getDefinition().getState(machineState).getShape(getFrontFacing().orElse(Direction.NORTH));
+        return getMachineState().getShape(getFrontFacing().orElse(Direction.NORTH));
     }
 
     /**

@@ -3,21 +3,27 @@ package com.lowdragmc.mbd2.common.machine;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.RequireRerender;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.UpdateListener;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
 import com.lowdragmc.mbd2.api.capability.recipe.*;
+import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
 import com.lowdragmc.mbd2.api.machine.IMultiPart;
+import com.lowdragmc.mbd2.api.pattern.predicates.PatternPredicate;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigPartSettings;
+import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
+import com.lowdragmc.mbd2.common.machine.definition.config.StateMachine;
 import com.lowdragmc.mbd2.common.trait.IProxyAutoIOTrait;
 import com.lowdragmc.mbd2.common.trait.ITrait;
 import com.lowdragmc.mbd2.common.trait.IUIProviderTrait;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.NotNull;
@@ -33,6 +39,12 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
     @DescSynced
     @RequireRerender
     protected boolean disableRendering = false;
+    @DescSynced
+    @RequireRerender
+    @UpdateListener(methodName = "onProxyWhileFormedDataUpdated")
+    protected CompoundTag proxyWhileFormedData = new CompoundTag();
+    protected final Map<BlockPos, StateMachine<MachineState>> proxyWhileFormedStateMachines = new HashMap<>();
+    protected final Map<BlockPos, List<ConfigPartSettings.ProxyCapability>> predicateProxyCapabilities = new HashMap<>();
 
     public MBDPartMachine(IMachineBlockEntity machineHolder, MBDMachineDefinition definition, Object... args) {
         super(machineHolder, definition, args);
@@ -95,6 +107,9 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
             }
         }
         controllerPositions.clear();
+        proxyWhileFormedStateMachines.clear();
+        predicateProxyCapabilities.clear();
+        proxyWhileFormedData = new CompoundTag();
     }
 
     /**
@@ -103,6 +118,7 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
     @Override
     public void removedFromController(IMultiController controller) {
         controllerPositions.remove(controller.getPos());
+        clearProxyWhileFormedState(controller.getPos());
         checkDisabledRendering();
         if (!isFormed()) {
             setMachineState("base");
@@ -124,16 +140,108 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
      * check if there is any controller ask the part to disable rendering.
      */
     public void checkDisabledRendering() {
-        var result = false;
-        for (var controller : getControllers()) {
-            if (controller instanceof MBDMultiblockMachine machine) {
-                if (machine.getRenderingDisabledPositions().contains(getPos())) {
-                    result = true;
-                    break;
+        disableRendering = false;
+    }
+
+    public void setProxyWhileFormedState(BlockPos controllerPos, StateMachine<MachineState> stateMachine) {
+        setProxyWhileFormedState(controllerPos, stateMachine, Collections.emptyList());
+    }
+
+    public void setProxyWhileFormedState(BlockPos controllerPos, StateMachine<MachineState> stateMachine, List<ConfigPartSettings.ProxyCapability> proxyCapabilities) {
+        proxyWhileFormedStateMachines.put(controllerPos.immutable(),
+                stateMachine == null ? PatternPredicate.ProxyWhileFormed.createDefaultStateMachine() : stateMachine);
+        if (proxyCapabilities.isEmpty()) {
+            predicateProxyCapabilities.remove(controllerPos.immutable());
+        } else {
+            predicateProxyCapabilities.put(controllerPos.immutable(), List.copyOf(proxyCapabilities));
+        }
+        rebuildProxyWhileFormedData();
+        notifyBlockUpdate();
+    }
+
+    public void clearProxyWhileFormedState(BlockPos controllerPos) {
+        boolean removedState = proxyWhileFormedStateMachines.remove(controllerPos) != null;
+        boolean removedCaps = predicateProxyCapabilities.remove(controllerPos) != null;
+        if (removedState || removedCaps) {
+            rebuildProxyWhileFormedData();
+            notifyBlockUpdate();
+        }
+    }
+
+    public List<ConfigPartSettings.ProxyCapability> getPredicateProxyCapabilities(BlockPos controllerPos) {
+        return predicateProxyCapabilities.getOrDefault(controllerPos, Collections.emptyList());
+    }
+
+    @Override
+    public MachineState getMachineState() {
+        loadProxyWhileFormedStateMachinesFromData();
+        var ownState = super.getMachineState();
+        if (proxyWhileFormedStateMachines.isEmpty()) {
+            return ownState;
+        }
+        var level = getLevel();
+        if (level == null) {
+            return ownState;
+        }
+        return proxyWhileFormedStateMachines.entrySet().stream()
+                .sorted(Comparator.comparingLong(entry -> entry.getKey().asLong()))
+                .map(entry -> IMachine.ofMachine(level, entry.getKey())
+                        .filter(MBDMachine.class::isInstance)
+                        .map(MBDMachine.class::cast)
+                        .map(controller -> {
+                            var proxyStateMachine = entry.getValue();
+                            var controllerState = controller.getMachineStateName();
+                            return proxyStateMachine.hasState(controllerState) ? proxyStateMachine.getState(controllerState) : null;
+                        })
+                        .orElse(null))
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(ownState);
+    }
+
+    @SuppressWarnings("unused")
+    protected void onProxyWhileFormedDataUpdated(CompoundTag newValue, CompoundTag oldValue) {
+        loadProxyWhileFormedStateMachinesFromData(newValue);
+        notifyBlockUpdate();
+    }
+
+    private void rebuildProxyWhileFormedData() {
+        var level = getLevel();
+        if (level == null) {
+            return;
+        }
+        var tag = new CompoundTag();
+        var provider = level.registryAccess();
+        for (var entry : proxyWhileFormedStateMachines.entrySet()) {
+            tag.put(Long.toString(entry.getKey().asLong()), entry.getValue().serializeNBT(provider));
+        }
+        proxyWhileFormedData = tag;
+    }
+
+    private void loadProxyWhileFormedStateMachinesFromData() {
+        if (proxyWhileFormedStateMachines.isEmpty() && !proxyWhileFormedData.isEmpty()) {
+            loadProxyWhileFormedStateMachinesFromData(proxyWhileFormedData);
+        }
+    }
+
+    private void loadProxyWhileFormedStateMachinesFromData(CompoundTag data) {
+        var level = getLevel();
+        if (level == null) {
+            return;
+        }
+        proxyWhileFormedStateMachines.clear();
+        var provider = level.registryAccess();
+        for (var key : data.getAllKeys()) {
+            if (data.get(key) instanceof CompoundTag stateMachineTag) {
+                try {
+                    var stateMachine = PatternPredicate.ProxyWhileFormed.createDefaultStateMachine();
+                    stateMachine.deserializeNBT(provider, stateMachineTag);
+                    proxyWhileFormedStateMachines.put(BlockPos.of(Long.parseLong(key)), stateMachine);
+                } catch (NumberFormatException ignored) {
+                    // Ignore malformed synced data from older saves or manual edits.
                 }
             }
         }
-        disableRendering = result;
     }
 
     /**

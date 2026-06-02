@@ -22,4 +22,11 @@ public abstract class TraitDefinitionType<T extends TraitDefinition> {
 
     public void registerCapabilities(MBDMachineDefinition definition, RegisterCapabilitiesEvent event) {
     }
+
+    /**
+     * Called exactly once per {@link TraitDefinitionType} to register capabilities that are not tied to a specific
+     * {@link MBDMachineDefinition} (e.g. capabilities exposed via {@code ProxyPartBlockEntity}). Default no-op.
+     */
+    public void registerGlobalCapabilities(RegisterCapabilitiesEvent event) {
+    }
 }

@@ -163,6 +163,7 @@ public class CommonProxy {
         MBDRegistries.MACHINE_DEFINITIONS.forEach(MBDMachineDefinition::loadFactory);
         MBDRegistries.getFakeMachineDefinition().registerCapabilities(event);
         MBDRegistries.MACHINE_DEFINITIONS.forEach((definition) -> definition.registerCapabilities(event));
+        MBDRegistries.TRAIT_DEFINITION_TYPES.forEach(type -> type.registerGlobalCapabilities(event));
     }
 
     @SubscribeEvent

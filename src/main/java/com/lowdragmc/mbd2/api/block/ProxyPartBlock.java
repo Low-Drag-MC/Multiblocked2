@@ -3,9 +3,11 @@ package com.lowdragmc.mbd2.api.block;
 import com.lowdragmc.lowdraglib2.client.renderer.IBlockRendererProvider;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.mbd2.api.blockentity.ProxyPartBlockEntity;
+import com.lowdragmc.mbd2.api.pattern.predicates.PatternPredicate;
 import com.lowdragmc.mbd2.client.renderer.ProxyPartRenderer;
-import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
+import com.lowdragmc.mbd2.common.machine.definition.config.ConfigPartSettings;
 import com.lowdragmc.mbd2.common.machine.definition.config.StateMachine;
+import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -24,6 +26,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -100,16 +103,20 @@ public class ProxyPartBlock extends Block implements EntityBlock, IBlockRenderer
      * replace the original block and block entity data.
      */
     public static void replaceOriginalBlock(BlockPos controllerPos, Level level, BlockPos pos) {
-        replaceOriginalBlock(controllerPos, level, pos, new StateMachine<>(MachineState.baseBuilder().build()));
+        replaceOriginalBlock(controllerPos, level, pos, PatternPredicate.ProxyWhileFormed.createDefaultStateMachine(), Collections.emptyList());
     }
 
     public static void replaceOriginalBlock(BlockPos controllerPos, Level level, BlockPos pos, StateMachine<MachineState> proxyStateMachine) {
+        replaceOriginalBlock(controllerPos, level, pos, proxyStateMachine, Collections.emptyList());
+    }
+
+    public static void replaceOriginalBlock(BlockPos controllerPos, Level level, BlockPos pos, StateMachine<MachineState> proxyStateMachine, List<ConfigPartSettings.ProxyCapability> proxyCapabilities) {
         var originalState = level.getBlockState(pos);
         var originalBlockEntity = level.getBlockEntity(pos);
         var originalData = Optional.ofNullable(originalBlockEntity).map(be -> be.saveWithoutMetadata(level.registryAccess())).orElse(null);
         level.setBlockAndUpdate(pos, BLOCK.defaultBlockState());
         if (level.getBlockEntity(pos) instanceof ProxyPartBlockEntity blockEntity) {
-            blockEntity.setOriginalData(originalState, originalData, controllerPos, proxyStateMachine);
+            blockEntity.setOriginalData(originalState, originalData, controllerPos, proxyStateMachine, proxyCapabilities);
         }
     }
 
