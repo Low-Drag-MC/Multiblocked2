@@ -150,12 +150,19 @@ class MultiblockAreaView(
 
         fun generatePattern() {
             val level = Minecraft.getInstance().level ?: return
-            multiblockProject.generatePatternFromWorld(level, from, to, controllerOffset, controllerFace)
+            multiblockProject.generatePatternFromWorld(level, from, to, controllerOffset, controllerFace, modularUI) {
+                multiblockProject.multiblockPatternView?.let { target ->
+                    this@MultiblockAreaView.viewContainer?.selectView(target)
+                }
+            }
         }
 
         fun generateShapeInfo() {
             val level = Minecraft.getInstance().level ?: return
             multiblockProject.generateShapeInfoFromWorld(level, from, to, controllerOffset, controllerFace)
+            multiblockProject.multiblockShapeInfoView?.let { target ->
+                this@MultiblockAreaView.viewContainer?.selectView(target)
+            }
         }
 
         private fun clampControllerOffset() {

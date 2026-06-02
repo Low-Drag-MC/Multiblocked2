@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.data.BlockInfo;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -16,6 +17,7 @@ import java.util.Objects;
 @LDLRegister(name = "blockstates", registry = "mbd2:pattern_predicate", group = "predicate")
 @NoArgsConstructor
 public class PredicateStates extends PatternPredicate {
+    @Getter
     @Configurable(name = "config.predicate.blockstates", tips = "config.predicate.blockstates.tooltip", collapse = false)
     protected BlockState[] states = new BlockState[] {Blocks.RAIL.defaultBlockState()};
 

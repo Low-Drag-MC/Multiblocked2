@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.data.BlockInfo;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
@@ -17,6 +18,7 @@ import java.util.Objects;
 @NoArgsConstructor
 public class PredicateFluids extends PatternPredicate {
 
+    @Getter
     @Configurable(name = "config.predicate.fluids", tips = "config.predicate.fluids.tooltip", collapse = false)
     protected Fluid[] fluids = new Fluid[] {Fluids.WATER};
 

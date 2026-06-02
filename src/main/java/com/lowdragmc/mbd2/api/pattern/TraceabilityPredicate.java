@@ -179,6 +179,17 @@ public class TraceabilityPredicate {
         return this;
     }
 
+    /**
+     * Mark every contained {@link PatternPredicate} as rotation-following so its expected
+     * block state auto-rotates to the controller's horizontal facing during pattern checks,
+     * autoBuild placement, and preview rendering.
+     */
+    public TraceabilityPredicate rotateFollowController() {
+        common.forEach(predicate -> predicate.rotateFollowController = true);
+        limited.forEach(predicate -> predicate.rotateFollowController = true);
+        return this;
+    }
+
     public boolean test(MultiblockState blockWorldState) {
         blockWorldState.io = IO.BOTH;
         boolean flag = false;

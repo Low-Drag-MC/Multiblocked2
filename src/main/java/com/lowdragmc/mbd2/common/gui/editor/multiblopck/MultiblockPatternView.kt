@@ -53,6 +53,9 @@ class MultiblockPatternView(
     private var visibleLayer = -1
     private var predicateClipboard: List<IResourcePath>? = null
     private var lastClickTick = 0L
+    // null = auto (based on holder count); true/false = manual override (runtime-only)
+    private var useCacheUserPreference: Boolean? = null
+    private val cacheToggle: Toggle = Toggle()
 
     init {
         addChild(
@@ -79,14 +82,46 @@ class MultiblockPatternView(
                 openMenu(event.x, event.y)
             }
         })
+        setupCacheToggle()
         reloadLayers()
         reloadScene(true, false)
+        applySceneCachePreference()
     }
 
     fun onBlockPlaceholdersChanged() {
         visibleLayer = -1
         reloadLayers()
         reloadScene(true, false)
+        applySceneCachePreference()
+    }
+
+    private fun setupCacheToggle() {
+        cacheToggle.dsl(toggleSpec(
+            Icons.icon(com.lowdragmc.mbd2.MBD2.MOD_ID, "cube_outline"),
+            ColorPattern.CYAN.color,
+            "editor.machine.multiblock.multiblock_pattern.cache_toggle.tips"
+        )).build()
+        cacheToggle.setOnToggleChanged { on ->
+            useCacheUserPreference = on
+            sceneEditor.scene.useCacheBuffer(on)
+        }
+        sceneEditor.topBar.addChild(cacheToggle)
+    }
+
+    private fun applySceneCachePreference() {
+        val total = countTotalHolders()
+        val auto = total > 100
+        val effective = useCacheUserPreference ?: auto
+        sceneEditor.scene.useCacheBuffer(effective)
+        if (cacheToggle.isOn != effective) {
+            cacheToggle.setOn(effective, false)
+        }
+    }
+
+    private fun countTotalHolders(): Int {
+        val holders = multiblockProject.blockPlaceholders
+        if (holders.isEmpty() || holders[0].isEmpty() || holders[0][0].isEmpty()) return 0
+        return holders.size * holders[0].size * holders[0][0].size
     }
 
     private fun reloadLayers() {
@@ -393,6 +428,7 @@ class MultiblockPatternView(
 
     private fun reloadScene(clearSelected: Boolean, keepZoom: Boolean) {
         val previousZoom = sceneEditor.scene.zoom
+        applySceneCachePreference()
         level.clear()
         if (clearSelected) selectedBlocks.clear()
         val holders = mutableMapOf<BlockPos, BlockPlaceholder>()

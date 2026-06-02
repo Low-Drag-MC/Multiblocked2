@@ -54,6 +54,26 @@ public final class MBDTestHelper {
         return getMachine(helper, relPos);
     }
 
+    /**
+     * Place a machine block at {@code relPos} with its rotation-state property forced to
+     * {@code facing}. Useful for tests that exercise pattern checks against multiple
+     * controller facings.
+     */
+    public static MBDMachine placeMachineFacing(GameTestHelper helper, ResourceLocation definitionId, BlockPos relPos, Direction facing) {
+        MBDMachineDefinition def = MBDRegistries.MACHINE_DEFINITIONS.get(definitionId);
+        if (def == null) {
+            helper.fail("Unknown machine definition: " + definitionId);
+            throw new AssertionError();
+        }
+        BlockState state = def.block().defaultBlockState();
+        var property = def.blockProperties().rotationState().property;
+        if (property.isPresent() && property.get().getPossibleValues().contains(facing)) {
+            state = state.setValue(property.get(), facing);
+        }
+        helper.setBlock(relPos, state);
+        return getMachine(helper, relPos);
+    }
+
     /** Lookup the {@link MBDMachine} at {@code relPos}; fails the test if none present. */
     public static MBDMachine getMachine(GameTestHelper helper, BlockPos relPos) {
         BlockEntity be = helper.getBlockEntity(relPos);

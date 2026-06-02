@@ -7,11 +7,16 @@ import com.lowdragmc.mbd2.api.machine.IMultiController;
 import com.lowdragmc.mbd2.api.pattern.error.PatternError;
 import com.lowdragmc.mbd2.api.pattern.error.PatternStringError;
 import com.lowdragmc.mbd2.api.pattern.predicates.PatternPredicate;
+import com.lowdragmc.mbd2.api.pattern.snapshot.PatternSnapshot;
+import com.lowdragmc.mbd2.api.pattern.snapshot.SnapshotEntry;
 import com.lowdragmc.mbd2.api.pattern.util.PatternMatchContext;
+import com.lowdragmc.mbd2.api.pattern.util.RotationHelper;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import net.minecraft.world.level.block.Blocks;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -48,6 +53,17 @@ public class MultiblockState {
     private boolean isInternalStructureForming;
     @Getter
     private boolean isInternalStructureInvaliding;
+    /** Controller facing for the active checkPatternAt pass; null when not inside a pattern check. */
+    @Getter
+    @Nullable
+    private Direction checkingFacing;
+    /** Toggled by {@link PatternPredicate} when its {@code rotateFollowController} flag is set, so
+     *  {@link #getBlockState()} returns the canonical (NORTH-frame) view to predicate lambdas. */
+    private boolean rotationActive;
+    /** When non-null, BlockState / BE-data reads come from this snapshot instead of the live world.
+     *  Set by the async pattern check pass; null on main-thread checks. */
+    @Nullable
+    private PatternSnapshot snapshot;
 
     // persist
     public LongOpenHashSet cache;
@@ -73,6 +89,10 @@ public class MultiblockState {
         this.tileEntityInitialized = false;
         this.predicate = predicate;
         this.error = null;
+        if (snapshot != null) {
+            // Snapshot mode is authoritative; tracked positions were verified loaded at capture time.
+            return true;
+        }
         if (!world.isLoaded(posIn)) {
             error = UNLOAD_ERROR;
             return false;
@@ -81,6 +101,9 @@ public class MultiblockState {
     }
 
     public IMultiController getController() {
+        if (snapshot != null) {
+            return lastController = snapshot.getOwner();
+        }
         if (world.isLoaded(controllerPos)) {
             var machineOptional = IMachine.ofMachine(world, controllerPos);
             if (machineOptional.isPresent() && machineOptional.get() instanceof IMultiController controller) {
@@ -105,17 +128,38 @@ public class MultiblockState {
 
     public BlockState getBlockState() {
         if (this.blockState == null) {
-            this.blockState = this.world.getBlockState(this.pos);
+            this.blockState = readBlockStateRaw();
         }
-        if (this.blockState == null) {
-            System.out.printf("error");
+        if (rotationActive && checkingFacing != null && checkingFacing != Direction.NORTH) {
+            return this.blockState.rotate(RotationHelper.inverse(RotationHelper.rotationFromFacing(checkingFacing)));
         }
         return this.blockState;
     }
 
+    /** Raw world state, ignoring any active rotation context. Used by inner condition checks
+     *  (NBT, slot names) that should always see the on-disk state. */
+    public BlockState getRawBlockState() {
+        if (this.blockState == null) {
+            this.blockState = readBlockStateRaw();
+        }
+        return this.blockState;
+    }
+
+    private BlockState readBlockStateRaw() {
+        if (snapshot != null) {
+            SnapshotEntry entry = snapshot.getEntry(this.pos);
+            return entry != null ? entry.state() : Blocks.AIR.defaultBlockState();
+        }
+        return this.world.getBlockState(this.pos);
+    }
+
     @Nullable
     public BlockEntity getTileEntity() {
-        if (!getBlockState().hasBlockEntity()) {
+        if (snapshot != null) {
+            // Snapshot/async mode: live BE access is not safe. Use getTileEntityData() instead.
+            return null;
+        }
+        if (!getRawBlockState().hasBlockEntity()) {
             return null;
         }
         if (this.tileEntity == null && !this.tileEntityInitialized) {
@@ -126,18 +170,57 @@ public class MultiblockState {
         return this.tileEntity;
     }
 
-    public BlockPos getPos() {
-        return this.pos.immutable();
+    /** @return the saved NBT of the BE at the current pos, or null if there is no BE. */
+    @Nullable
+    public CompoundTag getTileEntityData() {
+        if (snapshot != null) {
+            SnapshotEntry entry = snapshot.getEntry(this.pos);
+            return entry == null ? null : entry.beData();
+        }
+        var te = getTileEntity();
+        return te == null ? null : te.saveWithFullMetadata(world.registryAccess());
     }
 
-    public BlockState getOffsetState(Direction face) {
-        if (pos instanceof BlockPos.MutableBlockPos) {
-            ((BlockPos.MutableBlockPos) pos).move(face);
-            BlockState blockState = world.getBlockState(pos);
-            ((BlockPos.MutableBlockPos) pos).move(face.getOpposite());
-            return blockState;
+    /** @return the saved NBT of the controller's BE, or null if the controller is absent. */
+    @Nullable
+    public CompoundTag getControllerTileEntityData() {
+        if (snapshot != null) {
+            SnapshotEntry entry = snapshot.getEntry(controllerPos);
+            return entry == null ? null : entry.beData();
         }
-        return world.getBlockState(this.pos.relative(face));
+        var controller = getController();
+        if (controller == null) return null;
+        var holder = controller.getHolder();
+        return holder == null ? null : holder.saveWithFullMetadata(world.registryAccess());
+    }
+
+    public void setCheckingFacing(@Nullable Direction facing) {
+        this.checkingFacing = facing;
+    }
+
+    /** Bind this state to a snapshot. While set, all world reads route through the snapshot. */
+    public void setSnapshot(@Nullable PatternSnapshot snapshot) {
+        this.snapshot = snapshot;
+    }
+
+    @Nullable
+    public PatternSnapshot getSnapshot() {
+        return snapshot;
+    }
+
+    /** Push the rotation-active flag; returns the previous value so the caller can restore. */
+    public boolean pushRotationActive(boolean active) {
+        boolean prev = this.rotationActive;
+        this.rotationActive = active;
+        return prev;
+    }
+
+    public void popRotationActive(boolean previous) {
+        this.rotationActive = previous;
+    }
+
+    public BlockPos getPos() {
+        return this.pos.immutable();
     }
 
     public void addPosCache(BlockPos pos) {

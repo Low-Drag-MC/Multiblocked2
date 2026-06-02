@@ -193,6 +193,7 @@ public interface IMachine extends IRecipeCapabilityHolder {
      * You should call it in yourselves {@link BlockEntity#clearRemoved()}.
      */
     default void onLoad() {
+        getRecipeLogic().valid();
     }
 
     //////////////////////////////////////

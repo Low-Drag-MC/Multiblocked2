@@ -6,6 +6,16 @@ import com.lowdragmc.lowdraglib2.editor.resource.BuiltinResourceProvider
 import com.lowdragmc.lowdraglib2.editor.resource.ColorsResource
 import com.lowdragmc.lowdraglib2.editor.resource.FileResourceProvider
 import com.lowdragmc.lowdraglib2.editor.resource.IResourcePath
+import com.lowdragmc.lowdraglib2.gui.ColorPattern
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUI
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement
+import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Label
+import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView
+import net.minecraft.network.chat.Component
+import net.minecraft.world.level.block.state.BlockState
 import com.lowdragmc.lowdraglib2.editor.resource.IRendererResource
 import com.lowdragmc.lowdraglib2.editor.resource.Resources
 import com.lowdragmc.lowdraglib2.editor.resource.TexturesResource
@@ -16,8 +26,9 @@ import com.lowdragmc.lowdraglib2.utils.TagBuilder
 import com.lowdragmc.mbd2.MBD2
 import com.lowdragmc.mbd2.api.pattern.MultiblockShapeInfo
 import com.lowdragmc.mbd2.api.pattern.predicates.PatternPredicate
-import com.lowdragmc.mbd2.api.pattern.predicates.PredicateBlocks
 import com.lowdragmc.mbd2.api.pattern.predicates.PredicateFluids
+import com.lowdragmc.mbd2.api.pattern.predicates.PredicateStates
+import com.lowdragmc.mbd2.api.pattern.util.RotationHelper
 import com.lowdragmc.mbd2.common.gui.editor.multiblopck.MultiblockAreaView
 import com.lowdragmc.mbd2.common.gui.editor.multiblopck.MultiblockPatternView
 import com.lowdragmc.mbd2.common.gui.editor.multiblopck.MultiblockShapeInfoView
@@ -234,45 +245,149 @@ open class MultiblockMachineProject : MachineProject() {
         }
     }
 
-    fun ensureGlobalPredicate(name: String, predicate: PatternPredicate): IResourcePath {
-        val providers = PredicateResource.INSTANCE.resourceInstance.builtinProviders[FileResourceProvider.TYPE].orEmpty()
-        @Suppress("UNCHECKED_CAST")
-        val provider = providers.filterIsInstance<FileResourceProvider<*>>()
-            .firstOrNull { it.name == "global" } as? FileResourceProvider<PatternPredicate>
-            ?: return builtinPath("any")
-        val path = provider.createSubPath(name)
-        if (!provider.hasResource(path)) {
-            provider.addResource(path, predicate)
-        }
-        return path
-    }
+    fun generatePatternFromWorld(
+        level: Level,
+        from: BlockPos,
+        to: BlockPos,
+        controllerOffset: BlockPos,
+        controllerFace: Direction,
+        modularUI: ModularUI? = null,
+        onComplete: () -> Unit = {}
+    ) {
+        val layout = canonicalize(from, to, controllerOffset, controllerFace)
+        val rotInv = RotationHelper.inverse(RotationHelper.rotationFromFacing(controllerFace))
 
-    fun generatePatternFromWorld(level: Level, from: BlockPos, to: BlockPos, controllerOffset: BlockPos, controllerFace: Direction) {
-        val minX = minOf(from.x, to.x)
-        val minY = minOf(from.y, to.y)
-        val minZ = minOf(from.z, to.z)
-        val maxX = maxOf(from.x, to.x)
-        val maxY = maxOf(from.y, to.y)
-        val maxZ = maxOf(from.z, to.z)
-        val controllerPos = BlockPos(minX + controllerOffset.x, minY + controllerOffset.y, minZ + controllerOffset.z)
-        val placeholders = Array(maxX - minX + 1) { x ->
-            Array(maxY - minY + 1) { y ->
-                Array(maxZ - minZ + 1) { z ->
-                    val pos = BlockPos(minX + x, minY + y, minZ + z)
-                    if (pos == controllerPos) {
-                        BlockPlaceholder.controller(builtinPath("any")).setFacing(controllerFace)
-                    } else {
-                        BlockPlaceholder.create(predicatePathForWorldBlock(level, pos))
+        // Pass A: walk the canonical grid, classify cells into requests.
+        // Group by unique BlockState / Fluid so we add at most one predicate per distinct key.
+        val cellRequests = Array(layout.sizeX) {
+            Array(layout.sizeY) {
+                arrayOfNulls<CellRequest>(layout.sizeZ)
+            }
+        }
+        val stateKeys = LinkedHashMap<BlockState, PendingStateRequest>()
+        val fluidKeys = LinkedHashMap<net.minecraft.world.level.material.Fluid, PendingFluidRequest>()
+        for (x in 0 until layout.sizeX) {
+            for (y in 0 until layout.sizeY) {
+                for (z in 0 until layout.sizeZ) {
+                    if (x == layout.controllerIdx.x && y == layout.controllerIdx.y && z == layout.controllerIdx.z) {
+                        cellRequests[x][y][z] = CellRequest.Controller
+                        continue
                     }
+                    val worldPos = layout.gridToWorld[x][y][z]
+                    if (worldPos == null) {
+                        cellRequests[x][y][z] = CellRequest.Any
+                        continue
+                    }
+                    val worldState = level.getBlockState(worldPos)
+                    val state = worldState.rotate(rotInv)
+                    val block = state.block
+                    if (state.isAir || block == Blocks.AIR) {
+                        cellRequests[x][y][z] = CellRequest.Any
+                        continue
+                    }
+                    if (block is LiquidBlock) {
+                        val fluid = block.fluid.source
+                        val pending = fluidKeys.getOrPut(fluid) {
+                            val id = BuiltInRegistries.FLUID.getKey(fluid)
+                            PendingFluidRequest(
+                                fluid = fluid,
+                                defaultName = "fluid_${id.namespace}_${id.path.replace('/', '_')}",
+                                predicateFactory = { PredicateFluids(fluid) }
+                            )
+                        }
+                        cellRequests[x][y][z] = CellRequest.OfFluid(pending)
+                        continue
+                    }
+                    val pending = stateKeys.getOrPut(state) {
+                        val id = BuiltInRegistries.BLOCK.getKey(block)
+                        val baseName = "states_${id.namespace}_${id.path.replace('/', '_')}"
+                        val suffix = stateSuffix(state)
+                        PendingStateRequest(
+                            state = state,
+                            defaultName = baseName + suffix,
+                            predicateFactory = { PredicateStates(state) }
+                        )
+                    }
+                    cellRequests[x][y][z] = CellRequest.OfState(pending)
                 }
             }
         }
-        blockPlaceholders = placeholders
-        multiblockPatternView?.onBlockPlaceholdersChanged()
-        multiblockShapeInfoView?.reloadShapeInfos()
+
+        val pendings: List<PendingRequest> = stateKeys.values + fluidKeys.values
+        val commit: (FileResourceProvider<PatternPredicate>) -> Unit = { provider ->
+            // Pass B: dedup against the chosen provider, materialize predicates, then build the grid.
+            val resolved = HashMap<PendingRequest, IResourcePath>()
+            for (pending in pendings) {
+                resolved[pending] = resolvePending(provider, pending)
+            }
+            val placeholders = Array(layout.sizeX) { x ->
+                Array(layout.sizeY) { y ->
+                    Array(layout.sizeZ) { z ->
+                        when (val req = cellRequests[x][y][z]) {
+                            CellRequest.Controller ->
+                                BlockPlaceholder.controller(builtinPath("any")).setFacing(Direction.NORTH)
+                            CellRequest.Any, null ->
+                                BlockPlaceholder.create(builtinPath("any"))
+                            is CellRequest.OfState ->
+                                BlockPlaceholder.create(resolved[req.pending] ?: builtinPath("any"))
+                            is CellRequest.OfFluid ->
+                                BlockPlaceholder.create(resolved[req.pending] ?: builtinPath("any"))
+                        }
+                    }
+                }
+            }
+            blockPlaceholders = placeholders
+            multiblockPatternView?.onBlockPlaceholdersChanged()
+            multiblockShapeInfoView?.reloadShapeInfos()
+            onComplete()
+        }
+
+        // If no predicates need to be added, skip the dialog and commit immediately
+        // (uses the default provider — first available — purely as a dedup target; no writes happen
+        // when pendings is empty).
+        if (pendings.isEmpty()) {
+            val defaultProvider = listFilePredicateProviders().firstOrNull()
+            if (defaultProvider != null) {
+                commit(defaultProvider)
+            } else {
+                // No provider available — commit with builtin "any" for everything.
+                val placeholders = Array(layout.sizeX) { x ->
+                    Array(layout.sizeY) { y ->
+                        Array(layout.sizeZ) { z ->
+                            if (cellRequests[x][y][z] == CellRequest.Controller) {
+                                BlockPlaceholder.controller(builtinPath("any")).setFacing(Direction.NORTH)
+                            } else {
+                                BlockPlaceholder.create(builtinPath("any"))
+                            }
+                        }
+                    }
+                }
+                blockPlaceholders = placeholders
+                multiblockPatternView?.onBlockPlaceholdersChanged()
+                multiblockShapeInfoView?.reloadShapeInfos()
+                onComplete()
+            }
+            return
+        }
+
+        showProviderPickerDialog(modularUI, pendings.size, commit)
     }
 
-    fun generateShapeInfoFromWorld(level: Level, from: BlockPos, to: BlockPos, controllerOffset: BlockPos, controllerFace: Direction) {
+    /**
+     * Builds a controller-NORTH canonical grid mapping for a captured world region.
+     *
+     * Pattern data is stored as if the controller faces NORTH; matching/preview code
+     * (see [RotationHelper], [BlockPattern], [MultiblockState]) rotates it onto the
+     * controller's actual orientation. Capturing a region where the in-world controller
+     * faces something other than NORTH must therefore be rotated back into the canonical
+     * frame, or stairs/logs/etc. end up 180° off when previewed or auto-built.
+     */
+    private fun canonicalize(
+        from: BlockPos,
+        to: BlockPos,
+        controllerOffset: BlockPos,
+        controllerFace: Direction
+    ): CanonicalLayout {
         val minX = minOf(from.x, to.x)
         val minY = minOf(from.y, to.y)
         val minZ = minOf(from.z, to.z)
@@ -280,40 +395,233 @@ open class MultiblockMachineProject : MachineProject() {
         val maxY = maxOf(from.y, to.y)
         val maxZ = maxOf(from.z, to.z)
         val controllerPos = BlockPos(minX + controllerOffset.x, minY + controllerOffset.y, minZ + controllerOffset.z)
-        val blocks = Array(maxX - minX + 1) { x ->
-            Array(maxY - minY + 1) { y ->
-                Array(maxZ - minZ + 1) { z ->
-                    val pos = BlockPos(minX + x, minY + y, minZ + z)
-                    if (pos == controllerPos) {
-                        ControllerBlockInfo(controllerFace)
+        val rotInv = RotationHelper.inverse(RotationHelper.rotationFromFacing(controllerFace))
+
+        val canonicalByWorld = LinkedHashMap<BlockPos, BlockPos>()
+        var minCx = Int.MAX_VALUE
+        var minCy = Int.MAX_VALUE
+        var minCz = Int.MAX_VALUE
+        var maxCx = Int.MIN_VALUE
+        var maxCy = Int.MIN_VALUE
+        var maxCz = Int.MIN_VALUE
+        for (x in 0..maxX - minX) {
+            for (y in 0..maxY - minY) {
+                for (z in 0..maxZ - minZ) {
+                    val worldPos = BlockPos(minX + x, minY + y, minZ + z)
+                    val relWorld = worldPos.subtract(controllerPos)
+                    val relCanonical = relWorld.rotate(rotInv)
+                    canonicalByWorld[worldPos] = relCanonical
+                    if (relCanonical.x < minCx) minCx = relCanonical.x
+                    if (relCanonical.y < minCy) minCy = relCanonical.y
+                    if (relCanonical.z < minCz) minCz = relCanonical.z
+                    if (relCanonical.x > maxCx) maxCx = relCanonical.x
+                    if (relCanonical.y > maxCy) maxCy = relCanonical.y
+                    if (relCanonical.z > maxCz) maxCz = relCanonical.z
+                }
+            }
+        }
+        val sizeX = maxCx - minCx + 1
+        val sizeY = maxCy - minCy + 1
+        val sizeZ = maxCz - minCz + 1
+        val gridToWorld: Array<Array<Array<BlockPos?>>> = Array(sizeX) {
+            Array(sizeY) { arrayOfNulls(sizeZ) }
+        }
+        for ((worldPos, rel) in canonicalByWorld) {
+            gridToWorld[rel.x - minCx][rel.y - minCy][rel.z - minCz] = worldPos
+        }
+        return CanonicalLayout(
+            sizeX = sizeX,
+            sizeY = sizeY,
+            sizeZ = sizeZ,
+            controllerIdx = BlockPos(-minCx, -minCy, -minCz),
+            gridToWorld = gridToWorld
+        )
+    }
+
+    private data class CanonicalLayout(
+        val sizeX: Int,
+        val sizeY: Int,
+        val sizeZ: Int,
+        val controllerIdx: BlockPos,
+        val gridToWorld: Array<Array<Array<BlockPos?>>>
+    )
+
+    private fun resolvePending(
+        provider: FileResourceProvider<PatternPredicate>,
+        pending: PendingRequest
+    ): IResourcePath {
+        // Try to reuse an existing resource in the provider that matches the same state/fluid.
+        for (entry in provider) {
+            val resource = entry.value
+            when (pending) {
+                is PendingStateRequest -> if (resource is PredicateStates && resource.states.any { it == pending.state }) {
+                    return entry.key
+                }
+                is PendingFluidRequest -> if (resource is PredicateFluids && resource.fluids.any { it == pending.fluid }) {
+                    return entry.key
+                }
+            }
+        }
+        // No match — create a fresh resource with a unique name.
+        var name = pending.defaultName
+        var path = provider.createSubPath(name)
+        var attempt = 2
+        while (provider.hasResource(path)) {
+            name = "${pending.defaultName}_$attempt"
+            path = provider.createSubPath(name)
+            attempt++
+        }
+        provider.addResource(path, pending.predicateFactory())
+        return path
+    }
+
+    private fun showProviderPickerDialog(
+        modularUI: ModularUI?,
+        pendingCount: Int,
+        onConfirm: (FileResourceProvider<PatternPredicate>) -> Unit
+    ) {
+        val providers = listFilePredicateProviders()
+        if (providers.isEmpty()) return
+        val default = providers.firstOrNull { it.name == "global" } ?: providers.first()
+
+        if (modularUI == null) {
+            // No UI to host the dialog — fall back to the default provider so generation still
+            // completes (matches the legacy "always global" behavior).
+            onConfirm(default)
+            return
+        }
+
+        val selected = arrayOf<FileResourceProvider<PatternPredicate>>(default)
+        val rowButtons = HashMap<FileResourceProvider<PatternPredicate>, Button>()
+
+        fun refreshRowStyles() {
+            for ((provider, button) in rowButtons) {
+                val isSelected = provider === selected[0]
+                button.buttonStyle { style ->
+                    style.baseTexture(if (isSelected) ColorPattern.T_GREEN.rectTexture() else IGuiTexture.EMPTY)
+                    style.hoverTexture(ColorPattern.T_GRAY.rectTexture())
+                    style.pressedTexture(ColorPattern.T_GRAY.rectTexture())
+                }
+            }
+        }
+
+        val list = UIElement()
+        list.layout {
+            it.widthPercent(100f)
+                .flexDirection(dev.vfyjxf.taffy.style.FlexDirection.COLUMN)
+                .gapAll(1f)
+        }
+        for (provider in providers) {
+            val row = Button()
+                .setText(Component.literal(provider.name))
+                .setOnClick { _ ->
+                    selected[0] = provider
+                    refreshRowStyles()
+                }
+            row.layout {
+                it.widthPercent(100f)
+                    .height(16f)
+                    .paddingHorizontal(4f)
+                    .alignItems(dev.vfyjxf.taffy.style.AlignItems.CENTER)
+            }
+            rowButtons[provider] = row
+            list.addChild(row)
+        }
+        refreshRowStyles()
+
+        val scroller = ScrollerView()
+        scroller.layout { it.widthPercent(100f).height(100f) }
+        scroller.addScrollViewChild(list)
+
+        val summary = Label()
+            .setText(Component.translatable(
+                "editor.machine.multiblock.generate_pattern.summary",
+                pendingCount
+            ))
+            .textStyle { it.textAlignHorizontal(Horizontal.CENTER) }
+            .layout { it.widthPercent(100f) }
+
+        val dialog = Dialog()
+            .setTitle("editor.machine.multiblock.generate_pattern.pick_provider")
+            .addContent(summary)
+            .addContent(scroller)
+        dialog.addButton(Button()
+            .setText("ldlib.gui.tips.confirm")
+            .setOnClick { _ ->
+                val chosen = selected[0]
+                dialog.close()
+                onConfirm(chosen)
+            }
+            .addClass("__confirm-button__"))
+        dialog.addButton(Button()
+            .setText("ldlib.gui.tips.cancel")
+            .setOnClick { _ -> dialog.close() }
+            .addClass("__cancel-button__"))
+        dialog.show(modularUI)
+    }
+
+    private fun listFilePredicateProviders(): List<FileResourceProvider<PatternPredicate>> {
+        val instance = PredicateResource.INSTANCE.resourceInstance
+        val builtin = instance.builtinProviders[FileResourceProvider.TYPE].orEmpty()
+        val custom = instance.customProviders[FileResourceProvider.TYPE].orEmpty()
+        @Suppress("UNCHECKED_CAST")
+        return (builtin + custom).filterIsInstance<FileResourceProvider<*>>() as List<FileResourceProvider<PatternPredicate>>
+    }
+
+    private fun stateSuffix(state: BlockState): String {
+        val values = state.values
+        if (values.isEmpty()) return ""
+        val canonical = values.entries
+            .sortedBy { it.key.name }
+            .joinToString(",") { (k, v) -> "${k.name}=$v" }
+        return "_" + Integer.toHexString(canonical.hashCode() and 0xFFFFFF)
+    }
+
+    private sealed interface CellRequest {
+        data object Controller : CellRequest
+        data object Any : CellRequest
+        data class OfState(val pending: PendingStateRequest) : CellRequest
+        data class OfFluid(val pending: PendingFluidRequest) : CellRequest
+    }
+
+    private sealed interface PendingRequest {
+        val defaultName: String
+        val predicateFactory: () -> PatternPredicate
+    }
+
+    private data class PendingStateRequest(
+        val state: BlockState,
+        override val defaultName: String,
+        override val predicateFactory: () -> PatternPredicate
+    ) : PendingRequest
+
+    private data class PendingFluidRequest(
+        val fluid: net.minecraft.world.level.material.Fluid,
+        override val defaultName: String,
+        override val predicateFactory: () -> PatternPredicate
+    ) : PendingRequest
+
+    fun generateShapeInfoFromWorld(level: Level, from: BlockPos, to: BlockPos, controllerOffset: BlockPos, controllerFace: Direction) {
+        val layout = canonicalize(from, to, controllerOffset, controllerFace)
+        val rotInv = RotationHelper.inverse(RotationHelper.rotationFromFacing(controllerFace))
+        val blocks = Array(layout.sizeX) { x ->
+            Array(layout.sizeY) { y ->
+                Array(layout.sizeZ) { z ->
+                    if (x == layout.controllerIdx.x && y == layout.controllerIdx.y && z == layout.controllerIdx.z) {
+                        ControllerBlockInfo(Direction.NORTH)
                     } else {
-                        BlockInfo.fromBlockState(level.getBlockState(pos))
+                        val worldPos = layout.gridToWorld[x][y][z]
+                        if (worldPos == null) {
+                            BlockInfo.fromBlockState(Blocks.AIR.defaultBlockState())
+                        } else {
+                            BlockInfo.fromBlockState(level.getBlockState(worldPos).rotate(rotInv))
+                        }
                     }
                 }
             }
         }
         multiblockShapeInfos.add(MultiblockShapeInfo(blocks))
         multiblockShapeInfoView?.reloadShapeInfos()
-    }
-
-    private fun predicatePathForWorldBlock(level: Level, pos: BlockPos): IResourcePath {
-        val state = level.getBlockState(pos)
-        if (state.isAir) {
-            return builtinPath("any")
-        }
-        val block = state.block
-        if (block is LiquidBlock) {
-            val fluid = block.fluid.source
-            val id = BuiltInRegistries.FLUID.getKey(fluid)
-            val name = "fluid_${id.namespace}_${id.path.replace('/', '_')}"
-            return ensureGlobalPredicate(name, PredicateFluids(fluid))
-        }
-        if (block == Blocks.AIR) {
-            return builtinPath("any")
-        }
-        val id = BuiltInRegistries.BLOCK.getKey(block)
-        val name = "block_${id.namespace}_${id.path.replace('/', '_')}"
-        return ensureGlobalPredicate(name, PredicateBlocks(block))
     }
 
     private fun createDefaultAisleRepetitions(axis: Direction.Axis): Array<IntArray> {

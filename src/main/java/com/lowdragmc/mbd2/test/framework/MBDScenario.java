@@ -1,10 +1,14 @@
 package com.lowdragmc.mbd2.test.framework;
 
+import com.lowdragmc.mbd2.api.machine.IMultiController;
+import com.lowdragmc.mbd2.api.pattern.MultiblockWorldSavedData;
+import com.lowdragmc.mbd2.api.pattern.snapshot.PatternSnapshot;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.ItemStack;
@@ -54,6 +58,13 @@ public class MBDScenario {
 
     public MBDScenario placeMachine(ResourceLocation definitionId, BlockPos relPos) {
         this.current = MBDTestHelper.placeMachine(helper, definitionId, relPos);
+        this.currentRelPos = relPos;
+        return this;
+    }
+
+    /** Place a machine forced to a specific horizontal facing. */
+    public MBDScenario placeMachineFacing(ResourceLocation definitionId, BlockPos relPos, Direction facing) {
+        this.current = MBDTestHelper.placeMachineFacing(helper, definitionId, relPos, facing);
         this.currentRelPos = relPos;
         return this;
     }
@@ -154,6 +165,97 @@ public class MBDScenario {
     public MBDScenario runTicks(int ticks) {
         MBDTestHelper.runTicks(helper, ticks);
         return this;
+    }
+
+    /**
+     * Drive {@code ticks} main-thread snapshot captures on the current level's MWSD. Each tick
+     * drains up to {@link PatternSnapshot#CAPTURES_PER_TICK} pending positions per snapshot.
+     * Use this when you want deterministic capture progress without relying on
+     * {@code LevelTickEvent} firing inside the test harness.
+     */
+    public MBDScenario tickSnapshotCapture(int ticks) {
+        var mwsd = mwsd();
+        for (int i = 0; i < ticks; i++) {
+            mwsd.tickSnapshots();
+        }
+        return this;
+    }
+
+    /** Run one snapshot-backed async check pass against the current controller, inline on
+     *  the current thread. Returns this; assertions follow. */
+    public MBDScenario runAsyncSnapshotCheck() {
+        requireCurrent();
+        if (current instanceof IMultiController controller) {
+            mwsd().triggerInlineCheck(controller);
+        }
+        return this;
+    }
+
+    /**
+     * Drive the real async pipeline: dispatch pending checks to the worker thread, wait for
+     * it to finish, then drain the server's main-thread task queue (which is where the worker
+     * posts the form-on-main step). Repeats {@code rounds} times — each level tick can both
+     * dispatch new work and the worker can submit form requests back, so two rounds typically
+     * suffice for the full handshake.
+     */
+    public MBDScenario tickAsyncPipeline(int rounds) {
+        var mwsd = mwsd();
+        var server = ((ServerLevel) helper.getLevel()).getServer();
+        for (int i = 0; i < rounds; i++) {
+            mwsd.tickSnapshots();
+            mwsd.dispatchPendingChecks();
+            mwsd.awaitAsyncIdleForTests(2_000);
+            // Drain main-thread task queue so the worker's server.execute callbacks run.
+            while (server.pollTask()) { /* spin */ }
+        }
+        return this;
+    }
+
+    public MBDScenario assertSnapshotFullyBuilt() {
+        var snapshot = snapshot();
+        if (snapshot == null) {
+            helper.fail("No snapshot for current controller");
+        } else if (!snapshot.isFullyBuilt()) {
+            helper.fail("Snapshot not fully built: " + snapshot.capturedSize() + "/" + snapshot.trackedSize());
+        }
+        return this;
+    }
+
+    public MBDScenario assertSnapshotEntriesAtLeast(int minCount) {
+        var snapshot = snapshot();
+        if (snapshot == null) {
+            helper.fail("No snapshot for current controller");
+            return this;
+        }
+        if (snapshot.capturedSize() < minCount) {
+            helper.fail("Expected >= " + minCount + " captured entries; got " + snapshot.capturedSize());
+        }
+        return this;
+    }
+
+    public MBDScenario assertSnapshotPending(int expectedPending) {
+        var snapshot = snapshot();
+        if (snapshot == null) {
+            helper.fail("No snapshot for current controller");
+            return this;
+        }
+        if (snapshot.pendingSize() != expectedPending) {
+            helper.fail("Expected " + expectedPending + " pending; got " + snapshot.pendingSize());
+        }
+        return this;
+    }
+
+    @Nullable
+    private PatternSnapshot snapshot() {
+        requireCurrent();
+        if (current instanceof IMultiController controller) {
+            return mwsd().getSnapshot(controller);
+        }
+        return null;
+    }
+
+    private MultiblockWorldSavedData mwsd() {
+        return MultiblockWorldSavedData.getOrCreate((ServerLevel) helper.getLevel());
     }
 
     /**

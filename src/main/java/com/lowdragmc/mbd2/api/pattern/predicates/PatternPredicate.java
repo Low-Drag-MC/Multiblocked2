@@ -104,6 +104,10 @@ public class PatternPredicate implements IPersistedSerializable, IConfigurable, 
     public CompoundTag controllerNbt = new CompoundTag();
     @Configurable(name = "config.block_pattern.predicate.controllerFront", tips = "config.block_pattern.predicate.controllerFront.tooltip", subConfigurable = true)
     public ToggleDirection controllerFront = new ToggleDirection();
+    @Configurable(name = "config.block_pattern.predicate.rotateFollowController", tips = {
+            "config.block_pattern.predicate.rotateFollowController.tooltip.0",
+            "config.block_pattern.predicate.rotateFollowController.tooltip.1"})
+    public boolean rotateFollowController = true;
     @Configurable(name = "config.block_pattern.predicate.tooltips", tips = "config.block_pattern.predicate.tooltips.tooltip", collapse = false)
     public final List<Component> toolTips = new ArrayList<>();
     @Configurable(name = "config.block_pattern.predicate.allowOpenUI", tips = { "config.block_pattern.predicate.allowOpenUI.tooltip.0", "config.block_pattern.predicate.allowOpenUI.tooltip.1" })
@@ -176,18 +180,32 @@ public class PatternPredicate implements IPersistedSerializable, IConfigurable, 
 
     public boolean test(MultiblockState blockWorldState) {
         makeSureBuilt();
-        if (isProxyBlock(blockWorldState) || predicate.test(blockWorldState)) {
+        if (isProxyBlock(blockWorldState)) {
             return checkInnerConditions(blockWorldState);
         }
-        return false;
+        boolean previousRotation = blockWorldState.pushRotationActive(rotateFollowController);
+        boolean matched;
+        try {
+            matched = predicate.test(blockWorldState);
+        } finally {
+            blockWorldState.popRotationActive(previousRotation);
+        }
+        return matched && checkInnerConditions(blockWorldState);
     }
 
     public boolean testLimited(MultiblockState blockWorldState) {
         makeSureBuilt();
-        if (isProxyBlock(blockWorldState) || testGlobal(blockWorldState) && testLayer(blockWorldState)) {
+        if (isProxyBlock(blockWorldState)) {
             return checkInnerConditions(blockWorldState);
         }
-        return false;
+        boolean previousRotation = blockWorldState.pushRotationActive(rotateFollowController);
+        boolean matched;
+        try {
+            matched = testGlobal(blockWorldState) && testLayer(blockWorldState);
+        } finally {
+            blockWorldState.popRotationActive(previousRotation);
+        }
+        return matched && checkInnerConditions(blockWorldState);
     }
 
     private boolean checkInnerConditions(MultiblockState blockWorldState) {
@@ -199,9 +217,8 @@ public class PatternPredicate implements IPersistedSerializable, IConfigurable, 
             }
         }
         if (!nbt.isEmpty() && !blockWorldState.world.isClientSide) {
-            var te = blockWorldState.getTileEntity();
-            if (te != null) {
-                var tag = te.saveWithFullMetadata(blockWorldState.world.registryAccess());
+            var tag = blockWorldState.getTileEntityData();
+            if (tag != null) {
                 var merged = tag.copy().merge(nbt);
                 if (!tag.equals(merged)) {
                     blockWorldState.setError(new PatternStringError("The NBT fails to match"));
@@ -210,9 +227,8 @@ public class PatternPredicate implements IPersistedSerializable, IConfigurable, 
             }
         }
         if (!controllerNbt.isEmpty() && !blockWorldState.world.isClientSide) {
-            var te = blockWorldState.getController().getHolder();
-            if (te != null) {
-                var tag = te.saveWithFullMetadata(blockWorldState.world.registryAccess());
+            var tag = blockWorldState.getControllerTileEntityData();
+            if (tag != null) {
                 var merged = tag.copy().merge(controllerNbt);
                 if (!tag.equals(merged)) {
                     blockWorldState.setError(new PatternStringError("The Controller NBT fails to match"));

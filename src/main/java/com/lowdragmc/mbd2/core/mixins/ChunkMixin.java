@@ -25,15 +25,16 @@ public class ChunkMixin {
             ordinal = 1))
     private void mbd2$setBlockState(BlockPos pos, BlockState state, boolean isMoving, CallbackInfoReturnable<BlockState> cir) {
         MinecraftServer server = level.getServer();
-        if (server != null) {
-            if (level instanceof ServerLevel serverLevel) {
-                for (var structure : MultiblockWorldSavedData.getOrCreate(serverLevel).getControllerInPos(pos)) {
-                    if (structure.isPosInCache(pos)) {
-                        server.executeBlocking(() -> structure.onBlockStateChanged(pos, state));
-                    }
-                }
+        if (server == null || !(level instanceof ServerLevel serverLevel)) return;
+        var mwsd = MultiblockWorldSavedData.getOrCreate(serverLevel);
+        // Existing structural-invalidation path: notify formed multiblocks whose cache contains this pos.
+        for (var structure : mwsd.getControllerInPos(pos)) {
+            if (structure.isPosInCache(pos)) {
+                server.executeBlocking(() -> structure.onBlockStateChanged(pos, state));
             }
         }
+        // Snapshot-tracking path: mark every snapshot covering this pos for re-capture.
+        mwsd.markPositionDirty(pos);
     }
 
 }

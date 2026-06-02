@@ -79,6 +79,21 @@ public interface IMultiController extends IMachine {
     BlockPattern getPattern();
 
     /**
+     * Notify the multiblock system that this controller's pattern has changed — call this
+     * after mutating a dynamic {@link BlockPattern} (different instance OR same instance with
+     * new {@code aisleRepetitions} / cell predicates).
+     * <p>
+     * The async snapshot will be rebuilt from the current pattern on the next server tick, and
+     * the next pattern check will run against the fresh tracked-positions set. No-op on the
+     * client side or when the controller isn't tracked yet.
+     */
+    default void notifyPatternDirty() {
+        if (getLevel() instanceof ServerLevel serverLevel) {
+            MultiblockWorldSavedData.getOrCreate(serverLevel).notifyPatternDirty(this);
+        }
+    }
+
+    /**
      * Whether Multiblock Formed.
      * <br>
      * NOTE: even machine is formed, it doesn't mean to workable!

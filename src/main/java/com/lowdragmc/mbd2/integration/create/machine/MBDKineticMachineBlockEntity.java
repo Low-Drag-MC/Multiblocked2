@@ -167,7 +167,7 @@ public class MBDKineticMachineBlockEntity extends KineticBlockEntity implements 
         if (level != null && !level.isClientSide && hasNetwork()) {
             var network = getOrCreateNetwork();
             notifyStressCapacityChange(calculateAddedStressCapacity());
-            network.updateStressFor(this, calculateStressApplied());
+            notifyStressChange(calculateStressApplied());
             network.updateStress();
         }
     }
@@ -195,6 +195,10 @@ public class MBDKineticMachineBlockEntity extends KineticBlockEntity implements 
 
     protected void notifyStressCapacityChange(float capacity) {
         getOrCreateNetwork().updateCapacityFor(this, capacity);
+    }
+
+    protected void notifyStressChange(float stress) {
+        getOrCreateNetwork().updateStressFor(this, stress);
     }
 
     @Override
@@ -243,7 +247,7 @@ public class MBDKineticMachineBlockEntity extends KineticBlockEntity implements 
         if (hasNetwork() && targetSpeed != 0.0F) {
             KineticNetwork network = getOrCreateNetwork();
             notifyStressCapacityChange(calculateAddedStressCapacity());
-            getOrCreateNetwork().updateStressFor(this, calculateStressApplied());
+            notifyStressChange(calculateStressApplied());
             network.updateStress();
         }
         onSpeedChanged(prevSpeed);
@@ -251,10 +255,11 @@ public class MBDKineticMachineBlockEntity extends KineticBlockEntity implements 
     }
 
     public void applyNewSpeed(float prevSpeed, float newSpeed) {
+        if (isChunkUnloaded()) return;
         if (newSpeed == 0.0F) {
             if (hasSource()) {
                 notifyStressCapacityChange(0.0F);
-                getOrCreateNetwork().updateStressFor(this, calculateStressApplied());
+                notifyStressChange(calculateStressApplied());
             } else {
                 detachKinetics();
                 setSpeed(0.0F);

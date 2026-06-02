@@ -665,6 +665,9 @@
     "config.block_pattern.predicate.disableRenderFormed.tooltip": "多方块结构成型时是否禁用方块渲染。",
     "config.block_pattern.predicate.controllerFront": "控制器正面",
     "config.block_pattern.predicate.controllerFront.tooltip": "如果启用，将匹配控制器的正面。",
+    "config.block_pattern.predicate.rotateFollowController": "跟随控制器旋转",
+    "config.block_pattern.predicate.rotateFollowController.tooltip.0": "自动将期望的方块状态旋转以跟随控制器的水平朝向。",
+    "config.block_pattern.predicate.rotateFollowController.tooltip.1": "结构以朝北为基准；旋转映射：北→无、东→顺时针90°、南→180°、西→逆时针90°。",
     "config.block_pattern.predicate.io": "输入输出",
     "config.block_pattern.predicate.io.tooltip": "方块的输入输出。",
     "config.block_pattern.predicate.slotName": "槽位名称",
@@ -803,6 +806,10 @@
     "editor.machine.multiblock.area_panel.generatePattern.button.1.title": "生成形状信息",
     "editor.machine.multiblock.area_panel.generatePattern.button.1.info": "成功！请检查形状信息标签页。",
     "editor.machine.multiblock.area_panel.generatePattern.tips": "基于区域生成样式 / 形状信息。",
+
+    "editor.machine.multiblock.generate_pattern.pick_provider": "选择 Predicate 存放位置",
+    "editor.machine.multiblock.generate_pattern.summary": "将会新增 %s 个 Predicate。",
+    "editor.machine.multiblock.multiblock_pattern.cache_toggle.tips": "渲染缓存：加快大型多方块的渲染；启用后将禁用动态 Predicate 动画。",
 
     "editor.machine.multiblock.multiblock_pattern.layer": "样式层",
     "editor.machine.multiblock.multiblock_pattern.layer_direction": "层方向",

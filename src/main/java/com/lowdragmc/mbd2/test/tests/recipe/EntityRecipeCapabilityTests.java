@@ -37,8 +37,10 @@ public class EntityRecipeCapabilityTests {
                 .placeMachine(EntityRecipeCapabilityFixtures.MACHINE_ID, POS)
                 .insertItem(0, new ItemStack(Items.COBBLESTONE))
                 .runTicks(60);
-        // Chicken spawns somewhere inside the OUT-trait AABB around the machine.
-        h.assertEntityPresent(EntityType.CHICKEN, POS, 3.0);
+        // Chicken spawns at a random Vec3 inside the OUT-trait AABB (default [-1,-1,-1, 2,2,2]
+        // relative). Worst-case diagonal distance from the machine pos is sqrt(12) ≈ 3.46, so we
+        // need at least 4.0 here — 3.0 caused a flake when the chicken landed in a far corner.
+        h.assertEntityPresent(EntityType.CHICKEN, POS, 4.0);
         scenario.succeed();
     }
 

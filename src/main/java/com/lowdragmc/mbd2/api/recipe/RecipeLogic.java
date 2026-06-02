@@ -83,6 +83,8 @@ public class RecipeLogic implements IBlockEntityManaged {
     protected long totalContinuousRunningTime;
     @Nullable
     protected CompletableFuture<List<RecipeHolder<MBDRecipe>>> completableFuture = null;
+    @Getter
+    protected boolean isValid = false;
 
     public RecipeLogic(IMachine machine) {
         this.machine = machine;
@@ -127,6 +129,9 @@ public class RecipeLogic implements IBlockEntityManaged {
     }
 
     public void serverTick() {
+        if (!isValid) {
+            return;
+        }
         if (!isSuspend()) {
             if (!isIdle() && lastRecipe != null) {
                 if (progress < duration) {
@@ -531,8 +536,17 @@ public class RecipeLogic implements IBlockEntityManaged {
     }
 
     public void inValid() {
-        if (lastRecipe != null && isWorking()) {
-            lastRecipe.postWorking(machine);
+        if (isValid) {
+            if (lastRecipe != null && isWorking()) {
+                lastRecipe.postWorking(machine);
+            }
+            isValid = false;
+        }
+    }
+
+    public void valid() {
+        if (!isValid) {
+            isValid = true;
         }
     }
 

@@ -10,7 +10,9 @@ import com.lowdragmc.mbd2.api.pattern.error.SinglePredicateError;
 import com.lowdragmc.mbd2.api.pattern.predicates.PatternPredicate;
 import com.lowdragmc.mbd2.api.pattern.util.PatternMatchContext;
 import com.lowdragmc.mbd2.api.pattern.util.RelativeDirection;
+import com.lowdragmc.mbd2.api.pattern.util.RotationHelper;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -92,6 +94,7 @@ public class BlockPattern {
         boolean findFirstAisle = false;
         int minZ = -centerOffset[4];
         worldState.clean();
+        worldState.setCheckingFacing(facing);
         PatternMatchContext matchContext = worldState.getMatchContext();
         Map<PatternPredicate, Integer> globalCount = worldState.getGlobalCount();
         Map<PatternPredicate, Integer> layerCount = worldState.getLayerCount();
@@ -192,6 +195,15 @@ public class BlockPattern {
         Map<PatternPredicate, Integer> cacheLayer = worldState.getLayerCount();
         Map<BlockPos, Object> blocks = new HashMap<>();
         blocks.put(centerPos, controller);
+        // Fluids are placed AFTER every solid block in the pattern is settled. If we placed
+        // them inline, source fluids could flow into adjacent still-empty pattern cells (or
+        // through air-predicate cells) and corrupt subsequent placements. The deferred queue
+        // runs after the {@code blocks.forEach} fixup pass below, so by the time fluids land,
+        // every other cell is final.
+        List<Runnable> deferredFluidPlacements = new ArrayList<>();
+        // Bucket slots claimed for deferred placement; the inventory-scan loop skips them so
+        // the same bucket isn't picked twice.
+        Set<Integer> reservedSlots = new HashSet<>();
         for (int c = 0, z = minZ++, r; c < this.fingerLength; c++) {
             for (r = 0; r < aisleRepetitions[c][0]; r++) {
                 cacheLayer.clear();
@@ -208,6 +220,7 @@ public class BlockPattern {
                         } else {
                             boolean find = false;
                             BlockInfo[] infos = new BlockInfo[0];
+                            PatternPredicate chosenPredicate = null;
                             for (PatternPredicate limit : predicate.limited) {
                                 if (limit.controllerFront.isEnable() && limit.controllerFront.getValue() != facing) continue;
                                 if (limit.minLayerCount > 0) {
@@ -222,6 +235,7 @@ public class BlockPattern {
                                     continue;
                                 }
                                 infos = limit.getCandidates();
+                                chosenPredicate = limit;
                                 find = true;
                                 break;
                             }
@@ -240,6 +254,7 @@ public class BlockPattern {
                                         continue;
                                     }
                                     infos = limit.getCandidates();
+                                    chosenPredicate = limit;
                                     find = true;
                                     break;
                                 }
@@ -262,10 +277,12 @@ public class BlockPattern {
                                         cacheGlobal.put(limit, 1);
                                     }
                                     infos = ArrayUtils.addAll(infos, limit.getCandidates());
+                                    if (chosenPredicate == null) chosenPredicate = limit;
                                 }
                                 for (PatternPredicate common : predicate.common) {
                                     if (common.controllerFront.isEnable() && common.controllerFront.getValue() != facing) continue;
                                     infos = ArrayUtils.addAll(infos, common.getCandidates());
+                                    if (chosenPredicate == null) chosenPredicate = common;
                                 }
                             }
 
@@ -283,6 +300,7 @@ public class BlockPattern {
                             int foundSlot = -1;
                             if (!player.isCreative()) {
                                 for (int i = 0; i < player.getInventory().items.size(); i++) {
+                                    if (reservedSlots.contains(i)) continue;
                                     ItemStack itemStack = player.getInventory().items.get(i);
                                     if (candidates.stream().anyMatch(candidate -> ItemStack.isSameItemSameComponents(candidate, itemStack)) && !itemStack.isEmpty() && (itemStack.getItem() instanceof BlockItem || itemStack.getItem() instanceof BucketItem)) {
                                         found = itemStack.copy();
@@ -307,18 +325,47 @@ public class BlockPattern {
                                 if (placed && foundSlot >= 0) {
                                     player.getInventory().getItem(foundSlot).shrink(1);
                                 }
-                            } else if (found.getItem() instanceof BucketItem itemBucket) {
-                                if (itemBucket.emptyContents(player, world, pos, null, null)) {
-                                    itemBucket.checkExtraContent(player, world, found, pos);
-                                    if (player instanceof ServerPlayer serverPlayer) {
-                                        CriteriaTriggers.PLACED_BLOCK.trigger(serverPlayer, pos, found);
-                                    }
-                                    player.awardStat(Stats.ITEM_USED.get(itemBucket));
-                                    var emptyBucket = BucketItem.getEmptySuccessItem(found, player);
-                                    if (foundSlot >= 0 && !player.isCreative()) {
-                                        player.getInventory().setItem(foundSlot, emptyBucket);
+                                // rotateFollowController: BlockItem.place picks orientation from
+                                // player look direction, which isn't what we want. Force the
+                                // canonical (NORTH-authored) state and rotate it to the controller's
+                                // facing — including NORTH itself, since the placed state may
+                                // disagree with the canonical (e.g. mock player puts stairs SOUTH).
+                                if (placed && chosenPredicate != null && chosenPredicate.rotateFollowController) {
+                                    BlockState placedState = world.getBlockState(pos);
+                                    BlockInfo[] sourceInfos = chosenPredicate.getCandidates();
+                                    if (sourceInfos != null) {
+                                        for (BlockInfo info : sourceInfos) {
+                                            BlockState canonical = info.getBlockState();
+                                            if (canonical != null && canonical.is(placedState.getBlock())) {
+                                                world.setBlock(pos, canonical.rotate(RotationHelper.rotationFromFacing(facing)), 3);
+                                                break;
+                                            }
+                                        }
                                     }
                                 }
+                            } else if (found.getItem() instanceof BucketItem itemBucket) {
+                                // Defer fluid placement until after all solid blocks land.
+                                final BlockPos fluidPos = pos;
+                                final ItemStack bucketStack = found.copy();
+                                final int slot = foundSlot;
+                                if (slot >= 0) reservedSlots.add(slot);
+                                deferredFluidPlacements.add(() -> {
+                                    if (itemBucket.emptyContents(player, world, fluidPos, null, null)) {
+                                        itemBucket.checkExtraContent(player, world, bucketStack, fluidPos);
+                                        if (player instanceof ServerPlayer serverPlayer) {
+                                            CriteriaTriggers.PLACED_BLOCK.trigger(serverPlayer, fluidPos, bucketStack);
+                                        }
+                                        player.awardStat(Stats.ITEM_USED.get(itemBucket));
+                                        var emptyBucket = BucketItem.getEmptySuccessItem(bucketStack, player);
+                                        if (slot >= 0 && !player.isCreative()) {
+                                            player.getInventory().setItem(slot, emptyBucket);
+                                        }
+                                    }
+                                });
+                                // Don't touch the blocks map for fluid cells — the fixup pass
+                                // would re-stamp air over the cell before our deferred placement
+                                // runs. The deferred runnable is the sole authority for this pos.
+                                continue;
                             }
 
                             var machineOptional = IMachine.ofMachine(world, pos);
@@ -342,6 +389,10 @@ public class BlockPattern {
                 }
             }
         });
+        // Now that every solid cell is final, place fluids. Anything they flow into is by
+        // construction outside this pattern (or an explicit air cell, which is the author's
+        // intent anyway).
+        deferredFluidPlacements.forEach(Runnable::run);
     }
 
     public BlockInfo[][][] getPreview(int[] repetition) {
@@ -495,6 +546,62 @@ public class BlockPattern {
         return result;
     }
 
+
+    /**
+     * Walk the pattern at its maximum-repetition extent and collect every world position whose
+     * predicate is not {@link TraceabilityPredicate#isAny()}. Used by the snapshot system to size
+     * its bbox.
+     */
+    public LongOpenHashSet collectTrackedPositions(BlockPos centerPos, Direction facing) {
+        LongOpenHashSet out = new LongOpenHashSet();
+        int minZ = -centerOffset[4];
+        for (int c = 0, z = minZ; c < this.fingerLength; c++) {
+            int reps = aisleRepetitions[c][1];
+            for (int r = 0; r < reps; r++) {
+                for (int b = 0, y = -centerOffset[1]; b < this.thumbLength; b++, y++) {
+                    for (int a = 0, x = -centerOffset[0]; a < this.palmLength; a++, x++) {
+                        TraceabilityPredicate predicate = this.blockMatches[c][b][a];
+                        if (predicate == null || predicate.isAny()) continue;
+                        BlockPos pos = setActualRelativeOffset(x, y, z, facing)
+                                .offset(centerPos.getX(), centerPos.getY(), centerPos.getZ());
+                        out.add(pos.asLong());
+                    }
+                }
+                z++;
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Like {@link #collectTrackedPositions} but only includes positions whose predicate set
+     * contains at least one predicate with a non-empty {@code nbt} config — i.e. positions
+     * where the snapshot must also capture the BE's NBT.
+     */
+    public LongOpenHashSet collectNbtSensitivePositions(BlockPos centerPos, Direction facing) {
+        LongOpenHashSet out = new LongOpenHashSet();
+        int minZ = -centerOffset[4];
+        for (int c = 0, z = minZ; c < this.fingerLength; c++) {
+            int reps = aisleRepetitions[c][1];
+            for (int r = 0; r < reps; r++) {
+                for (int b = 0, y = -centerOffset[1]; b < this.thumbLength; b++, y++) {
+                    for (int a = 0, x = -centerOffset[0]; a < this.palmLength; a++, x++) {
+                        TraceabilityPredicate predicate = this.blockMatches[c][b][a];
+                        if (predicate == null || predicate.isAny()) continue;
+                        boolean sensitive = false;
+                        for (var p : predicate.common) if (p.nbt != null && !p.nbt.isEmpty()) { sensitive = true; break; }
+                        if (!sensitive) for (var p : predicate.limited) if (p.nbt != null && !p.nbt.isEmpty()) { sensitive = true; break; }
+                        if (!sensitive) continue;
+                        BlockPos pos = setActualRelativeOffset(x, y, z, facing)
+                                .offset(centerPos.getX(), centerPos.getY(), centerPos.getZ());
+                        out.add(pos.asLong());
+                    }
+                }
+                z++;
+            }
+        }
+        return out;
+    }
 
     private BlockPos setActualRelativeOffset(int x, int y, int z, Direction facing) {
         int[] c0 = new int[]{x, y, z}, c1 = new int[3];

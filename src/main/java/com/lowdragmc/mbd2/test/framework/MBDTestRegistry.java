@@ -38,6 +38,8 @@ public class MBDTestRegistry {
         register(new com.lowdragmc.mbd2.test.tests.multiblock.PatternPredicatesFixtures());
         register(new com.lowdragmc.mbd2.test.tests.multiblock.PatternRepetitionFixtures());
         register(new com.lowdragmc.mbd2.test.tests.multiblock.MultiblockWithPartsFixtures());
+        register(new com.lowdragmc.mbd2.test.tests.multiblock.PatternRotationFixtures());
+        register(new com.lowdragmc.mbd2.test.tests.multiblock.PatternSnapshotFixtures());
         if (net.neoforged.fml.ModList.get().isLoaded("mekanism")) {
             register(new com.lowdragmc.mbd2.test.tests.trait.ChemicalTankTraitFixtures());
             register(new com.lowdragmc.mbd2.test.tests.trait.MekHeatTraitFixtures());

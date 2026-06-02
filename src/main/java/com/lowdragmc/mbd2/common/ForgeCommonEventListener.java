@@ -19,6 +19,7 @@ import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
+import net.neoforged.neoforge.event.tick.LevelTickEvent;
 
 /**
  * @author KilaBash
@@ -103,6 +104,15 @@ public class ForgeCommonEventListener {
             }
         }
 
+    }
+
+    @SubscribeEvent
+    public static void onLevelTick(LevelTickEvent.Post event) {
+        if (event.getLevel() instanceof ServerLevel serverLevel) {
+            var mwsd = MultiblockWorldSavedData.getOrCreate(serverLevel);
+            mwsd.tickSnapshots();
+            mwsd.dispatchPendingChecks();
+        }
     }
 
     @SubscribeEvent

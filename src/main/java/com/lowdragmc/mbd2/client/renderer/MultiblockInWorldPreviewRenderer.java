@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.client.utils.RenderUtils;
 import com.lowdragmc.lowdraglib2.utils.data.BlockInfo;
 import com.lowdragmc.lowdraglib2.utils.virtuallevel.TrackedDummyWorld;
 import com.lowdragmc.mbd2.api.block.RotationState;
+import com.lowdragmc.mbd2.api.pattern.util.RotationHelper;
 import com.lowdragmc.mbd2.common.block.MBDMachineBlock;
 import com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine;
 import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
@@ -47,6 +48,9 @@ import static net.minecraft.world.level.block.RenderShape.INVISIBLE;
 
 @OnlyIn(Dist.CLIENT)
 public class MultiblockInWorldPreviewRenderer {
+
+    /** Each preview block is drawn at this fraction of its cell, centered. */
+    private static final float PREVIEW_SCALE = 0.8f;
 
     private enum CacheState {
         UNUSED,
@@ -203,6 +207,14 @@ public class MultiblockInWorldPreviewRenderer {
                                 blockState = blockState.setValue(property, face);
                             }
                         }
+                    } else {
+                        // Pattern data is authored canonical (controller facing NORTH); rotate the
+                        // raw vanilla state onto the world controller's actual facing. MBD blocks
+                        // are handled above via their explicit rotation property.
+                        var stateRotation = RotationHelper.rotationFromFacing(front);
+                        if (stateRotation != Rotation.NONE) {
+                            blockState = blockState.rotate(stateRotation);
+                        }
                     }
 
                     BlockPos realPos = pos.offset(offset);
@@ -218,15 +230,7 @@ public class MultiblockInWorldPreviewRenderer {
     }
 
     private static BlockPos rotateForFacing(BlockPos offset, Direction facing) {
-        // Maps a pattern offset (authored facing NORTH) into the given world facing.
-        // Rotation.CLOCKWISE_90 sends a (0,0,-1) NORTH offset to (1,0,0) = EAST, matching
-        // Direction#getClockWise. Keep this consistent with the block-state face rewrite below.
-        return switch (facing) {
-            case SOUTH -> offset.rotate(Rotation.CLOCKWISE_180);
-            case EAST -> offset.rotate(Rotation.CLOCKWISE_90);
-            case WEST -> offset.rotate(Rotation.COUNTERCLOCKWISE_90);
-            default -> offset;
-        };
+        return RotationHelper.rotateOffset(offset, facing);
     }
 
     public static void onClientTick() {
@@ -275,7 +279,9 @@ public class MultiblockInWorldPreviewRenderer {
                         BlockEntity tile = LEVEL.getBlockEntity(pos);
                         if (tile != null) {
                             poseStack.pushPose();
-                            poseStack.translate(pos.getX(), pos.getY(), pos.getZ());
+                            poseStack.translate(pos.getX() + 0.5f, pos.getY() + 0.5f, pos.getZ() + 0.5f);
+                            poseStack.scale(PREVIEW_SCALE, PREVIEW_SCALE, PREVIEW_SCALE);
+                            poseStack.translate(-0.5f, -0.5f, -0.5f);
                             BlockEntityRenderer<BlockEntity> ber = Minecraft.getInstance()
                                     .getBlockEntityRenderDispatcher().getRenderer(tile);
                             if (ber != null) {
@@ -403,7 +409,9 @@ public class MultiblockInWorldPreviewRenderer {
                 modelData = model.getModelData(level, pos, state, modelData);
                 if (model.getRenderTypes(state, randomSource, modelData).contains(layer)) {
                     poseStack.pushPose();
-                    poseStack.translate(pos.getX(), pos.getY(), pos.getZ());
+                    poseStack.translate(pos.getX() + 0.5f, pos.getY() + 0.5f, pos.getZ() + 0.5f);
+                    poseStack.scale(PREVIEW_SCALE, PREVIEW_SCALE, PREVIEW_SCALE);
+                    poseStack.translate(-0.5f, -0.5f, -0.5f);
                     brd.renderBatched(state, pos, level, poseStack, wrapperBuffer, false, randomSource, modelData, layer);
                     poseStack.popPose();
                 }
