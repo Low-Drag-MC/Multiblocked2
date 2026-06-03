@@ -32,7 +32,7 @@ public class MBDRecipeSerializer implements RecipeSerializer<MBDRecipe> {
     public static final Codec<Map<RecipeCapability<?>, List<Content>>> CONTENTS_CODEC = Codec.dispatchedMap(
             RecipeCapability.CODEC,
             cap -> Content.codec(cap).listOf()
-    );
+    ).orElseGet(Map::of);
 
     public static final MapCodec<MBDRecipe> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                     ResourceLocation.CODEC.fieldOf("type").forGetter(val -> val.recipeType == null ? MBD2.id("dummy") : val.recipeType.getRegistryName()),

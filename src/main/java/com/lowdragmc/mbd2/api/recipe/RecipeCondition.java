@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.SpriteTexture;
 import com.lowdragmc.lowdraglib2.registry.ILDLRegister;
 import com.lowdragmc.lowdraglib2.utils.PersistedParser;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
+import com.lowdragmc.mbd2.common.recipe.DayTimeCondition;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import lombok.AllArgsConstructor;
@@ -38,7 +39,7 @@ public abstract class RecipeCondition implements IConfigurable, ILDLRegister<Rec
         return MBDRegistries.RECIPE_CONDITIONS.optionalCodec().dispatch(ILDLRegister::getRegistryHolderOptional,
                 optional -> optional.map(holder ->
                                 MapCodec.assumeMapUnsafe(PersistedParser.createCodec(holder.value())))
-                        .orElseThrow());
+                        .orElseThrow()).orElseGet(DayTimeCondition::new);
     }
 
     public static final StreamCodec<RegistryFriendlyByteBuf, RecipeCondition> STREAM_CODEC =

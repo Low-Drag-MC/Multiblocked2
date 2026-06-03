@@ -55,10 +55,11 @@ public abstract class TraitDefinition implements IConfigurable, IPersistedSerial
 
     public final static Codec<TraitDefinition> CODEC = createCodec();
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
+    @SuppressWarnings({"unchecked"})
     static Codec<TraitDefinition> createCodec() {
-        return MBDRegistries.TRAIT_DEFINITION_TYPES.codec().dispatch(TraitDefinition::type,
-                type -> MapCodec.assumeMapUnsafe(PersistedParser.createCodec(type::createDefinition)));
+        return ((Codec<TraitDefinition>) MBDRegistries.TRAIT_DEFINITION_TYPES.codec().dispatch(TraitDefinition::type,
+                type -> MapCodec.assumeMapUnsafe(PersistedParser.createCodec(type::createDefinition))))
+                .orElseGet(() -> EMPTY);
     }
 
     public final static StreamCodec<RegistryFriendlyByteBuf, TraitDefinition> STREAM_CODEC = createStreamCodec();
