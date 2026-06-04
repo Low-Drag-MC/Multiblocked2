@@ -1,403 +1,413 @@
-//package com.lowdragmc.mbd2.integration.ae2.trait;
-//
-//import appeng.api.behaviors.GenericInternalInventory;
-//import appeng.api.networking.IGridNodeListener;
-//import appeng.api.networking.IInWorldGridNodeHost;
-//import appeng.api.stacks.AEFluidKey;
-//import appeng.api.stacks.AEItemKey;
-//import appeng.api.stacks.AEKeyType;
-//import appeng.api.storage.MEStorage;
-//import appeng.api.util.AECableType;
-//import appeng.capabilities.Capabilities;
-//import appeng.helpers.InterfaceLogicHost;
-//import appeng.me.helpers.IGridConnectedBlockEntity;
-//import com.lowdragmc.lowdraglib2.misc.FluidStorage;
-//import com.lowdragmc.lowdraglib2.misc.ItemStackTransfer;
-//import com.lowdragmc.lowdraglib2.misc.ItemTransferList;
-//import com.lowdragmc.lowdraglib2.side.fluid.FluidStack;
-//import com.lowdragmc.lowdraglib2.side.fluid.IFluidTransfer;
-//import com.lowdragmc.lowdraglib2.side.fluid.forge.FluidHelperImpl;
-//import com.lowdragmc.lowdraglib2.side.item.IItemTransfer;
-//import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
-//import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
-//import com.lowdragmc.mbd2.api.capability.recipe.IO;
-//import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
-//import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
-//import com.lowdragmc.mbd2.api.recipe.ingredient.FluidIngredient;
-//import com.lowdragmc.mbd2.common.capability.recipe.FluidRecipeCapability;
-//import com.lowdragmc.mbd2.common.capability.recipe.ItemRecipeCapability;
-//import com.lowdragmc.mbd2.common.machine.MBDMachine;
-//import com.lowdragmc.mbd2.common.trait.ICapabilityProviderTrait;
-//import com.lowdragmc.mbd2.common.trait.RecipeHandlerTrait;
-//import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
-//import lombok.Getter;
-//import lombok.Setter;
-//import net.minecraft.core.Direction;
-//import net.minecraft.server.TickTask;
-//import net.minecraft.server.level.ServerLevel;
-//import net.minecraft.world.entity.Entity;
-//import net.minecraft.world.item.ItemStack;
-//import net.minecraft.world.item.crafting.Ingredient;
-//import net.minecraft.world.level.block.Block;
-//import net.minecraft.world.level.block.entity.BlockEntity;
-//import net.minecraftforge.common.capabilities.Capability;
-//import org.jetbrains.annotations.Nullable;
-//
-//import java.util.*;
-//
-//@Getter
-//@Setter
-//public class MEInterfaceTrait extends SimpleCapabilityTrait implements IGridConnectedBlockEntity, InterfaceLogicHost {
-//    public static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(MEInterfaceTrait.class);
-//    @Override
-//    public ManagedFieldHolder getFieldHolder() { return MANAGED_FIELD_HOLDER; }
-//    private final Random random = new Random();
-//
-//    @Persisted
-//    private final SerializableManagedGridNode mainNode;
-//    @Persisted
-//    private final SerializableInterfaceLogic interfaceLogic;
-//    private final ItemRecipeHandler itemRecipeHandler = new ItemRecipeHandler();
-//    private final FluidRecipeHandler fluidRecipeHandler = new FluidRecipeHandler();
-//
-//    private final ManagedGridNodeCap managedGridNodeCap = new ManagedGridNodeCap();
-//    private final GenericInternalInventoryCap genericInternalInventoryCap = new GenericInternalInventoryCap();
-//    private final StorageCap storageCap = new StorageCap();
-//
-//    public MEInterfaceTrait(MBDMachine machine, MEInterfaceTraitDefinition definition) {
-//        super(machine, definition);
-//        mainNode = createMainNode();
-//        interfaceLogic = createLogic();
-//    }
-//
-//    protected SerializableManagedGridNode createMainNode() {
-//        return (SerializableManagedGridNode) new SerializableManagedGridNode(this, (nodeOwner, node) -> nodeOwner.interfaceLogic.gridChanged())
-//                .setVisualRepresentation(getMachine().getDropItem())
-//                .setInWorldNode(true)
-//                .setTagName("proxy");
-//    }
-//
-//    protected SerializableInterfaceLogic createLogic() {
-//        return new SerializableInterfaceLogic(getMainNode(), this, getMachine().getDropItem().getItem(), getDefinition().getSlotSize() * 2);
-//    }
-//
-//    @Override
-//    public MEInterfaceTraitDefinition getDefinition() {
-//        return (MEInterfaceTraitDefinition) super.getDefinition();
-//    }
-//
-//    @Override
-//    public BlockEntity getBlockEntity() {
-//        return getMachine().getHolder();
-//    }
-//
-//    @Override
-//    public void saveChanges() {
-//        onChanged();
-//    }
-//
-//    @Override
-//    public void onMainNodeStateChanged(IGridNodeListener.State reason) {
-//        if (getMainNode().hasGridBooted()) {
-//            this.interfaceLogic.notifyNeighbors();
-//        }
-//    }
-//
-//    @Override
-//    public ItemStack getMainMenuIcon() {
-//        return getMachine().getDropItem();
-//    }
-//
-//    @Override
-//    public void onMachineDrop(Entity entity, List<ItemStack> drops) {
-//        this.interfaceLogic.addDrops(drops);
-//        this.interfaceLogic.clearContent();
-//    }
-//
-//    @Override
-//    public AECableType getCableConnectionType(Direction dir) {
-//        return this.interfaceLogic.getCableConnectionType(dir);
-//    }
-//
-//    @Override
-//    public List<ICapabilityProviderTrait<?>> getCapabilityProviderTraits() {
-//        return List.of(managedGridNodeCap, genericInternalInventoryCap, storageCap);
-//    }
-//
-//    @Override
-//    public List<IRecipeHandlerTrait<?>> getRecipeHandlerTraits() {
-//        return List.of(itemRecipeHandler, fluidRecipeHandler);
-//    }
-//
-//    @Override
-//    public void onChunkUnloaded() {
-//        super.onChunkUnloaded();
-//        this.getMainNode().destroy();
-//    }
-//
-//    @Override
-//    public void onMachineLoad() {
-//        super.onMachineLoad();
-//        if (getMachine().getLevel() instanceof ServerLevel serverLevel) {
-//            serverLevel.getServer().tell(new TickTask(0, () -> this.getMainNode().create(serverLevel, getBlockEntity().getBlockPos())));
-//        }
-//    }
-//
-//    @Override
-//    public void onMachineUnLoad() {
-//        super.onMachineUnLoad();
-//        this.getMainNode().destroy();
-//    }
-//
-//    ///////////////////////////
-//    /// Capability Provider ///
-//    ///////////////////////////
-//
-//    public class ManagedGridNodeCap implements ICapabilityProviderTrait<IInWorldGridNodeHost> {
-//        @Override
-//        public IO getCapabilityIO(@Nullable Direction side) {
-//            return MEInterfaceTrait.this.getCapabilityIO(side);
-//        }
-//
-//        @Override
-//        public Capability<IInWorldGridNodeHost> getCapability() {
-//            return Capabilities.IN_WORLD_GRID_NODE_HOST;
-//        }
-//
-//        @Override
-//        public IInWorldGridNodeHost getCapContent(IO capabilityIO) {
-//            return capabilityIO != IO.NONE ? MEInterfaceTrait.this : null;
-//        }
-//    }
-//
-//    public class GenericInternalInventoryCap implements ICapabilityProviderTrait<GenericInternalInventory> {
-//        @Override
-//        public IO getCapabilityIO(@Nullable Direction side) {
-//            return MEInterfaceTrait.this.getCapabilityIO(side);
-//        }
-//
-//        @Override
-//        public Capability<GenericInternalInventory> getCapability() {
-//            return Capabilities.GENERIC_INTERNAL_INV;
-//        }
-//
-//        @Override
-//        public GenericInternalInventory getCapContent(IO capabilityIO) {
-//            return capabilityIO != IO.NONE ? interfaceLogic.getStorage() : null;
-//        }
-//    }
-//
-//    public class StorageCap implements ICapabilityProviderTrait<MEStorage> {
-//        @Override
-//        public IO getCapabilityIO(@Nullable Direction side) {
-//            return MEInterfaceTrait.this.getCapabilityIO(side);
-//        }
-//
-//        @Override
-//        public Capability<MEStorage> getCapability() {
-//            return Capabilities.STORAGE;
-//        }
-//
-//        @Override
-//        public MEStorage getCapContent(IO capabilityIO) {
-//            return capabilityIO != IO.NONE ? interfaceLogic.getInventory() : null;
-//        }
-//    }
-//
-//
-//    public class ItemRecipeHandler extends RecipeHandlerTrait<Ingredient> {
-//
-//        protected ItemRecipeHandler() {
-//            super(MEInterfaceTrait.this, ItemRecipeCapability.CAP);
-//        }
-//
-//        protected IItemTransfer getSafeStorage() {
-//            var transfer = new ItemStackTransfer(interfaceLogic.getStorage().size() / 2);
-//            for (int i = 0; i < transfer.getSlots(); i++) {
-//                var stack = interfaceLogic.getStorage().getStack(i * 2);
-//                if (stack != null && stack.what() instanceof AEItemKey itemKey) {
-//                    transfer.setStackInSlot(i, itemKey.toStack((int)stack.amount()));
-//                }
-//            }
-//            return transfer;
-//        }
-//
-//        protected IItemTransfer getStorage() {
-//            List<IItemTransfer> transfers = new ArrayList<>();
-//            for (int i = 0; i < interfaceLogic.getStorage().size() / 2; i++) {
-//                transfers.add(AEInterfaceSlotWidget.createAEItemTransfer(interfaceLogic.getStorage(), i * 2));
-//            }
-//            return new ItemTransferList(transfers);
-//        }
-//
-//        @Override
-//        public List<Ingredient> handleRecipeInner(IO io, MBDRecipe recipe, List<Ingredient> left, @Nullable String slotName, boolean simulate) {
-//            if (!compatibleWith(io)) return left;
-//            var capability = simulate ? getSafeStorage() : getStorage();
-//            Iterator<Ingredient> iterator = left.iterator();
-//            if (io == IO.IN) {
-//                while (iterator.hasNext()) {
-//                    Ingredient ingredient = iterator.next();
-//                    SLOT_LOOKUP:
-//                    for (int i = 0; i < capability.getSlots(); i++) {
-//                        ItemStack itemStack = capability.getStackInSlot(i);
-//                        //Does not look like a good implementation, but I think it's at least equal to vanilla Ingredient::test
-//                        if (ingredient.test(itemStack)) {
-//                            ItemStack[] ingredientStacks = ingredient.getItems();
-//                            for (ItemStack ingredientStack : ingredientStacks) {
-//                                if (ingredientStack.is(itemStack.getItem())) {
-//                                    ItemStack extracted = capability.extractItem(i, ingredientStack.getCount(), false);
-//                                    ingredientStack.setCount(ingredientStack.getCount() - extracted.getCount());
-//                                    if (ingredientStack.isEmpty()) {
-//                                        iterator.remove();
-//                                        break SLOT_LOOKUP;
-//                                    }
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
-//            } else if (io == IO.OUT) {
-//                while (iterator.hasNext()) {
-//                    Ingredient ingredient = iterator.next();
-//                    var items = ingredient.getItems();
-//                    if (items.length == 0) {
-//                        iterator.remove();
-//                        continue;
-//                    }
-//                    if (items.length == 1) {
-//                        ItemStack output = items[0];
-//                        if (!output.isEmpty()) {
-//                            for (int i = 0; i < capability.getSlots(); i++) {
-//                                ItemStack leftStack = capability.insertItem(i, output.copy(), false);
-//                                output.setCount(leftStack.getCount());
-//                                if (output.isEmpty()) break;
-//                            }
-//                        }
-//                        if (output.isEmpty()) iterator.remove();
-//                    } else { // random output
-//                        var shuffledItems = Arrays.asList(Arrays.copyOf(items, items.length));
-//                        random.setSeed(getMachine().getOffsetTimer());
-//                        Collections.shuffle(shuffledItems, random);
-//                        // find index
-//                        var index = -1;
-//                        for (int i = 0; i < shuffledItems.size(); i++) {
-//                            var output = shuffledItems.get(i).copy();
-//                            if (!output.isEmpty()) {
-//                                for (int slot = 0; slot < capability.getSlots(); slot++) {
-//                                    var leftStack = capability.insertItem(slot, output.copy(), true);
-//                                    output.setCount(leftStack.getCount());
-//                                    if (output.isEmpty()) break;
-//                                }
-//                            }
-//                            if (output.isEmpty()) {
-//                                index = i;
-//                                break;
-//                            }
-//                        }
-//                        if (index != -1) {
-//                            if (!simulate) {
-//                                var output = shuffledItems.get(index);
-//                                for (int slot = 0; slot < capability.getSlots(); slot++) {
-//                                    ItemStack leftStack = capability.insertItem(slot, output.copy(), true);
-//                                    if (leftStack.getCount() < output.getCount()) {
-//                                        leftStack = capability.insertItem(slot, output.copy(), false);
-//                                        output.setCount(leftStack.getCount());
-//                                        if (output.isEmpty()) break;
-//                                    }
-//                                }
-//                            }
-//                            iterator.remove();
-//                        }
-//                    }
-//                }
-//            }
-//            return left.isEmpty() ? null : left;
-//        }
-//    }
-//
-//    public class FluidRecipeHandler extends RecipeHandlerTrait<FluidIngredient> {
-//        protected FluidRecipeHandler() {
-//            super(MEInterfaceTrait.this, FluidRecipeCapability.CAP);
-//        }
-//
-//        protected List<IFluidTransfer> getSafeStorage() {
-//            List<IFluidTransfer> storages = new ArrayList<>();
-//            for (int i = 0; i < interfaceLogic.getStorage().size() / 2; i++) {
-//                var transfer = new FluidStorage(interfaceLogic.getStorage().getCapacity(AEKeyType.fluids()));
-//                var stack = interfaceLogic.getStorage().getStack(i * 2 + 1);
-//                if (stack != null && stack.what() instanceof AEFluidKey fluidKey) {
-//                    transfer.setFluidInTank(0, FluidHelperImpl.toFluidStack(fluidKey.toStack((int) stack.amount())));
-//                }
-//                storages.add(transfer);
-//            }
-//            return storages;
-//        }
-//
-//        protected List<IFluidTransfer> getStorage() {
-//            List<IFluidTransfer> storages = new ArrayList<>();
-//            for (int i = 0; i < interfaceLogic.getStorage().size() / 2; i++) {
-//                storages.add(AEInterfaceSlotWidget.createAEFluidTransfer(interfaceLogic.getStorage(), i * 2 + 1));
-//            }
-//            return storages;
-//        }
-//
-//        @Override
-//        public List<FluidIngredient> handleRecipeInner(IO io, MBDRecipe recipe, List<FluidIngredient> left, @Nullable String slotName, boolean simulate) {
-//            if (!compatibleWith(io)) return left;
-//            var capabilities = simulate ? getSafeStorage() : getStorage();
-//            for (var capability : capabilities) {
-//                Iterator<FluidIngredient> iterator = left.iterator();
-//                if (io == IO.IN) {
-//                    while (iterator.hasNext()) {
-//                        FluidIngredient fluidStack = iterator.next();
-//                        if (fluidStack.isEmpty()) {
-//                            iterator.remove();
-//                            continue;
-//                        }
-//                        boolean found = false;
-//                        FluidStack foundStack = null;
-//                        for (int i = 0; i < capability.getTanks(); i++) {
-//                            FluidStack stored = capability.getFluidInTank(i);
-//                            if (!fluidStack.test(stored)) {
-//                                continue;
-//                            }
-//                            found = true;
-//                            foundStack = stored;
-//                        }
-//                        if (!found) continue;
-//                        FluidStack drained = capability.drain(foundStack.copy(fluidStack.getAmount()), false);
-//
-//                        fluidStack.setAmount(fluidStack.getAmount() - drained.getAmount());
-//                        if (fluidStack.getAmount() <= 0) {
-//                            iterator.remove();
-//                        }
-//                    }
-//                } else if (io == IO.OUT) {
-//                    while (iterator.hasNext()) {
-//                        FluidIngredient fluidStack = iterator.next();
-//                        if (fluidStack.isEmpty()) {
-//                            iterator.remove();
-//                            continue;
-//                        }
-//                        var fluids = fluidStack.getStacks();
-//                        if (fluids.length == 0) {
-//                            iterator.remove();
-//                            continue;
-//                        }
-//                        FluidStack output = fluids[0];
-//                        long filled = capability.fill(output.copy(), false);
-//                        if (!fluidStack.isEmpty()) {
-//                            fluidStack.setAmount(fluidStack.getAmount() - filled);
-//                        }
-//                        if (fluidStack.getAmount() <= 0) {
-//                            iterator.remove();
-//                        }
-//                    }
-//                }
-//                if (left.isEmpty()) break;
-//            }
-//            return left.isEmpty() ? null : left;
-//        }
-//    }
-//}
+package com.lowdragmc.mbd2.integration.ae2.trait;
+
+import appeng.api.behaviors.GenericInternalInventory;
+import appeng.api.config.Actionable;
+import appeng.api.networking.IGridNode;
+import appeng.api.networking.IGridNodeListener;
+import appeng.api.networking.IInWorldGridNodeHost;
+import appeng.api.stacks.AEFluidKey;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.GenericStack;
+import appeng.api.storage.MEStorage;
+import appeng.api.util.AECableType;
+import appeng.helpers.InterfaceLogicHost;
+import appeng.me.helpers.IGridConnectedBlockEntity;
+import appeng.util.ConfigInventory;
+import com.lowdragmc.lowdraglib2.misc.FluidStorage;
+import com.lowdragmc.lowdraglib2.misc.ItemStackTransfer;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
+import com.lowdragmc.mbd2.api.capability.recipe.IO;
+import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
+import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
+import com.lowdragmc.mbd2.common.capability.recipe.FluidRecipeCapability;
+import com.lowdragmc.mbd2.common.capability.recipe.ItemRecipeCapability;
+import com.lowdragmc.mbd2.common.machine.MBDMachine;
+import com.lowdragmc.mbd2.common.trait.RecipeHandlerTrait;
+import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
+import lombok.Getter;
+import lombok.Setter;
+import net.minecraft.core.Direction;
+import net.minecraft.server.TickTask;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.neoforged.neoforge.common.crafting.SizedIngredient;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.IItemHandlerModifiable;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
+
+@Getter
+@Setter
+public class MEInterfaceTrait extends SimpleCapabilityTrait<MEStorage, @Nullable Direction> implements IGridConnectedBlockEntity, InterfaceLogicHost {
+    public static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(MEInterfaceTrait.class);
+
+    @Override
+    public ManagedFieldHolder getFieldHolder() {
+        return MANAGED_FIELD_HOLDER;
+    }
+
+    private final Random random = new Random();
+
+    @Persisted
+    private final SerializableManagedGridNode mainNode;
+    @Persisted
+    private final SerializableInterfaceLogic interfaceLogic;
+    private final ItemRecipeHandler itemRecipeHandler = new ItemRecipeHandler();
+    private final FluidRecipeHandler fluidRecipeHandler = new FluidRecipeHandler();
+
+    public MEInterfaceTrait(MBDMachine machine, MEInterfaceTraitDefinition definition) {
+        super(machine, definition);
+        mainNode = createMainNode();
+        interfaceLogic = createLogic();
+    }
+
+    protected SerializableManagedGridNode createMainNode() {
+        return (SerializableManagedGridNode) new SerializableManagedGridNode(this, (nodeOwner, node) -> nodeOwner.interfaceLogic.gridChanged())
+                .setVisualRepresentation(getMachine().getDropItem())
+                .setInWorldNode(true)
+                .setTagName("proxy");
+    }
+
+    protected SerializableInterfaceLogic createLogic() {
+        return new SerializableInterfaceLogic(getMainNode(), this, getMachine().getDropItem().getItem(), getDefinition().getSlotSize() * 2);
+    }
+
+    @Override
+    public MEInterfaceTraitDefinition getDefinition() {
+        return (MEInterfaceTraitDefinition) super.getDefinition();
+    }
+
+    @Override
+    public BlockEntity getBlockEntity() {
+        return getMachine().getHolder();
+    }
+
+    @Override
+    public void saveChanges() {
+        onchange();
+    }
+
+    public void onchange() {
+        getMachine().markDirty();
+        notifyListeners();
+    }
+
+    @Override
+    public @Nullable IGridNode getGridNode(Direction dir) {
+        if (getCapabilityIO(dir) == IO.NONE) return null;
+        return IGridConnectedBlockEntity.super.getGridNode(dir);
+    }
+
+    @Override
+    public void onMainNodeStateChanged(IGridNodeListener.State reason) {
+        if (getMainNode().hasGridBooted()) {
+            this.interfaceLogic.notifyNeighbors();
+        }
+    }
+
+    @Override
+    public ItemStack getMainMenuIcon() {
+        return getMachine().getDropItem();
+    }
+
+    @Override
+    public void onMachineDrop(Entity entity, List<ItemStack> drops) {
+        this.interfaceLogic.addDrops(drops);
+        this.interfaceLogic.clearContent();
+    }
+
+    @Override
+    public AECableType getCableConnectionType(Direction dir) {
+        return this.interfaceLogic.getCableConnectionType(dir);
+    }
+
+    @Override
+    public List<IRecipeHandlerTrait<?>> getRecipeHandlerTraits() {
+        return List.of(itemRecipeHandler, fluidRecipeHandler);
+    }
+
+    @Override
+    public @Nullable MEStorage getCapContent(IO capabilityIO) {
+        return capabilityIO != IO.NONE ? interfaceLogic.getInventory() : null;
+    }
+
+    public @Nullable GenericInternalInventory getGenericInternalInventory(IO capabilityIO) {
+        return capabilityIO != IO.NONE ? interfaceLogic.getStorage() : null;
+    }
+
+    public IInWorldGridNodeHost getGridNodeHost() {
+        return this;
+    }
+
+    @Override
+    public void onChunkUnloaded() {
+        super.onChunkUnloaded();
+        this.getMainNode().destroy();
+    }
+
+    @Override
+    public void onMachineLoad() {
+        super.onMachineLoad();
+        if (getMachine().getLevel() instanceof ServerLevel serverLevel && !this.getMainNode().isReady()) {
+            serverLevel.getServer().tell(new TickTask(0, () -> this.getMainNode().create(serverLevel, getBlockEntity().getBlockPos())));
+        }
+    }
+
+    @Override
+    public void onMachineUnLoad() {
+        super.onMachineUnLoad();
+        this.getMainNode().destroy();
+    }
+
+    private ConfigInventory getInterfaceStorage() {
+        return interfaceLogic.getStorage();
+    }
+
+    public class ItemRecipeHandler extends RecipeHandlerTrait<SizedIngredient> {
+        protected ItemRecipeHandler() {
+            super(MEInterfaceTrait.this, ItemRecipeCapability.CAP);
+        }
+
+        protected IItemHandlerModifiable getSafeStorage() {
+            var source = getInterfaceStorage();
+            var transfer = new ItemStackTransfer(source.size() / 2);
+            for (int i = 0; i < transfer.getSlots(); i++) {
+                var stack = source.getStack(i * 2);
+                if (stack != null && stack.what() instanceof AEItemKey itemKey) {
+                    transfer.setStackInSlot(i, itemKey.toStack((int) Math.min(Integer.MAX_VALUE, stack.amount())), false);
+                }
+            }
+            return transfer;
+        }
+
+        protected List<IItemHandlerModifiable> getStorage() {
+            var source = getInterfaceStorage();
+            List<IItemHandlerModifiable> handlers = new ArrayList<>();
+            for (int i = 0; i < source.size() / 2; i++) {
+                handlers.add(AEInterfaceSlotWidget.createAEItemHandler(source, i * 2));
+            }
+            return handlers;
+        }
+
+        @Override
+        public List<SizedIngredient> handleRecipeInner(IO io, MBDRecipe recipe, List<SizedIngredient> left, @Nullable String slotName, boolean simulate) {
+            if (!compatibleWith(io)) return left;
+            var result = new ArrayList<SizedIngredient>();
+            if (io == IO.IN) {
+                var capability = simulate ? getSafeStorage() : null;
+                for (var sizedIngredient : left) {
+                    var need = sizedIngredient.count();
+                    if (simulate) {
+                        need = consumeFromHandler(capability, sizedIngredient, need, false);
+                    } else {
+                        for (var handler : getStorage()) {
+                            need = consumeFromHandler(handler, sizedIngredient, need, false);
+                            if (need <= 0) break;
+                        }
+                    }
+                    if (need > 0) {
+                        result.add(need == sizedIngredient.count() ? sizedIngredient : new SizedIngredient(sizedIngredient.ingredient(), need));
+                    }
+                }
+            } else if (io == IO.OUT) {
+                List<IItemHandler> handlers = new ArrayList<>();
+                if (simulate) {
+                    handlers.add(getSafeStorage());
+                } else {
+                    handlers.addAll(getStorage());
+                }
+                for (var sizedIngredient : left) {
+                    var items = sizedIngredient.getItems();
+                    if (items.length == 0) continue;
+                    if (items.length == 1) {
+                        var output = items[0].copyWithCount(sizedIngredient.count());
+                        for (var handler : handlers) {
+                            output = insertIntoHandler(handler, output, false);
+                            if (output.isEmpty()) break;
+                        }
+                        if (!output.isEmpty()) {
+                            result.add(output.getCount() == sizedIngredient.count() ? sizedIngredient : new SizedIngredient(sizedIngredient.ingredient(), output.getCount()));
+                        }
+                    } else {
+                        var shuffledItems = Arrays.asList(Arrays.copyOf(items, items.length));
+                        random.setSeed(getMachine().getOffsetTimer());
+                        Collections.shuffle(shuffledItems, random);
+                        var index = -1;
+                        for (int i = 0; i < shuffledItems.size(); i++) {
+                            var output = shuffledItems.get(i).copyWithCount(sizedIngredient.count());
+                            var probe = copyItemHandlers(handlers);
+                            output = insertIntoHandlers(probe, output);
+                            if (output.isEmpty()) {
+                                index = i;
+                                break;
+                            }
+                        }
+                        if (index != -1) {
+                            insertIntoHandlers(handlers, shuffledItems.get(index).copyWithCount(sizedIngredient.count()));
+                        } else {
+                            result.add(sizedIngredient);
+                        }
+                    }
+                }
+            }
+            return result.isEmpty() ? null : result;
+        }
+
+        private int consumeFromHandler(IItemHandler handler, SizedIngredient ingredient, int need, boolean simulate) {
+            for (int slot = 0; slot < handler.getSlots() && need > 0; slot++) {
+                var itemStack = handler.getStackInSlot(slot);
+                if (itemStack.isEmpty() || !ingredient.test(itemStack)) continue;
+                var extracted = handler.extractItem(slot, need, simulate);
+                need -= extracted.getCount();
+            }
+            return need;
+        }
+
+        private ItemStack insertIntoHandler(IItemHandler handler, ItemStack stack, boolean simulate) {
+            var leftStack = stack;
+            for (int slot = 0; slot < handler.getSlots() && !leftStack.isEmpty(); slot++) {
+                leftStack = handler.insertItem(slot, leftStack, simulate);
+            }
+            return leftStack;
+        }
+
+        private ItemStack insertIntoHandlers(List<IItemHandler> handlers, ItemStack stack) {
+            var leftStack = stack;
+            for (var handler : handlers) {
+                leftStack = insertIntoHandler(handler, leftStack, false);
+                if (leftStack.isEmpty()) break;
+            }
+            return leftStack;
+        }
+
+        private List<IItemHandler> copyItemHandlers(List<IItemHandler> handlers) {
+            var copy = new ItemStackTransfer(handlers.stream().mapToInt(IItemHandler::getSlots).sum());
+            var targetSlot = 0;
+            for (var handler : handlers) {
+                for (int slot = 0; slot < handler.getSlots(); slot++) {
+                    copy.setStackInSlot(targetSlot++, handler.getStackInSlot(slot).copy(), false);
+                }
+            }
+            return List.of(copy);
+        }
+    }
+
+    public class FluidRecipeHandler extends RecipeHandlerTrait<SizedFluidIngredient> {
+        protected FluidRecipeHandler() {
+            super(MEInterfaceTrait.this, FluidRecipeCapability.CAP);
+        }
+
+        protected List<IFluidHandler> getSafeStorage() {
+            var source = getInterfaceStorage();
+            List<IFluidHandler> storages = new ArrayList<>();
+            for (int i = 0; i < source.size() / 2; i++) {
+                var transfer = new FluidStorage((int) Math.min(Integer.MAX_VALUE, source.getCapacity(AEKeyType.fluids())));
+                var stack = source.getStack(i * 2 + 1);
+                if (stack != null && stack.what() instanceof AEFluidKey fluidKey) {
+                    transfer.setFluidInTank(fluidKey.toStack((int) Math.min(Integer.MAX_VALUE, stack.amount())), false);
+                }
+                storages.add(transfer);
+            }
+            return storages;
+        }
+
+        protected List<IFluidHandler> getStorage() {
+            var source = getInterfaceStorage();
+            List<IFluidHandler> storages = new ArrayList<>();
+            for (int i = 0; i < source.size() / 2; i++) {
+                storages.add(AEInterfaceSlotWidget.createAEFluidHandler(source, i * 2 + 1));
+            }
+            return storages;
+        }
+
+        @Override
+        public List<SizedFluidIngredient> handleRecipeInner(IO io, MBDRecipe recipe, List<SizedFluidIngredient> left, @Nullable String slotName, boolean simulate) {
+            if (!compatibleWith(io)) return left;
+            var capabilities = simulate ? getSafeStorage() : getStorage();
+            var result = new ArrayList<SizedFluidIngredient>();
+            if (io == IO.IN) {
+                for (var sizedIngredient : left) {
+                    var need = sizedIngredient.amount();
+                    for (var capability : capabilities) {
+                        for (int i = 0; i < capability.getTanks() && need > 0; i++) {
+                            var stored = capability.getFluidInTank(i);
+                            if (stored.isEmpty() || !sizedIngredient.test(stored)) continue;
+                            var toDrain = stored.copyWithAmount(need);
+                            var drained = capability.drain(toDrain, IFluidHandler.FluidAction.EXECUTE);
+                            need -= drained.getAmount();
+                        }
+                        if (need <= 0) break;
+                    }
+                    if (need > 0) {
+                        result.add(need == sizedIngredient.amount() ? sizedIngredient : new SizedFluidIngredient(sizedIngredient.ingredient(), need));
+                    }
+                }
+            } else if (io == IO.OUT) {
+                for (var sizedIngredient : left) {
+                    var fluids = sizedIngredient.getFluids();
+                    if (fluids.length == 0) continue;
+                    if (fluids.length == 1) {
+                        var output = fluids[0].copyWithAmount(sizedIngredient.amount());
+                        var leftAmount = insertFluid(capabilities, output);
+                        if (leftAmount > 0) {
+                            result.add(leftAmount == sizedIngredient.amount() ? sizedIngredient : new SizedFluidIngredient(sizedIngredient.ingredient(), leftAmount));
+                        }
+                    } else {
+                        var shuffledFluids = Arrays.asList(Arrays.copyOf(fluids, fluids.length));
+                        random.setSeed(getMachine().getOffsetTimer());
+                        Collections.shuffle(shuffledFluids, random);
+                        var index = -1;
+                        for (int i = 0; i < shuffledFluids.size(); i++) {
+                            var probe = copyFluidHandlers(capabilities);
+                            var output = shuffledFluids.get(i).copyWithAmount(sizedIngredient.amount());
+                            if (insertFluid(probe, output) <= 0) {
+                                index = i;
+                                break;
+                            }
+                        }
+                        if (index != -1) {
+                            insertFluid(capabilities, shuffledFluids.get(index).copyWithAmount(sizedIngredient.amount()));
+                        } else {
+                            result.add(sizedIngredient);
+                        }
+                    }
+                }
+            }
+            return result.isEmpty() ? null : result;
+        }
+
+        private int insertFluid(List<IFluidHandler> handlers, FluidStack output) {
+            var leftAmount = output.getAmount();
+            for (var handler : handlers) {
+                if (leftAmount <= 0) break;
+                var filled = handler.fill(output.copyWithAmount(leftAmount), IFluidHandler.FluidAction.EXECUTE);
+                leftAmount -= filled;
+            }
+            return leftAmount;
+        }
+
+        private List<IFluidHandler> copyFluidHandlers(List<IFluidHandler> handlers) {
+            var result = new ArrayList<IFluidHandler>();
+            for (var handler : handlers) {
+                for (int tank = 0; tank < handler.getTanks(); tank++) {
+                    var storage = new FluidStorage(handler.getTankCapacity(tank));
+                    storage.setFluidInTank(handler.getFluidInTank(tank).copy(), false);
+                    result.add(storage);
+                }
+            }
+            return result;
+        }
+    }
+}
