@@ -1,7 +1,7 @@
 {
   "item.mbd2.mbd_gadgets": "MBD Gadgets",
   "item.mbd2.mbd_gadgets.tooltip": "§2Shift + right click to switch the gadget modes.§r",
-  "item.mbd2.mbd_gadgets.multiblock_builder": "MBD Gadgets - §cMultiblock Builder§r",
+  "item.mbd2.mbd_gadgets.multiblock_builder": "MBD Gadgets - §2Multiblock Builder§r",
   "item.mbd2.mbd_gadgets.multiblock_builder.tooltip": "Right click on the controller to auto build the multiblock.",
   "item.mbd2.mbd_gadgets.recipe_debugger": "MBD Gadgets - §eRecipe Debugger§r",
   "item.mbd2.mbd_gadgets.recipe_debugger.tooltip.0": "Open UI to set a test recipe.",

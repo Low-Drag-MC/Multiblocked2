@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.common;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
 import com.lowdragmc.mbd2.api.pattern.MultiblockState;
@@ -18,6 +19,7 @@ import net.neoforged.neoforge.common.util.TriState;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
+import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
 
@@ -28,6 +30,15 @@ import net.neoforged.neoforge.event.tick.LevelTickEvent;
  */
 @EventBusSubscriber(modid = MBD2.MOD_ID)
 public class ForgeCommonEventListener {
+
+    @SubscribeEvent
+    public static void onServerStart(ServerAboutToStartEvent e) {
+        if (!LDLib2.isClient()) {
+            var postTask = CommonProxy.getPostTask();
+            postTask.forEach(Runnable::run);
+            postTask.clear();
+        }
+    }
 
     @SubscribeEvent
     public static void onRegisterCommands(RegisterCommandsEvent event) {

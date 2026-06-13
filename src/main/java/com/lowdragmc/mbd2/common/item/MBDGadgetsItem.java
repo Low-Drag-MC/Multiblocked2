@@ -159,15 +159,21 @@ public class MBDGadgetsItem extends Item implements HeldItemUIMenuType.HeldItemU
         if (player.isCrouching()) {
             if (isMultiblockBuilder(stack)) {
                 setMode(stack, Mode.RECIPE_DEBUGGER);
-                player.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger"));
+                if (!level.isClientSide) {
+                    player.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger"));
+                }
                 return InteractionResultHolder.success(stack);
             } else if (isRecipeDebugger(stack)) {
                 setMode(stack, Mode.MULTIBLOCK_DEBUGGER);
-                player.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.multiblock_debugger"));
+                if (!level.isClientSide) {
+                    player.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.multiblock_debugger"));
+                }
                 return InteractionResultHolder.success(stack);
             } else if (isMultiblockDebugger(stack)) {
                 setMode(stack, Mode.MULTIBLOCK_BUILDER);
-                player.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.multiblock_builder"));
+                if (!level.isClientSide) {
+                    player.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.multiblock_builder"));
+                }
                 return InteractionResultHolder.success(stack);
             }
         } else if (player instanceof ServerPlayer serverPlayer && isRecipeDebugger(stack)) {
