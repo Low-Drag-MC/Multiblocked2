@@ -318,7 +318,7 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Recip
             for (IRecipeHandler<?> handler : handlers) {
                 if (!handler.isDistinct()) continue;
                 var slotNames = handler.getSlotNames();
-                var result = handler.handleRecipe(io, this, contentSearch, null, true);
+                var result = contentSearch == null ? null : handler.handleRecipe(io, this, contentSearch, null, true);
                 if (result == null) {
                     // check distinct slot handler
                     if (slotNames.containsAll(contentSlotSearch.keySet())) {
@@ -340,7 +340,7 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Recip
                         }
                     }
                     if (contentSlot.isEmpty()) {
-                        if (!simulate) {
+                        if (!simulate && content != null) {
                             handler.handleRecipe(io, this, content, null, false);
                         }
                         content = null;
