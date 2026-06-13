@@ -11,6 +11,8 @@ import com.lowdragmc.mbd2.api.pattern.snapshot.PatternSnapshot;
 import com.lowdragmc.mbd2.api.pattern.snapshot.SnapshotEntry;
 import com.lowdragmc.mbd2.api.pattern.util.PatternMatchContext;
 import com.lowdragmc.mbd2.api.pattern.util.RotationHelper;
+import it.unimi.dsi.fastutil.longs.Long2IntMap;
+import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.world.level.block.Blocks;
 import lombok.Getter;
@@ -64,15 +66,20 @@ public class MultiblockState {
      *  Set by the async pattern check pass; null on main-thread checks. */
     @Nullable
     private PatternSnapshot snapshot;
+    @Getter
+    @Nullable
+    private BlockPattern checkingPattern;
+    private final Long2IntOpenHashMap matchedPredicateIds = new Long2IntOpenHashMap();
 
     // persist
-    public LongOpenHashSet cache;
+    public LongOpenHashSet cache = new LongOpenHashSet();
 
     public MultiblockState(Level world, BlockPos controllerPos) {
         this.world = world;
         this.controllerPos = controllerPos;
         this.error = UNINIT_ERROR;
         this.matchContext = new PatternMatchContext();
+        this.matchedPredicateIds.defaultReturnValue(-1);
     }
 
     protected void clean() {
@@ -80,6 +87,25 @@ public class MultiblockState {
         this.globalCount = new HashMap<>();
         this.layerCount = new HashMap<>();
         cache = new LongOpenHashSet();
+    }
+
+    public void setCheckingPattern(@Nullable BlockPattern checkingPattern) {
+        this.checkingPattern = checkingPattern;
+    }
+
+    public void commitMatchedPredicateIds(@Nullable Long2IntMap matches) {
+        matchedPredicateIds.clear();
+        if (matches != null) {
+            matchedPredicateIds.putAll(matches);
+        }
+    }
+
+    public void clearMatchedPredicateIds() {
+        matchedPredicateIds.clear();
+    }
+
+    public int getMatchedPredicateId(BlockPos pos) {
+        return matchedPredicateIds.get(pos.asLong());
     }
 
     protected boolean update(BlockPos posIn, TraceabilityPredicate predicate) {

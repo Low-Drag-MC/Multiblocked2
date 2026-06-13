@@ -45,6 +45,7 @@ import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
 import com.lowdragmc.mbd2.common.machine.definition.config.StateMachine;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
+import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectArrayMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
@@ -267,9 +268,17 @@ public class PatternPredicate implements IPersistedSerializable, IConfigurable, 
             Map<Long, Set<String>> slots = blockWorldState.getMatchContext().getOrCreate("slots", Long2ObjectArrayMap::new);
             slots.computeIfAbsent(blockWorldState.getPos().asLong(), s->new HashSet<>()).add(slotName);
         }
+        int predicateId = Optional.ofNullable(blockWorldState.getCheckingPattern())
+                .map(pattern -> pattern.getPredicateId(this))
+                .orElse(-1);
+        if (predicateId >= 0) {
+            Long2IntOpenHashMap matchedPredicates = blockWorldState.getMatchContext().getOrCreate("matchedPredicates", Long2IntOpenHashMap::new);
+            matchedPredicates.defaultReturnValue(-1);
+            matchedPredicates.put(blockWorldState.getPos().asLong(), predicateId);
+        }
         if (proxyWhileFormed.isEnable()) {
-            Map<Long, ProxyWhileFormed> proxyMap = blockWorldState.getMatchContext().getOrCreate("proxyWhileFormed", HashMap::new);
-            proxyMap.put(blockWorldState.getPos().asLong(), proxyWhileFormed);
+            Map<Long, ProxyWhileFormedMatch> proxyMap = blockWorldState.getMatchContext().getOrCreate("proxyWhileFormed", HashMap::new);
+            proxyMap.put(blockWorldState.getPos().asLong(), new ProxyWhileFormedMatch(predicateId, proxyWhileFormed));
         }
         if (allowOpenUI) {
             blockWorldState.getMatchContext().getOrCreate("openUIMask", it.unimi.dsi.fastutil.longs.LongOpenHashSet::new).add(blockWorldState.getPos().asLong());
@@ -575,4 +584,6 @@ public class PatternPredicate implements IPersistedSerializable, IConfigurable, 
             }
         }
     }
+
+    public record ProxyWhileFormedMatch(int predicateId, ProxyWhileFormed proxy) {}
 }

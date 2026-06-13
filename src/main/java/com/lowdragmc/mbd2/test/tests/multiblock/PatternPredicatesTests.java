@@ -368,6 +368,48 @@ public class PatternPredicatesTests {
 
     @GameTest(template = "empty_multiblock")
     @PrefixGameTestTemplate(false)
+    public static void proxy_while_formed_update_tag_syncs_predicate_id_not_definition_payload(GameTestHelper h) {
+        BlockPos controller = new BlockPos(5, 1, 5);
+        BlockPos west = controller.relative(Direction.WEST);
+        var scenario = MBDScenario.of(h)
+                .placeBlock(west, Blocks.STONE.defaultBlockState())
+                .placeBlock(controller.relative(Direction.EAST), Blocks.STONE.defaultBlockState())
+                .placeMachine(PatternPredicatesFixtures.PROXY_ID, controller)
+                .assertFormed();
+
+        var proxy = assertProxy(h, west);
+        var tag = proxy.getUpdateTag(h.getLevel().registryAccess());
+        if (tag.contains("proxyStateMachine") || tag.contains("proxyCapabilities")) {
+            h.fail("Proxy update tag should sync predicate identity, not raw proxy definition payload: " + tag);
+            return;
+        }
+        if (!tag.contains("proxyPredicateId")) {
+            h.fail("Proxy update tag did not include proxyPredicateId: " + tag);
+            return;
+        }
+        if (proxy.getProxyPredicateId() < 0) {
+            h.fail("Proxy predicate id was not assigned");
+            return;
+        }
+        if (!(scenario.machine() instanceof MBDMultiblockMachine multiblock)) {
+            h.fail("Expected multiblock controller");
+            return;
+        }
+        int matchedPredicateId = multiblock.getMultiblockState().getMatchedPredicateId(h.absolutePos(west));
+        if (matchedPredicateId != proxy.getProxyPredicateId()) {
+            h.fail("Proxy predicate id " + proxy.getProxyPredicateId() +
+                    " did not match formed snapshot id " + matchedPredicateId);
+            return;
+        }
+        if (proxy.getProxyState().getLightLevel() != 1) {
+            h.fail("Proxy should resolve root light from predicate id, got " + proxy.getProxyState().getLightLevel());
+            return;
+        }
+        h.succeed();
+    }
+
+    @GameTest(template = "empty_multiblock")
+    @PrefixGameTestTemplate(false)
     public static void proxy_while_formed_still_applies_when_slot_name_is_set(GameTestHelper h) {
         BlockPos controller = new BlockPos(5, 1, 5);
         BlockPos west = controller.relative(Direction.WEST);

@@ -334,21 +334,22 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
         this.parts.clear();
         this.proxyWhileFormedPositions.clear();
         // replace configured formed blocks with proxy part blocks
-        Map<Long, PatternPredicate.ProxyWhileFormed> proxies = getMultiblockState().getMatchContext().getOrDefault("proxyWhileFormed", Collections.emptyMap());
+        Map<Long, PatternPredicate.ProxyWhileFormedMatch> proxies = getMultiblockState().getMatchContext().getOrDefault("proxyWhileFormed", Collections.emptyMap());
         for (var entry : proxies.entrySet()) {
             var blockPos = BlockPos.of(entry.getKey());
+            var proxyMatch = entry.getValue();
             proxyWhileFormedPositions.add(blockPos);
             var part = IMultiPart.ofPart(getLevel(), blockPos);
             if (part.orElse(null) instanceof MBDPartMachine mbdPart) {
-                mbdPart.setProxyWhileFormedState(this.getPos(), entry.getValue().getStateMachine(), entry.getValue().getProxyCapabilities());
+                mbdPart.setProxyWhileFormedPredicate(this.getPos(), proxyMatch.predicateId());
             } else if (part.isEmpty()) {
                 // if it is not a part, replace it with the proxy part block
                 // do not replace the proxy part block
                 if (getLevel().getBlockEntity(blockPos) instanceof ProxyPartBlockEntity proxyPartBlockEntity) {
                     // setup proxy part block with correct machine
-                    proxyPartBlockEntity.setProxyData(this.getPos(), entry.getValue().getStateMachine(), entry.getValue().getProxyCapabilities());
+                    proxyPartBlockEntity.setProxyData(this.getPos(), proxyMatch.predicateId());
                 } else {
-                    ProxyPartBlock.replaceOriginalBlock(this.getPos(), getLevel(), blockPos, entry.getValue().getStateMachine(), entry.getValue().getProxyCapabilities());
+                    ProxyPartBlock.replaceOriginalBlock(this.getPos(), getLevel(), blockPos, proxyMatch.predicateId());
                 }
             }
         }
@@ -384,6 +385,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
     public void onStructureInvalid(boolean isControllerRemoved) {
         setFormed(false);
         this.isFormedValid = false;
+        getMultiblockState().clearMatchedPredicateIds();
         // reset recipe Logic
         getRecipeLogic().resetRecipeLogic();
         // clear parts

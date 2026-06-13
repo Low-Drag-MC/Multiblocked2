@@ -31,6 +31,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import org.apache.commons.lang3.ArrayUtils;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 public class BlockPattern {
@@ -44,6 +45,8 @@ public class BlockPattern {
     protected final int thumbLength; //y size
     protected final int palmLength; //x size
     protected final int[] centerOffset; // x, y, z, minZ, maxZ
+    private final Map<PatternPredicate, Integer> predicateIds = new IdentityHashMap<>();
+    private final List<PatternPredicate> predicatesById = new ArrayList<>();
 
     public BlockPattern(TraceabilityPredicate[][][] predicatesIn, RelativeDirection[] structureDir, int[][] aisleRepetitions, int[] centerOffset) {
         this.blockMatches = predicatesIn;
@@ -65,6 +68,36 @@ public class BlockPattern {
         }
 
         this.centerOffset = centerOffset;
+        buildPredicateRegistry();
+    }
+
+    private void buildPredicateRegistry() {
+        for (TraceabilityPredicate[][] slice : blockMatches) {
+            for (TraceabilityPredicate[] row : slice) {
+                for (TraceabilityPredicate traceabilityPredicate : row) {
+                    registerPredicates(traceabilityPredicate.limited);
+                    registerPredicates(traceabilityPredicate.common);
+                }
+            }
+        }
+    }
+
+    private void registerPredicates(List<PatternPredicate> predicates) {
+        for (PatternPredicate predicate : predicates) {
+            if (!predicateIds.containsKey(predicate)) {
+                predicateIds.put(predicate, predicatesById.size());
+                predicatesById.add(predicate);
+            }
+        }
+    }
+
+    public int getPredicateId(PatternPredicate predicate) {
+        return predicateIds.getOrDefault(predicate, -1);
+    }
+
+    @Nullable
+    public PatternPredicate getPredicate(int id) {
+        return id >= 0 && id < predicatesById.size() ? predicatesById.get(id) : null;
     }
 
     public boolean checkPatternAtWithoutController(MultiblockState worldState, Direction facing) {
@@ -95,6 +128,7 @@ public class BlockPattern {
         int minZ = -centerOffset[4];
         worldState.clean();
         worldState.setCheckingFacing(facing);
+        worldState.setCheckingPattern(this);
         PatternMatchContext matchContext = worldState.getMatchContext();
         Map<PatternPredicate, Integer> globalCount = worldState.getGlobalCount();
         Map<PatternPredicate, Integer> layerCount = worldState.getLayerCount();
@@ -181,6 +215,7 @@ public class BlockPattern {
         }
 
         worldState.setError(null);
+        worldState.commitMatchedPredicateIds(matchContext.getOrDefault("matchedPredicates", null));
         return true;
     }
 

@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.api.pattern.predicates.PatternPredicate;
+import com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigPartSettings;
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
@@ -14,7 +15,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.protocol.Packet;
@@ -29,7 +29,6 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -61,13 +60,16 @@ public class ProxyPartBlockEntity extends BlockEntity {
     @Getter
     private BlockPos controllerPos;
     @Nullable
-    private StateMachine<MachineState> proxyStateMachine;
-    private List<ConfigPartSettings.ProxyCapability> proxyCapabilities = new ArrayList<>();
+    private StateMachine<MachineState> fallbackProxyStateMachine;
+    @Getter
+    private int proxyPredicateId = -1;
     @Getter
     private boolean restoringOriginalBlock;
 
     public List<ConfigPartSettings.ProxyCapability> getProxyCapabilities() {
-        return proxyCapabilities;
+        return resolveProxyWhileFormed()
+                .map(PatternPredicate.ProxyWhileFormed::getProxyCapabilities)
+                .orElse(Collections.emptyList());
     }
 
     public ProxyPartBlockEntity(BlockPos pPos, BlockState pBlockState) {
@@ -75,43 +77,47 @@ public class ProxyPartBlockEntity extends BlockEntity {
     }
 
     public void setControllerData(BlockPos controllerPos) {
-        setProxyData(controllerPos, getProxyStateMachine(), proxyCapabilities);
+        setProxyData(controllerPos, proxyPredicateId);
     }
 
     public void setOriginalData(BlockState originalState, CompoundTag originalData, BlockPos controllerPos) {
-        setOriginalData(originalState, originalData, controllerPos, getProxyStateMachine(), proxyCapabilities);
+        setOriginalData(originalState, originalData, controllerPos, proxyPredicateId);
     }
 
     public void setOriginalData(BlockState originalState, @Nullable CompoundTag originalData, BlockPos controllerPos, StateMachine<MachineState> proxyStateMachine) {
-        setOriginalData(originalState, originalData, controllerPos, proxyStateMachine, Collections.emptyList());
+        setOriginalData(originalState, originalData, controllerPos, -1);
     }
 
     public void setOriginalData(BlockState originalState, @Nullable CompoundTag originalData, BlockPos controllerPos, StateMachine<MachineState> proxyStateMachine, List<ConfigPartSettings.ProxyCapability> proxyCapabilities) {
+        setOriginalData(originalState, originalData, controllerPos, -1);
+    }
+
+    public void setOriginalData(BlockState originalState, @Nullable CompoundTag originalData, BlockPos controllerPos, int proxyPredicateId) {
         if (!Objects.equals(this.originalState, originalState) ||
                 !Objects.equals(this.originalData, originalData) ||
                 !Objects.equals(this.controllerPos, controllerPos) ||
-                this.proxyStateMachine != proxyStateMachine ||
-                !this.proxyCapabilities.equals(proxyCapabilities)) {
+                this.proxyPredicateId != proxyPredicateId) {
             this.originalState = originalState;
             this.originalData = originalData;
             this.controllerPos = controllerPos;
-            this.proxyStateMachine = proxyStateMachine;
-            this.proxyCapabilities = new ArrayList<>(proxyCapabilities);
+            this.proxyPredicateId = proxyPredicateId;
             sync();
         }
     }
 
     public void setProxyData(BlockPos controllerPos, StateMachine<MachineState> proxyStateMachine) {
-        setProxyData(controllerPos, proxyStateMachine, Collections.emptyList());
+        setProxyData(controllerPos, -1);
     }
 
     public void setProxyData(BlockPos controllerPos, StateMachine<MachineState> proxyStateMachine, List<ConfigPartSettings.ProxyCapability> proxyCapabilities) {
+        setProxyData(controllerPos, -1);
+    }
+
+    public void setProxyData(BlockPos controllerPos, int proxyPredicateId) {
         if (!Objects.equals(this.controllerPos, controllerPos) ||
-                this.proxyStateMachine != proxyStateMachine ||
-                !this.proxyCapabilities.equals(proxyCapabilities)) {
+                this.proxyPredicateId != proxyPredicateId) {
             this.controllerPos = controllerPos;
-            this.proxyStateMachine = proxyStateMachine;
-            this.proxyCapabilities = new ArrayList<>(proxyCapabilities);
+            this.proxyPredicateId = proxyPredicateId;
             sync();
         }
     }
@@ -134,10 +140,29 @@ public class ProxyPartBlockEntity extends BlockEntity {
     }
 
     public StateMachine<MachineState> getProxyStateMachine() {
-        if (proxyStateMachine == null) {
-            proxyStateMachine = PatternPredicate.ProxyWhileFormed.createDefaultStateMachine();
+        return resolveProxyWhileFormed()
+                .map(PatternPredicate.ProxyWhileFormed::getStateMachine)
+                .orElseGet(this::getFallbackProxyStateMachine);
+    }
+
+    private StateMachine<MachineState> getFallbackProxyStateMachine() {
+        if (fallbackProxyStateMachine == null) {
+            fallbackProxyStateMachine = PatternPredicate.ProxyWhileFormed.createDefaultStateMachine();
         }
-        return proxyStateMachine;
+        return fallbackProxyStateMachine;
+    }
+
+    private java.util.Optional<PatternPredicate.ProxyWhileFormed> resolveProxyWhileFormed() {
+        if (level == null || controllerPos == null || proxyPredicateId < 0) {
+            return java.util.Optional.empty();
+        }
+        return IMachine.ofMachine(level, controllerPos)
+                .filter(MBDMultiblockMachine.class::isInstance)
+                .map(MBDMultiblockMachine.class::cast)
+                .map(MBDMultiblockMachine::getPattern)
+                .map(pattern -> pattern.getPredicate(proxyPredicateId))
+                .map(predicate -> predicate.proxyWhileFormed)
+                .filter(PatternPredicate.ProxyWhileFormed::isEnable);
     }
 
     public MachineState getProxyState() {
@@ -176,7 +201,7 @@ public class ProxyPartBlockEntity extends BlockEntity {
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider provider) {
         super.saveAdditional(tag, provider);
-        writeSyncedFields(tag, provider);
+        writeSyncedFields(tag);
     }
 
     @Override
@@ -195,32 +220,21 @@ public class ProxyPartBlockEntity extends BlockEntity {
             controllerPos = NbtUtils.readBlockPos(tag, "controllerPos").orElse(BlockPos.ZERO);
         }
 
-        if (tag.contains("proxyStateMachine")) {
-            proxyStateMachine = PatternPredicate.ProxyWhileFormed.createDefaultStateMachine();
-            proxyStateMachine.deserializeNBT(provider, tag.getCompound("proxyStateMachine"));
+        if (tag.contains("proxyPredicateId", Tag.TAG_INT)) {
+            proxyPredicateId = tag.getInt("proxyPredicateId");
         } else {
-            proxyStateMachine = null;
-        }
-
-        proxyCapabilities = new ArrayList<>();
-        if (tag.contains("proxyCapabilities", Tag.TAG_LIST)) {
-            var list = tag.getList("proxyCapabilities", Tag.TAG_COMPOUND);
-            for (int i = 0; i < list.size(); i++) {
-                var cap = new ConfigPartSettings.ProxyCapability();
-                cap.deserializeNBT(provider, list.getCompound(i));
-                proxyCapabilities.add(cap);
-            }
+            proxyPredicateId = -1;
         }
     }
 
     @Override
     public CompoundTag getUpdateTag(HolderLookup.Provider provider) {
         var tag = new CompoundTag();
-        writeSyncedFields(tag, provider);
+        writeUpdateFields(tag);
         return tag;
     }
 
-    private void writeSyncedFields(CompoundTag tag, HolderLookup.Provider provider) {
+    private void writeSyncedFields(CompoundTag tag) {
         if (originalState != null) {
             tag.put("originalState", NbtUtils.writeBlockState(originalState));
         }
@@ -233,16 +247,22 @@ public class ProxyPartBlockEntity extends BlockEntity {
             tag.put("controllerPos", NbtUtils.writeBlockPos(controllerPos));
         }
 
-        if (proxyStateMachine != null) {
-            tag.put("proxyStateMachine", proxyStateMachine.serializeNBT(provider));
+        if (proxyPredicateId >= 0) {
+            tag.putInt("proxyPredicateId", proxyPredicateId);
+        }
+    }
+
+    private void writeUpdateFields(CompoundTag tag) {
+        if (originalState != null) {
+            tag.put("originalState", NbtUtils.writeBlockState(originalState));
         }
 
-        if (!proxyCapabilities.isEmpty()) {
-            var list = new ListTag();
-            for (var cap : proxyCapabilities) {
-                list.add(cap.serializeNBT(provider));
-            }
-            tag.put("proxyCapabilities", list);
+        if (controllerPos != null) {
+            tag.put("controllerPos", NbtUtils.writeBlockPos(controllerPos));
+        }
+
+        if (proxyPredicateId >= 0) {
+            tag.putInt("proxyPredicateId", proxyPredicateId);
         }
     }
 

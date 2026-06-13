@@ -43,8 +43,7 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
     @RequireRerender
     @UpdateListener(methodName = "onProxyWhileFormedDataUpdated")
     protected CompoundTag proxyWhileFormedData = new CompoundTag();
-    protected final Map<BlockPos, StateMachine<MachineState>> proxyWhileFormedStateMachines = new HashMap<>();
-    protected final Map<BlockPos, List<ConfigPartSettings.ProxyCapability>> predicateProxyCapabilities = new HashMap<>();
+    protected final Map<BlockPos, Integer> proxyWhileFormedPredicateIds = new HashMap<>();
 
     public MBDPartMachine(IMachineBlockEntity machineHolder, MBDMachineDefinition definition, Object... args) {
         super(machineHolder, definition, args);
@@ -107,8 +106,7 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
             }
         }
         controllerPositions.clear();
-        proxyWhileFormedStateMachines.clear();
-        predicateProxyCapabilities.clear();
+        proxyWhileFormedPredicateIds.clear();
         proxyWhileFormedData = new CompoundTag();
     }
 
@@ -148,49 +146,51 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
     }
 
     public void setProxyWhileFormedState(BlockPos controllerPos, StateMachine<MachineState> stateMachine, List<ConfigPartSettings.ProxyCapability> proxyCapabilities) {
-        proxyWhileFormedStateMachines.put(controllerPos.immutable(),
-                stateMachine == null ? PatternPredicate.ProxyWhileFormed.createDefaultStateMachine() : stateMachine);
-        if (proxyCapabilities.isEmpty()) {
-            predicateProxyCapabilities.remove(controllerPos.immutable());
-        } else {
-            predicateProxyCapabilities.put(controllerPos.immutable(), List.copyOf(proxyCapabilities));
-        }
+        setProxyWhileFormedPredicate(controllerPos, -1);
+    }
+
+    public void setProxyWhileFormedPredicate(BlockPos controllerPos, int predicateId) {
+        proxyWhileFormedPredicateIds.put(controllerPos.immutable(), predicateId);
         rebuildProxyWhileFormedData();
         notifyBlockUpdate();
     }
 
     public void clearProxyWhileFormedState(BlockPos controllerPos) {
-        boolean removedState = proxyWhileFormedStateMachines.remove(controllerPos) != null;
-        boolean removedCaps = predicateProxyCapabilities.remove(controllerPos) != null;
-        if (removedState || removedCaps) {
+        boolean removed = proxyWhileFormedPredicateIds.remove(controllerPos) != null;
+        if (removed) {
             rebuildProxyWhileFormedData();
             notifyBlockUpdate();
         }
     }
 
     public List<ConfigPartSettings.ProxyCapability> getPredicateProxyCapabilities(BlockPos controllerPos) {
-        return predicateProxyCapabilities.getOrDefault(controllerPos, Collections.emptyList());
+        return resolveProxyWhileFormed(controllerPos)
+                .map(PatternPredicate.ProxyWhileFormed::getProxyCapabilities)
+                .orElse(Collections.emptyList());
     }
 
     @Override
     public MachineState getMachineState() {
-        loadProxyWhileFormedStateMachinesFromData();
+        loadProxyWhileFormedPredicateIdsFromData();
         var ownState = super.getMachineState();
-        if (proxyWhileFormedStateMachines.isEmpty()) {
+        if (proxyWhileFormedPredicateIds.isEmpty()) {
             return ownState;
         }
         var level = getLevel();
         if (level == null) {
             return ownState;
         }
-        return proxyWhileFormedStateMachines.entrySet().stream()
+        return proxyWhileFormedPredicateIds.entrySet().stream()
                 .sorted(Comparator.comparingLong(entry -> entry.getKey().asLong()))
-                .map(entry -> IMachine.ofMachine(level, entry.getKey())
-                        .filter(MBDMachine.class::isInstance)
-                        .map(MBDMachine.class::cast)
+                .map(entry -> resolveProxyWhileFormed(entry.getKey())
                         .map(controller -> {
-                            var proxyStateMachine = entry.getValue();
-                            var controllerState = controller.getMachineStateName();
+                            var proxyStateMachine = controller.getStateMachine();
+                            var controllerState = IMachine.ofMachine(level, entry.getKey())
+                                    .filter(MBDMachine.class::isInstance)
+                                    .map(MBDMachine.class::cast)
+                                    .map(MBDMachine::getMachineStateName)
+                                    .orElse(null);
+                            if (controllerState == null) return null;
                             return proxyStateMachine.hasState(controllerState) ? proxyStateMachine.getState(controllerState) : null;
                         })
                         .orElse(null))
@@ -201,7 +201,7 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
 
     @SuppressWarnings("unused")
     protected void onProxyWhileFormedDataUpdated(CompoundTag newValue, CompoundTag oldValue) {
-        loadProxyWhileFormedStateMachinesFromData(newValue);
+        loadProxyWhileFormedPredicateIdsFromData(newValue);
         notifyBlockUpdate();
     }
 
@@ -211,37 +211,47 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
             return;
         }
         var tag = new CompoundTag();
-        var provider = level.registryAccess();
-        for (var entry : proxyWhileFormedStateMachines.entrySet()) {
-            tag.put(Long.toString(entry.getKey().asLong()), entry.getValue().serializeNBT(provider));
+        for (var entry : proxyWhileFormedPredicateIds.entrySet()) {
+            tag.putInt(Long.toString(entry.getKey().asLong()), entry.getValue());
         }
         proxyWhileFormedData = tag;
     }
 
-    private void loadProxyWhileFormedStateMachinesFromData() {
-        if (proxyWhileFormedStateMachines.isEmpty() && !proxyWhileFormedData.isEmpty()) {
-            loadProxyWhileFormedStateMachinesFromData(proxyWhileFormedData);
+    private void loadProxyWhileFormedPredicateIdsFromData() {
+        if (proxyWhileFormedPredicateIds.isEmpty() && !proxyWhileFormedData.isEmpty()) {
+            loadProxyWhileFormedPredicateIdsFromData(proxyWhileFormedData);
         }
     }
 
-    private void loadProxyWhileFormedStateMachinesFromData(CompoundTag data) {
+    private void loadProxyWhileFormedPredicateIdsFromData(CompoundTag data) {
         var level = getLevel();
         if (level == null) {
             return;
         }
-        proxyWhileFormedStateMachines.clear();
-        var provider = level.registryAccess();
+        proxyWhileFormedPredicateIds.clear();
         for (var key : data.getAllKeys()) {
-            if (data.get(key) instanceof CompoundTag stateMachineTag) {
+            if (data.contains(key, net.minecraft.nbt.Tag.TAG_INT)) {
                 try {
-                    var stateMachine = PatternPredicate.ProxyWhileFormed.createDefaultStateMachine();
-                    stateMachine.deserializeNBT(provider, stateMachineTag);
-                    proxyWhileFormedStateMachines.put(BlockPos.of(Long.parseLong(key)), stateMachine);
+                    proxyWhileFormedPredicateIds.put(BlockPos.of(Long.parseLong(key)), data.getInt(key));
                 } catch (NumberFormatException ignored) {
                     // Ignore malformed synced data from older saves or manual edits.
                 }
             }
         }
+    }
+
+    private Optional<PatternPredicate.ProxyWhileFormed> resolveProxyWhileFormed(BlockPos controllerPos) {
+        var level = getLevel();
+        if (level == null) return Optional.empty();
+        int predicateId = proxyWhileFormedPredicateIds.getOrDefault(controllerPos, -1);
+        if (predicateId < 0) return Optional.empty();
+        return IMachine.ofMachine(level, controllerPos)
+                .filter(MBDMultiblockMachine.class::isInstance)
+                .map(MBDMultiblockMachine.class::cast)
+                .map(MBDMultiblockMachine::getPattern)
+                .map(pattern -> pattern.getPredicate(predicateId))
+                .map(predicate -> predicate.proxyWhileFormed)
+                .filter(PatternPredicate.ProxyWhileFormed::isEnable);
     }
 
     /**
