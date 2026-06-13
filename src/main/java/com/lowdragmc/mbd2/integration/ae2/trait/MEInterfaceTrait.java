@@ -1,14 +1,12 @@
 package com.lowdragmc.mbd2.integration.ae2.trait;
 
 import appeng.api.behaviors.GenericInternalInventory;
-import appeng.api.config.Actionable;
 import appeng.api.networking.IGridNode;
 import appeng.api.networking.IGridNodeListener;
 import appeng.api.networking.IInWorldGridNodeHost;
 import appeng.api.stacks.AEFluidKey;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKeyType;
-import appeng.api.stacks.GenericStack;
 import appeng.api.storage.MEStorage;
 import appeng.api.util.AECableType;
 import appeng.helpers.InterfaceLogicHost;
@@ -196,7 +194,7 @@ public class MEInterfaceTrait extends SimpleCapabilityTrait<MEStorage, @Nullable
             var source = getInterfaceStorage();
             List<IItemHandlerModifiable> handlers = new ArrayList<>();
             for (int i = 0; i < source.size() / 2; i++) {
-                handlers.add(AEInterfaceSlotWidget.createAEItemHandler(source, i * 2));
+                handlers.add(AEInterfaceSlot.createAEItemHandler(source, i * 2));
             }
             return handlers;
         }
@@ -268,7 +266,7 @@ public class MEInterfaceTrait extends SimpleCapabilityTrait<MEStorage, @Nullable
         private int consumeFromHandler(IItemHandler handler, SizedIngredient ingredient, int need, boolean simulate) {
             for (int slot = 0; slot < handler.getSlots() && need > 0; slot++) {
                 var itemStack = handler.getStackInSlot(slot);
-                if (itemStack.isEmpty() || !ingredient.test(itemStack)) continue;
+                if (itemStack.isEmpty() || !ingredient.ingredient().test(itemStack)) continue;
                 var extracted = handler.extractItem(slot, need, simulate);
                 need -= extracted.getCount();
             }
@@ -327,7 +325,7 @@ public class MEInterfaceTrait extends SimpleCapabilityTrait<MEStorage, @Nullable
             var source = getInterfaceStorage();
             List<IFluidHandler> storages = new ArrayList<>();
             for (int i = 0; i < source.size() / 2; i++) {
-                storages.add(AEInterfaceSlotWidget.createAEFluidHandler(source, i * 2 + 1));
+                storages.add(AEInterfaceSlot.createAEFluidHandler(source, i * 2 + 1));
             }
             return storages;
         }
@@ -343,7 +341,7 @@ public class MEInterfaceTrait extends SimpleCapabilityTrait<MEStorage, @Nullable
                     for (var capability : capabilities) {
                         for (int i = 0; i < capability.getTanks() && need > 0; i++) {
                             var stored = capability.getFluidInTank(i);
-                            if (stored.isEmpty() || !sizedIngredient.test(stored)) continue;
+                            if (stored.isEmpty() || !sizedIngredient.ingredient().test(stored)) continue;
                             var toDrain = stored.copyWithAmount(need);
                             var drained = capability.drain(toDrain, IFluidHandler.FluidAction.EXECUTE);
                             need -= drained.getAmount();

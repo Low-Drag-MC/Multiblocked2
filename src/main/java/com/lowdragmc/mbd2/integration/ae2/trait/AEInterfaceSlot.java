@@ -7,6 +7,7 @@ import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.util.ConfigInventory;
 import com.lowdragmc.lowdraglib2.gui.slot.ItemHandlerSlot;
+import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.FluidSlot;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
@@ -25,7 +26,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Optional;
 
 @LDLRegister(name = "ae-interface-slot", group = "inventory", registry = "ldlib2:ui_element", modID = "ae2")
-public class AEInterfaceSlotWidget extends UIElement {
+public class AEInterfaceSlot extends UIElement {
     private final ItemSlot phantomSlot = new ItemSlot().xeiPhantom();
     private final ItemSlot slot = new ItemSlot();
     private final FluidSlot phantomTank = new FluidSlot().xeiPhantom();
@@ -36,20 +37,18 @@ public class AEInterfaceSlotWidget extends UIElement {
     @Getter
     private int slotIndex;
 
-    public AEInterfaceSlotWidget() {
-        layout(layout -> layout.width(20).height(74).positionType(TaffyPosition.ABSOLUTE));
+    public AEInterfaceSlot() {
         phantomSlot.setId("phantom_slot");
+        phantomSlot.getSlotStyle().slotOverlay(Icons.DOWN_ARROW_NO_BAR.copy().scale(0.7f)).showSlotOverlayOnlyEmpty(true);
         slot.setId("slot");
         phantomTank.setId("phantom_tank");
+        phantomTank.getSlotStyle().slotOverlay(Icons.DOWN_ARROW_NO_BAR.copy().scale(0.7f)).showSlotOverlayOnlyEmpty(true);
         tank.setId("tank");
-        phantomSlot.layout(layout -> layout.width(18).height(18).positionType(TaffyPosition.ABSOLUTE).left(1).top(1));
-        slot.layout(layout -> layout.width(18).height(18).positionType(TaffyPosition.ABSOLUTE).left(1).top(19));
-        phantomTank.layout(layout -> layout.width(18).height(18).positionType(TaffyPosition.ABSOLUTE).left(1).top(37));
-        tank.layout(layout -> layout.width(18).height(18).positionType(TaffyPosition.ABSOLUTE).left(1).top(55));
         addChild(phantomSlot);
         addChild(slot);
         addChild(phantomTank);
         addChild(tank);
+        internalSetup();
     }
 
     public void setItemInterfaceLogic(SerializableInterfaceLogic interfaceLogic, int slotIndex) {

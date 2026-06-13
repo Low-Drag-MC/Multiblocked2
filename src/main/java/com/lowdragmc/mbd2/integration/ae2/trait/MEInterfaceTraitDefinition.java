@@ -1,8 +1,6 @@
 package com.lowdragmc.mbd2.integration.ae2.trait;
 
 import appeng.api.AECapabilities;
-import appeng.api.behaviors.GenericInternalInventory;
-import appeng.api.networking.IInWorldGridNodeHost;
 import appeng.api.storage.MEStorage;
 import appeng.core.definitions.AEBlocks;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
@@ -19,6 +17,7 @@ import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.trait.ITrait;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTraitDefinition;
 import com.lowdragmc.mbd2.common.trait.TraitDefinitionType;
+import dev.vfyjxf.taffy.style.FlexDirection;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
 import lombok.Setter;
@@ -103,14 +102,16 @@ public class MEInterfaceTraitDefinition extends SimpleCapabilityTraitDefinition<
     }
 
     @Override
+    public TraitUILayoutType getTraitUILayoutType() {
+        return TraitUILayoutType.BAR;
+    }
+
+    @Override
     public void createTraitUITemplate(UIElement container) {
-        var columns = slotSize <= 9 ? slotSize : (int) Math.ceil(Math.sqrt(slotSize));
+        container.getLayout().flexDirection(FlexDirection.ROW);
         for (var i = 0; i < this.slotSize; i++) {
-            var slotWidget = new AEInterfaceSlotWidget();
+            var slotWidget = new AEInterfaceSlot();
             slotWidget.setId(uiId() + "_" + i);
-            int x = 10 + i % columns * 20;
-            int y = 10 + i / columns * 74;
-            slotWidget.layout(layout -> layout.width(20).height(74).positionType(TaffyPosition.ABSOLUTE).left(x).top(y));
             container.addChild(slotWidget);
         }
     }
@@ -120,7 +121,7 @@ public class MEInterfaceTraitDefinition extends SimpleCapabilityTraitDefinition<
         if (trait instanceof MEInterfaceTrait interfaceTrait) {
             var prefix = uiId();
             var guiIO = getGuiIO();
-            ui.selectRegex("^%s_[0-9]+$".formatted(prefix), AEInterfaceSlotWidget.class).forEach(slotWidget -> {
+            ui.selectRegex("^%s_[0-9]+$".formatted(prefix), AEInterfaceSlot.class).forEach(slotWidget -> {
                 var idStr = slotWidget.getId();
                 var lastUnderscore = idStr.lastIndexOf('_');
                 if (lastUnderscore < 0) return;

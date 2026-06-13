@@ -225,6 +225,7 @@ open class MachineTraitView(editor: MBDEditor, project: MachineProject) : Machin
                 for (type in MBDRegistries.TRAIT_DEFINITION_TYPES) {
                     if (type == TraitDefinition.EMPTY_TYPE) continue
                     val def = type.createDefinition()
+                    if (def.isMandatory) continue
                     // Singleton traits (!allowMultiple) can't be added a second time.
                     if (!def.allowMultiple() && existing.any { it.javaClass == def.javaClass }) continue
                     def.apply {

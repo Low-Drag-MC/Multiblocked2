@@ -46,6 +46,9 @@ public class MBDTestRegistry {
             register(new com.lowdragmc.mbd2.test.tests.trait.MekHeatTraitFixtures());
             register(new com.lowdragmc.mbd2.test.tests.recipe.mekanism.ChemicalRecipeCapabilityFixtures());
         }
+        if (net.neoforged.fml.ModList.get().isLoaded("ae2")) {
+            register(new com.lowdragmc.mbd2.test.tests.trait.ae2.MEInterfaceTraitFixtures());
+        }
         if (net.neoforged.fml.ModList.get().isLoaded("naturesaura")) {
             register(new com.lowdragmc.mbd2.test.tests.trait.naturesaura.AuraHandlerTraitFixtures());
             register(new com.lowdragmc.mbd2.test.tests.recipe.naturesaura.NaturesAuraRecipeCapabilityFixtures());
