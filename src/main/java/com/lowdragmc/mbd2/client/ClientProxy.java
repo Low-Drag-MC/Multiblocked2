@@ -1,6 +1,7 @@
 package com.lowdragmc.mbd2.client;
 
 import com.lowdragmc.mbd2.MBD2;
+import com.lowdragmc.mbd2.api.block.ProxyPartBlock;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.item.MBDGadgetsItem;
 import com.lowdragmc.mbd2.integration.create.machine.KineticInstanceRenderer;
@@ -11,6 +12,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 
 import java.util.Optional;
@@ -33,6 +35,14 @@ public class ClientProxy {
     public void registerRenderers(EntityRenderersEvent.RegisterRenderers e) {
         MBDRegistries.FAKE_MACHINE().initRenderer(e);
         MBDRegistries.MACHINE_DEFINITIONS.forEach(definition -> definition.initRenderer(e));
+    }
+
+    @SubscribeEvent
+    public void registerClientExtensions(RegisterClientExtensionsEvent e) {
+        e.registerBlock(MBDClientBlockExtensions.PROXY_PART, ProxyPartBlock.BLOCK);
+        e.registerBlock(MBDClientBlockExtensions.MACHINE, MBDRegistries.FAKE_MACHINE().block());
+        MBDRegistries.MACHINE_DEFINITIONS.forEach(definition ->
+                e.registerBlock(MBDClientBlockExtensions.MACHINE, definition.block()));
     }
 
     @SubscribeEvent

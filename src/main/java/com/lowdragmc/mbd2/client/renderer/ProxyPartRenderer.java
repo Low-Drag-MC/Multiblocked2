@@ -1,6 +1,7 @@
 package com.lowdragmc.mbd2.client.renderer;
 
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
+import com.lowdragmc.mbd2.client.MBDClientBlockExtensions;
 import com.lowdragmc.mbd2.api.blockentity.ProxyPartBlockEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -47,7 +48,13 @@ public class ProxyPartRenderer implements IRenderer {
     @Override
     public @NotNull TextureAtlasSprite getParticleTexture(@Nullable BlockAndTintGetter level, @Nullable BlockPos pos, ModelData modelData) {
         return getProxy(level, pos)
-                .map(proxy -> proxy.getProxyState().getRealRenderer().getParticleTexture(level, pos, modelData))
+                .map(proxy -> {
+                    var sprite = proxy.getProxyState().getRealRenderer().getParticleTexture(level, pos, modelData);
+                    if (MBDClientBlockExtensions.isMissingTexture(sprite) && proxy.getOriginalState() != null) {
+                        return MBDClientBlockExtensions.getBlockParticleTexture(proxy.getOriginalState(), level, pos, modelData);
+                    }
+                    return sprite;
+                })
                 .orElseGet(() -> IRenderer.super.getParticleTexture(level, pos, modelData));
     }
 
