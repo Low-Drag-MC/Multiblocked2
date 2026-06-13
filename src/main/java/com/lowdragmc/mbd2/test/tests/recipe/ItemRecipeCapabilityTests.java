@@ -46,6 +46,23 @@ public class ItemRecipeCapabilityTests {
 
     @GameTest(template = "empty_simple")
     @PrefixGameTestTemplate(false)
+    public static void sized_item_input_can_be_split_across_slots(GameTestHelper h) {
+        MBDScenario.of(h)
+                .placeMachine(ItemRecipeCapabilityFixtures.SPLIT_STACK_MACHINE_ID, POS)
+                .insertItem(0, new ItemStack(Items.IRON_INGOT, 15))
+                .insertItem(1, new ItemStack(Items.IRON_INGOT, 15))
+                .insertEnergy(10_000)
+                .assertItem(0, new ItemStack(Items.IRON_INGOT, 15))
+                .assertItem(1, new ItemStack(Items.IRON_INGOT, 15))
+                .runTicks(40)
+                .assertItem(0, ItemStack.EMPTY)
+                .assertItem(1, ItemStack.EMPTY)
+                .assertItem(2, new ItemStack(Items.EMERALD, 1))
+                .succeed();
+    }
+
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
     public static void not_consumable_input_is_kept(GameTestHelper h) {
         MBDScenario.of(h)
                 .placeMachine(ItemRecipeCapabilityFixtures.MACHINE_ID, POS)

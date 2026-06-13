@@ -44,6 +44,7 @@ public class MBDTestRegistry {
         if (net.neoforged.fml.ModList.get().isLoaded("mekanism")) {
             register(new com.lowdragmc.mbd2.test.tests.trait.ChemicalTankTraitFixtures());
             register(new com.lowdragmc.mbd2.test.tests.trait.MekHeatTraitFixtures());
+            register(new com.lowdragmc.mbd2.test.tests.recipe.mekanism.ChemicalRecipeCapabilityFixtures());
         }
         if (net.neoforged.fml.ModList.get().isLoaded("naturesaura")) {
             register(new com.lowdragmc.mbd2.test.tests.trait.naturesaura.AuraHandlerTraitFixtures());

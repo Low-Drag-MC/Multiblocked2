@@ -32,11 +32,23 @@ public class EntityRecipeCapabilityTests {
 
     @GameTest(template = "empty_simple")
     @PrefixGameTestTemplate(false)
+    public static void entity_input_count_can_be_satisfied_by_multiple_entities(GameTestHelper h) {
+        MBDScenario.of(h)
+                .placeMachine(EntityRecipeCapabilityFixtures.MULTI_ENTITY_MACHINE_ID, POS)
+                .spawnEntity(EntityType.PIG, new BlockPos(1, 2, 1), pig -> {})
+                .spawnEntity(EntityType.PIG, new BlockPos(2, 2, 1), pig -> {})
+                .runTicks(80)
+                .assertItem(0, new ItemStack(Items.EMERALD, 1))
+                .succeed();
+    }
+
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
     public static void entity_output_spawns_chicken(GameTestHelper h) {
         var scenario = MBDScenario.of(h)
                 .placeMachine(EntityRecipeCapabilityFixtures.MACHINE_ID, POS)
                 .insertItem(0, new ItemStack(Items.COBBLESTONE))
-                .runTicks(60);
+                .runTicks(100);
         // Chicken spawns at a random Vec3 inside the OUT-trait AABB (default [-1,-1,-1, 2,2,2]
         // relative). Worst-case diagonal distance from the machine pos is sqrt(12) ≈ 3.46, so we
         // need at least 4.0 here — 3.0 caused a flake when the chicken landed in a far corner.

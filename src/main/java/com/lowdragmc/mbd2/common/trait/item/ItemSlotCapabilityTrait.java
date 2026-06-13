@@ -261,7 +261,7 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
                     var need = sizedIngredient.count();
                     for (int i = 0; i < container.getSlots(); i++) {
                         var itemStack = container.getStackInSlot(i);
-                        if (sizedIngredient.test(itemStack)) {
+                        if (sizedIngredient.ingredient().test(itemStack)) {
                             var extracted = container.extractItem(i, need, false);
                             need -= extracted.getCount();
                             if (need <= 0) {

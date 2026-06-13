@@ -14,8 +14,11 @@ import net.minecraft.world.item.Items;
 public class ItemRecipeCapabilityFixtures implements TestFixtureProvider {
     public static final ResourceLocation MACHINE_ID = MBD2.id("test_item_cap_machine");
     public static final ResourceLocation RECIPE_TYPE_ID = MBD2.id("test_item_cap_recipes");
+    public static final ResourceLocation SPLIT_STACK_MACHINE_ID = MBD2.id("test_item_cap_split_stack_machine");
+    public static final ResourceLocation SPLIT_STACK_RECIPE_TYPE_ID = MBD2.id("test_item_cap_split_stack_recipes");
 
     public static MBDRecipeType recipeType;
+    public static MBDRecipeType splitStackRecipeType;
 
     @Override
     public void registerRecipeTypes(MBDRegistryEvent.MBDRecipeType event) {
@@ -33,6 +36,10 @@ public class ItemRecipeCapabilityFixtures implements TestFixtureProvider {
                 // probabilistic output (chance = 0.0 → never produced). chance(0f) must come BEFORE outputItems.
                 .recipe("item_cap_zero_chance", b -> b.inputItems(Items.OAK_SAPLING).chance(0f).outputItems(Items.DIAMOND).duration(20))
                 .register(event);
+
+        splitStackRecipeType = TestRecipeTypeBuilder.of(SPLIT_STACK_RECIPE_TYPE_ID)
+                .recipe("item_cap_split_stack_iron", b -> b.inputItems(Items.IRON_INGOT, 30).outputItems(Items.EMERALD).duration(20))
+                .register(event);
     }
 
     @Override
@@ -43,6 +50,13 @@ public class ItemRecipeCapabilityFixtures implements TestFixtureProvider {
                 .withItemSlots(2, IO.OUT)  // slots 2,3 → output
                 .withEnergy(100_000)
                 .withRecipeType(RECIPE_TYPE_ID)
+                .register(event);
+
+        TestMachineBuilder.simple(SPLIT_STACK_MACHINE_ID)
+                .withItemSlots(2, IO.IN, def -> def.setAllowSameItems(false))
+                .withItemSlots(2, IO.OUT)
+                .withEnergy(100_000)
+                .withRecipeType(SPLIT_STACK_RECIPE_TYPE_ID)
                 .register(event);
     }
 }

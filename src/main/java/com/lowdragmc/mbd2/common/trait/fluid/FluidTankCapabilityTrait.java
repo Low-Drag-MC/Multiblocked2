@@ -262,7 +262,7 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait<IFluidHandle
                     var need = sizedIngredient.amount();
                     for (FluidStorage container : containers) {
                         var fluidStack = container.getFluid();
-                        if (sizedIngredient.test(fluidStack)) {
+                        if (sizedIngredient.ingredient().test(fluidStack)) {
                             var extracted = container.drain(need, IFluidHandler.FluidAction.EXECUTE);
                             need -= extracted.getAmount();
                             if (need <= 0) {

@@ -6,8 +6,11 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import net.neoforged.neoforge.fluids.FluidStack;
 
 @GameTestHolder(MBD2.MOD_ID)
 public class FluidRecipeCapabilityTests {
@@ -35,6 +38,21 @@ public class FluidRecipeCapabilityTests {
                 .insertFluid(new net.neoforged.neoforge.fluids.FluidStack(net.minecraft.world.level.material.Fluids.LAVA, 2000))
                 .runTicks(40)
                 .assertFluid(1, new net.neoforged.neoforge.fluids.FluidStack(net.minecraft.world.level.material.Fluids.WATER, 500))
+                .succeed();
+    }
+
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void sized_fluid_input_can_be_split_across_tanks(GameTestHelper h) {
+        MBDScenario.of(h)
+                .placeMachine(FluidRecipeCapabilityFixtures.SPLIT_TANK_MACHINE_ID, POS)
+                .insertFluid(new FluidStack(Fluids.WATER, 1000))
+                .assertFluid(0, new FluidStack(Fluids.WATER, 500))
+                .assertFluid(1, new FluidStack(Fluids.WATER, 500))
+                .runTicks(40)
+                .assertFluid(0, FluidStack.EMPTY)
+                .assertFluid(1, FluidStack.EMPTY)
+                .assertItem(0, new ItemStack(Items.EMERALD, 1))
                 .succeed();
     }
 

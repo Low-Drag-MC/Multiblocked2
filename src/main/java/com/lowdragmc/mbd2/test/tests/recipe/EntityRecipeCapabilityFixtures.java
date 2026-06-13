@@ -17,8 +17,11 @@ import net.minecraft.world.item.Items;
 public class EntityRecipeCapabilityFixtures implements TestFixtureProvider {
     public static final ResourceLocation MACHINE_ID = MBD2.id("test_entity_cap_machine");
     public static final ResourceLocation RECIPE_TYPE_ID = MBD2.id("test_entity_cap_recipes");
+    public static final ResourceLocation MULTI_ENTITY_MACHINE_ID = MBD2.id("test_entity_cap_multi_entity_machine");
+    public static final ResourceLocation MULTI_ENTITY_RECIPE_TYPE_ID = MBD2.id("test_entity_cap_multi_entity_recipes");
 
     public static MBDRecipeType recipeType;
+    public static MBDRecipeType multiEntityRecipeType;
 
     @Override
     public void registerRecipeTypes(MBDRegistryEvent.MBDRecipeType event) {
@@ -33,6 +36,13 @@ public class EntityRecipeCapabilityFixtures implements TestFixtureProvider {
                 .recipe("entity_cap_cobble_to_chicken", b -> b
                         .inputItems(Items.COBBLESTONE)
                         .output(EntityRecipeCapability.CAP, EntityIngredient.of(1, EntityType.CHICKEN))
+                        .duration(20))
+                .register(event);
+
+        multiEntityRecipeType = TestRecipeTypeBuilder.of(MULTI_ENTITY_RECIPE_TYPE_ID)
+                .recipe("entity_cap_two_pigs_to_emerald", b -> b
+                        .input(EntityRecipeCapability.CAP, EntityIngredient.of(2, EntityType.PIG))
+                        .outputItems(Items.EMERALD)
                         .duration(20))
                 .register(event);
     }
@@ -53,6 +63,16 @@ public class EntityRecipeCapabilityFixtures implements TestFixtureProvider {
                 .withItemSlots(1, IO.IN)   // slot 0: cobblestone in (for entity-output recipe)
                 .withItemSlots(1, IO.OUT)  // slot 1: dirt out (for entity-input recipe)
                 .withRecipeType(RECIPE_TYPE_ID)
+                .register(event);
+
+        var multiEntityIn = new EntityHandlerTraitDefinition();
+        multiEntityIn.setName("entity_handler_multi_in");
+        multiEntityIn.setRecipeHandlerIO(IO.IN);
+
+        TestMachineBuilder.simple(MULTI_ENTITY_MACHINE_ID)
+                .withTrait(multiEntityIn)
+                .withItemSlots(1, IO.OUT)
+                .withRecipeType(MULTI_ENTITY_RECIPE_TYPE_ID)
                 .register(event);
     }
 }

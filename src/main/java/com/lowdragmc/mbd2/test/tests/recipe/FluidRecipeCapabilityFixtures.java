@@ -15,8 +15,11 @@ import net.neoforged.neoforge.fluids.FluidStack;
 public class FluidRecipeCapabilityFixtures implements TestFixtureProvider {
     public static final ResourceLocation MACHINE_ID = MBD2.id("test_fluid_cap_machine");
     public static final ResourceLocation RECIPE_TYPE_ID = MBD2.id("test_fluid_cap_recipes");
+    public static final ResourceLocation SPLIT_TANK_MACHINE_ID = MBD2.id("test_fluid_cap_split_tank_machine");
+    public static final ResourceLocation SPLIT_TANK_RECIPE_TYPE_ID = MBD2.id("test_fluid_cap_split_tank_recipes");
 
     public static MBDRecipeType recipeType;
+    public static MBDRecipeType splitTankRecipeType;
 
     @Override
     public void registerRecipeTypes(MBDRegistryEvent.MBDRecipeType event) {
@@ -32,6 +35,13 @@ public class FluidRecipeCapabilityFixtures implements TestFixtureProvider {
                         .outputFluids(new FluidStack(Fluids.WATER, 500))
                         .duration(20))
                 .register(event);
+
+        splitTankRecipeType = TestRecipeTypeBuilder.of(SPLIT_TANK_RECIPE_TYPE_ID)
+                .recipe("fluid_cap_split_tank_water", b -> b
+                        .inputFluids(new FluidStack(Fluids.WATER, 1000))
+                        .outputItems(Items.EMERALD)
+                        .duration(20))
+                .register(event);
     }
 
     @Override
@@ -42,6 +52,12 @@ public class FluidRecipeCapabilityFixtures implements TestFixtureProvider {
                 .withFluidTanks(1, 8000, def -> def.setRecipeHandlerIO(IO.OUT))
                 .withItemSlots(1, IO.OUT)
                 .withRecipeType(RECIPE_TYPE_ID)
+                .register(event);
+
+        TestMachineBuilder.simple(SPLIT_TANK_MACHINE_ID)
+                .withFluidTanks(2, 500, def -> def.setRecipeHandlerIO(IO.IN))
+                .withItemSlots(1, IO.OUT)
+                .withRecipeType(SPLIT_TANK_RECIPE_TYPE_ID)
                 .register(event);
     }
 }
