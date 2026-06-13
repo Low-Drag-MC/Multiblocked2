@@ -138,8 +138,8 @@ public class MBDMachineEvents {
         }
     }
 
-    public static class MachineRightClickEventJS extends MachineEventJS<MachineUseWithoutItemEvent> {
-        public MachineRightClickEventJS(MachineUseWithoutItemEvent event) {
+    public static class MachineUseWithoutItemEventJS extends MachineEventJS<MachineUseWithoutItemEvent> {
+        public MachineUseWithoutItemEventJS(MachineUseWithoutItemEvent event) {
             super(event);
         }
     }

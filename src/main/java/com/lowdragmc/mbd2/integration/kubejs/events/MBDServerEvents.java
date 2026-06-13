@@ -92,10 +92,10 @@ public interface MBDServerEvents {
             MBDMachineEvents.MachineRemovedEventJS.class,
             MBDMachineEvents.MachineRemovedEventJS::new);
 
-    EventHandler RIGHT_CLICK = registerMachineEvent("onRightClick",
+    EventHandler USE_WITHOUT_ITEM = registerMachineEvent("onUseWithoutItem",
             MachineUseWithoutItemEvent.class,
-            MBDMachineEvents.MachineRightClickEventJS.class,
-            MBDMachineEvents.MachineRightClickEventJS::new);
+            MBDMachineEvents.MachineUseWithoutItemEventJS.class,
+            MBDMachineEvents.MachineUseWithoutItemEventJS::new);
 
     EventHandler STATE_CHANGED = registerMachineEvent("onStateChanged",
             MachineStateChangedEvent.class,
