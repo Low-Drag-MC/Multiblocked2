@@ -150,28 +150,31 @@ public class MBDGadgetsItem extends Item implements HeldItemUIMenuType.HeldItemU
     private boolean isUsed;
 
     @Override
-    public InteractionResultHolder<ItemStack> use(Level pLevel, Player pPlayer, InteractionHand pUsedHand) {
-        var stack = pPlayer.getItemInHand(pUsedHand);
+    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand usedHand) {
+        var stack = player.getItemInHand(usedHand);
         if (isUsed) {
             isUsed = false;
             return InteractionResultHolder.success(stack);
         }
-        if (pPlayer.isCrouching()) {
+        if (player.isCrouching()) {
             if (isMultiblockBuilder(stack)) {
                 setMode(stack, Mode.RECIPE_DEBUGGER);
+                player.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger"));
                 return InteractionResultHolder.success(stack);
             } else if (isRecipeDebugger(stack)) {
                 setMode(stack, Mode.MULTIBLOCK_DEBUGGER);
+                player.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.multiblock_debugger"));
                 return InteractionResultHolder.success(stack);
             } else if (isMultiblockDebugger(stack)) {
                 setMode(stack, Mode.MULTIBLOCK_BUILDER);
+                player.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.multiblock_builder"));
                 return InteractionResultHolder.success(stack);
             }
-        } else if (pPlayer instanceof ServerPlayer serverPlayer && isRecipeDebugger(stack)) {
-            HeldItemUIMenuType.openUI(serverPlayer, pUsedHand);
+        } else if (player instanceof ServerPlayer serverPlayer && isRecipeDebugger(stack)) {
+            HeldItemUIMenuType.openUI(serverPlayer, usedHand);
             return InteractionResultHolder.success(stack);
         }
-        return super.use(pLevel, pPlayer, pUsedHand);
+        return super.use(level, player, usedHand);
     }
 
     @Override
