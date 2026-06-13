@@ -22,9 +22,11 @@ import com.lowdragmc.mbd2.api.machine.IMultiController;
 import com.lowdragmc.mbd2.api.pattern.predicates.PatternPredicate;
 import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleCatalyst;
+import com.lowdragmc.mbd2.utils.ControllerBlockInfo;
 import dev.vfyjxf.taffy.style.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
@@ -423,6 +425,19 @@ public class PatternPreview extends UIElement {
 
     // ===== Pattern construction =====
 
+    static BlockInfo resolve(MultiblockMachineDefinition definition, BlockInfo info) {
+        if (info instanceof ControllerBlockInfo controllerInfo) {
+            BlockState state = definition.block().defaultBlockState();
+            Direction facing = controllerInfo.getFacing();
+            var property = definition.blockProperties().rotationState().property;
+            if (facing != null && property.isPresent() && property.get().getPossibleValues().contains(facing)) {
+                state = state.setValue(property.get(), facing);
+            }
+            return BlockInfo.fromBlockState(state);
+        }
+        return info;
+    }
+
     @Nullable
     private static MBPattern buildPattern(MultiblockMachineDefinition definition, MultiblockShapeInfo shapeInfo) {
         var world = new TrackedDummyWorld();
@@ -438,7 +453,9 @@ public class PatternPreview extends UIElement {
                     BlockInfo info = blocks[x][y][z];
                     if (info == null) continue;
                     BlockPos pos = origin.offset(x, y, z);
-                    if (info.getBlockState().isAir()) continue;
+                    info = resolve(definition, info);
+                    var state = info.getBlockState();
+                    if (state == null || state.isAir()) continue;
                     blockMap.put(pos, info);
                     world.addBlock(pos, info);
                     if (IMultiController.ofController(world.getBlockEntity(pos)).isPresent()) {
@@ -525,7 +542,7 @@ public class PatternPreview extends UIElement {
             var pos = entry.getKey();
             if (pos.equals(controllerPos)) continue;
             BlockState state = entry.getValue().getBlockState();
-            if (state.isAir()) continue;
+            if (state == null || state.isAir()) continue;
 
             ItemStack stack = state.getBlock().getCloneItemStack(world, pos, state);
             if (!stack.isEmpty()) {
