@@ -30,8 +30,8 @@ dependencies {
     localImplementation("com.lowdragmc.photon:photon-neoforge-${minecraft_version}:${photon2_version}") { transitive = false }
 
     // Botania
-    compileOnly(files("./libs/botania-neoforge-1.0.0.jar"))
-    localImplementation(files("./libs/botania-neoforge-1.0.0.jar"))
+//    compileOnly("vazkii.botania:botania-neoforge-${minecraft_version}:${botania_version}:api")
+//    localImplementation("vazkii.botania:botania-neoforge-${minecraft_version}:${botania_version}")
     runtimeOnly("top.theillusivec4.curios:curios-neoforge:${curios_version}")
     runtimeOnly("vazkii.patchouli:Patchouli:${patchouli_version}")
 
