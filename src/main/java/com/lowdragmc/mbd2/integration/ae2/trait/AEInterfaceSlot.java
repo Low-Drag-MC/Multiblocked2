@@ -6,18 +6,24 @@ import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.util.ConfigInventory;
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.slot.ItemHandlerSlot;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.DataBindingBuilder;
 import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.FluidSlot;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
-import dev.vfyjxf.taffy.style.TaffyPosition;
 import lombok.Getter;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.FluidUtil;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import org.jetbrains.annotations.NotNull;
@@ -27,6 +33,15 @@ import java.util.Optional;
 
 @LDLRegister(name = "ae-interface-slot", group = "inventory", registry = "ldlib2:ui_element", modID = "ae2")
 public class AEInterfaceSlot extends UIElement {
+    private static final int MIN_ITEM_AMOUNT = 1;
+    private static final int MAX_ITEM_AMOUNT = 64;
+    private static final int ITEM_SCROLL_STEP = 1;
+    private static final int ITEM_SHIFT_SCROLL_STEP = 10;
+    private static final int MIN_FLUID_AMOUNT = 1;
+    private static final int MAX_FLUID_AMOUNT = 4000;
+    private static final int FLUID_SCROLL_STEP = 1;
+    private static final int FLUID_SHIFT_SCROLL_STEP = 1000;
+
     private final ItemSlot phantomSlot = new ItemSlot().xeiPhantom();
     private final ItemSlot slot = new ItemSlot();
     private final FluidSlot phantomTank = new FluidSlot().xeiPhantom();
@@ -48,6 +63,7 @@ public class AEInterfaceSlot extends UIElement {
         addChild(slot);
         addChild(phantomTank);
         addChild(tank);
+        setupPhantomControls();
         internalSetup();
     }
 
@@ -55,10 +71,39 @@ public class AEInterfaceSlot extends UIElement {
         this.interfaceLogic = interfaceLogic;
         this.slotIndex = slotIndex;
         slot.bind(createAEItemHandler(interfaceLogic.getStorage(), slotIndex * 2), 0);
-        phantomSlot.bind(createAEItemHandler(interfaceLogic.getConfig(), slotIndex * 2), 0);
+        phantomSlot.bind(DataBindingBuilder.itemStack(
+                () -> Optional.ofNullable(interfaceLogic.getConfig().getStack(slotIndex * 2)).map(stack -> {
+                    if (stack.what() instanceof AEItemKey itemKey) {
+                        return itemKey.toStack((int) Math.min(Integer.MAX_VALUE, stack.amount()));
+                    }
+                    return ItemStack.EMPTY;
+                }).orElse(ItemStack.EMPTY), itemStack -> {
+                    if (itemStack.isEmpty()) {
+                        interfaceLogic.getConfig().setStack(slotIndex * 2, null);
+                        return;
+                    }
+                    var itemKey = AEItemKey.of(itemStack);
+                    if (itemKey != null) {
+                        interfaceLogic.getConfig().setStack(slotIndex * 2, new GenericStack(itemKey, itemStack.getCount()));
+                    }
+                }).build());
         tank.bind(createAEFluidHandler(interfaceLogic.getStorage(), slotIndex * 2 + 1), 0);
-        phantomTank.bind(createAEFluidHandler(interfaceLogic.getConfig(), slotIndex * 2 + 1), 0);
-        phantomTank.registerValueListener(fluidStack -> setAEFluidStack(interfaceLogic.getConfig(), slotIndex * 2 + 1, fluidStack));
+        phantomTank.bind(DataBindingBuilder.fluidStack(
+                () -> Optional.ofNullable(interfaceLogic.getConfig().getStack(slotIndex * 2 + 1)).map(stack -> {
+                    if (stack.what() instanceof AEFluidKey fluidKey) {
+                        return fluidKey.toStack((int) Math.min(Integer.MAX_VALUE, stack.amount()));
+                    }
+                    return FluidStack.EMPTY;
+                }).orElse(FluidStack.EMPTY), fluidStack -> {
+                    if (fluidStack.isEmpty()) {
+                        interfaceLogic.getConfig().setStack(slotIndex * 2 + 1, null);
+                        return;
+                    }
+                    var fluidKey = AEFluidKey.of(fluidStack);
+                    if (fluidKey != null) {
+                        interfaceLogic.getConfig().setStack(slotIndex * 2 + 1, new GenericStack(fluidKey, fluidStack.getAmount()));
+                    }
+                }).build());
     }
 
     public void setIngredientIO(IO io) {
@@ -92,6 +137,83 @@ public class AEInterfaceSlot extends UIElement {
             handlerSlot.setCanPlace(stack -> support);
         }
         tank.setAllowClickDrained(support);
+    }
+
+    private void setupPhantomControls() {
+        phantomSlot.getStyle().appendTooltips(
+                Component.translatable("mbd2.ae_interface_slot.phantom_slot.tooltip.click"),
+                Component.translatable("mbd2.ae_interface_slot.phantom_slot.tooltip.scroll"),
+                Component.translatable("mbd2.ae_interface_slot.phantom_slot.tooltip.xei"));
+        phantomTank.getStyle().appendTooltips(
+                Component.translatable("mbd2.ae_interface_slot.phantom_tank.tooltip.click"),
+                Component.translatable("mbd2.ae_interface_slot.phantom_tank.tooltip.scroll"),
+                Component.translatable("mbd2.ae_interface_slot.phantom_tank.tooltip.xei"));
+
+        if (!LDLib2.isClient() || LDLib2.isServer()) return;
+        phantomSlot.addEventListener(UIEvents.MOUSE_DOWN, this::onPhantomSlotClicked);
+        phantomSlot.addEventListener(UIEvents.MOUSE_WHEEL, this::onPhantomSlotScrolled);
+        phantomTank.addEventListener(UIEvents.MOUSE_DOWN, this::onPhantomTankClicked);
+        phantomTank.addEventListener(UIEvents.MOUSE_WHEEL, this::onPhantomTankScrolled);
+    }
+
+    private void onPhantomSlotClicked(UIEvent event) {
+        var carried = getCarriedItem();
+        if (carried.isEmpty()) {
+            phantomSlot.setItem(ItemStack.EMPTY);
+        } else {
+            phantomSlot.setItem(carried.copyWithCount(Mth.clamp(carried.getCount(), MIN_ITEM_AMOUNT, MAX_ITEM_AMOUNT)));
+        }
+        event.stopPropagation();
+    }
+
+    private void onPhantomSlotScrolled(UIEvent event) {
+        var scrollDirection = getScrollDirection(event);
+        var current = phantomSlot.getValue();
+        if (scrollDirection == 0 || current.isEmpty()) return;
+        var step = event.isShiftDown() ? ITEM_SHIFT_SCROLL_STEP : ITEM_SCROLL_STEP;
+        phantomSlot.setItem(current.copyWithCount(Mth.clamp(current.getCount() + scrollDirection * step, MIN_ITEM_AMOUNT, MAX_ITEM_AMOUNT)));
+        event.stopPropagation();
+    }
+
+    private void onPhantomTankClicked(UIEvent event) {
+        phantomTank.setFluid(getCarriedFluid());
+        event.stopPropagation();
+    }
+
+    private void onPhantomTankScrolled(UIEvent event) {
+        var scrollDirection = getScrollDirection(event);
+        var current = phantomTank.getValue();
+        if (scrollDirection == 0 || current.isEmpty()) return;
+        var step = event.isShiftDown() ? FLUID_SHIFT_SCROLL_STEP : FLUID_SCROLL_STEP;
+        phantomTank.setFluid(current.copyWithAmount(Mth.clamp(current.getAmount() + scrollDirection * step, MIN_FLUID_AMOUNT, MAX_FLUID_AMOUNT)));
+        event.stopPropagation();
+    }
+
+    private ItemStack getCarriedItem() {
+        var mui = getModularUI();
+        if (mui == null || mui.getMenu() == null) return ItemStack.EMPTY;
+        return mui.getMenu().getCarried();
+    }
+
+    private FluidStack getCarriedFluid() {
+        var carried = getCarriedItem();
+        if (carried.isEmpty()) return FluidStack.EMPTY;
+        return FluidUtil.getFluidHandler(carried)
+                .flatMap(handler -> {
+                    for (int i = 0; i < handler.getTanks(); i++) {
+                        var fluid = handler.getFluidInTank(i);
+                        if (!fluid.isEmpty()) {
+                            return Optional.of(fluid.copyWithAmount(Mth.clamp(fluid.getAmount(), MIN_FLUID_AMOUNT, MAX_FLUID_AMOUNT)));
+                        }
+                    }
+                    return Optional.empty();
+                }).orElse(FluidStack.EMPTY);
+    }
+
+    private static int getScrollDirection(UIEvent event) {
+        if (event.deltaY > 0) return 1;
+        if (event.deltaY < 0) return -1;
+        return 0;
     }
 
     public static @NotNull IItemHandlerModifiable createAEItemHandler(ConfigInventory inventory, int slotIndex) {
@@ -213,14 +335,4 @@ public class AEInterfaceSlot extends UIElement {
         };
     }
 
-    private static void setAEFluidStack(ConfigInventory inventory, int slotIndex, FluidStack fluidStack) {
-        if (fluidStack.isEmpty()) {
-            inventory.setStack(slotIndex, null);
-            return;
-        }
-        var fluidKey = AEFluidKey.of(fluidStack);
-        if (fluidKey != null) {
-            inventory.setStack(slotIndex, new GenericStack(fluidKey, fluidStack.getAmount()));
-        }
-    }
 }

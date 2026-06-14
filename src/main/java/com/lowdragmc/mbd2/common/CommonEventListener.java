@@ -29,16 +29,7 @@ import net.neoforged.neoforge.event.tick.LevelTickEvent;
  * @implNote ForgeCommonEventListener
  */
 @EventBusSubscriber(modid = MBD2.MOD_ID)
-public class ForgeCommonEventListener {
-
-    @SubscribeEvent
-    public static void onServerStart(ServerAboutToStartEvent e) {
-        if (!LDLib2.isClient()) {
-            var postTask = CommonProxy.getPostTask();
-            postTask.forEach(Runnable::run);
-            postTask.clear();
-        }
-    }
+public class CommonEventListener {
 
     @SubscribeEvent
     public static void onRegisterCommands(RegisterCommandsEvent event) {

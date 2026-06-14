@@ -734,6 +734,12 @@
     "ldlib2.gui.editor.register.widget.container.entity_preview": "实体预览槽",
 
     "ldlib2.gui.editor.register.widget.container.ae_interface_slot": "ME 接口槽位",
+    "mbd2.ae_interface_slot.phantom_slot.tooltip.click": "手持物品点击可设置过滤物品，不消耗手中物品；空手点击可清空。",
+    "mbd2.ae_interface_slot.phantom_slot.tooltip.scroll": "滚轮可调整物品数量，范围 1 到 64；按住 Shift 每次调整 10。",
+    "mbd2.ae_interface_slot.phantom_slot.tooltip.xei": "支持通过 XEI 拖拽设置。",
+    "mbd2.ae_interface_slot.phantom_tank.tooltip.click": "手持流体容器点击可设置其中流体，不消耗手中物品；未持有流体时点击可清空。",
+    "mbd2.ae_interface_slot.phantom_tank.tooltip.scroll": "滚轮可调整流体数量，范围 1 到 4000 mB；按住 Shift 每次调整 1 桶。",
+    "mbd2.ae_interface_slot.phantom_tank.tooltip.xei": "支持通过 XEI 拖拽设置。",
 
     "recipe.capability.forge_energy.name": "能量",
     "recipe.capability.forge_energy.energy": "能量",

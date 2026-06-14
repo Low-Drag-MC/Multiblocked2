@@ -16,7 +16,8 @@
     "RecipeManagerMixin",
     "SizedFluidIngredientAccessor",
     "SizedIngredientAccessor",
-    "TagValueAccessor"
+    "TagValueAccessor",
+    "WorldLoaderMixin"
   ],
   "injectors": {
     "defaultRequire": 1,
