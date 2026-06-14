@@ -112,6 +112,9 @@ public class TestMachineBuilder {
 
     /** Attach an arbitrary pre-built trait. Escape hatch for traits we don't have a convenience for. */
     public TestMachineBuilder withTrait(TraitDefinition definition) {
+        if (!definition.canBeAddedTo(traits)) {
+            throw new IllegalArgumentException("Trait " + definition.type().name + " is not compatible with the existing test machine traits");
+        }
         traits.add(definition);
         return this;
     }

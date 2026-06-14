@@ -48,6 +48,7 @@ public class MBDTestRegistry {
         }
         if (net.neoforged.fml.ModList.get().isLoaded("ae2")) {
             register(new com.lowdragmc.mbd2.test.tests.trait.ae2.MEInterfaceTraitFixtures());
+            register(new com.lowdragmc.mbd2.test.tests.trait.ae2.MEPatternProviderTraitFixtures());
         }
         if (net.neoforged.fml.ModList.get().isLoaded("naturesaura")) {
             register(new com.lowdragmc.mbd2.test.tests.trait.naturesaura.AuraHandlerTraitFixtures());

@@ -11,7 +11,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
-import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.trait.ITrait;
@@ -19,8 +18,6 @@ import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTraitDefinition;
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 import com.lowdragmc.mbd2.common.trait.TraitDefinitionType;
 import dev.vfyjxf.taffy.style.FlexDirection;
-import lombok.Getter;
-import lombok.Setter;
 import net.minecraft.core.Direction;
 import net.neoforged.neoforge.capabilities.BlockCapability;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
@@ -28,15 +25,15 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-@Getter
-@Setter
-public class MEInterfaceTraitDefinition extends SimpleCapabilityTraitDefinition<MEStorage, @Nullable Direction> {
-    @LDLRegister(name = "ae2_me_interface", registry = "mbd2:trait_definition_type", group = "trait", priority = -100, modID = "ae2")
-    public static final SimpleCapabilityTraitDefinition.Type<MEStorage, @Nullable Direction, MEInterfaceTraitDefinition> TYPE =
-            new SimpleCapabilityTraitDefinition.Type<>("ae2_me_interface", "trait") {
+@lombok.Getter
+@lombok.Setter
+public class MEPatternProviderTraitDefinition extends SimpleCapabilityTraitDefinition<MEStorage, @Nullable Direction> {
+    @LDLRegister(name = "ae2_me_pattern_provider", registry = "mbd2:trait_definition_type", group = "trait", priority = -100, modID = "ae2")
+    public static final SimpleCapabilityTraitDefinition.Type<MEStorage, @Nullable Direction, MEPatternProviderTraitDefinition> TYPE =
+            new SimpleCapabilityTraitDefinition.Type<>("ae2_me_pattern_provider", "trait") {
                 @Override
-                public MEInterfaceTraitDefinition createDefinition() {
-                    return new MEInterfaceTraitDefinition();
+                public MEPatternProviderTraitDefinition createDefinition() {
+                    return new MEPatternProviderTraitDefinition();
                 }
 
                 @Override
@@ -85,21 +82,25 @@ public class MEInterfaceTraitDefinition extends SimpleCapabilityTraitDefinition<
                 }
             };
 
-    @Configurable(name = "config.definition.trait.ae2_me_interface.slot_size")
+    @Configurable(name = "config.definition.trait.ae2_me_pattern_provider.slot_size")
     @ConfigNumber(range = {1, Integer.MAX_VALUE})
     private int slotSize = 9;
 
-    @Configurable(name = "config.definition.trait.ae2_me_interface.item_capacity")
+    @Configurable(name = "config.definition.trait.ae2_me_pattern_provider.pattern_size")
+    @ConfigNumber(range = {1, Integer.MAX_VALUE})
+    private int patternSize = 9;
+
+    @Configurable(name = "config.definition.trait.ae2_me_pattern_provider.item_capacity")
     @ConfigNumber(range = {1, 64})
     private int itemCapacity = 64;
 
-    @Configurable(name = "config.definition.trait.ae2_me_interface.fluid_capacity")
+    @Configurable(name = "config.definition.trait.ae2_me_pattern_provider.fluid_capacity")
     @ConfigNumber(range = {1, Integer.MAX_VALUE})
     private int fluidCapacity = 4000;
 
     @Override
-    public MEInterfaceTrait createTrait(MBDMachine machine) {
-        return new MEInterfaceTrait(machine, this);
+    public MEPatternProviderTrait createTrait(MBDMachine machine) {
+        return new MEPatternProviderTrait(machine, this);
     }
 
     @Override
@@ -109,7 +110,7 @@ public class MEInterfaceTraitDefinition extends SimpleCapabilityTraitDefinition<
 
     @Override
     public IGuiTexture getIcon() {
-        return new ItemStackTexture(AEBlocks.INTERFACE.asItem());
+        return new ItemStackTexture(AEBlocks.PATTERN_PROVIDER.asItem());
     }
 
     @Override
@@ -119,7 +120,7 @@ public class MEInterfaceTraitDefinition extends SimpleCapabilityTraitDefinition<
 
     @Override
     public boolean isCompatibleWith(TraitDefinition other) {
-        return !(other instanceof MEPatternProviderTraitDefinition) && super.isCompatibleWith(other);
+        return !(other instanceof MEInterfaceTraitDefinition) && super.isCompatibleWith(other);
     }
 
     @Override
@@ -130,35 +131,17 @@ public class MEInterfaceTraitDefinition extends SimpleCapabilityTraitDefinition<
     @Override
     public void createTraitUITemplate(UIElement container) {
         container.getLayout().flexDirection(FlexDirection.ROW);
-        for (var i = 0; i < this.slotSize; i++) {
-            var slotWidget = new AEInterfaceSlot();
-            slotWidget.setId(uiId() + "_" + i);
-            container.addChild(slotWidget);
-        }
+        var slot = new AEPatternProviderSlot();
+        slot.setId(uiId());
+        slot.setupTemplate(patternSize, slotSize);
+        container.addChild(slot);
     }
 
     @Override
     public void initTraitUI(ITrait trait, UI ui) {
-        if (trait instanceof MEInterfaceTrait interfaceTrait) {
-            var prefix = uiId();
-            var guiIO = getGuiIO();
-            ui.selectRegex("^%s_[0-9]+$".formatted(prefix), AEInterfaceSlot.class).forEach(slotWidget -> {
-                var idStr = slotWidget.getId();
-                var lastUnderscore = idStr.lastIndexOf('_');
-                if (lastUnderscore < 0) return;
-                int index;
-                try {
-                    index = Integer.parseInt(idStr.substring(lastUnderscore + 1));
-                } catch (NumberFormatException ignored) {
-                    return;
-                }
-                if (index >= 0 && index < slotSize) {
-                    slotWidget.setItemInterfaceLogic(interfaceTrait.getInterfaceLogic(), index);
-                    slotWidget.setIngredientIO(guiIO);
-                    slotWidget.setCanTakeItems(guiIO.support(IO.OUT));
-                    slotWidget.setCanPutItems(guiIO.support(IO.IN));
-                }
-            });
+        if (trait instanceof MEPatternProviderTrait providerTrait) {
+            ui.selectRegex("^%s$".formatted(uiId()), AEPatternProviderSlot.class)
+                    .forEach(slot -> slot.bindPatternProvider(providerTrait, patternSize, slotSize, getGuiIO()));
         }
     }
 }

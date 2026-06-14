@@ -53,6 +53,40 @@ public class MEInterfaceTraitTests {
                 .succeed();
     }
 
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void me_interface_item_capacity_clamps_storage_slot(GameTestHelper h) {
+        var scenario = MBDScenario.of(h)
+                .placeMachine(MEInterfaceTraitFixtures.CAPPED_MACHINE_ID, POS);
+        var inventory = interfaceInventory(h, scenario);
+
+        inventory.setStack(0, new GenericStack(AEItemKey.of(Items.IRON_INGOT), 64));
+
+        var stored = inventory.getStack(0);
+        if (stored == null || stored.amount() != 16) {
+            h.fail("Expected item capacity to clamp to 16, got " + stored);
+            return;
+        }
+        h.succeed();
+    }
+
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void me_interface_fluid_capacity_clamps_storage_slot(GameTestHelper h) {
+        var scenario = MBDScenario.of(h)
+                .placeMachine(MEInterfaceTraitFixtures.CAPPED_MACHINE_ID, POS);
+        var inventory = interfaceInventory(h, scenario);
+
+        inventory.setStack(1, new GenericStack(AEFluidKey.of(Fluids.WATER), 12_000));
+
+        var stored = inventory.getStack(1);
+        if (stored == null || stored.amount() != 8000) {
+            h.fail("Expected fluid capacity to clamp to 8000, got " + stored);
+            return;
+        }
+        h.succeed();
+    }
+
     private static GenericInternalInventory interfaceInventory(GameTestHelper h, MBDScenario scenario) {
         var inventory = MBDTestHelper.capability(h, scenario.machine(), AECapabilities.GENERIC_INTERNAL_INV);
         if (inventory == null) {

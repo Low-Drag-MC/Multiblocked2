@@ -444,11 +444,10 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
                 var dialog = new Dialog()
                         .setTitle(I18n.get("editor.machine.recipe_type_ui_view.custom_data"))
                         .setAutoClose(true)
-                        .setClickOutsideClose(true)
-                        .darkenBackground();
+                        .setClickOutsideClose(true);
                 dialog.overlay.layout(layout -> {
-                    layout.widthPercent(90);
-                    layout.heightPercent(90);
+                    layout.widthPercent(70);
+                    layout.heightPercent(70);
                 });
                 dialog.contentContainer.layout(layout -> {
                     layout.widthPercent(100);

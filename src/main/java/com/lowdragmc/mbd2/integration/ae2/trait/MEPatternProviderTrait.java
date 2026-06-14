@@ -12,7 +12,7 @@ import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.MEStorage;
 import appeng.api.util.AECableType;
-import appeng.helpers.InterfaceLogicHost;
+import appeng.helpers.externalstorage.GenericStackInv;
 import appeng.helpers.patternprovider.PatternContainer;
 import appeng.me.helpers.IGridConnectedBlockEntity;
 import appeng.util.ConfigInventory;
@@ -52,8 +52,8 @@ import java.util.Random;
 
 @Getter
 @Setter
-public class MEInterfaceTrait extends SimpleCapabilityTrait<MEStorage, @Nullable Direction> implements IGridConnectedBlockEntity, InterfaceLogicHost, PatternContainer {
-    public static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(MEInterfaceTrait.class);
+public class MEPatternProviderTrait extends SimpleCapabilityTrait<MEStorage, @Nullable Direction> implements IGridConnectedBlockEntity, PatternContainer {
+    public static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(MEPatternProviderTrait.class);
 
     @Override
     public ManagedFieldHolder getFieldHolder() {
@@ -65,34 +65,33 @@ public class MEInterfaceTrait extends SimpleCapabilityTrait<MEStorage, @Nullable
     @Persisted
     private final SerializableManagedGridNode mainNode;
     @Persisted
-    private final SerializableInterfaceLogic interfaceLogic;
+    private final SerializablePatternProviderLogic patternProviderLogic;
     private final ItemRecipeHandler itemRecipeHandler = new ItemRecipeHandler();
     private final FluidRecipeHandler fluidRecipeHandler = new FluidRecipeHandler();
 
-    public MEInterfaceTrait(MBDMachine machine, MEInterfaceTraitDefinition definition) {
+    public MEPatternProviderTrait(MBDMachine machine, MEPatternProviderTraitDefinition definition) {
         super(machine, definition);
         mainNode = createMainNode();
-        interfaceLogic = createLogic();
+        patternProviderLogic = createLogic();
         applyCapacities();
     }
 
     protected SerializableManagedGridNode createMainNode() {
-        return (SerializableManagedGridNode) new SerializableManagedGridNode(this, (nodeOwner, node) -> nodeOwner.interfaceLogic.gridChanged())
+        return (SerializableManagedGridNode) new SerializableManagedGridNode(this, (nodeOwner, node) -> nodeOwner.patternProviderLogic.onMainNodeStateChanged())
                 .setVisualRepresentation(getMachine().getDropItem())
                 .setInWorldNode(true)
-                .setTagName("proxy");
+                .setTagName("pattern_provider");
     }
 
-    protected SerializableInterfaceLogic createLogic() {
-        return new SerializableInterfaceLogic(getMainNode(), this, getMachine().getDropItem().getItem(), getDefinition().getSlotSize() * 2);
-    }
-
-    @Override
-    public MEInterfaceTraitDefinition getDefinition() {
-        return (MEInterfaceTraitDefinition) super.getDefinition();
+    protected SerializablePatternProviderLogic createLogic() {
+        return new SerializablePatternProviderLogic(getMainNode(), this, getDefinition().getPatternSize(), getDefinition().getSlotSize() * 2);
     }
 
     @Override
+    public MEPatternProviderTraitDefinition getDefinition() {
+        return (MEPatternProviderTraitDefinition) super.getDefinition();
+    }
+
     public BlockEntity getBlockEntity() {
         return getMachine().getHolder();
     }
@@ -108,11 +107,7 @@ public class MEInterfaceTrait extends SimpleCapabilityTrait<MEStorage, @Nullable
     }
 
     public void applyCapacities() {
-        var definition = getDefinition();
-        interfaceLogic.getStorage().setCapacity(AEKeyType.items(), definition.getItemCapacity());
-        interfaceLogic.getStorage().setCapacity(AEKeyType.fluids(), definition.getFluidCapacity());
-        interfaceLogic.getConfig().setCapacity(AEKeyType.items(), definition.getItemCapacity());
-        interfaceLogic.getConfig().setCapacity(AEKeyType.fluids(), definition.getFluidCapacity());
+        patternProviderLogic.applyCapacities(getDefinition().getItemCapacity(), getDefinition().getFluidCapacity());
     }
 
     @Override
@@ -123,25 +118,22 @@ public class MEInterfaceTrait extends SimpleCapabilityTrait<MEStorage, @Nullable
 
     @Override
     public void onMainNodeStateChanged(IGridNodeListener.State reason) {
-        if (getMainNode().hasGridBooted()) {
-            this.interfaceLogic.notifyNeighbors();
-        }
+        patternProviderLogic.onMainNodeStateChanged();
     }
 
-    @Override
     public ItemStack getMainMenuIcon() {
         return getMachine().getDropItem();
     }
 
     @Override
     public void onMachineDrop(Entity entity, List<ItemStack> drops) {
-        this.interfaceLogic.addDrops(drops);
-        this.interfaceLogic.clearContent();
+        patternProviderLogic.addDrops(drops);
+        patternProviderLogic.clearContent();
     }
 
     @Override
     public AECableType getCableConnectionType(Direction dir) {
-        return this.interfaceLogic.getCableConnectionType(dir);
+        return getCapabilityIO(dir) == IO.NONE ? AECableType.NONE : AECableType.SMART;
     }
 
     @Override
@@ -151,56 +143,65 @@ public class MEInterfaceTrait extends SimpleCapabilityTrait<MEStorage, @Nullable
 
     @Override
     public @Nullable MEStorage getCapContent(IO capabilityIO) {
-        return capabilityIO != IO.NONE ? interfaceLogic.getInventory() : null;
+        return capabilityIO != IO.NONE ? patternProviderLogic.getStorage() : null;
     }
 
     public @Nullable GenericInternalInventory getGenericInternalInventory(IO capabilityIO) {
-        return capabilityIO != IO.NONE ? interfaceLogic.getStorage() : null;
+        return capabilityIO != IO.NONE ? patternProviderLogic.getStorage() : null;
+    }
+
+    public ConfigInventory getStorage() {
+        return patternProviderLogic.getStorage();
+    }
+
+    public ConfigInventory getReturnInventory() {
+        return patternProviderLogic.getReturnInventory();
+    }
+
+    @Override
+    public @Nullable IGrid getGrid() {
+        return patternProviderLogic.getGrid();
+    }
+
+    @Override
+    public InternalInventory getTerminalPatternInventory() {
+        return patternProviderLogic.getPatternInv();
+    }
+
+    @Override
+    public long getTerminalSortOrder() {
+        return patternProviderLogic.getSortValue();
+    }
+
+    @Override
+    public PatternContainerGroup getTerminalGroup() {
+        var iconStack = getMachine().getDropItem();
+        return new PatternContainerGroup(AEItemKey.of(iconStack), iconStack.getHoverName(), List.of());
     }
 
     public IInWorldGridNodeHost getGridNodeHost() {
         return this;
     }
 
-    @Override
-    public @Nullable IGrid getGrid() {
-        return getMainNode().getGrid();
-    }
-
-    @Override
-    public boolean isVisibleInTerminal() {
-        return findPatternProviderTrait() != null;
-    }
-
-    @Override
-    public InternalInventory getTerminalPatternInventory() {
-        var patternProviderTrait = findPatternProviderTrait();
-        return patternProviderTrait == null ? InternalInventory.empty() : patternProviderTrait.getPatternProviderLogic().getPatternInv();
-    }
-
-    @Override
-    public long getTerminalSortOrder() {
-        var patternProviderTrait = findPatternProviderTrait();
-        return patternProviderTrait == null ? 0 : patternProviderTrait.getPatternProviderLogic().getSortValue();
-    }
-
-    @Override
-    public PatternContainerGroup getTerminalGroup() {
-        var patternProviderTrait = findPatternProviderTrait();
-        return patternProviderTrait == null ? PatternContainerGroup.nothing() : patternProviderTrait.getTerminalGroup();
+    public boolean returnAllToNetwork() {
+        return patternProviderLogic.returnAllToNetwork();
     }
 
     @Override
     public void onChunkUnloaded() {
         super.onChunkUnloaded();
-        this.getMainNode().destroy();
+        if (!patternProviderLogic.isUsingSharedNode()) {
+            this.getMainNode().destroy();
+        }
     }
 
     @Override
     public void onMachineLoad() {
         super.onMachineLoad();
         applyCapacities();
-        if (getMachine().getLevel() instanceof ServerLevel serverLevel && !this.getMainNode().isReady()) {
+        patternProviderLogic.updatePatterns();
+        findInterfaceTrait().ifPresent(interfaceTrait -> patternProviderLogic.attachToSharedNode(interfaceTrait.getMainNode()));
+        if (!patternProviderLogic.isUsingSharedNode() && getMachine().getLevel() instanceof ServerLevel serverLevel && !this.getMainNode().isReady()) {
             serverLevel.getServer().tell(new TickTask(0, () -> this.getMainNode().create(serverLevel, getBlockEntity().getBlockPos())));
         }
     }
@@ -208,29 +209,27 @@ public class MEInterfaceTrait extends SimpleCapabilityTrait<MEStorage, @Nullable
     @Override
     public void onMachineUnLoad() {
         super.onMachineUnLoad();
-        this.getMainNode().destroy();
+        if (!patternProviderLogic.isUsingSharedNode()) {
+            this.getMainNode().destroy();
+        }
     }
 
-    private ConfigInventory getInterfaceStorage() {
-        return interfaceLogic.getStorage();
-    }
-
-    private @Nullable MEPatternProviderTrait findPatternProviderTrait() {
+    private java.util.Optional<MEInterfaceTrait> findInterfaceTrait() {
         for (var trait : getMachine().getAdditionalTraits()) {
-            if (trait instanceof MEPatternProviderTrait patternProviderTrait) {
-                return patternProviderTrait;
+            if (trait instanceof MEInterfaceTrait interfaceTrait) {
+                return java.util.Optional.of(interfaceTrait);
             }
         }
-        return null;
+        return java.util.Optional.empty();
     }
 
     public class ItemRecipeHandler extends RecipeHandlerTrait<SizedIngredient> {
         protected ItemRecipeHandler() {
-            super(MEInterfaceTrait.this, ItemRecipeCapability.CAP);
+            super(MEPatternProviderTrait.this, ItemRecipeCapability.CAP);
         }
 
-        protected IItemHandlerModifiable getSafeStorage() {
-            var source = getInterfaceStorage();
+        protected IItemHandlerModifiable getSafeInputStorage() {
+            var source = getStorage();
             var transfer = new ItemStackTransfer(source.size() / 2);
             for (int i = 0; i < transfer.getSlots(); i++) {
                 var stack = source.getStack(i * 2);
@@ -241,11 +240,27 @@ public class MEInterfaceTrait extends SimpleCapabilityTrait<MEStorage, @Nullable
             return transfer;
         }
 
-        protected List<IItemHandlerModifiable> getStorage() {
-            var source = getInterfaceStorage();
+        protected List<IItemHandlerModifiable> getInputStorage() {
+            var source = getStorage();
             List<IItemHandlerModifiable> handlers = new ArrayList<>();
             for (int i = 0; i < source.size() / 2; i++) {
                 handlers.add(AEInterfaceSlot.createAEItemHandler(source, i * 2));
+            }
+            return handlers;
+        }
+
+        protected List<IItemHandler> getOutputStorage(boolean simulate) {
+            if (!simulate) {
+                List<IItemHandler> handlers = new ArrayList<>();
+                for (int i = 0; i < getReturnInventory().size(); i++) {
+                    handlers.add(AEInterfaceSlot.createAEItemHandler(getReturnInventory(), i));
+                }
+                return handlers;
+            }
+            var copy = copyGenericInv(getReturnInventory());
+            List<IItemHandler> handlers = new ArrayList<>();
+            for (int i = 0; i < copy.size(); i++) {
+                handlers.add(AEInterfaceSlot.createAEItemHandler(copy, i));
             }
             return handlers;
         }
@@ -255,13 +270,13 @@ public class MEInterfaceTrait extends SimpleCapabilityTrait<MEStorage, @Nullable
             if (!compatibleWith(io)) return left;
             var result = new ArrayList<SizedIngredient>();
             if (io == IO.IN) {
-                var capability = simulate ? getSafeStorage() : null;
+                var capability = simulate ? getSafeInputStorage() : null;
                 for (var sizedIngredient : left) {
                     var need = sizedIngredient.count();
                     if (simulate) {
                         need = consumeFromHandler(capability, sizedIngredient, need, false);
                     } else {
-                        for (var handler : getStorage()) {
+                        for (var handler : getInputStorage()) {
                             need = consumeFromHandler(handler, sizedIngredient, need, false);
                             if (need <= 0) break;
                         }
@@ -271,12 +286,7 @@ public class MEInterfaceTrait extends SimpleCapabilityTrait<MEStorage, @Nullable
                     }
                 }
             } else if (io == IO.OUT) {
-                List<IItemHandler> handlers = new ArrayList<>();
-                if (simulate) {
-                    handlers.add(getSafeStorage());
-                } else {
-                    handlers.addAll(getStorage());
-                }
+                var handlers = getOutputStorage(simulate);
                 for (var sizedIngredient : left) {
                     var items = sizedIngredient.getItems();
                     if (items.length == 0) continue;
@@ -295,8 +305,8 @@ public class MEInterfaceTrait extends SimpleCapabilityTrait<MEStorage, @Nullable
                         Collections.shuffle(shuffledItems, random);
                         var index = -1;
                         for (int i = 0; i < shuffledItems.size(); i++) {
-                            var output = shuffledItems.get(i).copyWithCount(sizedIngredient.count());
                             var probe = copyItemHandlers(handlers);
+                            var output = shuffledItems.get(i).copyWithCount(sizedIngredient.count());
                             output = insertIntoHandlers(probe, output);
                             if (output.isEmpty()) {
                                 index = i;
@@ -355,11 +365,11 @@ public class MEInterfaceTrait extends SimpleCapabilityTrait<MEStorage, @Nullable
 
     public class FluidRecipeHandler extends RecipeHandlerTrait<SizedFluidIngredient> {
         protected FluidRecipeHandler() {
-            super(MEInterfaceTrait.this, FluidRecipeCapability.CAP);
+            super(MEPatternProviderTrait.this, FluidRecipeCapability.CAP);
         }
 
-        protected List<IFluidHandler> getSafeStorage() {
-            var source = getInterfaceStorage();
+        protected List<IFluidHandler> getSafeInputStorage() {
+            var source = getStorage();
             List<IFluidHandler> storages = new ArrayList<>();
             for (int i = 0; i < source.size() / 2; i++) {
                 var transfer = new FluidStorage((int) Math.min(Integer.MAX_VALUE, source.getCapacity(AEKeyType.fluids())));
@@ -372,8 +382,8 @@ public class MEInterfaceTrait extends SimpleCapabilityTrait<MEStorage, @Nullable
             return storages;
         }
 
-        protected List<IFluidHandler> getStorage() {
-            var source = getInterfaceStorage();
+        protected List<IFluidHandler> getInputStorage() {
+            var source = getStorage();
             List<IFluidHandler> storages = new ArrayList<>();
             for (int i = 0; i < source.size() / 2; i++) {
                 storages.add(AEInterfaceSlot.createAEFluidHandler(source, i * 2 + 1));
@@ -381,10 +391,19 @@ public class MEInterfaceTrait extends SimpleCapabilityTrait<MEStorage, @Nullable
             return storages;
         }
 
+        protected List<IFluidHandler> getOutputStorage(boolean simulate) {
+            var source = simulate ? copyGenericInv(getReturnInventory()) : getReturnInventory();
+            List<IFluidHandler> storages = new ArrayList<>();
+            for (int i = 0; i < source.size(); i++) {
+                storages.add(AEInterfaceSlot.createAEFluidHandler(source, i));
+            }
+            return storages;
+        }
+
         @Override
         public List<SizedFluidIngredient> handleRecipeInner(IO io, MBDRecipe recipe, List<SizedFluidIngredient> left, @Nullable String slotName, boolean simulate) {
             if (!compatibleWith(io)) return left;
-            var capabilities = simulate ? getSafeStorage() : getStorage();
+            var capabilities = io == IO.IN ? simulate ? getSafeInputStorage() : getInputStorage() : getOutputStorage(simulate);
             var result = new ArrayList<SizedFluidIngredient>();
             if (io == IO.IN) {
                 for (var sizedIngredient : left) {
@@ -458,5 +477,13 @@ public class MEInterfaceTrait extends SimpleCapabilityTrait<MEStorage, @Nullable
             }
             return result;
         }
+    }
+
+    private GenericStackInv copyGenericInv(GenericStackInv source) {
+        var copy = new GenericStackInv(() -> {}, source.getMode(), source.size());
+        copy.setCapacity(AEKeyType.items(), source.getCapacity(AEKeyType.items()));
+        copy.setCapacity(AEKeyType.fluids(), source.getCapacity(AEKeyType.fluids()));
+        copy.readFromList(source.toList());
+        return copy;
     }
 }

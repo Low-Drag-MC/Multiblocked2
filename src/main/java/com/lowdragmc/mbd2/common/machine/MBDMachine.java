@@ -277,9 +277,12 @@ public class MBDMachine implements IMachine, IBlockEntityManaged, BlockUIMenuTyp
                 }
             }
             additionalTraits.clear();
+            var acceptedDefinitions = new ArrayList<TraitDefinition>();
             definition.machineSettings().traitDefinitions().stream().sorted((a, b) -> b.getPriority() - a.getPriority()).forEach(traitDefinition -> {
+                if (!traitDefinition.canBeAddedTo(acceptedDefinitions)) return;
                 var trait = traitDefinition.createTrait(this);
                 if (trait == null) return;
+                acceptedDefinitions.add(traitDefinition);
                 additionalTraits.add(trait);
                 if (trait instanceof IManaged managed) {
                     for (var ref : managed.getSyncStorage().getPersistedFields()) {

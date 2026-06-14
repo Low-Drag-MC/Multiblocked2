@@ -23,6 +23,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 
 @Getter @Setter
 public abstract class TraitDefinition implements IConfigurable, IPersistedSerializable {
@@ -97,6 +98,25 @@ public abstract class TraitDefinition implements IConfigurable, IPersistedSerial
      * Whether machine can have multiple traits of this type.
      */
     public boolean allowMultiple() {
+        return true;
+    }
+
+    /**
+     * Whether this trait definition can coexist with another trait definition on the same machine.
+     */
+    public boolean isCompatibleWith(TraitDefinition other) {
+        return true;
+    }
+
+    public boolean canBeAddedTo(Collection<? extends TraitDefinition> existingDefinitions) {
+        for (var existingDefinition : existingDefinitions) {
+            if ((!allowMultiple() || !existingDefinition.allowMultiple()) && existingDefinition.type() == type()) {
+                return false;
+            }
+            if (!isCompatibleWith(existingDefinition) || !existingDefinition.isCompatibleWith(this)) {
+                return false;
+            }
+        }
         return true;
     }
 

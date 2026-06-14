@@ -5,6 +5,7 @@ import appeng.api.stacks.AEFluidKey;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
+import appeng.helpers.externalstorage.GenericStackInv;
 import appeng.util.ConfigInventory;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.slot.ItemHandlerSlot;
@@ -42,10 +43,10 @@ public class AEInterfaceSlot extends UIElement {
     private static final int FLUID_SCROLL_STEP = 1;
     private static final int FLUID_SHIFT_SCROLL_STEP = 1000;
 
-    private final ItemSlot phantomSlot = new ItemSlot().xeiPhantom();
-    private final ItemSlot slot = new ItemSlot();
-    private final FluidSlot phantomTank = new FluidSlot().xeiPhantom();
-    private final FluidSlot tank = new FluidSlot();
+    public final ItemSlot phantomSlot = new ItemSlot().xeiPhantom();
+    public final ItemSlot slot = new ItemSlot();
+    public final FluidSlot phantomTank = new FluidSlot().xeiPhantom();
+    public final FluidSlot tank = new FluidSlot();
     @Getter
     @Nullable
     private SerializableInterfaceLogic interfaceLogic;
@@ -104,6 +105,15 @@ public class AEInterfaceSlot extends UIElement {
                         interfaceLogic.getConfig().setStack(slotIndex * 2 + 1, new GenericStack(fluidKey, fluidStack.getAmount()));
                     }
                 }).build());
+    }
+
+    public void setStorage(ConfigInventory storage, int slotIndex) {
+        this.interfaceLogic = null;
+        this.slotIndex = slotIndex;
+        phantomSlot.setDisplay(false);
+        phantomTank.setDisplay(false);
+        slot.bind(createAEItemHandler(storage, slotIndex * 2), 0);
+        tank.bind(createAEFluidHandler(storage, slotIndex * 2 + 1), 0);
     }
 
     public void setIngredientIO(IO io) {
@@ -216,7 +226,7 @@ public class AEInterfaceSlot extends UIElement {
         return 0;
     }
 
-    public static @NotNull IItemHandlerModifiable createAEItemHandler(ConfigInventory inventory, int slotIndex) {
+    public static @NotNull IItemHandlerModifiable createAEItemHandler(GenericStackInv inventory, int slotIndex) {
         return new IItemHandlerModifiable() {
             @Override
             public int getSlots() {
@@ -277,7 +287,7 @@ public class AEInterfaceSlot extends UIElement {
         };
     }
 
-    public static @NotNull IFluidHandler createAEFluidHandler(ConfigInventory inventory, int slotIndex) {
+    public static @NotNull IFluidHandler createAEFluidHandler(GenericStackInv inventory, int slotIndex) {
         return new IFluidHandler() {
             @Override
             public int getTanks() {

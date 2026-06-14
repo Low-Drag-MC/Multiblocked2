@@ -470,6 +470,13 @@
 
     "config.definition.trait.ae2_me_interface.name": "应用能源2 - ME接口",
     "config.definition.trait.ae2_me_interface.slot_size": "槽位大小",
+    "config.definition.trait.ae2_me_interface.item_capacity": "物品容量",
+    "config.definition.trait.ae2_me_interface.fluid_capacity": "流体容量",
+    "config.definition.trait.ae2_me_pattern_provider.name": "应用能源2 - ME样板供应器",
+    "config.definition.trait.ae2_me_pattern_provider.slot_size": "缓存槽位大小",
+    "config.definition.trait.ae2_me_pattern_provider.pattern_size": "样板槽位大小",
+    "config.definition.trait.ae2_me_pattern_provider.item_capacity": "物品容量",
+    "config.definition.trait.ae2_me_pattern_provider.fluid_capacity": "流体容量",
 
     "config.definition.trait.botania_mana_storage.name": "植物魔法 - 魔力",
     "config.definition.trait.botania_mana_storage.capacity": "容量",
@@ -740,6 +747,13 @@
     "mbd2.ae_interface_slot.phantom_tank.tooltip.click": "手持流体容器点击可设置其中流体，不消耗手中物品；未持有流体时点击可清空。",
     "mbd2.ae_interface_slot.phantom_tank.tooltip.scroll": "滚轮可调整流体数量，范围 1 到 4000 mB；按住 Shift 每次调整 1 桶。",
     "mbd2.ae_interface_slot.phantom_tank.tooltip.xei": "支持通过 XEI 拖拽设置。",
+    "mbd2.ae_pattern_provider.pattern_slot.tooltip": "此供应器可提供的 AE 处理样板。",
+    "mbd2.ae_pattern_provider.cache_row": "输入缓存",
+    "mbd2.ae_pattern_provider.cache_slot.tooltip": "缓存 AE 合成任务推入的输入原材料，机器会从这里消耗材料。",
+    "mbd2.ae_pattern_provider.return_row": "返还缓存",
+    "mbd2.ae_pattern_provider.return_slot.tooltip": "接收配方输出或手动放入的内容，并尝试返还到已连接的 ME 网络。",
+    "mbd2.ae_pattern_provider.return_to_network": "返还到 ME",
+    "mbd2.ae_pattern_provider.return_to_network.tooltip": "将缓存的输入和等待输出返还到已连接的 ME 网络；网络无法接收的剩余内容会保留在这里。",
 
     "recipe.capability.forge_energy.name": "能量",
     "recipe.capability.forge_energy.energy": "能量",

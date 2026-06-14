@@ -91,8 +91,16 @@ public class ConfigMachineSettings implements IPersistedSerializable, IConfigura
     @Getter
     private final List<TraitDefinition> traitDefinitions = new ArrayList<>();
 
-    public void addTraitDefinition(TraitDefinition definition) {
+    public boolean canAddTraitDefinition(TraitDefinition definition) {
+        return definition.canBeAddedTo(traitDefinitions);
+    }
+
+    public boolean addTraitDefinition(TraitDefinition definition) {
+        if (!canAddTraitDefinition(definition)) {
+            return false;
+        }
         traitDefinitions.add(definition);
+        return true;
     }
 
     public void removeTraitDefinition(TraitDefinition definition) {

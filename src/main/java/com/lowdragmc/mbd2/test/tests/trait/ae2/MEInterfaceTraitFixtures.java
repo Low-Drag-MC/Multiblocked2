@@ -15,6 +15,7 @@ import net.neoforged.neoforge.fluids.FluidStack;
 
 public class MEInterfaceTraitFixtures implements TestFixtureProvider {
     public static final ResourceLocation MACHINE_ID = MBD2.id("test_ae2_me_interface_machine");
+    public static final ResourceLocation CAPPED_MACHINE_ID = MBD2.id("test_ae2_me_interface_capped_machine");
     public static final ResourceLocation RECIPE_TYPE_ID = MBD2.id("test_ae2_me_interface_recipes");
 
     public static MBDRecipeType recipeType;
@@ -42,6 +43,18 @@ public class MEInterfaceTraitFixtures implements TestFixtureProvider {
         TestMachineBuilder.simple(MACHINE_ID)
                 .withTrait(meInterface)
                 .withItemSlots(2, IO.OUT)
+                .withEnergy(100_000)
+                .withRecipeType(RECIPE_TYPE_ID)
+                .register(event);
+
+        var cappedInterface = new MEInterfaceTraitDefinition();
+        cappedInterface.setSlotSize(1);
+        cappedInterface.setRecipeHandlerIO(IO.BOTH);
+        cappedInterface.setItemCapacity(16);
+        cappedInterface.setFluidCapacity(8000);
+
+        TestMachineBuilder.simple(CAPPED_MACHINE_ID)
+                .withTrait(cappedInterface)
                 .withEnergy(100_000)
                 .withRecipeType(RECIPE_TYPE_ID)
                 .register(event);
