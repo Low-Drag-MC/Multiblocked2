@@ -367,7 +367,6 @@ class MultiblockPatternView(
             selectedBlocks.addAll(same)
             updateBlockRowStyles()
             updatePredicateInspector()
-            reloadScene(false, true)
         } else {
             selectBlock(pos, isCtrlDown() || isShiftDown())
         }
@@ -383,7 +382,6 @@ class MultiblockPatternView(
         }
         updateBlockRowStyles()
         updatePredicateInspector()
-        reloadScene(false, true)
     }
 
     private fun openMenu(mouseX: Float, mouseY: Float) {
