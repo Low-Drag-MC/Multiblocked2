@@ -107,7 +107,7 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait<IFluidHandle
         var level = getMachine().getLevel();
         if (autoInput.isEnable() && timer % autoInput.getInterval() == 0) {
             var leftBlocks = autoInput.getSpeed();
-            var range = autoOutput.getRotatedRange(getMachine().getFrontFacing().orElse(Direction.NORTH)).move(getMachine().getPos());
+            var range = autoInput.getRotatedRange(getMachine().getFrontFacing().orElse(Direction.NORTH)).move(getMachine().getPos());
             for (int x = (int) Math.round(range.minX); x < (int) Math.round(range.maxX); x++) {
                 if (leftBlocks <= 0) break;
                 for (int y = (int) Math.round(range.minY); y < (int) Math.round(range.maxY); y++) {
@@ -193,9 +193,10 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait<IFluidHandle
     @Override
     public void handleAutoIO(BlockPos port, @NotNull Direction side, IO io) {
         if (getMachine().getLevel() instanceof ServerLevel serverLevel) {
+            var nearby = getNearbyCache(serverLevel, port.relative(side), side.getOpposite()).getCapability();
+            if (nearby == null) return;
             if (io.support(IO.IN)) {
-                var source = getNearbyCache(serverLevel, port, side).getCapability();
-                if (source == null) return;
+                var source = nearby;
 
                 Predicate<FluidStack> filter = getDefinition().getFluidFilterSettings().isEnable() ?
                         getDefinition().getFluidFilterSettings() : Predicates.alwaysTrue();
@@ -223,8 +224,7 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait<IFluidHandle
                 }
             }
             if (io.support(IO.OUT) && !isEmpty()){
-                var target = getNearbyCache(serverLevel, port, side).getCapability();
-                if (target == null) return;
+                var target = nearby;
 
                 var source = new FluidTransferList(storages);
                 int maxAmount = Integer.MAX_VALUE;
