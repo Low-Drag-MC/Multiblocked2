@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.integration.mekanism.trait.chemical;
 
+import com.lowdragmc.lowdraglib2.syncdata.annotation.ConditionalSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
@@ -38,6 +39,7 @@ public class ChemicalTankCapabilityTrait extends SimpleCapabilityTrait<IChemical
 
     @Persisted
     @DescSynced
+    @ConditionalSynced(methodName = "shouldSyncStorage")
     public final ChemicalStorage[] storages;
     private final ChemicalRecipeHandler recipeHandler = new ChemicalRecipeHandler();
     private final Map<BlockPos, EnumMap<Direction, BlockCapabilityCache<IChemicalHandler, @Nullable Direction>>> nearbyCache = new HashMap<>();
@@ -129,6 +131,10 @@ public class ChemicalTankCapabilityTrait extends SimpleCapabilityTrait<IChemical
             remaining = storage.insert(remaining, action, mekanism.api.AutomationType.EXTERNAL);
         }
         return remaining;
+    }
+
+    public boolean shouldSyncStorage(ChemicalStorage[] value) {
+        return getDefinition().getFancyRendererSettings().isEnable();
     }
 
     public class ChemicalRecipeHandler extends RecipeHandlerTrait<ChemicalStackIngredient> {

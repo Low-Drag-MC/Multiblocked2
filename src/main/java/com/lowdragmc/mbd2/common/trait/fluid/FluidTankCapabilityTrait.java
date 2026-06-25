@@ -3,6 +3,7 @@ package com.lowdragmc.mbd2.common.trait.fluid;
 import com.google.common.base.Predicates;
 import com.lowdragmc.lowdraglib2.misc.FluidStorage;
 import com.lowdragmc.lowdraglib2.misc.FluidTransferList;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.ConditionalSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
@@ -37,6 +38,7 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait<IFluidHandle
 
     @Persisted
     @DescSynced
+    @ConditionalSynced(methodName = "shouldSyncStorage")
     public final FluidStorage[] storages;
     private final FluidRecipeHandler recipeHandler = new FluidRecipeHandler();
 
@@ -48,6 +50,10 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait<IFluidHandle
     public FluidTankCapabilityTrait(MBDMachine machine, FluidTankCapabilityTraitDefinition definition) {
         super(machine, definition);
         storages = createStorages();
+    }
+
+    public boolean shouldSyncStorage(FluidStorage[] value) {
+        return getDefinition().getFancyRendererSettings().isEnable();
     }
 
     @Override

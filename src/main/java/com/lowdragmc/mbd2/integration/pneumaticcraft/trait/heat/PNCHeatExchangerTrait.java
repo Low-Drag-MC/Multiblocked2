@@ -1,6 +1,5 @@
 package com.lowdragmc.mbd2.integration.pneumaticcraft.trait.heat;
 
-import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
@@ -38,8 +37,8 @@ public class PNCHeatExchangerTrait extends SimpleCapabilityTrait<IHeatExchangerL
     }
 
     @Persisted
-    @DescSynced
     public final HeatExchanger handler;
+
     private final HeatRecipeHandler recipeHandler = new HeatRecipeHandler();
     private final Map<BlockPos, EnumMap<Direction, BlockCapabilityCache<IHeatExchangerLogic, @Nullable Direction>>> nearbyCache = new HashMap<>();
     private boolean isFirstTick = true;

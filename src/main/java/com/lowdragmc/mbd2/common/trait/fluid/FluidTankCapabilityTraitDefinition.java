@@ -79,6 +79,7 @@ public class FluidTankCapabilityTraitDefinition extends SimpleCapabilityTraitDef
     @Getter
     @Configurable(name = "config.definition.trait.auto_world_io.output", subConfigurable = true, tips = "config.definition.trait.auto_world_io.output.tooltip")
     private final AutoWorldIO autoOutput = new AutoWorldIO().setSpeed(1);
+    @Getter
     @Configurable(name = "config.definition.trait.fluid_tank.fancy_renderer", subConfigurable = true,
             tips = {"config.definition.trait.fluid_tank.fancy_renderer.tooltip.0", "config.definition.trait.fluid_tank.fancy_renderer.tooltip.1"})
     private final FluidFancyRendererSettings fancyRendererSettings = new FluidFancyRendererSettings(this);

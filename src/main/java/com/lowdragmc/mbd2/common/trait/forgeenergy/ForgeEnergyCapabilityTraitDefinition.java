@@ -71,6 +71,7 @@ public class ForgeEnergyCapabilityTraitDefinition extends SimpleCapabilityTraitD
     @Getter
     @Configurable(name = "config.definition.trait.auto_io", subConfigurable = true, tips = "config.definition.trait.forge_energy_storage.auto_io.tooltip")
     private final ToggleAutoIO autoIO = new ToggleAutoIO();
+    @Getter
     @Configurable(name = "config.definition.trait.forge_energy_storage.fancy_renderer", subConfigurable = true,
             tips = "config.definition.trait.forge_energy_storage.fancy_renderer.tooltip")
     private final ForgeEnergyFancyRendererSettings fancyRendererSettings = new ForgeEnergyFancyRendererSettings(this);

@@ -73,6 +73,7 @@ public class ChemicalTankCapabilityTraitDefinition extends SimpleCapabilityTrait
     @Configurable(name = "config.definition.trait.auto_io", subConfigurable = true, tips = "config.definition.trait.chemical_tank.auto_io.tooltip")
     private final ToggleAutoIO autoIO = new ToggleAutoIO();
 
+    @Getter
     @Configurable(name = "config.definition.trait.chemical_tank.fancy_renderer", subConfigurable = true,
             tips = "config.definition.trait.chemical_tank.fancy_renderer.tooltip")
     private final ChemicalFancyRendererSettings fancyRendererSettings = new ChemicalFancyRendererSettings(this);

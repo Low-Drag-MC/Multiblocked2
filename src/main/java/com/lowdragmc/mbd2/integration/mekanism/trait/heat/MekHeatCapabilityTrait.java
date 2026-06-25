@@ -1,6 +1,5 @@
 package com.lowdragmc.mbd2.integration.mekanism.trait.heat;
 
-import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
@@ -13,7 +12,6 @@ import com.lowdragmc.mbd2.common.trait.RecipeHandlerTrait;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
 import com.lowdragmc.mbd2.integration.mekanism.MekanismHeatRecipeCapability;
 import lombok.Getter;
-import mekanism.api.Action;
 import mekanism.api.heat.HeatAPI;
 import mekanism.api.heat.IHeatHandler;
 import net.minecraft.core.BlockPos;
@@ -36,8 +34,8 @@ public class MekHeatCapabilityTrait extends SimpleCapabilityTrait<IHeatHandler, 
     public ManagedFieldHolder getFieldHolder() { return MANAGED_FIELD_HOLDER; }
 
     @Persisted
-    @DescSynced
     public final CopiableHeatContainer storage;
+
     private final HeatRecipeHandler recipeHandler = new HeatRecipeHandler();
     private final Map<BlockPos, EnumMap<Direction, BlockCapabilityCache<IHeatHandler, @Nullable Direction>>> nearbyCache = new HashMap<>();
 
