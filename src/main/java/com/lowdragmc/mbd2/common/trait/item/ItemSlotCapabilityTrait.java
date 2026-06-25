@@ -2,8 +2,10 @@ package com.lowdragmc.mbd2.common.trait.item;
 
 import com.google.common.base.Predicates;
 import com.lowdragmc.lowdraglib2.misc.ItemStackTransfer;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.ConditionalSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
+import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
@@ -33,8 +35,13 @@ import java.util.*;
 import java.util.function.Predicate;
 
 public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler, @Nullable Direction> implements IAutoIOTrait {
+    public static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(ItemSlotCapabilityTrait.class);
+    @Override
+    public ManagedFieldHolder getFieldHolder() { return MANAGED_FIELD_HOLDER; }
+
     @Persisted
-    @DescSynced // todo donot sync
+    @DescSynced
+    @ConditionalSynced(methodName = "shouldSyncStorage")
     public final ItemStackTransfer storage;
 
     private final ItemRecipeHandler itemRecipeHandler = new ItemRecipeHandler();
@@ -241,6 +248,10 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
                 }
             }
         }
+    }
+
+    public boolean shouldSyncStorage(ItemStackTransfer value) {
+        return getDefinition().getItemRendererSettings().isEnable();
     }
 
     public class ItemRecipeHandler extends RecipeHandlerTrait<SizedIngredient> {
