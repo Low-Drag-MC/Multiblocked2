@@ -45,16 +45,18 @@ public class MBDRecipeTypeEmiCategory extends EmiRecipeCategory {
         @Getter
         private final MBDRecipeTypeEmiCategory category;
         private final MBDRecipe recipe;
+        private final ResourceLocation id;
 
-        public MBDEmiRecipe(MBDRecipeTypeEmiCategory category, MBDRecipe recipe) {
+        public MBDEmiRecipe(MBDRecipeTypeEmiCategory category, MBDRecipe recipe, ResourceLocation id) {
             super(self -> ModularUI.of(((MBDEmiRecipe) self).recipe.recipeType.createRecipeUI(((MBDEmiRecipe) self).recipe)));
             this.category = category;
             this.recipe = recipe;
+            this.id = id;
         }
 
         @Override
         public @Nullable ResourceLocation getId() {
-            return recipe.id;
+            return id;
         }
 
         @Override
@@ -80,7 +82,7 @@ public class MBDRecipeTypeEmiCategory extends EmiRecipeCategory {
                 var recipe = holder.value();
                 if (recipe.isXEIHidden) continue;
                 if (seen.add(holder.id())) {
-                    registry.addRecipe(new MBDEmiRecipe(category, recipe));
+                    registry.addRecipe(new MBDEmiRecipe(category, recipe, holder.id()));
                 }
             }
         }
