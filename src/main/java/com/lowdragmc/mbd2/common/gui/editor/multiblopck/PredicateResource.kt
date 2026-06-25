@@ -7,11 +7,14 @@ import com.lowdragmc.lowdraglib2.gui.texture.Icons
 import com.lowdragmc.lowdraglib2.gui.ui.element
 import com.lowdragmc.lowdraglib2.gui.ui.layout.px
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder
+import com.lowdragmc.lowdraglib2.utils.data.BlockInfo
+import com.lowdragmc.mbd2.MBD2
 import com.lowdragmc.mbd2.api.pattern.predicates.PatternPredicate
 import com.lowdragmc.mbd2.api.registry.MBDRegistries
 import net.minecraft.core.HolderLookup
 import net.minecraft.nbt.NbtOps
 import net.minecraft.nbt.Tag
+import net.minecraft.world.level.block.Blocks
 
 class PredicateResource : Resource<PatternPredicate>() {
     companion object {
@@ -33,6 +36,9 @@ class PredicateResource : Resource<PatternPredicate>() {
     }
 
     override fun serializeResource(value: PatternPredicate, provider: HolderLookup.Provider): Tag? {
+        if (value is MissingPredicate) {
+            return value.originalNbt.copy()
+        }
         return PatternPredicate.CODEC.encodeStart(
             provider.createSerializationContext(NbtOps.INSTANCE),
             value)
@@ -40,8 +46,19 @@ class PredicateResource : Resource<PatternPredicate>() {
     }
 
     override fun deserializeResource(nbt: Tag, provider: HolderLookup.Provider): PatternPredicate? {
-        return PatternPredicate.CODEC.parse(provider.createSerializationContext(NbtOps.INSTANCE), nbt)
-            .result().orElse(null)
+        return try {
+            val decoded = PatternPredicate.CODEC.parse(provider.createSerializationContext(NbtOps.INSTANCE), nbt)
+            decoded.result().orElseGet {
+                missingPredicate(nbt, "predicate codec rejected the saved data")
+            }
+        } catch (exception: RuntimeException) {
+            missingPredicate(nbt, exception.message ?: exception.javaClass.simpleName)
+        }
+    }
+
+    private fun missingPredicate(nbt: Tag, reason: String): PatternPredicate {
+        MBD2.LOGGER.warn("Loaded an unavailable predicate resource as a disabled placeholder: {}", reason)
+        return MissingPredicate(nbt)
     }
 
     override fun createResourceProviderContainer(provider: IResourceProvider<PatternPredicate>): ResourceProviderContainer<PatternPredicate> {
@@ -71,5 +88,16 @@ class PredicateResource : Resource<PatternPredicate>() {
             })
         }
         return container
+    }
+}
+
+private class MissingPredicate(nbt: Tag) : PatternPredicate(
+    { false },
+    { arrayOf(BlockInfo.fromBlock(Blocks.BARRIER)) }
+) {
+    val originalNbt: Tag = nbt.copy()
+
+    init {
+        buildPredicate()
     }
 }

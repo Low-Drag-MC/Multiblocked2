@@ -5,7 +5,9 @@ import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.block.ProxyPartBlock;
 import com.lowdragmc.mbd2.api.blockentity.ProxyPartBlockEntity;
 import com.lowdragmc.mbd2.api.pattern.predicates.PredicatePartialState;
+import com.lowdragmc.mbd2.api.pattern.predicates.PredicateStates;
 import com.lowdragmc.mbd2.api.pattern.predicates.PatternPredicate;
+import com.lowdragmc.mbd2.common.gui.editor.multiblopck.PredicateResource;
 import com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine;
 import com.lowdragmc.mbd2.test.framework.MBDScenario;
 import com.mojang.serialization.JavaOps;
@@ -16,6 +18,9 @@ import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.Item;
@@ -284,6 +289,36 @@ public class PatternPredicatesTests {
         var accessor = AccessorRegistries.findByClassOrNull(PredicatePartialState.PropertyRequirement.class);
         if (accessor == null) {
             h.fail("PropertyRequirement accessor was not registered");
+            return;
+        }
+        h.succeed();
+    }
+
+    @GameTest(template = "empty_multiblock")
+    @PrefixGameTestTemplate(false)
+    public static void missing_blockstate_resource_loads_as_preserved_placeholder(GameTestHelper h) {
+        var provider = h.getLevel().registryAccess();
+        var encoded = PredicateResource.getINSTANCE().serializeResource(
+                new PredicateStates(Blocks.STONE.defaultBlockState()), provider);
+        if (encoded == null) {
+            h.fail("Could not encode source predicate");
+            return;
+        }
+        var missingId = "missing_test:removed_block";
+        var broken = replaceString(encoded, "minecraft:stone", missingId);
+        var decoded = PredicateResource.getINSTANCE().deserializeResource(broken, provider);
+        if (decoded == null) {
+            h.fail("Missing blockstate predicate should load as a placeholder");
+            return;
+        }
+        var candidates = decoded.getCandidates();
+        if (candidates == null || candidates.length != 1 || !candidates[0].getBlockState().is(Blocks.BARRIER)) {
+            h.fail("Missing predicate placeholder should preview as barrier");
+            return;
+        }
+        var reencoded = PredicateResource.getINSTANCE().serializeResource(decoded, provider);
+        if (reencoded == null || !containsString(reencoded, missingId)) {
+            h.fail("Missing predicate placeholder did not preserve the original registry id");
             return;
         }
         h.succeed();
@@ -800,5 +835,39 @@ public class PatternPredicatesTests {
         return Blocks.OAK_STAIRS.defaultBlockState()
                 .setValue(StairBlock.FACING, facing)
                 .setValue(StairBlock.HALF, half);
+    }
+
+    private static Tag replaceString(Tag tag, String from, String to) {
+        if (tag instanceof StringTag stringTag) {
+            return stringTag.getAsString().equals(from) ? StringTag.valueOf(to) : tag.copy();
+        }
+        if (tag instanceof CompoundTag compound) {
+            var copy = compound.copy();
+            for (var key : compound.getAllKeys()) {
+                copy.put(key, replaceString(compound.get(key), from, to));
+            }
+            return copy;
+        }
+        if (tag instanceof ListTag list) {
+            var copy = new ListTag();
+            for (var element : list) {
+                copy.add(replaceString(element, from, to));
+            }
+            return copy;
+        }
+        return tag.copy();
+    }
+
+    private static boolean containsString(Tag tag, String expected) {
+        if (tag instanceof StringTag stringTag) {
+            return stringTag.getAsString().equals(expected);
+        }
+        if (tag instanceof CompoundTag compound) {
+            return compound.getAllKeys().stream().anyMatch(key -> containsString(compound.get(key), expected));
+        }
+        if (tag instanceof ListTag list) {
+            return list.stream().anyMatch(element -> containsString(element, expected));
+        }
+        return false;
     }
 }

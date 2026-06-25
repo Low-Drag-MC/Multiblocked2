@@ -2,11 +2,10 @@ package com.lowdragmc.mbd2.common.gui.editor
 
 import com.lowdragmc.lowdraglib2.editor.project.IProject
 import com.lowdragmc.lowdraglib2.editor.project.ProjectType
-import com.lowdragmc.lowdraglib2.editor.resource.BuiltinResourceProvider
-import com.lowdragmc.lowdraglib2.editor.resource.ColorsResource
-import com.lowdragmc.lowdraglib2.editor.resource.FileResourceProvider
-import com.lowdragmc.lowdraglib2.editor.resource.IResourcePath
+import com.lowdragmc.lowdraglib2.editor.resource.*
+import com.lowdragmc.lowdraglib2.editor.ui.Editor
 import com.lowdragmc.lowdraglib2.gui.ColorPattern
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal
@@ -14,21 +13,17 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.Button
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Dialog
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView
-import net.minecraft.network.chat.Component
-import net.minecraft.world.level.block.state.BlockState
-import com.lowdragmc.lowdraglib2.editor.resource.IRendererResource
-import com.lowdragmc.lowdraglib2.editor.resource.Resources
-import com.lowdragmc.lowdraglib2.editor.resource.TexturesResource
-import com.lowdragmc.lowdraglib2.editor.resource.UIResource
-import com.lowdragmc.lowdraglib2.utils.data.BlockInfo
-import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture
+import com.lowdragmc.lowdraglib2.gui.ui.layout.px
+import com.lowdragmc.lowdraglib2.gui.ui.layoutDsl
 import com.lowdragmc.lowdraglib2.utils.TagBuilder
+import com.lowdragmc.lowdraglib2.utils.data.BlockInfo
 import com.lowdragmc.mbd2.MBD2
 import com.lowdragmc.mbd2.api.pattern.MultiblockShapeInfo
 import com.lowdragmc.mbd2.api.pattern.predicates.PatternPredicate
 import com.lowdragmc.mbd2.api.pattern.predicates.PredicateFluids
 import com.lowdragmc.mbd2.api.pattern.predicates.PredicateStates
 import com.lowdragmc.mbd2.api.pattern.util.RotationHelper
+import com.lowdragmc.mbd2.client.MBDRenderers
 import com.lowdragmc.mbd2.common.gui.editor.multiblopck.MultiblockAreaView
 import com.lowdragmc.mbd2.common.gui.editor.multiblopck.MultiblockPatternView
 import com.lowdragmc.mbd2.common.gui.editor.multiblopck.MultiblockShapeInfoView
@@ -37,23 +32,20 @@ import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition
 import com.lowdragmc.mbd2.common.machine.definition.config.BlockPlaceholder
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState
 import com.lowdragmc.mbd2.common.machine.definition.config.StateMachine
-import net.minecraft.core.Direction
-import net.minecraft.core.HolderLookup
-import com.lowdragmc.lowdraglib2.editor.ui.Editor
-import com.lowdragmc.mbd2.client.MBDRenderers
 import com.lowdragmc.mbd2.utils.ControllerBlockInfo
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
+import net.minecraft.core.HolderLookup
 import net.minecraft.core.registries.BuiltInRegistries
-import net.minecraft.nbt.CompoundTag
-import net.minecraft.nbt.IntArrayTag
-import net.minecraft.nbt.ListTag
-import net.minecraft.nbt.StringTag
-import net.minecraft.nbt.Tag
+import net.minecraft.nbt.*
+import net.minecraft.network.chat.Component
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.LiquidBlock
+import net.minecraft.world.level.block.state.BlockState
 import java.io.File
-import java.util.Arrays
+import java.util.*
+import java.util.function.Consumer
 
 open class MultiblockMachineProject : MachineProject() {
     companion object {
@@ -166,13 +158,14 @@ open class MultiblockMachineProject : MachineProject() {
     override fun createDefinition(): MultiblockMachineDefinition {
         return MultiblockMachineDefinition(
             MBD2.id("new_multiblock"),
-            StateMachine.createMultiblockDefault({ MachineState.baseBuilder() },
-                {MBDRenderers.MACHINE_UNFORMED},
-                {MBDRenderers.MACHINE_FORMED},
-                {MBDRenderers.MACHINE_WORKING},
-                {MBDRenderers.MACHINE_WAITING},
-                {MBDRenderers.MACHINE_WAITING},
-                ),
+            StateMachine.createMultiblockDefault(
+                { MachineState.baseBuilder() },
+                { MBDRenderers.MACHINE_UNFORMED },
+                { MBDRenderers.MACHINE_FORMED },
+                { MBDRenderers.MACHINE_WORKING },
+                { MBDRenderers.MACHINE_WAITING },
+                { MBDRenderers.MACHINE_WAITING },
+            ),
             null,
             null,
             null,
@@ -545,6 +538,9 @@ open class MultiblockMachineProject : MachineProject() {
             .setTitle("editor.machine.multiblock.generate_pattern.pick_provider")
             .addContent(summary)
             .addContent(scroller)
+        dialog.overlay.layoutDsl {
+            width(200.px)
+        }
         dialog.addButton(Button()
             .setText("ldlib.gui.tips.confirm")
             .setOnClick { _ ->
