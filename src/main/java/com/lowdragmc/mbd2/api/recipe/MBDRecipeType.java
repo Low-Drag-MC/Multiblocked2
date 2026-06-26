@@ -156,27 +156,6 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
         }
     }
 
-    public void onRecipeManagerLoadedKjs(Map<ResourceLocation, RecipeHolder<?>> recipesByName) {
-        builtinRecipes.forEach((id, recipe) -> recipesByName.put(id, new RecipeHolder<>(id, recipe)));
-        var added = new ArrayList<RecipeHolder<MBDRecipe>>();
-        // load proxy recipes
-        for (var entry : recipesByName.entrySet()) {
-            var key = entry.getKey();
-            var recipe = entry.getValue().value();
-            var typeId = BuiltInRegistries.RECIPE_TYPE.getKey(recipe.getType());
-            if (this.proxyRecipeTypes.contains(typeId)) {
-                var mbdRecipe = toMBDrecipe(recipe.getType(), key, recipe);
-                if (mbdRecipe != null) {
-                    added.add(new RecipeHolder<>(mbdRecipe.id, mbdRecipe));
-                }
-            }
-        }
-
-        for (var holder : added) {
-            recipesByName.put(holder.id(), holder);
-        }
-    }
-
     public static MBDRecipeType createDefault() {
         return new MBDRecipeType(MBD2.id("recipe_type"));
     }
