@@ -28,6 +28,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.style.StylesheetManager;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.ModularUITooltipComponent;
 import com.lowdragmc.lowdraglib2.gui.ui.utils.UIElementProvider;
+import com.lowdragmc.mbd2.integration.kubejs.recipe.MBDRecipeSchema;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.client.resources.language.I18n;
@@ -294,8 +295,7 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
 
     public Object kjs$recipeBuilder() {
         if (LDLib2.isKubejsLoaded()) {
-            // todo
-//            return new MBDRecipeSchema.MBDRecipeJS(this);
+            return new MBDRecipeSchema.MBDRecipeJS(this);
         }
         throw new UnsupportedOperationException("KubeJS is not loaded");
     }

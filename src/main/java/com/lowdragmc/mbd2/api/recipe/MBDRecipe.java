@@ -1,6 +1,7 @@
 package com.lowdragmc.mbd2.api.recipe;
 
 import com.google.common.collect.Table;
+import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
@@ -9,7 +10,11 @@ import com.lowdragmc.mbd2.api.capability.recipe.*;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
+import com.lowdragmc.mbd2.integration.kubejs.recipe.MBDRecipeSchema;
 import com.mojang.datafixers.util.Pair;
+import dev.latvian.mods.kubejs.util.KubeResourceLocation;
+import dev.latvian.mods.rhino.util.HideFromJS;
+import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -38,6 +43,7 @@ import java.util.function.Supplier;
 @SuppressWarnings({"ConstantValue", "rawtypes", "unchecked"})
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
+@RemapPrefixForJS("kjs$")
 public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<RecipeInput>, IConfigurable {
     public MBDRecipeType recipeType;
     public final ResourceLocation id;
@@ -129,6 +135,39 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Recip
 
     public boolean isModified() {
         return originalRecipe == null;
+    }
+
+    @HideFromJS
+    public MBDRecipeBuilder toBuilder() {
+        var builder =  recipeType.recipeBuilder(id)
+                .duration(duration)
+                .isXEIHidden(isXEIHidden)
+                .priority(priority);
+        builder.data = data.copy();
+        builder.input.putAll(copyContents(inputs, true, null));
+        builder.output.putAll(copyContents(outputs, true, null));
+        for (RecipeCondition condition : conditions) {
+            builder.addCondition(condition.copy());
+        }
+        return builder;
+    }
+
+    public Object kjs$toBuilder() {
+        if (LDLib2.isKubejsLoaded()) {
+            var builder = new MBDRecipeSchema.MBDRecipeJS(recipeType);
+            builder.id(new KubeResourceLocation(id));
+            builder.duration(duration);
+            builder.priority(priority);
+            builder.isXEIHidden(isXEIHidden);
+            builder.data = data.copy();
+            builder.inputs.putAll(copyContents(inputs, true, null));
+            builder.outputs.putAll(copyContents(outputs, true, null));
+            for (RecipeCondition condition : conditions) {
+                builder.addCondition(condition.copy());
+            }
+            return builder;
+        }
+        throw new UnsupportedOperationException("KubeJS is not loaded");
     }
 
     @Override
