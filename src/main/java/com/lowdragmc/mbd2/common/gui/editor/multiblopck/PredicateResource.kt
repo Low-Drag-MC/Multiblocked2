@@ -20,6 +20,7 @@ class PredicateResource : Resource<PatternPredicate>() {
     companion object {
         @JvmStatic
         val INSTANCE: PredicateResource = PredicateResource()
+        val ICON: IGuiTexture = Icons.icon("mbd2", "predicate")
     }
 
     override fun buildBuiltin(provider: BuiltinResourceProvider<PatternPredicate>) {
@@ -27,8 +28,8 @@ class PredicateResource : Resource<PatternPredicate>() {
         provider.addResource("air", PatternPredicate.AIR);
     }
 
-    override fun getIcon(): IGuiTexture? {
-        return Icons.GLOBAL
+    override fun getIcon(): IGuiTexture {
+        return ICON
     }
 
     override fun getName(): String {

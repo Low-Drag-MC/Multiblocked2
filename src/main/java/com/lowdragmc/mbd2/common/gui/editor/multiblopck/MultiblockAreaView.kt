@@ -8,7 +8,9 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable
 import com.lowdragmc.lowdraglib2.editor.ui.View
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.SceneEditor
+import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Label
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Tab
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents
 import com.lowdragmc.lowdraglib2.utils.ColorUtils
@@ -52,10 +54,22 @@ class MultiblockAreaView(
             it.width(86f)
             it.heightPercent(100f)
         })
+        sceneEditor.topBar.addChild(Label().textStyle{
+            it.textAlignVertical(Vertical.CENTER)
+        }.setText("editor.machine.multiblock.area_panel.shortcuts").layout {
+            it.width(310f)
+            it.heightPercent(100f)
+        })
         Minecraft.getInstance().level?.let { sceneEditor.scene.createScene(it) }
         sceneEditor.scene.addEventListener(UIEvents.MOUSE_UP, { event ->
-            if (event.button == 0 && isShiftDown()) {
-                sceneEditor.scene.lastHoverPosFace?.pos()?.let { runtime.pickAreaPoint(it) }
+            if (event.button == 0) {
+                sceneEditor.scene.lastHoverPosFace?.let { hit ->
+                    if (isCtrlDown()) {
+                        runtime.pickController(hit.pos(), hit.facing())
+                    } else if (isShiftDown()) {
+                        runtime.pickAreaPoint(hit.pos())
+                    }
+                }
             }
         })
         addChild(sceneEditor)
@@ -146,6 +160,14 @@ class MultiblockAreaView(
             }
             pickFrom = !pickFrom
             editor.inspectorView.inspect(this)
+        }
+
+        fun pickController(pos: BlockPos, face: Direction) {
+            MultiblockAreaSelection.pick(from, to, pos, face).ifPresent { result ->
+                controllerOffset = result.offset()
+                controllerFace = result.face()
+                editor.inspectorView.inspect(this)
+            }
         }
 
         fun generatePattern() {
