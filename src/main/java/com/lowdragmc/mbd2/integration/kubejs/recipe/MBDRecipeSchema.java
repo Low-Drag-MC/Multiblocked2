@@ -44,7 +44,6 @@ import java.util.function.Consumer;
 public interface MBDRecipeSchema {
     RecipeSchema SCHEMA = new RecipeSchema()
             .factory(new KubeRecipeFactory(MBD2.id("mbd_recipe"), MBDRecipeJS.class, MBDRecipeJS::new))
-            .typeOverride(MBD2.id("mbd_recipe_serializer"))
             .constructor();
 
     class MBDRecipeJS extends KubeRecipe {
