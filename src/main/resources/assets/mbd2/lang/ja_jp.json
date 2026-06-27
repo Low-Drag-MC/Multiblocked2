@@ -612,6 +612,7 @@
     "editor.machine.multiblock.multiblock_shape_info.description.tips": "XEIページに表示される説明",
     "editor.machine.multiblock.multiblock_shape_info.remove": "形状情報を削除",
     "mbd2.jei.multiblock_info": "マルチブロック情報",
+    "emi.category.mbd2.multiblock_info": "マルチブロック情報",
 
     "ldlib2.renderer.geckolib": "Geckolibモデル",
     "geckolib_renderer.scale_width": "スケール幅",

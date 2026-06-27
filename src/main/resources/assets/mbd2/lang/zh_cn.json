@@ -854,6 +854,7 @@
     "editor.machine.multiblock.multiblock_shape_info.description.tips": "XEI页面中显示的描述",
     "editor.machine.multiblock.multiblock_shape_info.remove": "移除形状信息",
     "mbd2.jei.multiblock_info": "多方块信息",
+    "emi.category.mbd2.multiblock_info": "多方块信息",
 
     "ldlib2.renderer.geckolib": "Geckolib 模型",
     "geckolib_renderer.scale_width": "宽度缩放",
