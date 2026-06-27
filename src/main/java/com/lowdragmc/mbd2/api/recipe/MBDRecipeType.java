@@ -452,8 +452,8 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
         values.forEach((cap, contents) -> {
             for (int i = 0; i < contents.size(); i++) {
                 var content = contents.get(i);
-                var id = content.uiName.isEmpty() ? "@%s_%s_%d".formatted(cap.name, io.name, i) : content.uiName;
-                ui.selectRegex(Pattern.quote(id)).forEach(widget -> {
+                var id = content.uiName.isEmpty() ? "^@%s_%s_%d$".formatted(cap.name, io.name, i) : Pattern.quote(content.uiName);
+                ui.selectRegex(id).forEach(widget -> {
                     ((RecipeCapability) cap).bindXEIWidget(widget, content, io);
                     var tooltips = new ArrayList<Component>();
                     content.appendTooltip(tooltips);
