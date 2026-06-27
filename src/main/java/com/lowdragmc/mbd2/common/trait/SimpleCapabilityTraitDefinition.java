@@ -67,7 +67,7 @@ public abstract class SimpleCapabilityTraitDefinition<T, C extends @Nullable Obj
                     contents.add(typedTrait.getCapContent(typedTrait.getCapabilityIO(context)));
                 }
             }
-            return merge(contents);
+            return contents.isEmpty() ? null : merge(contents);
         }
 
         /**
@@ -93,7 +93,7 @@ public abstract class SimpleCapabilityTraitDefinition<T, C extends @Nullable Obj
                 collectProxiedContents(mbdController, staticProxies, partFront, side, contents);
                 collectProxiedContents(mbdController, predicateProxies, partFront, side, contents);
             }
-            return merge(contents);
+            return contents.isEmpty() ? null : merge(contents);
         }
 
         @SuppressWarnings("unchecked")
@@ -110,7 +110,7 @@ public abstract class SimpleCapabilityTraitDefinition<T, C extends @Nullable Obj
             Direction side = context instanceof Direction d ? d : null;
             List<T> contents = new ArrayList<>();
             collectProxiedContents(controller, caps, front, side, contents);
-            return merge(contents);
+            return contents.isEmpty() ? null : merge(contents);
         }
 
         @SuppressWarnings("unchecked")
