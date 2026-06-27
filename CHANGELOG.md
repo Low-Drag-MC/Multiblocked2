@@ -1,9 +1,4 @@
-## v21.0.3
-* Fixed typos in en_us.json (Thanks for the PR #202, @vainangei)
-* Added KJS recipe support (Thanks for the PR #204, @andriihorpenko)
-* Fixed EMI recipe id due to reference equality check (Thanks for the PR #205, @andriihorpenko)
-* Fixed the huge structure rendering performance
-* Fixed predicate missing logs
-* Improved performance by conditional sync
-* Fixed Auto IO behavior
-* Added ALL IO selector
+## v21.0.4
+* Fixed KubeJS inputChemical/outputChemical parsing for Mekanism (Thanks for the PR #206, @andriihorpenko)
+* Fixed capContent always returning non-null empty handler list (Thanks for the PR #207, @andriihorpenko)
+* Fixed KubeJS recipes not syncing from dedicated server (Thanks for the PR #208, @andriihorpenko)
