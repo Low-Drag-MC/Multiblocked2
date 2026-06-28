@@ -793,7 +793,8 @@
     "editor.machine.multiblock.multiblock_shape_info.description": "описание",
     "editor.machine.multiblock.multiblock_shape_info.description.tips": "описание, отображаемое в XEI страница",
     "editor.machine.multiblock.multiblock_shape_info.remove": "удалить информацию о форме",
-    "mbd2.jei.multiblock_info": "Информация о мультиблоке",
+    "mbd2.jei.multiblock_info": "О мультиблоке",
+    "emi.category.mbd2.multiblock_info": "О мультиблоке",
 
     "ldlib2.renderer.geckolib": "Модель Geckolib",
     "geckolib_renderer.scale_width": "Ширина шкалы",

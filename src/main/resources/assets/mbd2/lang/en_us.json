@@ -797,6 +797,7 @@
   "editor.machine.multiblock.multiblock_shape_info.description.tips": "description displayed in XEI page",
   "editor.machine.multiblock.multiblock_shape_info.remove": "remove shape info",
   "mbd2.jei.multiblock_info": "Multiblock Info",
+  "emi.category.mbd2.multiblock_info": "Multiblock Info",
   "ldlib2.renderer.geckolib": "Geckolib Model",
   "geckolib_renderer.scale_width": "Scale Width",
   "geckolib_renderer.scale_height": "Scale Height",

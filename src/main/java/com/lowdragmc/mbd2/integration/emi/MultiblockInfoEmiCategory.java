@@ -47,7 +47,7 @@ public class MultiblockInfoEmiCategory extends EmiRecipeCategory {
 
         @Override
         public @Nullable ResourceLocation getId() {
-            return MBD2.id("multiblock_info/" + definition.id().getNamespace() + "/" + definition.id().getPath());
+            return MBD2.id("/multiblock_info/" + definition.id().getNamespace() + "/" + definition.id().getPath());
         }
 
         @Override
