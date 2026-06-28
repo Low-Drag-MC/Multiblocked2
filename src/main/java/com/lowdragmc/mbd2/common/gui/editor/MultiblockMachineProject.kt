@@ -45,7 +45,6 @@ import net.minecraft.world.level.block.LiquidBlock
 import net.minecraft.world.level.block.state.BlockState
 import java.io.File
 import java.util.*
-import java.util.function.Consumer
 
 open class MultiblockMachineProject : MachineProject() {
     companion object {
@@ -674,9 +673,9 @@ open class MultiblockMachineProject : MachineProject() {
     override fun onLoad(editor: Editor) {
         super.onLoad(editor)
         if (editor is MBDEditor) {
-            editor.centerWindow.getLeftTop().addView(MultiblockAreaView(editor, this).also { multiblockAreaView = it })
-            editor.centerWindow.getLeftTop().addView(MultiblockPatternView(editor, this).also { multiblockPatternView = it })
-            editor.centerWindow.getLeftTop().addView(MultiblockShapeInfoView(editor, this).also { multiblockShapeInfoView = it })
+            editor.placeView(MultiblockAreaView(editor, this).also { multiblockAreaView = it }, { editor.centerWindow.leftTop })
+            editor.placeView(MultiblockPatternView(editor, this).also { multiblockPatternView = it }, { editor.centerWindow.leftTop })
+            editor.placeView(MultiblockShapeInfoView(editor, this).also { multiblockShapeInfoView = it }, { editor.centerWindow.leftTop })
         }
     }
 

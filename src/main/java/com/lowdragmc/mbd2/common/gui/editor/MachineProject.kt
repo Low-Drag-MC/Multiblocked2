@@ -92,9 +92,9 @@ open class MachineProject : IProject {
     override fun onLoad(editor: Editor) {
         if (editor is MBDEditor) {
             super.onLoad(editor)
-            editor.centerWindow.getLeftTop().addView(createMachineConfigView(editor).also { this.machineConfigView = it })
-            editor.centerWindow.getLeftTop().addView(createMachineTraitView(editor).also { this.machineTraitView = it })
-            editor.centerWindow.getLeftTop().addView(createMachineUIView(editor).also { this.machineUIView = it })
+            editor.placeView(createMachineConfigView(editor).also { machineConfigView = it }, { editor.centerWindow.leftTop })
+            editor.placeView(createMachineTraitView(editor).also { machineTraitView = it }, { editor.centerWindow.leftTop })
+            editor.placeView(createMachineUIView(editor).also { machineUIView = it }, { editor.centerWindow.leftTop })
         }
     }
 

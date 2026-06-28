@@ -70,8 +70,8 @@ open class RecipeTypeProject : IProject {
     override fun onLoad(editor: Editor) {
         if (editor is MBDEditor) {
             super.onLoad(editor)
-            editor.centerWindow.getLeftTop().addView(createRecipesView(editor).also { recipesView = it })
-            editor.centerWindow.getLeftTop().addView(createRecipeUIView(editor).also { recipeUIView = it })
+            editor.placeView(createRecipesView(editor).also { recipesView = it }, { editor.centerWindow.leftTop })
+            editor.placeView(createRecipeUIView(editor).also { recipeUIView = it }, { editor.centerWindow.leftTop })
         }
     }
 
