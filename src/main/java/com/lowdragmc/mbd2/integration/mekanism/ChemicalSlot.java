@@ -273,7 +273,7 @@ public class ChemicalSlot extends BindableUIElement<ChemicalStack> {
     private static void drawChemical(GuiGraphics graphics, ChemicalStack stack, float x, float y, float width, float height) {
         TextureAtlasSprite sprite = MekanismRenderer.getChemicalTexture(stack);
         if (sprite == null) return;
-        int color = stack.getChemicalColorRepresentation() | 0xff000000;
+        int color = stack.getChemicalTint() | 0xff000000;
         RenderSystem.enableBlend();
         int xTiles = (int) (width / 16);
         float xRemainder = width - xTiles * 16f;
