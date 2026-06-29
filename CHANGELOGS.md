@@ -1,4 +1,7 @@
 # ChangeLogs
+## v21.0.5.a
+* Fixed kjs RecipeSchema convertor
+
 ## v21.0.5
 * Fixed incorrect recipe slots bindings for 10+ indexes (Thanks for the PR #209, @andriihorpenko)
 * Fixed Mekanism ChemicalSlot rendering (Thanks for the PR #210, @andriihorpenko)
