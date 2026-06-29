@@ -295,7 +295,7 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
 
     public Object kjs$recipeBuilder() {
         if (LDLib2.isKubejsLoaded()) {
-            return new MBDRecipeSchema.MBDRecipeJS(this);
+            return MBDRecipeSchema.create(this);
         }
         throw new UnsupportedOperationException("KubeJS is not loaded");
     }

@@ -26,8 +26,12 @@ import com.lowdragmc.mbd2.integration.pneumaticcraft.trait.heat.PNCTemperatureCo
 import com.lowdragmc.mbd2.integration.pneumaticcraft.trait.pressure.PNCPressureCondition;
 import com.mojang.serialization.JsonOps;
 import dev.latvian.mods.kubejs.recipe.KubeRecipe;
+import dev.latvian.mods.kubejs.recipe.RecipeTypeFunction;
 import dev.latvian.mods.kubejs.recipe.schema.KubeRecipeFactory;
+import dev.latvian.mods.kubejs.recipe.schema.RecipeNamespace;
 import dev.latvian.mods.kubejs.recipe.schema.RecipeSchema;
+import dev.latvian.mods.kubejs.recipe.schema.RecipeSchemaStorage;
+import dev.latvian.mods.kubejs.recipe.schema.RecipeSchemaType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
@@ -45,6 +49,15 @@ public interface MBDRecipeSchema {
     RecipeSchema SCHEMA = new RecipeSchema()
             .factory(new KubeRecipeFactory(MBD2.id("mbd_recipe"), MBDRecipeJS.class, MBDRecipeJS::new))
             .constructor();
+
+    static MBDRecipeJS create(MBDRecipeType recipeType) {
+        var recipe = new MBDRecipeJS(recipeType);
+        var namespace = new RecipeNamespace(new RecipeSchemaStorage(), recipeType.getRegistryName().getNamespace());
+        var schemaType = new RecipeSchemaType(namespace, recipeType.getRegistryName(), SCHEMA);
+        recipe.type = new RecipeTypeFunction(null, schemaType);
+        recipe.initValues(false);
+        return recipe;
+    }
 
     class MBDRecipeJS extends KubeRecipe {
         @FunctionalInterface
@@ -521,9 +534,17 @@ public interface MBDRecipeSchema {
         }
 
         public MBDRecipe buildMBDRecipe() {
+            ResourceLocation recipeId;
+            if (id != null) {
+                recipeId = id;
+            } else if (type != null && type.event != null) {
+                recipeId = getOrCreateId();
+            } else {
+                throw new IllegalStateException("MBD recipe id must be set before building a recipe outside ServerEvents.recipes");
+            }
             return new MBDRecipe(
                     getRecipeType(),
-                    getOrCreateId(),
+                    recipeId,
                     inputs,
                     outputs,
                     conditions,

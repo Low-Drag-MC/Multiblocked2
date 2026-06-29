@@ -154,7 +154,7 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Recip
 
     public Object kjs$toBuilder() {
         if (LDLib2.isKubejsLoaded()) {
-            var builder = new MBDRecipeSchema.MBDRecipeJS(recipeType);
+            var builder = MBDRecipeSchema.create(recipeType);
             builder.id(new KubeResourceLocation(id));
             builder.duration(duration);
             builder.priority(priority);
