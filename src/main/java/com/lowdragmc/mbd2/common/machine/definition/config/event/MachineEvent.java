@@ -33,12 +33,10 @@ public class MachineEvent extends Event {
         if (MBD2.isKubeJSLoaded()) {
             try {
                 if (LDLib2.isClient()) {
-                    if (this instanceof ICancellableEvent cancelable) {
-                        if (MBDServerEvents.postMachineEvent(this).interruptFalse()) {
-                            cancelable.setCanceled(true);
-                        } else if (MBDClientEvents.postMachineEvent(this).interruptFalse()) {
-                            cancelable.setCanceled(true);
-                        }
+                    if (MBDServerEvents.postMachineEvent(this).interruptFalse() && this instanceof ICancellableEvent cancelable) {
+                        cancelable.setCanceled(true);
+                    } else if (MBDClientEvents.postMachineEvent(this).interruptFalse() && this instanceof ICancellableEvent cancelable) {
+                        cancelable.setCanceled(true);
                     }
                 } else {
                     if (MBDServerEvents.postMachineEvent(this).interruptFalse() && this instanceof ICancellableEvent cancelable) {
