@@ -1,4 +1,11 @@
 # ChangeLogs
+## v21.0.5
+* Fixed incorrect recipe slots bindings for 10+ indexes (Thanks for the PR #209, @andriihorpenko)
+* Fixed Mekanism ChemicalSlot rendering (Thanks for the PR #210, @andriihorpenko)
+* Switched to EMI synthetic id for multiblock info category (Thanks for the PR #211, @andriihorpenko)
+* Bumped up ldlib2
+* Fixed kjs event post
+
 ## v21.0.4
 * Fixed KubeJS inputChemical/outputChemical parsing for Mekanism (Thanks for the PR #206, @andriihorpenko)
 * Fixed capContent always returning non-null empty handler list (Thanks for the PR #207, @andriihorpenko)
