@@ -1,6 +1,7 @@
 package com.lowdragmc.mbd2.integration.kubejs.recipe;
 
 import com.lowdragmc.lowdraglib2.Platform;
+import com.lowdragmc.lowdraglib2.core.mixins.kjs.ServerScriptManagerAccessor;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
@@ -30,7 +31,6 @@ import dev.latvian.mods.kubejs.recipe.RecipeTypeFunction;
 import dev.latvian.mods.kubejs.recipe.schema.KubeRecipeFactory;
 import dev.latvian.mods.kubejs.recipe.schema.RecipeNamespace;
 import dev.latvian.mods.kubejs.recipe.schema.RecipeSchema;
-import dev.latvian.mods.kubejs.recipe.schema.RecipeSchemaStorage;
 import dev.latvian.mods.kubejs.recipe.schema.RecipeSchemaType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
@@ -52,11 +52,28 @@ public interface MBDRecipeSchema {
 
     static MBDRecipeJS create(MBDRecipeType recipeType) {
         var recipe = new MBDRecipeJS(recipeType);
-        var namespace = new RecipeNamespace(new RecipeSchemaStorage(), recipeType.getRegistryName().getNamespace());
-        var schemaType = new RecipeSchemaType(namespace, recipeType.getRegistryName(), SCHEMA);
+        var schemaType = getRegisteredSchemaType(recipeType.getRegistryName());
+        if (schemaType == null) {
+            var namespace = new RecipeNamespace(null, recipeType.getRegistryName().getNamespace());
+            schemaType = new RecipeSchemaType(namespace, recipeType.getRegistryName(), SCHEMA);
+        }
         recipe.type = new RecipeTypeFunction(null, schemaType);
         recipe.initValues(false);
         return recipe;
+    }
+
+    @Nullable
+    static RecipeSchemaType getRegisteredSchemaType(ResourceLocation recipeTypeId) {
+        try {
+            var manager = ServerScriptManagerAccessor.getStaticInstance();
+            if (manager == null) {
+                return null;
+            }
+            var namespace = manager.recipeSchemaStorage.namespaces.get(recipeTypeId.getNamespace());
+            return namespace == null ? null : namespace.get(recipeTypeId.getPath());
+        } catch (Throwable ignored) {
+            return null;
+        }
     }
 
     class MBDRecipeJS extends KubeRecipe {
@@ -145,11 +162,21 @@ public interface MBDRecipeSchema {
             return this;
         }
 
+        public MBDRecipeJS chance(float chance) {
+            this.chance = chance;
+            return this;
+        }
+
         public MBDRecipeJS chance(float chance, RecipeBuilder builder) {
             var lastChance = this.chance;
             this.chance = chance;
             builder.accept(this);
             this.chance = lastChance;
+            return this;
+        }
+
+        public MBDRecipeJS tierChanceBoost(float tierChanceBoost) {
+            this.tierChanceBoost = tierChanceBoost;
             return this;
         }
 
@@ -161,11 +188,21 @@ public interface MBDRecipeSchema {
             return this;
         }
 
+        public MBDRecipeJS slotName(String slotName) {
+            this.slotName = slotName;
+            return this;
+        }
+
         public MBDRecipeJS slotName(String slotName, RecipeBuilder builder) {
             var lastSlotName = this.slotName;
             this.slotName = slotName;
             builder.accept(this);
             this.slotName = lastSlotName;
+            return this;
+        }
+
+        public MBDRecipeJS uiName(String uiName) {
+            this.uiName = uiName;
             return this;
         }
 
@@ -540,7 +577,7 @@ public interface MBDRecipeSchema {
             } else if (type != null && type.event != null) {
                 recipeId = getOrCreateId();
             } else {
-                throw new IllegalStateException("MBD recipe id must be set before building a recipe outside ServerEvents.recipes");
+                throw new IllegalStateException("MBD recipe id is required for this recipe");
             }
             return new MBDRecipe(
                     getRecipeType(),
