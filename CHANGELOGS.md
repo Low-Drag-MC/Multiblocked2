@@ -1,4 +1,7 @@
 # ChangeLogs
+## v21.0.6
+* Fixed kjs RecipeSchema convertor
+
 ## v21.0.5.a
 * Fixed kjs RecipeSchema convertor
 
