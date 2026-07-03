@@ -23,7 +23,7 @@ import javax.annotation.Nonnull;
 public class MachineLevelCondition extends RecipeCondition {
     @Configurable(name = "config.recipe.condition.machine_level.level", tips="config.recipe.condition.machine_level.level.tips")
     @ConfigNumber(range = {0, Integer.MAX_VALUE}, type = ConfigNumber.Type.INTEGER)
-    private Range level;
+    private Range level = Range.of(0f, 1f);
 
     public MachineLevelCondition(int level) {
         this(false, level, level);
