@@ -1,4 +1,7 @@
 # ChangeLogs
+## v21.0.7
+* Fixed fuel recipe searching
+
 ## v21.0.6
 * Fixed kjs RecipeSchema convertor
 
