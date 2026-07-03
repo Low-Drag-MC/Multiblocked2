@@ -255,10 +255,9 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
         if (!fuelRecipeConfig.isEnable() || !holder.hasProxies()) return Collections.emptyList();
         return fuelRecipeConfig.fuelRecipeTypes.parallelStream()
                 .map(BuiltInRegistries.RECIPE_TYPE::get)
-                .filter(Objects::nonNull)
+                .filter(MBDRecipeType.class::isInstance)
+                .map(MBDRecipeType.class::cast)
                 .flatMap(type -> recipeManager.getAllRecipesFor(type).parallelStream())
-                .filter(rh -> rh.value() instanceof MBDRecipe)
-                .map(rh -> (RecipeHolder<MBDRecipe>)rh)
                 .filter(recipe ->
                         recipe.value().matchRecipe(holder).isSuccess() &&
                         recipe.value().matchTickRecipe(holder).isSuccess())
