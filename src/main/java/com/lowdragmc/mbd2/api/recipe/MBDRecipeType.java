@@ -253,10 +253,17 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
 
     public List<RecipeHolder<MBDRecipe>> searchFuelRecipe(RecipeManager recipeManager, IRecipeCapabilityHolder holder) {
         if (!fuelRecipeConfig.isEnable() || !holder.hasProxies()) return Collections.emptyList();
-        return fuelRecipeConfig.fuelRecipeTypes.parallelStream().filter(type -> !type.equals(registryName))
-                .flatMap(type -> recipeManager.getAllRecipesFor(this).parallelStream())
-                .filter(recipe -> recipe.value().matchRecipe(holder).isSuccess() && recipe.value().matchTickRecipe(holder).isSuccess())
-                .sorted(Comparator.comparingInt(r -> r.value().priority)).collect(Collectors.toList());
+        return fuelRecipeConfig.fuelRecipeTypes.parallelStream()
+                .map(BuiltInRegistries.RECIPE_TYPE::get)
+                .filter(Objects::nonNull)
+                .flatMap(type -> recipeManager.getAllRecipesFor(type).parallelStream())
+                .filter(rh -> rh.value() instanceof MBDRecipe)
+                .map(rh -> (RecipeHolder<MBDRecipe>)rh)
+                .filter(recipe ->
+                        recipe.value().matchRecipe(holder).isSuccess() &&
+                        recipe.value().matchTickRecipe(holder).isSuccess())
+                .sorted(Comparator.comparingInt(recipe -> recipe.value().priority))
+                .collect(Collectors.toList());
     }
 
     public List<RecipeHolder<MBDRecipe>> searchRecipe(RecipeManager recipeManager, IRecipeCapabilityHolder holder) {
