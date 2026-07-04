@@ -69,7 +69,7 @@ public class ToggleCatalyst extends ItemFilterSettings {
         @Getter
         @Setter
         @Configurable
-        @DefaultValue(numberValue = {0, 0, 0, 1, 1, 1})
+        @DefaultValue(stringValue = "minecraft:stone")
         private Block[] value;
 
         public ToggleCandidates(Block[] value, boolean enable) {
