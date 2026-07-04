@@ -1,4 +1,8 @@
 # ChangeLogs
+## v21.0.8
+* Fixed crash when adding a controller candidate block
+* Fixed machine level condition crash
+
 ## v21.0.7
 * Fixed fuel recipe searching
 
