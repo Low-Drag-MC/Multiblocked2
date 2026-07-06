@@ -6,9 +6,11 @@ import com.lowdragmc.mbd2.test.framework.MBDScenario;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
+import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
@@ -148,6 +150,49 @@ public class ProxyCapabilityTests {
         // The vanilla iron block doesn't expose IItemHandler.
         if (MBDScenarioCapabilityHelper.itemHandlerAt(h, PART_POS, null) != null) {
             h.fail("Restored vanilla block should not expose IItemHandler");
+            return;
+        }
+        h.succeed();
+    }
+
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void part_invalidates_neighbor_cap_cache_on_form_and_unform(GameTestHelper h) {
+        // Regression test for #217: adjacent pipes cache a part's capability via BlockCapabilityCache and
+        // only re-resolve when the level invalidates capabilities at that position. A plain neighbor/block
+        // update is NOT enough. Forming/unforming must invalidate so the pipe reconnects/disconnects.
+        var scenario = MBDScenario.of(h)
+                .placeMachine(ProxyCapabilityFixtures.PART_PROXY_CONTROLLER_ID, CONTROLLER_POS)
+                .placeMachine(ProxyCapabilityFixtures.PART_PROXY_PART_ID, PART_POS)
+                .placeBlock(STONE_POS, Blocks.STONE.defaultBlockState());
+
+        // Emulate a neighboring pipe: cache the part's IItemHandler up-front, while unformed.
+        var serverLevel = (ServerLevel) h.getLevel();
+        var partAbs = h.absolutePos(PART_POS);
+        var cache = BlockCapabilityCache.create(Capabilities.ItemHandler.BLOCK, serverLevel, partAbs, null);
+
+        // Prime the cache: the part proxies nothing yet, so no handler is exposed.
+        if (cache.getCapability() != null) {
+            h.fail("Part should not expose a proxied IItemHandler before forming");
+            return;
+        }
+
+        // Assemble: addedToController must invalidate the part's caps so the cache re-resolves and the
+        // proxied controller handler shows up (without any manual invalidation from the test).
+        scenario.target(CONTROLLER_POS).formNow().assertFormed();
+        if (cache.getCapability() == null) {
+            h.fail("Neighbor cap cache was not invalidated on assembly: proxied IItemHandler still missing");
+            return;
+        }
+
+        // Disassemble: removedFromController must invalidate again so the cache drops the proxied handler.
+        if (!(scenario.machine() instanceof com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine controller)) {
+            h.fail("Expected multiblock controller");
+            return;
+        }
+        controller.onStructureInvalid(false);
+        if (cache.getCapability() != null) {
+            h.fail("Neighbor cap cache was not invalidated on disassembly: proxied IItemHandler still present");
             return;
         }
         h.succeed();

@@ -122,6 +122,8 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
             setMachineState("base");
         }
         notifyBlockUpdate();
+        // the part no longer proxies the controller's capabilities: invalidate so adjacent pipes re-resolve.
+        invalidateCapabilities();
     }
 
     @Override
@@ -132,6 +134,8 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
             setMachineState("formed");
         }
         notifyBlockUpdate();
+        // the part now proxies the controller's capabilities: invalidate so adjacent pipes re-resolve.
+        invalidateCapabilities();
     }
 
     /**
@@ -153,6 +157,8 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
         proxyWhileFormedPredicateIds.put(controllerPos.immutable(), predicateId);
         rebuildProxyWhileFormedData();
         notifyBlockUpdate();
+        // proxied capabilities may have appeared: invalidate so adjacent pipes re-resolve.
+        invalidateCapabilities();
     }
 
     public void clearProxyWhileFormedState(BlockPos controllerPos) {
@@ -160,6 +166,8 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
         if (removed) {
             rebuildProxyWhileFormedData();
             notifyBlockUpdate();
+            // proxied capabilities are gone: invalidate so adjacent pipes re-resolve.
+            invalidateCapabilities();
         }
     }
 
@@ -203,6 +211,8 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
     protected void onProxyWhileFormedDataUpdated(CompoundTag newValue, CompoundTag oldValue) {
         loadProxyWhileFormedPredicateIdsFromData(newValue);
         notifyBlockUpdate();
+        // the synced proxy state changed: invalidate so adjacent pipes re-resolve the proxied capabilities.
+        invalidateCapabilities();
     }
 
     private void rebuildProxyWhileFormedData() {

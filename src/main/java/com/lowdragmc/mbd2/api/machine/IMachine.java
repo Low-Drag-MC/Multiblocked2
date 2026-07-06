@@ -170,6 +170,22 @@ public interface IMachine extends IRecipeCapabilityHolder {
     }
 
     /**
+     * Notify listeners that the block capabilities exposed at this position may have changed, so cached
+     * capability lookups (e.g. from adjacent pipes) get re-resolved. A plain {@link #notifyBlockUpdate()}
+     * is not enough for this: NeoForge's {@code BlockCapabilityCache} only re-resolves after
+     * {@link net.minecraft.world.level.Level#invalidateCapabilities(BlockPos)} is called.
+     * <br>
+     * This must be called whenever the set of proxied/exposed capabilities changes, e.g. on formed/unformed.
+     */
+    default void invalidateCapabilities() {
+        var pos = getPos();
+        var level = getLevel();
+        if (level != null) {
+            level.invalidateCapabilities(pos);
+        }
+    }
+
+    /**
      * on machine chunk unloaded.
      * <br>
      * You should call it in yourselves {@link BlockEntity#onChunkUnloaded()}.

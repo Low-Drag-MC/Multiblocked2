@@ -274,6 +274,9 @@ public class ProxyPartBlockEntity extends BlockEntity {
     public void sync() {
         if (level != null && !level.isClientSide) {
             level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 11);
+            // the proxied controller/predicate changed, so the capabilities this block exposes may have
+            // changed too: invalidate so adjacent pipes re-resolve instead of keeping a stale cache.
+            invalidateCapabilities();
         }
     }
 
