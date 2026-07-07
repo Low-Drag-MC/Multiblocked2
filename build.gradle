@@ -16,6 +16,9 @@ configurations {
     localImplementation
     runtimeClasspath.extendsFrom localImplementation
     compileOnly.extendsFrom localImplementation
+
+    localRuntimeOnly
+    runtimeClasspath.extendsFrom localRuntimeOnly
 }
 
 base {

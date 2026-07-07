@@ -32,15 +32,15 @@ dependencies {
     // Botania
 //    compileOnly("vazkii.botania:botania-neoforge-${minecraft_version}:${botania_version}:api")
 //    localImplementation("vazkii.botania:botania-neoforge-${minecraft_version}:${botania_version}")
-    runtimeOnly("top.theillusivec4.curios:curios-neoforge:${curios_version}")
-    runtimeOnly("vazkii.patchouli:Patchouli:${patchouli_version}")
+    localRuntimeOnly("top.theillusivec4.curios:curios-neoforge:${curios_version}")
+    localRuntimeOnly("vazkii.patchouli:Patchouli:${patchouli_version}")
 
     // Mekanism
     compileOnly("mekanism:Mekanism:${mekanism_version}:api")
     localImplementation("mekanism:Mekanism:${mekanism_version}") // Mekanism
-    runtimeOnly("mekanism:Mekanism:${mekanism_version}:additions")// Mekanism: Additions
-    runtimeOnly("mekanism:Mekanism:${mekanism_version}:generators")// Mekanism: Generators
-    runtimeOnly("mekanism:Mekanism:${mekanism_version}:tools")// Mekanism: Tools
+    localRuntimeOnly("mekanism:Mekanism:${mekanism_version}:additions")// Mekanism: Additions
+    localRuntimeOnly("mekanism:Mekanism:${mekanism_version}:generators")// Mekanism: Generators
+    localRuntimeOnly("mekanism:Mekanism:${mekanism_version}:tools")// Mekanism: Tools
 
     // GTM
 //    compileOnly("com.gregtechceu.gtceu:gtceu-${minecraft_version}:${gtm_version}") { transitive = false }
@@ -50,7 +50,7 @@ dependencies {
     localImplementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
     localImplementation("net.createmod.ponder:ponder-neoforge:${ponder_version}+mc${minecraft_version}")
     compileOnly("dev.engine-room.flywheel:flywheel-neoforge-api-${minecraft_version}:${flywheel_version}")
-    runtimeOnly("dev.engine-room.flywheel:flywheel-neoforge-${minecraft_version}:${flywheel_version}")
+    localRuntimeOnly("dev.engine-room.flywheel:flywheel-neoforge-${minecraft_version}:${flywheel_version}")
     localImplementation("com.tterrag.registrate:Registrate:${registrate_version}")
 
     // KubeJS
