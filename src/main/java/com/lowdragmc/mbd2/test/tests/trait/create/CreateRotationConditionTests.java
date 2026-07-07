@@ -8,10 +8,10 @@ import com.lowdragmc.mbd2.test.framework.MBDScenario;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
-@GameTestHolder(MBD2.MOD_ID)
+// No @GameTestHolder: registered via MBDTestRegistry#onRegisterGameTests (mod-load guarded)
+// to avoid NeoForge force-loading this soft-dep class when the mod is absent.
 public class CreateRotationConditionTests {
     static { @SuppressWarnings("unused") var ignored = CreateKineticMachineFixtures.CONSUMER_MACHINE_ID; }
 
@@ -42,7 +42,7 @@ public class CreateRotationConditionTests {
     }
 
     /** torque=4, speed=50 → rpm=50, stress=200. Condition (rpm [40,100], stress [100,300]) passes. */
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void condition_passes_when_rpm_and_stress_in_range(GameTestHelper h) {
         var machine = setupAtSpeed(h, 50f);
@@ -56,7 +56,7 @@ public class CreateRotationConditionTests {
     }
 
     /** rpm=10 must fail [100,500]. */
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void condition_fails_when_rpm_below_min(GameTestHelper h) {
         var machine = setupAtSpeed(h, 10f);
@@ -70,7 +70,7 @@ public class CreateRotationConditionTests {
     }
 
     /** rpm=200 > maxRPM=100 must fail. */
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void condition_fails_when_rpm_above_max(GameTestHelper h) {
         var machine = setupAtSpeed(h, 200f);
@@ -84,7 +84,7 @@ public class CreateRotationConditionTests {
     }
 
     /** torque=4, speed=50 -> stress=200; condition requires stress>=300 -> fails. */
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void condition_fails_when_stress_below_min(GameTestHelper h) {
         var machine = setupAtSpeed(h, 50f);
@@ -98,7 +98,7 @@ public class CreateRotationConditionTests {
     }
 
     /** Sanity: condition should NOT compile/contain a torqueOverride field anymore (moved to CreateRotation). */
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void condition_no_longer_carries_torque_override(GameTestHelper h) {
         for (var f : CreateRotationCondition.class.getDeclaredFields()) {

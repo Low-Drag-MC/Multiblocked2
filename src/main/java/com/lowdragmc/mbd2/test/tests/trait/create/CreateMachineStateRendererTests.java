@@ -7,18 +7,18 @@ import com.lowdragmc.mbd2.MBD2;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 /**
  * Guards the per-state rotation-renderer wiring. Without these, the user can't pick what
  * rotates and the kinetic machine shaft is silently hardcoded.
  */
-@GameTestHolder(MBD2.MOD_ID)
+// No @GameTestHolder: registered via MBDTestRegistry#onRegisterGameTests (mod-load guarded)
+// to avoid NeoForge force-loading this soft-dep class when the mod is absent.
 public class CreateMachineStateRendererTests {
     static { @SuppressWarnings("unused") var ignored = CreateMachineState.class; }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void create_machine_state_builder_produces_create_machine_state(GameTestHelper h) {
         var state = CreateMachineState.builder().build(null);
@@ -30,7 +30,7 @@ public class CreateMachineStateRendererTests {
         h.succeed();
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void default_root_state_is_create_machine_state(GameTestHelper h) {
         var definition = CreateKineticMachineDefinition.createDefault();
@@ -43,7 +43,7 @@ public class CreateMachineStateRendererTests {
         h.succeed();
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void child_inherits_rotation_renderer_from_parent(GameTestHelper h) {
         // Build a parent with an explicit rotation renderer and a child without one.

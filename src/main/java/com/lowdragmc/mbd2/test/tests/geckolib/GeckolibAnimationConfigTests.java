@@ -9,16 +9,16 @@ import com.lowdragmc.lowdraglib2.LDLib2;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import java.io.File;
 import java.util.List;
 
-@GameTestHolder(MBD2.MOD_ID)
+// No @GameTestHolder: registered via MBDTestRegistry#onRegisterGameTests (mod-load guarded)
+// to avoid NeoForge force-loading this soft-dep class when the mod is absent.
 public class GeckolibAnimationConfigTests {
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void animation_config_round_trips_stages(GameTestHelper helper) {
         var animation = new Animation().setName("working");
@@ -48,7 +48,7 @@ public class GeckolibAnimationConfigTests {
         helper.succeed();
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void animation_info_source_is_runtime_only_and_reaches_stages(GameTestHelper helper) {
         var animation = new Animation();
@@ -81,7 +81,7 @@ public class GeckolibAnimationConfigTests {
         helper.succeed();
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void asset_file_paths_are_converted_to_resource_locations(GameTestHelper helper) {
         var file = new File(LDLib2.getAssetsDir(), "mbd2/animations/fire_pedestal.animation.json");

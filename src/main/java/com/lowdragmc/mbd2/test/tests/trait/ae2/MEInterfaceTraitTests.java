@@ -14,16 +14,17 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.material.Fluids;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
-@GameTestHolder(MBD2.MOD_ID)
+// No @GameTestHolder: NeoForge's annotation scan force-loads every @GameTestHolder class
+// (Class.forName + getDeclaredMethods), which NoClassDefFoundErrors when AE2 is absent.
+// Registered instead via MBDTestRegistry#onRegisterGameTests, guarded by ModList.isLoaded("ae2").
 public class MEInterfaceTraitTests {
     static { @SuppressWarnings("unused") var ignored = MEInterfaceTraitFixtures.MACHINE_ID; }
 
     private static final BlockPos POS = new BlockPos(1, 1, 1);
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void me_interface_item_input_can_be_split_across_slots(GameTestHelper h) {
         var scenario = MBDScenario.of(h)
@@ -38,7 +39,7 @@ public class MEInterfaceTraitTests {
                 .succeed();
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void me_interface_fluid_input_can_be_split_across_slots(GameTestHelper h) {
         var scenario = MBDScenario.of(h)
@@ -53,7 +54,7 @@ public class MEInterfaceTraitTests {
                 .succeed();
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void me_interface_item_capacity_clamps_storage_slot(GameTestHelper h) {
         var scenario = MBDScenario.of(h)
@@ -70,7 +71,7 @@ public class MEInterfaceTraitTests {
         h.succeed();
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void me_interface_fluid_capacity_clamps_storage_slot(GameTestHelper h) {
         var scenario = MBDScenario.of(h)

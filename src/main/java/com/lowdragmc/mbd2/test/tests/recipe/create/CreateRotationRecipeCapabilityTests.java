@@ -10,20 +10,20 @@ import com.lowdragmc.mbd2.test.tests.trait.create.CreateKineticMachineFixtures;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 /**
  * Sanity checks for the unified rotation cap: registration name, default content shape,
  * deep-copy semantics, generator scheduleWorking clamp.
  */
-@GameTestHolder(MBD2.MOD_ID)
+// No @GameTestHolder: registered via MBDTestRegistry#onRegisterGameTests (mod-load guarded)
+// to avoid NeoForge force-loading this soft-dep class when the mod is absent.
 public class CreateRotationRecipeCapabilityTests {
     static { @SuppressWarnings("unused") var ignored = CreateKineticMachineFixtures.GENERATOR_MACHINE_ID; }
 
     private static final BlockPos POS = new BlockPos(1, 1, 1);
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void cap_is_registered_with_correct_name(GameTestHelper h) {
         if (!"create_rotation".equals(CreateRotationRecipeCapability.CAP.name)) {
@@ -33,7 +33,7 @@ public class CreateRotationRecipeCapabilityTests {
         h.succeed();
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void default_content_is_stress_with_disabled_override(GameTestHelper h) {
         var def = CreateRotationRecipeCapability.CAP.createDefaultContent();
@@ -46,7 +46,7 @@ public class CreateRotationRecipeCapabilityTests {
         h.succeed();
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void copy_preserves_mode_and_override(GameTestHelper h) {
         var original = new CreateRotation(99f, CreateRotation.Mode.RPM, ToggleFloat.of(true, 42f));
@@ -66,7 +66,7 @@ public class CreateRotationRecipeCapabilityTests {
         h.succeed();
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void generator_schedule_working_clamps_at_max(GameTestHelper h) {
         var machine = MBDScenario.of(h)

@@ -9,7 +9,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 /**
@@ -18,14 +17,15 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
  * rotation propagation is Create's {@code RotationPropagator}; we verify the IRotate/ICogWheel
  * contract our blocks expose so that propagator sees the right answers.
  */
-@GameTestHolder(MBD2.MOD_ID)
+// No @GameTestHolder: registered via MBDTestRegistry#onRegisterGameTests (mod-load guarded)
+// to avoid NeoForge force-loading this soft-dep class when the mod is absent.
 public class CreateCogwheelInputTests {
     static { @SuppressWarnings("unused") var ignored = CreateKineticMachineFixtures.SMALL_COG_CONSUMER_ID; }
 
     private static final BlockPos POS = new BlockPos(1, 1, 1);
 
     /** Default shaft-only machine: shaft on axis, no cog meshing. */
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void shaft_only_block_has_shaft_no_cog(GameTestHelper h) {
         var machine = MBDScenario.of(h)
@@ -48,7 +48,7 @@ public class CreateCogwheelInputTests {
     }
 
     /** SMALL_COGWHEEL machine: no shaft, isSmallCog=true. */
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void small_cog_block_reports_small_cog_no_shaft(GameTestHelper h) {
         var machine = MBDScenario.of(h)
@@ -76,7 +76,7 @@ public class CreateCogwheelInputTests {
     }
 
     /** LARGE_COGWHEEL machine: no shaft, isLargeCog=true (and isSmallCog must report false). */
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void large_cog_block_reports_large_cog_only(GameTestHelper h) {
         var machine = MBDScenario.of(h)

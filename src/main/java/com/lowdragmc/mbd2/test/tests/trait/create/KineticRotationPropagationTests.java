@@ -10,7 +10,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 /**
@@ -19,7 +18,8 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
  * adjacent Create shafts placed on the correct axis. This is the difference between "kinetic
  * trait is registered" (covered elsewhere) and "the BE works as a real generator."
  */
-@GameTestHolder(MBD2.MOD_ID)
+// No @GameTestHolder: registered via MBDTestRegistry#onRegisterGameTests (mod-load guarded)
+// to avoid NeoForge force-loading this soft-dep class when the mod is absent.
 public class KineticRotationPropagationTests {
     static { @SuppressWarnings("unused") var ignored = CreateKineticMachineFixtures.GENERATOR_MACHINE_ID; }
 
@@ -33,7 +33,7 @@ public class KineticRotationPropagationTests {
      * The generator fixture has torque=8, maxRPM=256; scheduling 1000 stress should yield
      * speed = min(256, 1000/8) = 125 RPM.
      */
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void generator_machine_rotates_when_scheduled(GameTestHelper h) {
         var machine = MBDScenario.of(h)
@@ -72,7 +72,7 @@ public class KineticRotationPropagationTests {
      * The machine's default front facing is NORTH with FRONT rotation facing -> rotation axis = Z.
      * So the shaft must sit at POS.north() (or south) with its own axis set to Z.
      */
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void generator_drives_adjacent_shaft(GameTestHelper h) {
         BlockPos shaftPos = POS.relative(Direction.NORTH);
@@ -129,7 +129,7 @@ public class KineticRotationPropagationTests {
      * Stopping a running generator (via stopWorking) should also tear down the network -
      * verify that the adjacent shaft's speed drops back to 0.
      */
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void stopping_generator_stops_adjacent_shaft(GameTestHelper h) {
         BlockPos shaftPos = POS.relative(Direction.NORTH);

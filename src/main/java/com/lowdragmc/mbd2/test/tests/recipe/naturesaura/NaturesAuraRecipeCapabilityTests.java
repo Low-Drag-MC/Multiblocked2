@@ -7,10 +7,10 @@ import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
-@GameTestHolder(MBD2.MOD_ID)
+// No @GameTestHolder: registered via MBDTestRegistry#onRegisterGameTests (mod-load guarded)
+// to avoid NeoForge force-loading this soft-dep class when the mod is absent.
 public class NaturesAuraRecipeCapabilityTests {
     static { @SuppressWarnings("unused") var ignored = NaturesAuraRecipeCapabilityFixtures.MACHINE_ID; }
 
@@ -21,7 +21,7 @@ public class NaturesAuraRecipeCapabilityTests {
      * 40 ticks — proves the recipe loop ran and the aura output handler accepted the
      * write (storing into the surrounding chunk via IAuraChunk).
      */
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void aura_output_recipe_consumes_input(GameTestHelper h) {
         MBDScenario.of(h)
@@ -32,7 +32,7 @@ public class NaturesAuraRecipeCapabilityTests {
                 .succeed();
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void recipe_does_not_run_without_input(GameTestHelper h) {
         MBDScenario.of(h)

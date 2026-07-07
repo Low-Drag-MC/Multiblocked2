@@ -66,6 +66,55 @@ public class MBDTestRegistry {
         }
     }
 
+    /**
+     * Registers game test classes that reference soft-dependency mods. These classes are deliberately
+     * NOT annotated with {@code @GameTestHolder}: NeoForge's annotation scan force-loads every
+     * {@code @GameTestHolder} class ({@code Class.forName} + {@code getDeclaredMethods}) regardless of
+     * the enabled namespaces, which throws {@code NoClassDefFoundError} when the referenced mod is
+     * absent. Registering them here means the class literal is only resolved inside the matching
+     * {@code ModList.isLoaded(...)} branch, so an absent mod never triggers class loading.
+     */
+    @SubscribeEvent
+    public void onRegisterGameTests(net.neoforged.neoforge.event.RegisterGameTestsEvent event) {
+        var modList = net.neoforged.fml.ModList.get();
+        if (modList.isLoaded("mekanism")) {
+            event.register(com.lowdragmc.mbd2.test.tests.trait.ChemicalTankTraitTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.trait.MekHeatTraitTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.recipe.mekanism.ChemicalRecipeCapabilityTests.class);
+        }
+        if (modList.isLoaded("ae2")) {
+            event.register(com.lowdragmc.mbd2.test.tests.trait.ae2.MEInterfaceTraitTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.trait.ae2.MEPatternProviderTraitTests.class);
+        }
+        if (modList.isLoaded("naturesaura")) {
+            event.register(com.lowdragmc.mbd2.test.tests.trait.naturesaura.AuraHandlerTraitTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.recipe.naturesaura.NaturesAuraRecipeCapabilityTests.class);
+        }
+        if (modList.isLoaded("pneumaticcraft")) {
+            event.register(com.lowdragmc.mbd2.test.tests.trait.pneumaticcraft.PNCHeatTraitTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.trait.pneumaticcraft.PNCPressureTraitTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.recipe.pneumaticcraft.PNCHeatRecipeCapabilityTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.recipe.pneumaticcraft.PNCPressureAirRecipeCapabilityTests.class);
+        }
+        if (modList.isLoaded("create")) {
+            event.register(com.lowdragmc.mbd2.test.tests.trait.create.KineticRotationPropagationTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.trait.create.CreateMachineStateRendererTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.trait.create.KineticBESerializationTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.trait.create.CreateMachineDefinitionTypeTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.trait.create.CreateRotationTraitTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.trait.create.CreateEditorProjectRegistrationTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.trait.create.CreateMandatoryTraitTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.trait.create.CreateDynamicTorqueTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.trait.create.CreateRotationConditionTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.trait.create.CreateCogwheelInputTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.recipe.create.CreateRotationRecipeCapabilityTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.recipe.create.CreateRotationContentTests.class);
+        }
+        if (modList.isLoaded("geckolib")) {
+            event.register(com.lowdragmc.mbd2.test.tests.geckolib.GeckolibAnimationConfigTests.class);
+        }
+    }
+
     @SubscribeEvent
     public void onRegisterMachines(MBDRegistryEvent.Machine event) {
         for (TestFixtureProvider provider : PROVIDERS) {

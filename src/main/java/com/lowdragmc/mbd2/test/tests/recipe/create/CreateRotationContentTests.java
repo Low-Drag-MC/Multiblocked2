@@ -7,17 +7,17 @@ import com.lowdragmc.mbd2.integration.create.CreateRotation;
 import com.lowdragmc.mbd2.integration.create.SerializerCreateRotation;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 /**
  * Round-trip tests for the {@link CreateRotation} content type: codec, streamCodec,
  * NBT helpers, and {@link SerializerCreateRotation#copyWithModifier} behavior.
  */
-@GameTestHolder(MBD2.MOD_ID)
+// No @GameTestHolder: registered via MBDTestRegistry#onRegisterGameTests (mod-load guarded)
+// to avoid NeoForge force-loading this soft-dep class when the mod is absent.
 public class CreateRotationContentTests {
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void codec_round_trips_stress_mode(GameTestHelper h) {
         var provider = h.getLevel().registryAccess();
@@ -33,7 +33,7 @@ public class CreateRotationContentTests {
         h.succeed();
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void codec_round_trips_rpm_mode_with_disabled_override(GameTestHelper h) {
         var provider = h.getLevel().registryAccess();
@@ -49,7 +49,7 @@ public class CreateRotationContentTests {
         h.succeed();
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void copy_with_modifier_scales_value_preserves_others(GameTestHelper h) {
         var original = new CreateRotation(50f, CreateRotation.Mode.RPM, ToggleFloat.of(true, 8f));
@@ -63,7 +63,7 @@ public class CreateRotationContentTests {
         h.succeed();
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void of_coerces_number_to_stress_content(GameTestHelper h) {
         var c = SerializerCreateRotation.INSTANCE.of(128f);

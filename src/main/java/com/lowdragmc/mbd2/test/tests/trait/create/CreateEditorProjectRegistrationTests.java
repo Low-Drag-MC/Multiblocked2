@@ -5,7 +5,6 @@ import com.lowdragmc.mbd2.integration.create.machine.CreateKineticMachineDefinit
 import com.lowdragmc.mbd2.integration.create.machine.CreateKineticMachineProject;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 /**
@@ -13,14 +12,15 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
  * and instantiating that project must produce a kinetic-aware definition. Without this, the
  * editor cannot create new Create kinetic machines through the File→New menu.
  */
-@GameTestHolder(MBD2.MOD_ID)
+// No @GameTestHolder: registered via MBDTestRegistry#onRegisterGameTests (mod-load guarded)
+// to avoid NeoForge force-loading this soft-dep class when the mod is absent.
 public class CreateEditorProjectRegistrationTests {
     static {
         @SuppressWarnings("unused") var ignored = CreateKineticMachineDefinition.TYPE;
         @SuppressWarnings("unused") var ignored2 = CreateKineticMachineProject.TYPE;
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void create_kinetic_machine_project_type_resolves_via_definition_type(GameTestHelper h) {
         var projectType = CreateKineticMachineDefinition.TYPE.getEditorProjectType();
@@ -35,7 +35,7 @@ public class CreateEditorProjectRegistrationTests {
         h.succeed();
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void create_kinetic_machine_project_factory_produces_kinetic_definition(GameTestHelper h) {
         // The ProjectType's factory lambda is the entry point used by the editor "New project"

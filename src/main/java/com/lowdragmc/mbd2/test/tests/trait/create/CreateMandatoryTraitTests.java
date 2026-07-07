@@ -7,7 +7,6 @@ import com.lowdragmc.mbd2.test.framework.MBDScenario;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 /**
@@ -15,14 +14,15 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
  * mandatory + non-multiple trait: auto-included by definition, can't be added twice, and
  * always available on every Create kinetic machine after construction.
  */
-@GameTestHolder(MBD2.MOD_ID)
+// No @GameTestHolder: registered via MBDTestRegistry#onRegisterGameTests (mod-load guarded)
+// to avoid NeoForge force-loading this soft-dep class when the mod is absent.
 public class CreateMandatoryTraitTests {
     static { @SuppressWarnings("unused") var ignored = CreateKineticMachineFixtures.GENERATOR_MACHINE_ID; }
 
     private static final BlockPos POS = new BlockPos(1, 1, 1);
 
     /** Sanity: the definition's static contract reports mandatory + !allowMultiple. */
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void definition_is_mandatory_and_not_multiple(GameTestHelper h) {
         var def = CreateRotationTrait.DEFINITION;
@@ -35,7 +35,7 @@ public class CreateMandatoryTraitTests {
      * After definition.loadFactory() runs (as part of registry init for every Create kinetic
      * machine), the trait must be in {@code machineSettings.traitDefinitions()} exactly once.
      */
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void load_factory_auto_includes_trait_definition(GameTestHelper h) {
         var fresh = CreateKineticMachineDefinition.createDefault();
@@ -50,7 +50,7 @@ public class CreateMandatoryTraitTests {
     }
 
     /** Calling loadFactory twice must not double-add the mandatory trait. */
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void load_factory_is_idempotent(GameTestHelper h) {
         var fresh = CreateKineticMachineDefinition.createDefault();
@@ -71,7 +71,7 @@ public class CreateMandatoryTraitTests {
      * {@code machine.getAdditionalTraits()} exactly once even though the fixture never adds
      * it manually (this is what catches a regression to the old setMachine-injection path).
      */
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void placed_machine_has_exactly_one_create_rotation_trait(GameTestHelper h) {
         var machine = MBDScenario.of(h)

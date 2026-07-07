@@ -7,16 +7,16 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
-@GameTestHolder(MBD2.MOD_ID)
+// No @GameTestHolder: registered via MBDTestRegistry#onRegisterGameTests (mod-load guarded)
+// to avoid NeoForge force-loading this soft-dep class when the mod is absent.
 public class PNCPressureTraitTests {
     static { @SuppressWarnings("unused") var ignored = PNCPressureTraitFixtures.MACHINE_ID; }
 
     private static final BlockPos POS = new BlockPos(1, 1, 1);
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void air_handler_machine_capability_exposed_on_north(GameTestHelper h) {
         MBDScenario.of(h)
@@ -25,7 +25,7 @@ public class PNCPressureTraitTests {
                 .succeed();
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void air_handler_machine_capability_exposed_on_null_side(GameTestHelper h) {
         MBDScenario.of(h)

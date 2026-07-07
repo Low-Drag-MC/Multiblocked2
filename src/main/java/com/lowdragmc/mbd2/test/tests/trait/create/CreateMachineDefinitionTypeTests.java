@@ -5,7 +5,6 @@ import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.integration.create.machine.CreateKineticMachineDefinition;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 /**
@@ -13,11 +12,12 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
  * mbd2:machine_definition_type registry, otherwise saved .cm projects never load
  * and users can't create kinetic machines from the editor.
  */
-@GameTestHolder(MBD2.MOD_ID)
+// No @GameTestHolder: registered via MBDTestRegistry#onRegisterGameTests (mod-load guarded)
+// to avoid NeoForge force-loading this soft-dep class when the mod is absent.
 public class CreateMachineDefinitionTypeTests {
     static { @SuppressWarnings("unused") var ignored = CreateKineticMachineDefinition.TYPE; }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void create_machine_type_is_registered(GameTestHelper h) {
         var type = CreateKineticMachineDefinition.TYPE;

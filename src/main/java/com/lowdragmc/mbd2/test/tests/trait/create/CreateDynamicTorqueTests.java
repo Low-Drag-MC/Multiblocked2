@@ -15,7 +15,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import java.util.ArrayList;
@@ -29,7 +28,8 @@ import java.util.Map;
  * value into the BE; {@link CreateRotationTrait#postWorking} clears it. The override is now
  * carried by the recipe-cap content, not by {@code CreateRotationCondition}.
  */
-@GameTestHolder(MBD2.MOD_ID)
+// No @GameTestHolder: registered via MBDTestRegistry#onRegisterGameTests (mod-load guarded)
+// to avoid NeoForge force-loading this soft-dep class when the mod is absent.
 public class CreateDynamicTorqueTests {
     static { @SuppressWarnings("unused") var ignored = CreateKineticMachineFixtures.CONSUMER_MACHINE_ID; }
 
@@ -55,7 +55,7 @@ public class CreateDynamicTorqueTests {
         return new MBDRecipe(null, MBD2.id("dummy"), inputs, outputs, new ArrayList<>(), new CompoundTag(), 1, false, 0);
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void default_torque_used_when_no_override(GameTestHelper h) {
         var machine = MBDScenario.of(h)
@@ -70,7 +70,7 @@ public class CreateDynamicTorqueTests {
         h.succeed();
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void disabled_toggle_does_not_override(GameTestHelper h) {
         var machine = MBDScenario.of(h)
@@ -93,7 +93,7 @@ public class CreateDynamicTorqueTests {
         h.succeed();
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void enabled_toggle_applies_override_on_input(GameTestHelper h) {
         var machine = MBDScenario.of(h)
@@ -115,7 +115,7 @@ public class CreateDynamicTorqueTests {
         h.succeed();
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void enabled_toggle_applies_override_on_output(GameTestHelper h) {
         var machine = MBDScenario.of(h)
@@ -138,7 +138,7 @@ public class CreateDynamicTorqueTests {
         h.succeed();
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void override_restored_after_post_working(GameTestHelper h) {
         var machine = MBDScenario.of(h)
@@ -165,7 +165,7 @@ public class CreateDynamicTorqueTests {
         h.succeed();
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void stress_mode_override_also_applies(GameTestHelper h) {
         // Even with mode=STRESS, the override toggle works the same — semantics depend on the

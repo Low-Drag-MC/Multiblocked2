@@ -14,18 +14,19 @@ import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.material.Fluids;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import java.util.List;
 
-@GameTestHolder(MBD2.MOD_ID)
+// No @GameTestHolder: NeoForge's annotation scan force-loads every @GameTestHolder class
+// (Class.forName + getDeclaredMethods), which NoClassDefFoundErrors when AE2 is absent.
+// Registered instead via MBDTestRegistry#onRegisterGameTests, guarded by ModList.isLoaded("ae2").
 public class MEPatternProviderTraitTests {
     static { @SuppressWarnings("unused") var ignored = MEPatternProviderTraitFixtures.MACHINE_ID; }
 
     private static final BlockPos POS = new BlockPos(1, 1, 1);
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void me_pattern_provider_item_capacity_clamps_storage_slot(GameTestHelper h) {
         var scenario = MBDScenario.of(h)
@@ -42,7 +43,7 @@ public class MEPatternProviderTraitTests {
         h.succeed();
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void me_pattern_provider_fluid_capacity_clamps_storage_slot(GameTestHelper h) {
         var scenario = MBDScenario.of(h)
@@ -59,7 +60,7 @@ public class MEPatternProviderTraitTests {
         h.succeed();
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void me_pattern_provider_recipe_outputs_to_return_inventory(GameTestHelper h) {
         var scenario = MBDScenario.of(h)
@@ -78,7 +79,7 @@ public class MEPatternProviderTraitTests {
         h.succeed();
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void me_pattern_provider_and_interface_definitions_are_mutually_exclusive(GameTestHelper h) {
         var interfaceDefinition = new MEInterfaceTraitDefinition();
@@ -110,7 +111,7 @@ public class MEPatternProviderTraitTests {
         throw new AssertionError();
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void machine_settings_rejects_adding_pattern_provider_and_interface_together(GameTestHelper h) {
         var settings = ConfigMachineSettings.builder().build();

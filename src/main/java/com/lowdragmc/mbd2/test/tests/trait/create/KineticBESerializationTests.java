@@ -7,7 +7,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 /**
@@ -16,13 +15,14 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
  * after save+reload — either kinetic speed, the workingSpeed generator field, or the embedded MBD2
  * machine state (custom name, recipe progress).
  */
-@GameTestHolder(MBD2.MOD_ID)
+// No @GameTestHolder: registered via MBDTestRegistry#onRegisterGameTests (mod-load guarded)
+// to avoid NeoForge force-loading this soft-dep class when the mod is absent.
 public class KineticBESerializationTests {
     static { @SuppressWarnings("unused") var ignored = CreateKineticMachineFixtures.GENERATOR_MACHINE_ID; }
 
     private static final BlockPos POS = new BlockPos(1, 1, 1);
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void working_speed_survives_save_load(GameTestHelper h) {
         var scenario = MBDScenario.of(h)
@@ -49,7 +49,7 @@ public class KineticBESerializationTests {
         h.succeed();
     }
 
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void kinetic_speed_survives_save_load(GameTestHelper h) {
         var scenario = MBDScenario.of(h)
@@ -79,7 +79,7 @@ public class KineticBESerializationTests {
      * Custom name (an MBD2 machine field synced via MultiManagedStorage) round-trips through the
      * BlockEntityMixin save-additional path.
      */
-    @GameTest(template = "empty_simple")
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void machine_custom_name_survives_save_load(GameTestHelper h) {
         var scenario = MBDScenario.of(h)
