@@ -1,3 +1,4 @@
-## v21.0.8
-* Fixed crash when adding a controller candidate block
-* Fixed machine level condition crash
+## v21.0.9
+* Fixed failed to notify capability changes
+* Fixed gradle dependencies chain
+* Fixed dev env requiring mod installation
