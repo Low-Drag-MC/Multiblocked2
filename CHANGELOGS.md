@@ -1,4 +1,8 @@
 # ChangeLogs
+## v21.0.10
+* Fixed ChemicalSlot syncing
+* Fixed Multiblock XEI page candidates display and lookup
+
 ## v21.0.9
 * Fixed failed to notify capability changes
 * Fixed gradle dependencies chain
