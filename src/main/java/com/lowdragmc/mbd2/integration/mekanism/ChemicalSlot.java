@@ -3,6 +3,8 @@ package com.lowdragmc.mbd2.integration.mekanism;
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderTypes;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.SyncStrategy;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.DataBindingBuilder;
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.SupplierDataSource;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEmitter;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEventBuilder;
@@ -113,15 +115,24 @@ public class ChemicalSlot extends BindableUIElement<ChemicalStack> {
         if (capacity <= 0) {
             capacity = handler.getChemicalTankCapacity(tankIndex);
         }
-        // ChemicalStack isn't a registered LDLib sync type, so poll on tick instead of using a DataBinding
-        com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener ticker = e -> {
-            var current = handler.getChemicalInTank(this.tankIndex);
-            if (!ChemicalStack.isSameChemical(current, chemical) || current.getAmount() != chemical.getAmount()) {
-                setValue(current.copy(), true);
-            }
+        // ChemicalStack is registered as an LDLib sync type (see MBDSyncedFieldAccessors), so use a
+        // server->client DataBinding exactly like FluidSlot. A client-side tick poll would only read
+        // the local handler, which isn't kept in sync while the GUI is open, so the slot would stay
+        // empty until the block entity is reloaded (relog/restart).
+        var chemicalBinding = DataBindingBuilder.create(
+                        () -> handler.getChemicalInTank(this.tankIndex), (ChemicalStack ignored) -> {})
+                .syncType(ChemicalStack.class)
+                .c2sStrategy(SyncStrategy.NONE)
+                .build();
+        var capacitySyncValue = DataBindingBuilder.longValS2C(() -> handler.getChemicalTankCapacity(this.tankIndex))
+                .remoteSetter(this::setCapacity).build().getSyncValue();
+        bind(chemicalBinding);
+        addSyncValue(capacitySyncValue);
+        handlerSubscription = () -> {
+            unbind(chemicalBinding);
+            removeSyncValue(capacitySyncValue);
+            handlerSubscription = null;
         };
-        addEventListener(UIEvents.TICK, ticker);
-        handlerSubscription = () -> removeEventListener(UIEvents.TICK, ticker);
         return this;
     }
 
