@@ -6,6 +6,7 @@ import dev.emi.emi.api.EmiApi;
 import dev.emi.emi.api.EmiEntrypoint;
 import dev.emi.emi.api.EmiPlugin;
 import dev.emi.emi.api.EmiRegistry;
+import dev.emi.emi.api.stack.EmiIngredient;
 
 @EmiEntrypoint
 public class MBDEMIPlugin implements EmiPlugin {
@@ -28,5 +29,13 @@ public class MBDEMIPlugin implements EmiPlugin {
 
     public static void lookupRecipeType(MBDRecipeType recipeType) {
         EmiApi.displayRecipeCategory(MBDRecipeTypeEmiCategory.CATEGORIES.apply(recipeType));
+    }
+
+    public static void lookupIngredient(EmiIngredient ingredient, boolean isRecipe) {
+        if (isRecipe) {
+            EmiApi.displayRecipes(ingredient);
+        } else {
+            EmiApi.displayUses(ingredient);
+        }
     }
 }

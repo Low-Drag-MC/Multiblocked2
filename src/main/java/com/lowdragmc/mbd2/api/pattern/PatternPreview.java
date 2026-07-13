@@ -1,5 +1,7 @@
 package com.lowdragmc.mbd2.api.pattern;
 
+import com.lowdragmc.lowdraglib2.LDLib2;
+import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.ScrollDataSource;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.*;
@@ -12,7 +14,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Selector;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Switch;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Toggle;
-import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
 import com.lowdragmc.lowdraglib2.utils.data.BlockInfo;
 import com.lowdragmc.lowdraglib2.utils.virtuallevel.TrackedDummyWorld;
@@ -22,8 +24,15 @@ import com.lowdragmc.mbd2.api.machine.IMultiController;
 import com.lowdragmc.mbd2.api.pattern.predicates.PatternPredicate;
 import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleCatalyst;
+import com.lowdragmc.mbd2.integration.emi.MBDEMIPlugin;
+import com.lowdragmc.mbd2.integration.jei.MBDJEIPlugin;
+import com.lowdragmc.mbd2.integration.rei.MBDREIPlugin;
 import com.lowdragmc.mbd2.utils.ControllerBlockInfo;
+import dev.emi.emi.api.stack.EmiStack;
 import dev.vfyjxf.taffy.style.*;
+import me.shedaniel.rei.api.common.util.EntryStacks;
+import mezz.jei.api.recipe.RecipeIngredientRole;
+import mezz.jei.library.ingredients.itemStacks.TypedItemStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -392,7 +401,7 @@ public class PatternPreview extends UIElement {
     private void onPosSelected(BlockPos pos) {
         if (patterns.length == 0) return;
         var pattern = patterns[pageIndex];
-        TraceabilityPredicate predicate = pattern.predicateMap.get(pos);
+        var predicate = pattern.predicateMap.get(pos);
         predicatePanel.viewContainer.clearAllChildren();
         if (predicate == null) {
             predicatePanel.setDisplay(false);
@@ -409,11 +418,26 @@ public class PatternPreview extends UIElement {
         for (var pp : all) {
             List<ItemStack> candidates = pp.getItemCandidates();
             if (candidates.isEmpty()) continue;
-            ItemStack first = candidates.getFirst();
             var slot = new ItemSlot();
-            slot.setItem(first.copy());
-            slot.xeiRecipeIngredient(IngredientIO.INPUT, candidates::stream);
-            slot.xeiRecipeSlot(IngredientIO.INPUT, 1.0f, first.getCount(), candidates::stream);
+            if (candidates.size() == 1) {
+                ItemStack first = candidates.getFirst();
+                slot.setItem(first.copy());
+//                slot.xeiRecipeIngredient(IngredientIO.INPUT, candidates::stream);
+//                slot.xeiRecipeSlot(IngredientIO.INPUT, 1.0f, first.getCount(), candidates::stream);
+            } else {
+                slot.bindDataSource(ScrollDataSource.of(candidates));
+            }
+
+            slot.addEventListener(UIEvents.CLICK, e -> {
+                if (LDLib2.isReiLoaded()) {
+                    REIPlugin.lookupItemStack(slot, e.button);
+                } else if (LDLib2.isJeiLoaded()) {
+                    JEIPlugin.lookupItemStack(slot, e.button);
+                } else if (LDLib2.isEmiLoaded()) {
+                    EMIPlugin.lookupItemStack(slot, e.button);
+                }
+            });
+
             List<Component> tooltips = pp.getToolTips(predicate);
             if (!tooltips.isEmpty()) {
                 slot.getStyle().tooltips(tooltips.toArray(Component[]::new));
@@ -421,6 +445,30 @@ public class PatternPreview extends UIElement {
             predicatePanel.viewContainer.addChild(slot);
         }
         predicatePanel.setDisplay(true);
+    }
+
+    public static class JEIPlugin {
+        public static void lookupItemStack(ItemSlot slot, int button) {
+            if (LDLib2.isJeiLoaded() && (button == 0 || button == 1)) {
+                MBDJEIPlugin.lookupIngredient(TypedItemStack.create(slot.getValue()), button == 0 ? RecipeIngredientRole.OUTPUT : RecipeIngredientRole.INPUT);
+            }
+        }
+    }
+
+    public static class REIPlugin {
+        public static void lookupItemStack(ItemSlot slot, int button) {
+            if (LDLib2.isReiLoaded() && (button == 0 || button == 1)) {
+                MBDREIPlugin.lookupIngredient(EntryStacks.of(slot.getValue()), button == 0);
+            }
+        }
+    }
+
+    public static class EMIPlugin {
+        public static void lookupItemStack(ItemSlot slot, int button) {
+            if (LDLib2.isEmiLoaded() && (button == 0 || button == 1)) {
+                MBDEMIPlugin.lookupIngredient(EmiStack.of(slot.getValue()), button == 0);
+            }
+        }
     }
 
     // ===== Pattern construction =====

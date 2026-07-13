@@ -6,6 +6,7 @@ import me.shedaniel.rei.api.client.plugins.REIClientPlugin;
 import me.shedaniel.rei.api.client.registry.category.CategoryRegistry;
 import me.shedaniel.rei.api.client.registry.display.DisplayRegistry;
 import me.shedaniel.rei.api.client.view.ViewSearchBuilder;
+import me.shedaniel.rei.api.common.entry.EntryStack;
 import me.shedaniel.rei.forge.REIPluginClient;
 import net.minecraft.MethodsReturnNonnullByDefault;
 
@@ -38,5 +39,13 @@ public class MBDREIPlugin implements REIClientPlugin {
 
     public static void lookupRecipeType(MBDRecipeType recipeType) {
         ViewSearchBuilder.builder().addCategory(MBDRecipeTypeDisplayCategory.CATEGORIES.apply(recipeType)).open();
+    }
+
+    public static void lookupIngredient(EntryStack<?> entryStack, boolean isRecipe) {
+        if (isRecipe) {
+            ViewSearchBuilder.builder().addRecipesFor(entryStack).open();
+        } else {
+            ViewSearchBuilder.builder().addUsagesFor(entryStack).open();
+        }
     }
 }

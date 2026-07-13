@@ -7,11 +7,17 @@ import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
+import mezz.jei.api.ingredients.ITypedIngredient;
+import mezz.jei.api.recipe.IFocus;
+import mezz.jei.api.recipe.RecipeIngredientRole;
+import mezz.jei.api.recipe.category.IRecipeCategory;
 import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
+import mezz.jei.library.focus.Focus;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.List;
@@ -57,5 +63,14 @@ public class MBDJEIPlugin implements IModPlugin {
     public static void lookupRecipeType(MBDRecipeType recipeType) {
         if (LDLibJEIPlugin.jeiRuntime == null) return;
         LDLibJEIPlugin.jeiRuntime.getRecipesGui().showTypes(List.of(MBDRecipeTypeCategory.TYPES.apply(recipeType)));
+    }
+
+    public static void lookupIngredient(ITypedIngredient<?> typedIngredient, RecipeIngredientRole role) {
+        if (LDLibJEIPlugin.jeiRuntime == null) return;
+        LDLibJEIPlugin.jeiRuntime.getRecipesGui().show(Focus.createFromApi(
+                LDLibJEIPlugin.jeiRuntime.getIngredientManager(),
+                role,
+                typedIngredient
+        ));
     }
 }
