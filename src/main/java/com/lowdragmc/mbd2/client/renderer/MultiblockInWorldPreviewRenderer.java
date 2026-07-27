@@ -312,6 +312,10 @@ public class MultiblockInWorldPreviewRenderer {
                 shaderInstance.setDefaultUniforms(VertexFormat.Mode.QUADS,
                         modelView, event.getProjectionMatrix(), Minecraft.getInstance().getWindow());
 
+                if (shaderInstance.FOG_START != null) {
+                    shaderInstance.FOG_START.set(Float.MAX_VALUE);
+                }
+
                 RenderSystem.setShaderColor(1, 1, 1, 1);
                 if (layer == RenderType.translucent()) { // TRANSLUCENT
                     RenderSystem.enableBlend();
