@@ -73,7 +73,7 @@ public class MBDGadgetsItem extends Item implements HeldItemUIMenuType.HeldItemU
 
         @Override
         public String getSerializedName() {
-            return "";
+            return name;
         }
     }
 
