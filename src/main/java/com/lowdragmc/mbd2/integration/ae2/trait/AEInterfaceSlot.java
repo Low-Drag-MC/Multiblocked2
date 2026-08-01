@@ -35,11 +35,11 @@ import java.util.Optional;
 @LDLRegister(name = "ae-interface-slot", group = "inventory", registry = "ldlib2:ui_element", modID = "ae2")
 public class AEInterfaceSlot extends UIElement {
     private static final int MIN_ITEM_AMOUNT = 1;
-    private static final int MAX_ITEM_AMOUNT = 64;
+    private static final int DEFAULT_MAX_ITEM_AMOUNT = 64;
     private static final int ITEM_SCROLL_STEP = 1;
     private static final int ITEM_SHIFT_SCROLL_STEP = 10;
     private static final int MIN_FLUID_AMOUNT = 1;
-    private static final int MAX_FLUID_AMOUNT = 4000;
+    private static final int DEFAULT_MAX_FLUID_AMOUNT = 4000;
     private static final int FLUID_SCROLL_STEP = 1;
     private static final int FLUID_SHIFT_SCROLL_STEP = 1000;
 
@@ -149,6 +149,27 @@ public class AEInterfaceSlot extends UIElement {
         tank.setAllowClickDrained(support);
     }
 
+    /** Upper bound the phantom (config) item slot can be set or scrolled to. */
+    public static int maxPhantomItemAmount(@Nullable SerializableInterfaceLogic interfaceLogic) {
+        return configCapacity(interfaceLogic, AEKeyType.items(), DEFAULT_MAX_ITEM_AMOUNT);
+    }
+
+    /** Upper bound the phantom (config) fluid slot can be set or scrolled to. */
+    public static int maxPhantomFluidAmount(@Nullable SerializableInterfaceLogic interfaceLogic) {
+        return configCapacity(interfaceLogic, AEKeyType.fluids(), DEFAULT_MAX_FLUID_AMOUNT);
+    }
+
+    /**
+     * The capacity the trait definition configured for that key type. Without it the phantom slots
+     * would be pinned to AE2's defaults (64 items / 4 buckets) and the player could never request
+     * as much as the slot is actually able to hold.
+     */
+    private static int configCapacity(@Nullable SerializableInterfaceLogic interfaceLogic, AEKeyType type, int fallback) {
+        if (interfaceLogic == null) return fallback;
+        var capacity = interfaceLogic.getConfig().getCapacity(type);
+        return capacity <= 0 ? fallback : (int) Math.min(Integer.MAX_VALUE, capacity);
+    }
+
     private void setupPhantomControls() {
         phantomSlot.getStyle().appendTooltips(
                 Component.translatable("mbd2.ae_interface_slot.phantom_slot.tooltip.click"),
@@ -171,7 +192,7 @@ public class AEInterfaceSlot extends UIElement {
         if (carried.isEmpty()) {
             phantomSlot.setItem(ItemStack.EMPTY);
         } else {
-            phantomSlot.setItem(carried.copyWithCount(Mth.clamp(carried.getCount(), MIN_ITEM_AMOUNT, MAX_ITEM_AMOUNT)));
+            phantomSlot.setItem(carried.copyWithCount(Mth.clamp(carried.getCount(), MIN_ITEM_AMOUNT, maxPhantomItemAmount(interfaceLogic))));
         }
         event.stopPropagation();
     }
@@ -181,7 +202,7 @@ public class AEInterfaceSlot extends UIElement {
         var current = phantomSlot.getValue();
         if (scrollDirection == 0 || current.isEmpty()) return;
         var step = event.isShiftDown() ? ITEM_SHIFT_SCROLL_STEP : ITEM_SCROLL_STEP;
-        phantomSlot.setItem(current.copyWithCount(Mth.clamp(current.getCount() + scrollDirection * step, MIN_ITEM_AMOUNT, MAX_ITEM_AMOUNT)));
+        phantomSlot.setItem(current.copyWithCount(Mth.clamp(current.getCount() + scrollDirection * step, MIN_ITEM_AMOUNT, maxPhantomItemAmount(interfaceLogic))));
         event.stopPropagation();
     }
 
@@ -195,7 +216,7 @@ public class AEInterfaceSlot extends UIElement {
         var current = phantomTank.getValue();
         if (scrollDirection == 0 || current.isEmpty()) return;
         var step = event.isShiftDown() ? FLUID_SHIFT_SCROLL_STEP : FLUID_SCROLL_STEP;
-        phantomTank.setFluid(current.copyWithAmount(Mth.clamp(current.getAmount() + scrollDirection * step, MIN_FLUID_AMOUNT, MAX_FLUID_AMOUNT)));
+        phantomTank.setFluid(current.copyWithAmount(Mth.clamp(current.getAmount() + scrollDirection * step, MIN_FLUID_AMOUNT, maxPhantomFluidAmount(interfaceLogic))));
         event.stopPropagation();
     }
 
@@ -213,7 +234,7 @@ public class AEInterfaceSlot extends UIElement {
                     for (int i = 0; i < handler.getTanks(); i++) {
                         var fluid = handler.getFluidInTank(i);
                         if (!fluid.isEmpty()) {
-                            return Optional.of(fluid.copyWithAmount(Mth.clamp(fluid.getAmount(), MIN_FLUID_AMOUNT, MAX_FLUID_AMOUNT)));
+                            return Optional.of(fluid.copyWithAmount(Mth.clamp(fluid.getAmount(), MIN_FLUID_AMOUNT, maxPhantomFluidAmount(interfaceLogic))));
                         }
                     }
                     return Optional.empty();
