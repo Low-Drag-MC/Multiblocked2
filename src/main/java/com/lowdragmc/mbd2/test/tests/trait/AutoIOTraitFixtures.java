@@ -14,6 +14,7 @@ public class AutoIOTraitFixtures implements TestFixtureProvider {
     public static final ResourceLocation ITEM_WORLD_INPUT = MBD2.id("test_item_world_input");
     public static final ResourceLocation ITEM_WORLD_OUTPUT = MBD2.id("test_item_world_output");
     public static final ResourceLocation FLUID_AUTO_INPUT = MBD2.id("test_fluid_auto_input");
+    public static final ResourceLocation FLUID_AUTO_INPUT_NO_SAME_FLUIDS = MBD2.id("test_fluid_auto_input_no_same_fluids");
     public static final ResourceLocation FLUID_AUTO_OUTPUT = MBD2.id("test_fluid_auto_output");
     public static final ResourceLocation FLUID_WORLD_INPUT = MBD2.id("test_fluid_world_input");
     public static final ResourceLocation FLUID_WORLD_OUTPUT = MBD2.id("test_fluid_world_output");
@@ -40,6 +41,13 @@ public class AutoIOTraitFixtures implements TestFixtureProvider {
 
         TestMachineBuilder.simple(FLUID_AUTO_INPUT)
                 .withFluidTanks(1, 4000, definition -> configureAutoIO(definition.getAutoIO(), IO.IN))
+                .register(event);
+        // 3 tanks, but "allow same fluids" is off — one fluid may only occupy a single tank.
+        TestMachineBuilder.simple(FLUID_AUTO_INPUT_NO_SAME_FLUIDS)
+                .withFluidTanks(3, 1000, definition -> {
+                    definition.setAllowSameFluids(false);
+                    configureAutoIO(definition.getAutoIO(), IO.IN);
+                })
                 .register(event);
         TestMachineBuilder.simple(FLUID_AUTO_OUTPUT)
                 .withFluidTanks(1, 4000, definition -> configureAutoIO(definition.getAutoIO(), IO.OUT))
