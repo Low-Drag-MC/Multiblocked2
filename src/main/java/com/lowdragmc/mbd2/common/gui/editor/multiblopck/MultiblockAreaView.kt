@@ -6,6 +6,7 @@ import com.lowdragmc.lowdraglib2.configurator.IConfigurable
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSetter
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable
+import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue
 import com.lowdragmc.lowdraglib2.editor.ui.View
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.SceneEditor
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical
@@ -19,6 +20,7 @@ import com.lowdragmc.mbd2.common.gui.editor.MultiblockMachineProject
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
+import net.minecraft.Util
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.core.BlockPos
@@ -28,7 +30,17 @@ class MultiblockAreaView(
     val editor: MBDEditor,
     val multiblockProject: MultiblockMachineProject
 ) : View("editor.machine.multiblock_area") {
+    companion object {
+        private const val DEFAULT_SCENE_RANGE = 5.0
+        private const val MAX_SCENE_RANGE = 50.0
+        private const val SCENE_RANGE_HIGHLIGHT_DURATION = 3000L
+        private const val SCENE_RANGE_HIGHLIGHT_FADE = 500f
+    }
+
     private val runtime = AreaRuntime()
+    private var sceneRangeMin = BlockPos.ZERO
+    private var sceneRangeMax = BlockPos.ZERO
+    private var sceneRangeHighlightEnd = 0L
     private val sceneEditor = object : SceneEditor() {
         override fun renderAfterWorld(bufferSource: MultiBufferSource, partialTicks: Float) {
             super.renderAfterWorld(bufferSource, partialTicks)
@@ -94,12 +106,18 @@ class MultiblockAreaView(
         val player = Minecraft.getInstance().player ?: return
         val level = Minecraft.getInstance().level ?: return
         val center = player.onPos
+        // the vertical range is clamped to the world height, the horizontal ones are clamped by the loaded chunks below
+        val minX = center.x - runtime.sceneRangeX
+        val maxX = center.x + runtime.sceneRangeX
+        val minY = (center.y - runtime.sceneRangeY).coerceIn(level.minBuildHeight, level.maxBuildHeight - 1)
+        val maxY = (center.y + runtime.sceneRangeY).coerceIn(level.minBuildHeight, level.maxBuildHeight - 1)
+        val minZ = center.z - runtime.sceneRangeZ
+        val maxZ = center.z + runtime.sceneRangeZ
         val blocks = HashSet<BlockPos>()
-        val radius = runtime.sceneRadius
-        for (x in -radius..radius) {
-            for (y in -radius..radius) {
-                for (z in -radius..radius) {
-                    val pos = center.offset(x, y, z).immutable()
+        for (x in minX..maxX) {
+            for (y in minY..maxY) {
+                for (z in minZ..maxZ) {
+                    val pos = BlockPos(x, y, z)
                     if (level.isLoaded(pos)) {
                         blocks.add(pos)
                     }
@@ -107,12 +125,26 @@ class MultiblockAreaView(
             }
         }
         sceneEditor.scene.setRenderedCore(blocks)
+        sceneRangeMin = BlockPos(minX, minY, minZ)
+        sceneRangeMax = BlockPos(maxX, maxY, maxZ)
+        sceneRangeHighlightEnd = Util.getMillis() + SCENE_RANGE_HIGHLIGHT_DURATION
     }
 
     inner class AreaRuntime : IConfigurable {
-        @Configurable(name = "editor.machine.multiblock.area_panel.sceneRadius", tips = ["editor.machine.multiblock.area_panel.sceneRadius.tips"])
-        @ConfigNumber(range = [1.0, 50.0])
-        var sceneRadius: Int = 5
+        @Configurable(name = "editor.machine.multiblock.area_panel.sceneRangeX", tips = ["editor.machine.multiblock.area_panel.sceneRangeX.tips"])
+        @ConfigNumber(range = [0.0, MAX_SCENE_RANGE])
+        @DefaultValue(numberValue = [DEFAULT_SCENE_RANGE])
+        var sceneRangeX: Int = DEFAULT_SCENE_RANGE.toInt()
+
+        @Configurable(name = "editor.machine.multiblock.area_panel.sceneRangeY", tips = ["editor.machine.multiblock.area_panel.sceneRangeY.tips"])
+        @ConfigNumber(range = [0.0, MAX_SCENE_RANGE])
+        @DefaultValue(numberValue = [DEFAULT_SCENE_RANGE])
+        var sceneRangeY: Int = DEFAULT_SCENE_RANGE.toInt()
+
+        @Configurable(name = "editor.machine.multiblock.area_panel.sceneRangeZ", tips = ["editor.machine.multiblock.area_panel.sceneRangeZ.tips"])
+        @ConfigNumber(range = [0.0, MAX_SCENE_RANGE])
+        @DefaultValue(numberValue = [DEFAULT_SCENE_RANGE])
+        var sceneRangeZ: Int = DEFAULT_SCENE_RANGE.toInt()
 
         @Configurable(name = "editor.machine.multiblock.area_panel.from", tips = ["editor.machine.multiblock.area_panel.from.tips"])
         var from: BlockPos = Minecraft.getInstance().player?.onPos ?: BlockPos.ZERO
@@ -128,11 +160,25 @@ class MultiblockAreaView(
 
         private var pickFrom = true
 
-        @ConfigSetter(field = "sceneRadius")
-        fun setSceneRadiusValue(value: Int) {
-            sceneRadius = value.coerceIn(1, 50)
+        @ConfigSetter(field = "sceneRangeX")
+        fun setSceneRangeXValue(value: Int) {
+            sceneRangeX = clampSceneRange(value)
             reloadScene()
         }
+
+        @ConfigSetter(field = "sceneRangeY")
+        fun setSceneRangeYValue(value: Int) {
+            sceneRangeY = clampSceneRange(value)
+            reloadScene()
+        }
+
+        @ConfigSetter(field = "sceneRangeZ")
+        fun setSceneRangeZValue(value: Int) {
+            sceneRangeZ = clampSceneRange(value)
+            reloadScene()
+        }
+
+        private fun clampSceneRange(value: Int) = value.coerceIn(0, MAX_SCENE_RANGE.toInt())
 
         @ConfigSetter(field = "from")
         fun setFromValue(value: BlockPos) {
@@ -213,6 +259,7 @@ class MultiblockAreaView(
         val controllerPos = BlockPos(minX + runtime.controllerOffset.x, minY + runtime.controllerOffset.y, minZ + runtime.controllerOffset.z)
         RenderSystem.disableDepthTest()
         val buffer = bufferSource.getBuffer(LDLibRenderTypes.noDepthLines())
+        renderSceneRangeFrame(poseStack, buffer)
         drawFrame(poseStack, buffer, minX, minY, minZ, maxX, maxY, maxZ, 0xffffffff.toInt())
         drawFrame(
             poseStack,
@@ -228,6 +275,28 @@ class MultiblockAreaView(
         drawControllerFrontFace(poseStack, bufferSource, controllerPos, runtime.controllerFace)
     }
 
+    /**
+     * Outlines the blocks currently loaded into the scene, so that the visible range is readable right after it changed.
+     * It fades out [SCENE_RANGE_HIGHLIGHT_DURATION] after the last [reloadScene] call.
+     */
+    private fun renderSceneRangeFrame(poseStack: PoseStack, buffer: VertexConsumer) {
+        val remaining = sceneRangeHighlightEnd - Util.getMillis()
+        if (remaining <= 0) return
+        val alpha = (remaining.toFloat() / SCENE_RANGE_HIGHLIGHT_FADE).coerceAtMost(1f)
+        drawFrame(
+            poseStack,
+            buffer,
+            sceneRangeMin.x,
+            sceneRangeMin.y,
+            sceneRangeMin.z,
+            sceneRangeMax.x + 1,
+            sceneRangeMax.y + 1,
+            sceneRangeMax.z + 1,
+            0xffffaa00.toInt(),
+            alpha
+        )
+    }
+
     private fun drawFrame(
         poseStack: PoseStack,
         buffer: VertexConsumer,
@@ -237,7 +306,8 @@ class MultiblockAreaView(
         maxX: Int,
         maxY: Int,
         maxZ: Int,
-        color: Int
+        color: Int,
+        alphaScale: Float = 1f
     ) {
         RenderBufferUtils.drawCubeFrame(
             poseStack,
@@ -251,7 +321,7 @@ class MultiblockAreaView(
             ColorUtils.red(color),
             ColorUtils.green(color),
             ColorUtils.blue(color),
-            ColorUtils.alpha(color)
+            ColorUtils.alpha(color) * alphaScale
         )
     }
 
