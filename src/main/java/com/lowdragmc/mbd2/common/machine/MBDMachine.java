@@ -25,6 +25,7 @@ import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
 import com.lowdragmc.mbd2.api.capability.recipe.*;
 import com.lowdragmc.mbd2.api.machine.IMachine;
+import com.lowdragmc.mbd2.api.machine.IMultiController;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
@@ -308,6 +309,27 @@ public class MBDMachine implements IMachine, IBlockEntityManaged, BlockUIMenuTyp
                 recipeCapabilitiesProxy.get(recipeHandlerTrait.getHandlerIO(), recipeHandlerTrait.getRecipeCapability()).add(recipeHandlerTrait);
             }
         }
+    }
+
+    /**
+     * All traits the recipe logic can see: this machine's own traits plus, when it is a formed
+     * multiblock controller, the traits of every part.
+     * <br>
+     * Recipe conditions have to look here instead of {@link #getAdditionalTraits()}: on a
+     * multiblock the trait they inspect (rotation, pressure, heat, ...) usually sits on a part,
+     * so a controller-only lookup never matches.
+     */
+    public List<ITrait> getRecipeLogicTraits() {
+        if (this instanceof IMultiController controller && controller.isFormed()) {
+            var traits = new ArrayList<>(additionalTraits);
+            for (var part : controller.getParts()) {
+                if (part instanceof MBDMachine partMachine) {
+                    traits.addAll(partMachine.getAdditionalTraits());
+                }
+            }
+            return traits;
+        }
+        return additionalTraits;
     }
 
     /**

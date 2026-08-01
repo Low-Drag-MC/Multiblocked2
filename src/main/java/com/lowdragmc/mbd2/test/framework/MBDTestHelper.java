@@ -1,7 +1,9 @@
 package com.lowdragmc.mbd2.test.framework;
 
+import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
+import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.pattern.MultiblockWorldSavedData;
 import com.lowdragmc.mbd2.api.pattern.BlockPattern;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
@@ -30,6 +32,8 @@ import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.items.IItemHandler;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -100,6 +104,20 @@ public final class MBDTestHelper {
                 }
             }
         }
+    }
+
+    // endregion
+
+    // region recipes
+
+    /**
+     * A throwaway recipe with no contents and no conditions. Use it when calling
+     * {@link com.lowdragmc.mbd2.api.recipe.RecipeCondition#test} directly, where the recipe
+     * argument is only there to satisfy the signature.
+     */
+    public static MBDRecipe dummyRecipe() {
+        return new MBDRecipe(null, MBD2.id("dummy"), new HashMap<>(), new HashMap<>(),
+                new ArrayList<>(), new CompoundTag(), 1, false, 0);
     }
 
     // endregion

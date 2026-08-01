@@ -71,7 +71,7 @@ public class CreateRotationCondition extends RecipeCondition {
     @Override
     public boolean test(@Nonnull MBDRecipe recipe, @Nonnull RecipeLogic recipeLogic) {
         if (!(recipeLogic.machine instanceof MBDMachine machine)) return false;
-        for (var trait : machine.getAdditionalTraits()) {
+        for (var trait : machine.getRecipeLogicTraits()) {
             if (trait instanceof CreateRotationTrait rotationTrait) {
                 float rpm = Mth.abs(rotationTrait.getLastSpeed());
                 float stress = rpm * rotationTrait.getTorque();

@@ -5,6 +5,7 @@ import com.lowdragmc.mbd2.integration.create.CreateRotationCondition;
 import com.lowdragmc.mbd2.integration.create.machine.CreateRotationTrait;
 import com.lowdragmc.mbd2.integration.create.machine.MBDKineticMachineBlockEntity;
 import com.lowdragmc.mbd2.test.framework.MBDScenario;
+import com.lowdragmc.mbd2.test.framework.MBDTestHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -35,12 +36,6 @@ public class CreateRotationConditionTests {
         h.fail("CreateRotationTrait missing"); return null;
     }
 
-    private static com.lowdragmc.mbd2.api.recipe.MBDRecipe dummyRecipe() {
-        return new com.lowdragmc.mbd2.api.recipe.MBDRecipe(null, MBD2.id("dummy"),
-                new java.util.HashMap<>(), new java.util.HashMap<>(), new java.util.ArrayList<>(),
-                new net.minecraft.nbt.CompoundTag(), 1, false, 0);
-    }
-
     /** torque=4, speed=50 → rpm=50, stress=200. Condition (rpm [40,100], stress [100,300]) passes. */
     @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
@@ -48,7 +43,7 @@ public class CreateRotationConditionTests {
         var machine = setupAtSpeed(h, 50f);
         if (machine == null) return;
         var condition = new CreateRotationCondition(40f, 100f, 100f, 300f);
-        if (!condition.test(dummyRecipe(), machine.getRecipeLogic())) {
+        if (!condition.test(MBDTestHelper.dummyRecipe(), machine.getRecipeLogic())) {
             h.fail("Condition.test() returned false in a passing range");
             return;
         }
@@ -62,7 +57,7 @@ public class CreateRotationConditionTests {
         var machine = setupAtSpeed(h, 10f);
         if (machine == null) return;
         var condition = new CreateRotationCondition(100f, 500f, 0f, Float.MAX_VALUE);
-        if (condition.test(dummyRecipe(), machine.getRecipeLogic())) {
+        if (condition.test(MBDTestHelper.dummyRecipe(), machine.getRecipeLogic())) {
             h.fail("Condition.test() returned true for rpm=10 out of [100,500]");
             return;
         }
@@ -76,7 +71,7 @@ public class CreateRotationConditionTests {
         var machine = setupAtSpeed(h, 200f);
         if (machine == null) return;
         var condition = new CreateRotationCondition(0f, 100f, 0f, Float.MAX_VALUE);
-        if (condition.test(dummyRecipe(), machine.getRecipeLogic())) {
+        if (condition.test(MBDTestHelper.dummyRecipe(), machine.getRecipeLogic())) {
             h.fail("Condition.test() returned true for rpm=200 above max=100");
             return;
         }
@@ -90,7 +85,7 @@ public class CreateRotationConditionTests {
         var machine = setupAtSpeed(h, 50f);
         if (machine == null) return;
         var condition = new CreateRotationCondition(0f, Float.MAX_VALUE, 300f, Float.MAX_VALUE);
-        if (condition.test(dummyRecipe(), machine.getRecipeLogic())) {
+        if (condition.test(MBDTestHelper.dummyRecipe(), machine.getRecipeLogic())) {
             h.fail("Condition.test() returned true for stress=200 below min=300");
             return;
         }

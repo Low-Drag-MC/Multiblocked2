@@ -62,15 +62,16 @@ public class PNCPressureCondition extends RecipeCondition {
     @Override
     public boolean test(@Nonnull MBDRecipe recipe, @Nonnull RecipeLogic recipeLogic) {
         if (!(recipeLogic.machine instanceof MBDMachine machine)) return false;
-        for (var trait : machine.getAdditionalTraits()) {
+        for (var trait : machine.getRecipeLogicTraits()) {
             if (trait instanceof PNCPressureAirHandlerTrait pressureTrait) {
                 var handler = pressureTrait.getHandler();
+                // a multiblock can carry several air handlers — any one of them in range is enough
                 if (isAir) {
                     int air = handler.getAir();
-                    return air >= minValue && air <= maxValue;
+                    if (air >= minValue && air <= maxValue) return true;
                 } else {
                     float pressure = handler.getPressure();
-                    return pressure >= minValue && pressure <= maxValue;
+                    if (pressure >= minValue && pressure <= maxValue) return true;
                 }
             }
         }

@@ -53,7 +53,7 @@ public class MEKTemperatureCondition extends RecipeCondition {
     @Override
     public boolean test(@Nonnull MBDRecipe recipe, @Nonnull RecipeLogic recipeLogic) {
         if (!(recipeLogic.machine instanceof com.lowdragmc.mbd2.common.machine.MBDMachine machine)) return false;
-        for (var trait : machine.getAdditionalTraits()) {
+        for (var trait : machine.getRecipeLogicTraits()) {
             if (trait instanceof MekHeatCapabilityTrait heatTrait) {
                 double temp = heatTrait.getStorage().getTemperature(0);
                 if (temp >= minTemperature && temp <= maxTemperature) {
