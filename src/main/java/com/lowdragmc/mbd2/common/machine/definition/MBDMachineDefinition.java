@@ -124,6 +124,9 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
             "config.definition.part_settings.tooltip.2",
     })
     protected ConfigPartSettings partSettings;
+    @Configurable(name = "config.definition.extra_render_settings", subConfigurable = true)
+    protected ConfigExtraRenderProperties extraRenderSettings;
+
 //    @Persisted(subPersisted = true)
 //    protected final ConfigMachineEvents machineEvents;
 

@@ -108,6 +108,7 @@ public class MBDBlockRenderer implements IRenderer {
     public void render(BlockEntity blockEntity, float partialTicks, PoseStack stack, MultiBufferSource buffer, int combinedLight, int combinedOverlay) {
         getMachine(blockEntity).ifPresentOrElse(machine -> {
             machine.getMachineState().getRealRenderer().render(blockEntity, partialTicks, stack, buffer, combinedLight, combinedOverlay);
+            machine.getDefinition().extraRenderSettings().render(blockEntity, partialTicks, stack, buffer, combinedLight, combinedOverlay);
             for (var traitDefinition : machine.getDefinition().machineSettings().traitDefinitions()) {
                 var renderer = traitDefinition.getBESRenderer(machine);
                 if (renderer.hasBlockEntityRenderer(blockEntity)) {
