@@ -968,6 +968,7 @@
     "pattern_preview.page": "切换页面",
     "pattern_preview.layer": "切换层",
     "pattern_preview.formed": "切换结构成型",
+    "pattern_preview.parts.amount": "需要：%s",
 
     "recipe_logic.status.idle": "闲置",
     "recipe_logic.status.working": "§a工作中§r",

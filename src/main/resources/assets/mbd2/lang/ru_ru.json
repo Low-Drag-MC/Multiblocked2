@@ -904,6 +904,7 @@
     "pattern_preview.page": "переключить страницы",
     "pattern_preview.layer": "переключить слои",
     "pattern_preview.formed": "переключить структуру сформирована",
+    "pattern_preview.parts.amount": "Требуется: %s",
 
     "recipe_logic.status.idle": "ожидание",
     "recipe_logic.status.working": "§аработает§r",

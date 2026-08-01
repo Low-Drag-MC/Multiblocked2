@@ -909,6 +909,7 @@
   "pattern_preview.layer.next": "switch layer next",
   "pattern_preview.layer.last": "switch layer last",
   "pattern_preview.formed": "switch structure formed",
+  "pattern_preview.parts.amount": "Required: %s",
   "recipe_logic.status.idle": "idle",
   "recipe_logic.status.working": "§aworking§r",
   "recipe_logic.status.waiting": "§6waiting§r",
