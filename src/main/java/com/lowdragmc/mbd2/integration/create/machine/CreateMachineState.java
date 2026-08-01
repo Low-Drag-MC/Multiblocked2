@@ -2,11 +2,11 @@ package com.lowdragmc.mbd2.integration.create.machine;
 
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.client.renderer.impl.IModelRenderer;
-import com.lowdragmc.lowdraglib2.client.renderer.impl.UIResourceRenderer;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.ToggleRenderer;
+import com.lowdragmc.mbd2.utils.RendererUtils;
 import com.simibubi.create.AllPartialModels;
 import dev.engine_room.flywheel.lib.model.baked.PartialModel;
 import lombok.Setter;
@@ -62,10 +62,7 @@ public class CreateMachineState extends MachineState {
      */
     @OnlyIn(Dist.CLIENT)
     public PartialModel getRotationPartialModel() {
-        var rr = getRotationRenderer();
-        while (rr instanceof UIResourceRenderer uiResourceRenderer) {
-            rr = uiResourceRenderer.getInternalRenderer();
-        }
+        var rr = RendererUtils.resolve(getRotationRenderer());
         if (rr instanceof IModelRenderer modelRenderer) {
             return PartialModel.of(modelRenderer.getModelLocation());
         }
@@ -76,10 +73,7 @@ public class CreateMachineState extends MachineState {
     @OnlyIn(Dist.CLIENT)
     public IRenderer getRealRenderer() {
         var base = super.getRealRenderer();
-        var rr = getRotationRenderer();
-        while (rr instanceof UIResourceRenderer uiResourceRenderer) {
-            rr = uiResourceRenderer.getInternalRenderer();
-        }
+        var rr = RendererUtils.resolve(getRotationRenderer());
         if (rr instanceof IModelRenderer modelRenderer) {
             return new KineticInstanceRenderer(base, PartialModel.of(modelRenderer.getModelLocation()));
         }

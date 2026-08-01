@@ -44,6 +44,7 @@ import com.lowdragmc.mbd2.integration.geckolib.AnimatableMachine;
 import com.lowdragmc.mbd2.integration.geckolib.GeckolibRenderer;
 import com.lowdragmc.mbd2.integration.jei.MBDJEIPlugin;
 import com.lowdragmc.mbd2.integration.rei.MBDREIPlugin;
+import com.lowdragmc.mbd2.utils.RendererUtils;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.client.Minecraft;
@@ -952,7 +953,9 @@ public class MBDMachine implements IMachine, IBlockEntityManaged, BlockUIMenuTyp
             if (controllerName == null || controllerName.isEmpty()) {
                 controllerName = AnimatableMachine.DEFAULT_CONTROLLER;
             }
-            if (getMachineState().getRealRenderer() instanceof GeckolibRenderer renderer) {
+            // renderers picked from the editor's resource panel are wrapped in a UIResourceRenderer,
+            // so resolve the wrapper before checking for the geckolib one.
+            if (RendererUtils.resolve(getMachineState().getRealRenderer()) instanceof GeckolibRenderer renderer) {
                 var controller = renderer.getAnimatableFromMachine(this).getAnimatableInstanceCache()
                         .getManagerForId(0)
                         .getAnimationControllers()
