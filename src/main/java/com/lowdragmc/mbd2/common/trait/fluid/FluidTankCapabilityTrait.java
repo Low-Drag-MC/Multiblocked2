@@ -2,7 +2,6 @@ package com.lowdragmc.mbd2.common.trait.fluid;
 
 import com.google.common.base.Predicates;
 import com.lowdragmc.lowdraglib.misc.FluidStorage;
-import com.lowdragmc.lowdraglib.misc.FluidTransferList;
 import com.lowdragmc.lowdraglib.side.fluid.*;
 import com.lowdragmc.lowdraglib.side.fluid.forge.FluidHelperImpl;
 import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced;
@@ -78,6 +77,16 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait implements I
         notifyListeners();
     }
 
+    /**
+     * Storages which are allowed to hold the given fluid. if the same fluids are not allowed and one of the tanks
+     * already holds it, that tank is the only candidate.
+     */
+    protected FluidStorage[] getFillableStorages(FluidStack resource) {
+        if (getDefinition().isAllowSameFluids()) return storages;
+        var existing = FluidHandlerWrapper.findStorageWithFluid(storages, resource);
+        return existing == null ? storages : new FluidStorage[]{existing};
+    }
+
     public boolean isEmpty() {
         if (isEmpty == null) {
             isEmpty = true;
@@ -112,7 +121,7 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait implements I
                         var block = state.getBlock();
                         if (block instanceof LiquidBlock liquidBlock && state.getFluidState().isSource()) {
                             var toFilled = FluidStack.create(liquidBlock.getFluid().getSource(), 1000);
-                            for (FluidStorage storage : storages) {
+                            for (FluidStorage storage : getFillableStorages(toFilled)) {
                                 if (storage.fill(toFilled, true) == 1000) {
                                     storage.fill(toFilled, false);
                                     leftBlocks--;
@@ -174,13 +183,14 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait implements I
 
     @Override
     public void handleAutoIO(BlockPos port, Direction side, IO io) {
+        var transfer = new FluidStorageTransferList(storages, getDefinition().isAllowSameFluids());
         if (io.support(IO.IN)) {
-            FluidTransferHelper.importToTarget(new FluidTransferList(storages), Integer.MAX_VALUE,
+            FluidTransferHelper.importToTarget(transfer, Integer.MAX_VALUE,
                     getDefinition().getFluidFilterSettings().isEnable() ? getDefinition().getFluidFilterSettings() : Predicates.alwaysTrue(),
                     getMachine().getLevel(), port.relative(side), side.getOpposite());
         }
         if (io.support(IO.OUT)){
-            FluidTransferHelper.exportToTarget(new FluidTransferList(storages), Integer.MAX_VALUE, Predicates.alwaysTrue(),
+            FluidTransferHelper.exportToTarget(transfer, Integer.MAX_VALUE, Predicates.alwaysTrue(),
                     getMachine().getLevel(), port.relative(side), side.getOpposite());
         }
     }

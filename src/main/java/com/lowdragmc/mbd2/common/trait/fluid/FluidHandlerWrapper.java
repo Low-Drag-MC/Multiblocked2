@@ -6,6 +6,7 @@ import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class FluidHandlerWrapper implements IFluidHandler {
 
@@ -61,20 +62,35 @@ public class FluidHandlerWrapper implements IFluidHandler {
     }
 
     public long fillInternal(com.lowdragmc.lowdraglib.side.fluid.FluidStack resource, boolean simulate) {
-        if (resource.isEmpty()) return 0;
-        var copied = resource.copy();
-        FluidStorage existingStorage = null;
-        if (!allowSameFluids) {
-            for (var storage : storages) {
-                if (!storage.getFluid().isEmpty() && storage.getFluid().isFluidEqual(resource)) {
-                    existingStorage = storage;
-                    break;
-                }
+        return fillStorages(storages, allowSameFluids, resource, simulate, !simulate);
+    }
+
+    /**
+     * Find the storage which already holds the given fluid. It's used to make sure a fluid won't be spread
+     * into multiple tanks while the same fluids are not allowed.
+     */
+    @Nullable
+    public static FluidStorage findStorageWithFluid(FluidStorage[] storages, com.lowdragmc.lowdraglib.side.fluid.FluidStack resource) {
+        for (var storage : storages) {
+            if (!storage.getFluid().isEmpty() && storage.getFluid().isFluidEqual(resource)) {
+                return storage;
             }
         }
+        return null;
+    }
+
+    /**
+     * Fill the given storages while respecting the allowSameFluids setting. if the same fluids are not allowed,
+     * the resource will only be filled into one single tank.
+     */
+    public static long fillStorages(FluidStorage[] storages, boolean allowSameFluids,
+                                    com.lowdragmc.lowdraglib.side.fluid.FluidStack resource, boolean simulate, boolean notifyChanges) {
+        if (resource.isEmpty()) return 0;
+        var copied = resource.copy();
+        var existingStorage = allowSameFluids ? null : findStorageWithFluid(storages, resource);
         if (existingStorage == null) {
             for (var storage : storages) {
-                var filled = storage.fill(copied.copy(), simulate);
+                var filled = storage.fill(copied.copy(), simulate, notifyChanges);
                 if (filled > 0) {
                     copied.shrink(filled);
                     if (!allowSameFluids) {
@@ -84,7 +100,7 @@ public class FluidHandlerWrapper implements IFluidHandler {
                 if (copied.isEmpty()) break;
             }
         } else {
-            copied.shrink(existingStorage.fill(copied.copy(), simulate));
+            copied.shrink(existingStorage.fill(copied.copy(), simulate, notifyChanges));
         }
         return resource.getAmount() - copied.getAmount();
     }
