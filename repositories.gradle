@@ -1,8 +1,12 @@
 repositories {
     mavenLocal()
-    // keep this first: ForgeGradle's own downloader walks the repositories in order and takes the
-    // first hit, so the forge/mcp artifacts must be found here before any third party mirror.
-    maven { url = "https://maven.minecraftforge.net/" } // Forge, MCP
+    // keep these two first. ForgeGradle downloads forge/mcp/its tools and the whole vanilla library
+    // set by walking the repositories in order and taking the first hit, without validating what it
+    // gets back. a mirror further down that answers 200 with an html page would be cached as e.g.
+    // forge-userdev.jar or patchy.jar and break the build until the cache is wiped by hand, so the
+    // authoritative sources have to be reached first.
+    maven { url = "https://maven.minecraftforge.net/" } // Forge, MCP, ForgeGradle tools
+    maven { url = "https://libraries.minecraft.net/" } // vanilla minecraft libraries
     maven { url = "https://api.modrinth.com/maven" } // LazyDFU, Jade
     maven { url = "https://maven.terraformersmc.com/releases/" } // Mod Menu, EMI
     maven { url = "https://maven.shedaniel.me/" } // Cloth Config, REI
@@ -17,20 +21,6 @@ repositories {
         name = "Jared's maven"
         url = "https://maven.blamejared.com/"
     } // JEI
-    maven {
-        // location of a maven mirror for JEI files, as a fallback
-        name = "ModMaven"
-        url = "https://modmaven.dev"
-        content {
-            // it answers 200 with an html redirect page instead of 404 for anything it doesn't host,
-            // which ForgeGradle happily caches as e.g. forge-userdev.jar and then fails to unzip it
-            // ("Invalid patcher dependency" / "zip END header not found"). keep it away from the
-            // artifacts ForgeGradle downloads by itself, it hosts no minecraft/forge/mcp anyway.
-            excludeGroup "net.minecraftforge"
-            excludeGroup "de.oceanlabs.mcp"
-            excludeGroup "net.minecraft"
-        }
-    } // JEI mirror, AE2, Mekanism, PneumaticCraft
     maven { url = "https://maven.parchmentmc.org" } // Parchment mappings
     maven { url = "https://maven.quiltmc.org/repository/release" } // Quilt Mappings
     maven { // LDLib Configuration
@@ -78,4 +68,24 @@ repositories {
             includeGroup 'com.gregtechceu.gtceu'
         }
     }
+    // keep this last. ModMaven answers 200 with an html redirect page instead of 404 for everything
+    // it doesn't host, and ForgeGradle keeps whatever bytes come back without looking at them, so
+    // being asked first would make it cache that page as forge-userdev.jar / patchy.jar / a mod's
+    // sources jar and kill the build until the cache is wiped by hand. asking it last means every
+    // artifact that exists anywhere else is already resolved before it gets a chance. the group list
+    // narrows it further -- it is the only source we have for AE2, Mekanism and PneumaticCraft.
+    maven {
+        name = "ModMaven"
+        url = "https://modmaven.dev"
+        content {
+            includeGroup "appeng"
+            includeGroup "com.tterrag.registrate"
+            includeGroup "me.desht.pneumaticcraft"
+            includeGroup "mekanism"
+            includeGroup "mezz.jei"
+            includeGroup "top.theillusivec4.curios"
+            includeGroup "vazkii.botania"
+            includeGroup "vazkii.patchouli"
+        }
+    } // AE2, Mekanism, PneumaticCraft, Botania, Curios, JEI mirror
 }
