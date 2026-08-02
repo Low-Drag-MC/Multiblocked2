@@ -90,7 +90,10 @@ jobs:
           cache-read-only: false
 
       - name: Grant execute permission
-        run: chmod +x gradlew
+        run: chmod +x gradlew .github/scripts/scrub-forgegradle-cache.sh
+
+      - name: Scrub corrupted ForgeGradle downloads from the restored cache
+        run: .github/scripts/scrub-forgegradle-cache.sh
 
       # sourcesJar is not wired into `build`, but the maven publication and the
       # platform release both need it, so build it explicitly.
@@ -137,7 +140,10 @@ jobs:
           cache-read-only: true
 
       - name: Grant execute permission
-        run: chmod +x gradlew
+        run: chmod +x gradlew .github/scripts/scrub-forgegradle-cache.sh
+
+      - name: Scrub corrupted ForgeGradle downloads from the restored cache
+        run: .github/scripts/scrub-forgegradle-cache.sh
 
       - name: Publish to Maven
         run: ./gradlew publish --stacktrace
