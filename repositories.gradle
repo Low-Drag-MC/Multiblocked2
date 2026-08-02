@@ -25,9 +25,9 @@ repositories {
         name "firstdarkdev"
         url "https://maven.firstdark.dev/snapshots"
     }
-    maven { // blood magic
-        url "https://tehnut.info/maven/"
-    }
+    // https://tehnut.info/maven/ (blood magic) is gone: it 301s every path to an unrelated site which
+    // answers 200 with an html page, so ForgeGradle happily caches that html as maven-metadata.xml and
+    // then fails to resolve its own tools. The blood magic dependency is commented out anyway.
     maven { url = "https://maven.createmod.net" } // Ponder, Flywheel
     maven { // Flywheel
         url = "https://maven.tterrag.com/"
