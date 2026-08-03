@@ -36,7 +36,7 @@ public class MachineLevelCondition extends RecipeCondition {
 
     @Override
     public Component getTooltips() {
-        return Component.translatable("recipe.condition.machine_level.tooltip", this.level);
+        return Component.translatable("recipe.condition.machine_level.tooltip", this.level.toString());
     }
 
     @Override
