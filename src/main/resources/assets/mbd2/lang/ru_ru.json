@@ -762,8 +762,12 @@
     "ldlib2.gui.editor.register.widget.container.create_rpm": "Создать слот RPM",
 
     "editor.machine.machine_tab": "Машина",
-    "editor.machine.multiblock.area_panel.sceneRadius": "Радиус сцены",
-    "editor.machine.multiblock.area_panel.sceneRadius.tips": "Видимый радиус сцены для выбора области шаблона.",
+    "editor.machine.multiblock.area_panel.sceneRangeX": "Диапазон сцены X",
+    "editor.machine.multiblock.area_panel.sceneRangeX.tips": "Сколько блоков загружается в сцену вдоль оси X в каждую сторону от игрока (0 — только колонка самого игрока). Блоки в незагруженных чанках пропускаются. После изменения любого диапазона загруженная область на 3 секунды подсвечивается рамкой.",
+    "editor.machine.multiblock.area_panel.sceneRangeY": "Диапазон сцены Y",
+    "editor.machine.multiblock.area_panel.sceneRangeY.tips": "Сколько блоков загружается в сцену вдоль оси Y в каждую сторону от игрока (0 — только слой самого игрока). Диапазон ограничивается высотой мира. После изменения любого диапазона загруженная область на 3 секунды подсвечивается рамкой.",
+    "editor.machine.multiblock.area_panel.sceneRangeZ": "Диапазон сцены Z",
+    "editor.machine.multiblock.area_panel.sceneRangeZ.tips": "Сколько блоков загружается в сцену вдоль оси Z в каждую сторону от игрока (0 — только колонка самого игрока). Блоки в незагруженных чанках пропускаются. После изменения любого диапазона загруженная область на 3 секунды подсвечивается рамкой.",
     "editor.machine.multiblock.area_panel.area": "Область",
     "editor.machine.multiblock.area_panel.area.tips": "Shift + левая кнопка выбирает границы области; Ctrl + левая кнопка выбирает контроллер и его переднюю сторону.",
     "editor.machine.multiblock.area_panel.shortcuts": "Shift+ЛКМ: область | Ctrl+ЛКМ: контроллер и передняя сторона",
@@ -900,6 +904,7 @@
     "pattern_preview.page": "переключить страницы",
     "pattern_preview.layer": "переключить слои",
     "pattern_preview.formed": "переключить структуру сформирована",
+    "pattern_preview.parts.amount": "Требуется: %s",
 
     "recipe_logic.status.idle": "ожидание",
     "recipe_logic.status.working": "§аработает§r",

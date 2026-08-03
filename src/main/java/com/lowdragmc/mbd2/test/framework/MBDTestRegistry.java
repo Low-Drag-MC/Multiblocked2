@@ -60,9 +60,11 @@ public class MBDTestRegistry {
             register(new com.lowdragmc.mbd2.test.tests.trait.pneumaticcraft.PNCPressureTraitFixtures());
             register(new com.lowdragmc.mbd2.test.tests.recipe.pneumaticcraft.PNCHeatRecipeCapabilityFixtures());
             register(new com.lowdragmc.mbd2.test.tests.recipe.pneumaticcraft.PNCPressureAirRecipeCapabilityFixtures());
+            register(new com.lowdragmc.mbd2.test.tests.recipe.pneumaticcraft.PNCPressureConditionFixtures());
         }
         if (net.neoforged.fml.ModList.get().isLoaded("create")) {
             register(new com.lowdragmc.mbd2.test.tests.trait.create.CreateKineticMachineFixtures());
+            register(new com.lowdragmc.mbd2.test.tests.trait.create.CreateRotationPartConditionFixtures());
         }
     }
 
@@ -95,6 +97,7 @@ public class MBDTestRegistry {
             event.register(com.lowdragmc.mbd2.test.tests.trait.pneumaticcraft.PNCPressureTraitTests.class);
             event.register(com.lowdragmc.mbd2.test.tests.recipe.pneumaticcraft.PNCHeatRecipeCapabilityTests.class);
             event.register(com.lowdragmc.mbd2.test.tests.recipe.pneumaticcraft.PNCPressureAirRecipeCapabilityTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.recipe.pneumaticcraft.PNCPressureConditionTests.class);
         }
         if (modList.isLoaded("create")) {
             event.register(com.lowdragmc.mbd2.test.tests.trait.create.KineticRotationPropagationTests.class);
@@ -106,6 +109,7 @@ public class MBDTestRegistry {
             event.register(com.lowdragmc.mbd2.test.tests.trait.create.CreateMandatoryTraitTests.class);
             event.register(com.lowdragmc.mbd2.test.tests.trait.create.CreateDynamicTorqueTests.class);
             event.register(com.lowdragmc.mbd2.test.tests.trait.create.CreateRotationConditionTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.trait.create.CreateRotationPartConditionTests.class);
             event.register(com.lowdragmc.mbd2.test.tests.trait.create.CreateCogwheelInputTests.class);
             event.register(com.lowdragmc.mbd2.test.tests.recipe.create.CreateRotationRecipeCapabilityTests.class);
             event.register(com.lowdragmc.mbd2.test.tests.recipe.create.CreateRotationContentTests.class);

@@ -28,6 +28,7 @@ import com.lowdragmc.mbd2.integration.emi.MBDEMIPlugin;
 import com.lowdragmc.mbd2.integration.jei.MBDJEIPlugin;
 import com.lowdragmc.mbd2.integration.rei.MBDREIPlugin;
 import com.lowdragmc.mbd2.utils.ControllerBlockInfo;
+import com.lowdragmc.mbd2.utils.FormattingUtil;
 import dev.emi.emi.api.stack.EmiStack;
 import dev.vfyjxf.taffy.style.*;
 import me.shedaniel.rei.api.common.util.EntryStacks;
@@ -383,6 +384,8 @@ public class PatternPreview extends UIElement {
             var copy = stack.copy();
             var slot = new ItemSlot();
             slot.setItem(copy);
+            slot.style(s -> s.tooltips(Component.translatable("pattern_preview.parts.amount",
+                    FormattingUtil.formatNumbers(copy.getCount()))));
             slot.xeiRecipeIngredient(IngredientIO.INPUT);
             slot.xeiRecipeSlot(IngredientIO.INPUT, 1.0f);
             partsGrid.addChild(slot);

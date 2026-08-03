@@ -55,7 +55,7 @@ public class PNCTemperatureCondition extends RecipeCondition {
     @Override
     public boolean test(@Nonnull MBDRecipe recipe, @Nonnull RecipeLogic recipeLogic) {
         if (!(recipeLogic.machine instanceof MBDMachine machine)) return false;
-        for (var trait : machine.getAdditionalTraits()) {
+        for (var trait : machine.getRecipeLogicTraits()) {
             if (trait instanceof PNCHeatExchangerTrait heatTrait) {
                 double tempC = heatTrait.getHandler().getTemperature() - 273;
                 if (tempC >= minTemperature && tempC <= maxTemperature) {
