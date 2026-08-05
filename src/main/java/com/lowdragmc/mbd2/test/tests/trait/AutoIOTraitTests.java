@@ -61,6 +61,34 @@ public class AutoIOTraitTests {
                 .succeed();
     }
 
+    /**
+     * Issue #229: with "Allow Same Fluid" off, one fluid may only occupy a single tank. Auto-IO
+     * has to honour that too, not spread the pulled fluid across every tank.
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void fluid_auto_input_respects_allow_same_fluid_off(GameTestHelper h) {
+        var source = MBDTestHelper.placeMachine(h, FluidTankTraitFixtures.MACHINE_ID, EAST);
+        MBDTestHelper.insertFluid(h, source, new FluidStack(Fluids.WATER, 5000));
+        var scenario = MBDScenario.of(h)
+                .placeMachineFacing(AutoIOTraitFixtures.FLUID_AUTO_INPUT_NO_SAME_FLUIDS, MACHINE, Direction.NORTH)
+                .runTicks(2);
+
+        var handler = MBDTestHelper.capability(h, scenario.machine(), Capabilities.FluidHandler.BLOCK);
+        if (handler == null) {
+            h.fail("No IFluidHandler on " + AutoIOTraitFixtures.FLUID_AUTO_INPUT_NO_SAME_FLUIDS);
+            return;
+        }
+        for (int tank = 1; tank < handler.getTanks(); tank++) {
+            if (!handler.getFluidInTank(tank).isEmpty()) {
+                h.fail("Allow Same Fluid is off, but auto-IO also filled tank " + tank
+                        + " with " + handler.getFluidInTank(tank));
+                return;
+            }
+        }
+        scenario.assertFluid(0, new FluidStack(Fluids.WATER, 1000)).succeed();
+    }
+
     @GameTest(template = "empty_simple")
     @PrefixGameTestTemplate(false)
     public static void fluid_auto_output_pushes_to_adjacent_tank(GameTestHelper h) {

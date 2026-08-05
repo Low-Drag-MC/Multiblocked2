@@ -818,8 +818,12 @@
     "ldlib2.gui.editor.register.widget.container.create_rpm": "机械动力转速",
 
     "editor.machine.machine_tab": "机器",
-    "editor.machine.multiblock.area_panel.sceneRadius": "场景半径",
-    "editor.machine.multiblock.area_panel.sceneRadius.tips": "多方块区域场景的可见半径。",
+    "editor.machine.multiblock.area_panel.sceneRangeX": "场景范围 X",
+    "editor.machine.multiblock.area_panel.sceneRangeX.tips": "以玩家为中心，X 轴每个方向上加载到场景中的方块数量（0 表示只保留玩家所在的一列）。未加载区块中的方块会被跳过。修改任意范围后，加载范围会在场景中以边框显示 3 秒。",
+    "editor.machine.multiblock.area_panel.sceneRangeY": "场景范围 Y",
+    "editor.machine.multiblock.area_panel.sceneRangeY.tips": "以玩家为中心，Y 轴每个方向上加载到场景中的方块数量（0 表示只保留玩家所在的一层）。范围会被限制在世界高度内。修改任意范围后，加载范围会在场景中以边框显示 3 秒。",
+    "editor.machine.multiblock.area_panel.sceneRangeZ": "场景范围 Z",
+    "editor.machine.multiblock.area_panel.sceneRangeZ.tips": "以玩家为中心，Z 轴每个方向上加载到场景中的方块数量（0 表示只保留玩家所在的一列）。未加载区块中的方块会被跳过。修改任意范围后，加载范围会在场景中以边框显示 3 秒。",
     "editor.machine.multiblock.area_panel.area": "区域",
     "editor.machine.multiblock.area_panel.area.tips": "Shift + 左键选择区域两个端点；Ctrl + 左键选择控制器及其正面。",
     "editor.machine.multiblock.area_panel.shortcuts": "Shift+左键：区域 | Ctrl+左键：控制器和正面",
@@ -964,6 +968,7 @@
     "pattern_preview.page": "切换页面",
     "pattern_preview.layer": "切换层",
     "pattern_preview.formed": "切换结构成型",
+    "pattern_preview.parts.amount": "需要：%s",
 
     "recipe_logic.status.idle": "闲置",
     "recipe_logic.status.working": "§a工作中§r",

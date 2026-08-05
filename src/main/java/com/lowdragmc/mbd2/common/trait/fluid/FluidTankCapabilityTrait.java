@@ -201,7 +201,9 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait<IFluidHandle
                 Predicate<FluidStack> filter = getDefinition().getFluidFilterSettings().isEnable() ?
                         getDefinition().getFluidFilterSettings() : Predicates.alwaysTrue();
 
-                var storage = new FluidTransferList(storages);
+                // fill through the wrapper, not the raw storages — it is what enforces
+                // "allow same fluids", so pulling in bypasses the setting otherwise.
+                var storage = new FluidHandlerWrapper(storages, IO.IN, getDefinition().isAllowSameFluids());
                 var maxAmount = Integer.MAX_VALUE;
 
                 for (int srcIndex = 0; srcIndex < source.getTanks(); srcIndex++) {
