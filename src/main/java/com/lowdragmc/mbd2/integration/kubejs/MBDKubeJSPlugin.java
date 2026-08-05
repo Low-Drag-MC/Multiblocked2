@@ -11,6 +11,7 @@ import dev.latvian.mods.kubejs.plugin.ClassFilter;
 import dev.latvian.mods.kubejs.plugin.KubeJSPlugin;
 import dev.latvian.mods.kubejs.recipe.schema.RecipeSchemaRegistry;
 import dev.latvian.mods.kubejs.script.BindingRegistry;
+import dev.latvian.mods.kubejs.script.ScriptManager;
 import dev.latvian.mods.kubejs.script.TypeWrapperRegistry;
 import net.minecraft.world.phys.shapes.Shapes;
 
@@ -47,5 +48,10 @@ public class MBDKubeJSPlugin implements KubeJSPlugin {
     @Override
     public void registerBindings(BindingRegistry bindings) {
         bindings.add("Shapes", Shapes.class);
+    }
+
+    @Override
+    public void afterScriptsLoaded(ScriptManager manager) {
+        MBDClientEvents.CUSTOM_RENDER.post(new CustomRendererEvent());
     }
 }
