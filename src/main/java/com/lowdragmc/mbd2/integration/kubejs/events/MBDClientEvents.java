@@ -35,6 +35,9 @@ public interface MBDClientEvents {
     @Nullable
     EventHandler CUSTOM_KEYFRAME = createCustomKeyframeEvent();
 
+    EventHandler CUSTOM_RENDER = MBD_MACHINE_EVENTS.client("onCustomRendererFrame",
+            () -> CustomRendererEvent.class);
+
     // Recipe events
     EventHandler RECIPE_UI = registerRecipeTypeEvent("onRecipeUI",
             RecipeUIEvent.class,
