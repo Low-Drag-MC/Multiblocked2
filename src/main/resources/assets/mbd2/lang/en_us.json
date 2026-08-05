@@ -971,5 +971,6 @@
   "config.recipe.condition.pneumatic_pressure.max": "Max Value",
   "geckolib_model": "Geckolib Model",
   "config.block_pattern.predicate.proxyWhileFormed.proxyCapabilities": "Proxy Capabilities",
-  "config.block_pattern.predicate.proxyWhileFormed.proxyCapabilities.tooltip": "If the part doesnt contain the required capability, the part will proxy the capabilities from controllers’ traits."
+  "config.block_pattern.predicate.proxyWhileFormed.proxyCapabilities.tooltip": "If the part doesnt contain the required capability, the part will proxy the capabilities from controllers’ traits.",
+  "custom_script": "Custom Script"
 }
