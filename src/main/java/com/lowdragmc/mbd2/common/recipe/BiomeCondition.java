@@ -48,7 +48,9 @@ public class BiomeCondition extends RecipeCondition {
 
     @Override
     public Component getTooltips() {
-        return Component.translatable("recipe.condition.biome.tooltip", LocalizationUtils.format("biome.%s.%s", biome.getNamespace(), biome.getPath()));
+        String biomeKey = String.format("biome.%s.%s", biome.getNamespace(), biome.getPath());
+        return Component.translatable("recipe.condition.biome.tooltip",
+                                      Component.translatable(biomeKey));
     }
 
     @Override
