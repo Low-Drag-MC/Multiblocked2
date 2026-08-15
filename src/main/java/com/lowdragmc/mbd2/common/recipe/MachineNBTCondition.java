@@ -40,7 +40,7 @@ public class MachineNBTCondition extends RecipeCondition {
 
     @Override
     public Component getTooltips() {
-        return Component.translatable("recipe.condition.machine_custom_data.tooltip", this.data);
+        return Component.translatable("recipe.condition.machine_custom_data.tooltip", this.data.toString());
     }
 
     @Override
