@@ -1,0 +1,43 @@
+// LDLib2 in-client UI test harness. Inert unless -PldTest is supplied.
+def ldTestOutDir = layout.buildDirectory.dir('ldlib2-uitest').get().asFile.absolutePath
+
+if (project.hasProperty('ldTest')) {
+    runs.matching { it.name == 'client' }.configureEach { run ->
+        run.systemProperty 'ldlib2.uitest.run', project.property('ldTest')
+        run.systemProperty 'ldlib2.uitest.out', ldTestOutDir
+        run.systemProperty 'ldlib2.uitest.exclude', project.findProperty('ldTestExclude') ?: ''
+        run.systemProperty 'ldlib2.uitest.guiScale', project.findProperty('ldTestGuiScale') ?: '2'
+        // Empty means a normal maximized window. Set WIDTHxHEIGHT only for pinned captures.
+        run.systemProperty 'ldlib2.uitest.window', project.findProperty('ldTestWindow') ?: ''
+        run.systemProperty 'ldlib2.uitest.inputMode', project.findProperty('ldTestInputMode') ?: 'SYNTHETIC'
+        run.systemProperty 'ldlib2.uitest.watchdogSec', project.findProperty('ldTestWatchdogSec') ?: '90'
+        if (project.hasProperty('ldTestKeepOpen')) {
+            run.systemProperty 'ldlib2.uitest.keepOpen', 'true'
+        }
+    }
+}
+
+tasks.register('verifyUiTest') {
+    group = 'verification'
+    description = 'Fails the build if the LDLib2 in-client UI test report contains failures.'
+    onlyIf { project.hasProperty('ldTest') }
+    doLast {
+        def dir = file(ldTestOutDir)
+        def reportFile = new File(dir, 'report.json')
+        if (!reportFile.exists()) {
+            throw new GradleException("LDLib2 UI test: no report at ${reportFile}.")
+        }
+        def report = new groovy.json.JsonSlurper().parse(reportFile)
+        logger.lifecycle("LDLib2 UI test: ${report.totals.passed}/${report.totals.scenarios} scenarios passed, " +
+                "${report.totals.checks - report.totals.checksFailed}/${report.totals.checks} checks passed")
+        if (report.status != 'PASS') {
+            throw new GradleException("LDLib2 UI test ${report.status} - full report: ${reportFile}")
+        }
+    }
+}
+
+tasks.configureEach { task ->
+    if (task.name == 'runClient') {
+        task.finalizedBy 'verifyUiTest'
+    }
+}
