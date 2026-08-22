@@ -3,8 +3,10 @@ package com.lowdragmc.mbd2.integration.kubejs.events;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.recipe.event.RecipeTypeEvent;
 import com.lowdragmc.mbd2.api.recipe.event.RecipeUIEvent;
+import com.lowdragmc.mbd2.client.renderer.custom.CustomRendererRegistry;
 import com.lowdragmc.mbd2.common.machine.definition.config.event.*;
 import com.lowdragmc.mbd2.integration.geckolib.MachineCustomKeyframeEvent;
+import dev.latvian.mods.kubejs.event.EventGroup;
 import dev.latvian.mods.kubejs.event.EventHandler;
 import dev.latvian.mods.kubejs.event.EventResult;
 import dev.latvian.mods.kubejs.event.EventTargetType;
@@ -16,9 +18,21 @@ import java.util.function.Function;
 
 import static com.lowdragmc.mbd2.integration.kubejs.events.MBDMachineEvents.MBD_MACHINE_EVENTS;
 
+/**
+ * Client only KubeJS events. This interface must never be touched from common code: it reaches into
+ * {@code Dist.CLIENT} classes, which a dedicated server refuses to load.
+ */
 public interface MBDClientEvents {
     Map<Class<? extends MachineEvent>, Function<MachineEvent, EventResult>> machineEventHandlers = new HashMap<>();
     Map<Class<? extends RecipeTypeEvent>, Function<RecipeTypeEvent, EventResult>> recipeTypeEventHandlers = new HashMap<>();
+
+    /**
+     * Client side registration events, as opposed to the per machine events that live in {@code MBDMachineEvents}.
+     */
+    EventGroup MBD_CLIENT_EVENTS = EventGroup.of("MBDClientEvents");
+
+    EventHandler CUSTOM_RENDERERS = MBD_CLIENT_EVENTS.client("registerCustomRenderers",
+            () -> CustomRendererRegistryEventJS.class);
 
     // Client events
     EventHandler CLIENT_TICK = registerMachineEvent("onClientTick",
@@ -32,9 +46,6 @@ public interface MBDClientEvents {
             MBDMachineEvents.MachineCustomDataUpdateEventJS::new);
 
     EventHandler CUSTOM_KEYFRAME = createCustomKeyframeEvent();
-
-    EventHandler CUSTOM_RENDER = MBD_MACHINE_EVENTS.client("onCustomRendererFrame",
-            () -> CustomRendererEvent.class);
 
     // Recipe events
     EventHandler RECIPE_UI = registerRecipeTypeEvent("onRecipeUI",
@@ -54,6 +65,16 @@ public interface MBDClientEvents {
 
     static void init() {
         // NO-OP
+    }
+
+    /**
+     * Collect the renderers contributed by client scripts and swap them into the registry. Must only be called
+     * after the {@code client} script manager finished reloading.
+     */
+    static void reloadCustomRenderers() {
+        var event = new CustomRendererRegistryEventJS();
+        CUSTOM_RENDERERS.post(event);
+        CustomRendererRegistry.reload(event.getRenderers());
     }
 
     static <E extends MachineEvent> EventHandler registerMachineEvent(String name, Class<E> eventClass,
