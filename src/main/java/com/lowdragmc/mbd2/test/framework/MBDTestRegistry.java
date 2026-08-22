@@ -67,6 +67,9 @@ public class MBDTestRegistry {
             register(new com.lowdragmc.mbd2.test.tests.trait.create.CreateKineticMachineFixtures());
             register(new com.lowdragmc.mbd2.test.tests.trait.create.CreateRotationPartConditionFixtures());
         }
+        if (net.neoforged.fml.ModList.get().isLoaded("geckolib")) {
+            register(new com.lowdragmc.mbd2.test.tests.multiblock.ProxyRendererFixtures());
+        }
     }
 
     /**

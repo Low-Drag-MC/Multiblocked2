@@ -2,6 +2,8 @@ package com.lowdragmc.mbd2.api.blockentity;
 
 import lombok.Getter;
 import lombok.Setter;
+import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
+import com.lowdragmc.mbd2.api.capability.IAnimationSource;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.api.pattern.predicates.PatternPredicate;
 import com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine;
@@ -30,7 +32,9 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -40,7 +44,7 @@ import java.util.Objects;
  */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public class ProxyPartBlockEntity extends BlockEntity {
+public class ProxyPartBlockEntity extends BlockEntity implements IAnimationSource {
     @Getter
     @Setter
     private boolean isAsyncSyncing = false;
@@ -65,6 +69,8 @@ public class ProxyPartBlockEntity extends BlockEntity {
     private int proxyPredicateId = -1;
     @Getter
     private boolean restoringOriginalBlock;
+    @Getter
+    private final Map<IRenderer, Object> animatableCache = new HashMap<>();
 
     public List<ConfigPartSettings.ProxyCapability> getProxyCapabilities() {
         return resolveProxyWhileFormed()
@@ -190,6 +196,36 @@ public class ProxyPartBlockEntity extends BlockEntity {
 
     public VoxelShape getProxyShape() {
         return getProxyState().getShape(getProxyFacing());
+    }
+
+    // The port is not a machine, so it animates off the predicate's proxy state and the controller's
+    // facing — the same two things it already borrows for its shape and model.
+
+    @Override
+    public BlockPos getAnimationPos() {
+        return getBlockPos();
+    }
+
+    @Override
+    public Direction getAnimationFacing() {
+        return getProxyFacing();
+    }
+
+    @Override
+    public String getAnimationState() {
+        return getProxyState().name();
+    }
+
+    @Nullable
+    @Override
+    public MBDMachine getAnimationEventTarget() {
+        if (level == null || controllerPos == null) {
+            return null;
+        }
+        return IMachine.ofMachine(level, controllerPos)
+                .filter(MBDMachine.class::isInstance)
+                .map(MBDMachine.class::cast)
+                .orElse(null);
     }
 
     @Nullable

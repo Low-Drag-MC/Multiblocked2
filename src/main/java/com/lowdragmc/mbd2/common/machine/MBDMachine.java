@@ -23,6 +23,7 @@ import com.lowdragmc.lowdraglib2.syncdata.storage.IManagedStorage;
 import com.lowdragmc.lowdraglib2.syncdata.storage.MultiManagedStorage;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
+import com.lowdragmc.mbd2.api.capability.IAnimationSource;
 import com.lowdragmc.mbd2.api.capability.recipe.*;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
@@ -40,7 +41,7 @@ import com.lowdragmc.mbd2.common.trait.ITrait;
 import com.lowdragmc.mbd2.common.trait.IUIProviderTrait;
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 import com.lowdragmc.mbd2.integration.emi.MBDEMIPlugin;
-import com.lowdragmc.mbd2.integration.geckolib.AnimatableMachine;
+import com.lowdragmc.mbd2.integration.geckolib.AnimatableBlock;
 import com.lowdragmc.mbd2.integration.geckolib.GeckolibRenderer;
 import com.lowdragmc.mbd2.integration.jei.MBDJEIPlugin;
 import com.lowdragmc.mbd2.integration.rei.MBDREIPlugin;
@@ -83,7 +84,7 @@ import java.util.*;
 import java.util.List;
 
 @Getter
-public class MBDMachine implements IMachine, IBlockEntityManaged, BlockUIMenuType.BlockUI {
+public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManaged, BlockUIMenuType.BlockUI {
     private final FieldManagedStorage syncStorage = new FieldManagedStorage(this);
     private final MBDMachineDefinition definition;
     private final IMachineBlockEntity machineHolder;
@@ -109,7 +110,7 @@ public class MBDMachine implements IMachine, IBlockEntityManaged, BlockUIMenuTyp
     private String machineState;
     @Getter
     private final List<ITrait> additionalTraits = new ArrayList<>();
-    private final Map<IRenderer, Object> animatableMachine = new HashMap<>(); // used for client-side GeckoLib animatables
+    private final Map<IRenderer, Object> animatableCache = new HashMap<>(); // see IAnimationSource
 //    @Getter
 //    private Map<String, Object> photonFXs = new HashMap<>(); // it's used for Photon
     @Persisted
@@ -463,6 +464,39 @@ public class MBDMachine implements IMachine, IBlockEntityManaged, BlockUIMenuTyp
 
     public String getMachineStateName() {
         return machineState;
+    }
+
+    //////////////////////////////////////
+    //****   ANIMATION SOURCE    *******//
+    //////////////////////////////////////
+
+    @Override
+    public BlockPos getAnimationPos() {
+        return getPos();
+    }
+
+    @Override
+    public Direction getAnimationFacing() {
+        return getFrontFacing().orElse(Direction.NORTH);
+    }
+
+    @Override
+    public String getAnimationState() {
+        return getMachineStateName();
+    }
+
+    @Override
+    public MBDMachine getAnimationEventTarget() {
+        return this;
+    }
+
+    /**
+     * @deprecated since 21.0.12, renamed to {@link #getAnimatableCache()}: it holds the animation
+     * instance of whatever renderer animates this block, not a GeckoLib machine animatable.
+     */
+    @Deprecated(since = "21.0.12", forRemoval = true)
+    public Map<IRenderer, Object> getAnimatableMachine() {
+        return getAnimatableCache();
     }
 
     //////////////////////////////////////
@@ -951,12 +985,12 @@ public class MBDMachine implements IMachine, IBlockEntityManaged, BlockUIMenuTyp
         }
         if (isRemote()) {
             if (controllerName == null || controllerName.isEmpty()) {
-                controllerName = AnimatableMachine.DEFAULT_CONTROLLER;
+                controllerName = AnimatableBlock.DEFAULT_CONTROLLER;
             }
             // renderers picked from the editor's resource panel are wrapped in a UIResourceRenderer,
             // so resolve the wrapper before checking for the geckolib one.
             if (RendererUtils.resolve(getMachineState().getRealRenderer()) instanceof GeckolibRenderer renderer) {
-                var controller = renderer.getAnimatableFromMachine(this).getAnimatableInstanceCache()
+                var controller = renderer.getAnimatable(this).getAnimatableInstanceCache()
                         .getManagerForId(0)
                         .getAnimationControllers()
                         .get(controllerName);

@@ -9,6 +9,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.block.ProxyPartBlock;
 import com.lowdragmc.mbd2.api.blockentity.ProxyPartBlockEntity;
+import com.lowdragmc.mbd2.api.capability.MBDCapabilities;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeSerializer;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
@@ -57,7 +58,10 @@ public class CommonProxy {
     public CommonProxy(IEventBus eventBus, ModContainer modContainer) {
         eventBus.register(this);
         if (Platform.isDevEnv()) {
-            if (GameTestHooks.isGametestServer()) {
+            // Fixtures register real machine definitions, so they stay out of a plain dev client. Both
+            // harnesses need them: the gametest server, and LDLib2's UI test runner, whose world-based
+            // scenarios have to place fixture machines for real.
+            if (GameTestHooks.isGametestServer() || isUiTestRun()) {
                 eventBus.register(new MBDTestRegistry());
                 MBDTestRegistry.init();
             }
@@ -83,6 +87,12 @@ public class CommonProxy {
             }
             return new ModularUI(UI.empty());
         });
+    }
+
+    /** Whether LDLib2's in-client UI test runner is driving this launch ({@code runClient -PldTest=...}). */
+    private static boolean isUiTestRun() {
+        var selection = System.getProperty("ldlib2.uitest.run");
+        return selection != null && !selection.isBlank();
     }
 
     public void registerRecipeType() {
@@ -168,6 +178,9 @@ public class CommonProxy {
         MBDRegistries.getFakeMachineDefinition().registerCapabilities(event);
         MBDRegistries.MACHINE_DEFINITIONS.forEach((definition) -> definition.registerCapabilities(event));
         MBDRegistries.TRAIT_DEFINITION_TYPES.forEach(type -> type.registerGlobalCapabilities(event));
+        // a proxyWhileFormed port animates off the predicate's proxy state, see IAnimationSource
+        event.registerBlockEntity(MBDCapabilities.CAPABILITY_ANIMATION_SOURCE,
+                ProxyPartBlockEntity.TYPE.get(), (be, context) -> be);
     }
 
     @SubscribeEvent

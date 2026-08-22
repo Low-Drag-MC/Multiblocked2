@@ -11,4 +11,11 @@ public class MBDCapabilities {
                     MBD2.id("machine"),
                     // Provide the queried type. Here, we want to look up `IItemHandler` instances.
                     IMachine.class);
+
+    /**
+     * How a block tells the state renderers what to animate. Register it on a block entity type to make
+     * GeckoLib (and anything else BER-driven) animate that block, see {@link IAnimationSource}.
+     */
+    public static final BlockCapability<IAnimationSource, Void> CAPABILITY_ANIMATION_SOURCE =
+            BlockCapability.createVoid(MBD2.id("animation_source"), IAnimationSource.class);
 }

@@ -305,6 +305,12 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
                     return null;
                 }
         );
+        event.registerBlockEntity(
+                MBDCapabilities.CAPABILITY_ANIMATION_SOURCE,
+                blockEntityType,
+                (be, context) -> be instanceof IMachineBlockEntity blockEntity
+                        && blockEntity.getMetaMachine() instanceof MBDMachine machine ? machine : null
+        );
         for (var type : MBDRegistries.TRAIT_DEFINITION_TYPES) {
             type.registerCapabilities(this, event);
         }

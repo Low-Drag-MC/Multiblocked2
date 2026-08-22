@@ -23,7 +23,7 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib2.utils.ResourceHelper;
 import com.lowdragmc.mbd2.MBD2;
-import com.lowdragmc.mbd2.api.machine.IMachine;
+import com.lowdragmc.mbd2.api.capability.IAnimationSource;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.core.mixins.LevelRendererAccessor;
 import com.mojang.blaze3d.platform.Lighting;
@@ -229,14 +229,27 @@ public class GeckolibRenderer implements IRenderer, GeoRenderer<GeoAnimatable> {
         this.currentItemStack = null;
     }
 
-    public GeoAnimatable getAnimatableFromMachine(MBDMachine machine) {
-        var cached = machine.getAnimatableMachine().get(this);
-        if (cached instanceof GeoAnimatable geoAnimatable) {
-            return geoAnimatable;
+    /**
+     * The animation instance bound to {@code source}, cached on the block it animates: one model can be
+     * shared by many blocks, but each of them keeps its own animation progress.
+     */
+    public GeoAnimatable getAnimatable(IAnimationSource source) {
+        var cache = source.getAnimatableCache();
+        if (cache.get(this) instanceof GeoAnimatable cached) {
+            return cached;
         }
-        var animatableMachine = new AnimatableMachine(machine, this);
-        machine.getAnimatableMachine().put(this, animatableMachine);
-        return animatableMachine;
+        var created = new AnimatableBlock(source, this);
+        cache.put(this, created);
+        return created;
+    }
+
+    /**
+     * @deprecated since 21.0.12, use {@link #getAnimatable(IAnimationSource)} — an {@link MBDMachine}
+     * is one. Kept so existing callers keep compiling; it forwards verbatim.
+     */
+    @Deprecated(since = "21.0.12", forRemoval = true)
+    public GeoAnimatable getAnimatableFromMachine(MBDMachine machine) {
+        return getAnimatable(machine);
     }
 
     @Override
@@ -244,11 +257,10 @@ public class GeckolibRenderer implements IRenderer, GeoRenderer<GeoAnimatable> {
         if (!checkModelAvailable() || !checkTextureAvailable() || !checkAnimationAvailable()) {
             return;
         }
-        if (IMachine.ofMachine(blockEntity).orElse(null) instanceof MBDMachine machine) {
-            this.animatable = getAnimatableFromMachine(machine);
-        } else {
-            this.animatable = staticAnimatable;
-        }
+        // Whatever the block is — machine, proxyWhileFormed port, or something another mod attached the
+        // capability to — it describes itself through IAnimationSource; nothing here knows the types.
+        var source = IAnimationSource.of(blockEntity);
+        this.animatable = source == null ? staticAnimatable : getAnimatable(source);
         RenderSystem.enableDepthTest();
         RenderSystem.depthMask(true);
         defaultRender(poseStack, this.animatable, bufferSource, null, null, 0, partialTicks, packedLight);
@@ -335,8 +347,8 @@ public class GeckolibRenderer implements IRenderer, GeoRenderer<GeoAnimatable> {
 
     @Override
     public long getInstanceId(GeoAnimatable animatable) {
-        if (animatable instanceof AnimatableMachine machine) {
-            return ((long) machine.getRenderer().hashCode()) << 32 | machine.getMachine().getPos().hashCode();
+        if (animatable instanceof AnimatableBlock bound) {
+            return ((long) bound.getRenderer().hashCode()) << 32 | bound.getSource().getAnimationPos().hashCode();
         }
         if (currentItemStack != null) {
             return GeoItem.getId(currentItemStack);
@@ -389,8 +401,8 @@ public class GeckolibRenderer implements IRenderer, GeoRenderer<GeoAnimatable> {
     }
 
     protected Direction getFacing(GeoAnimatable animatable) {
-        if (animatable instanceof AnimatableMachine machine) {
-            return machine.getMachine().getFrontFacing().orElse(Direction.NORTH);
+        if (animatable instanceof AnimatableBlock bound) {
+            return bound.getSource().getAnimationFacing();
         }
         return Direction.NORTH;
     }
@@ -405,9 +417,9 @@ public class GeckolibRenderer implements IRenderer, GeoRenderer<GeoAnimatable> {
             bone.setModelSpaceMatrix(RenderUtil.invertAndMultiplyMatrices(poseState, this.modelRenderTranslations));
             bone.setLocalSpaceMatrix(localMatrix);
 
-            if (this.animatable instanceof AnimatableMachine machine) {
+            if (this.animatable instanceof AnimatableBlock bound) {
                 var worldState = new Matrix4f(localMatrix);
-                var pos = machine.getMachine().getPos();
+                var pos = bound.getSource().getAnimationPos();
                 bone.setWorldSpaceMatrix(worldState.translate(new Vector3f(pos.getX(), pos.getY(), pos.getZ())));
             } else {
                 bone.setWorldSpaceMatrix(new Matrix4f().identity());

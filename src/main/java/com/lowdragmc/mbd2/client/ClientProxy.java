@@ -2,7 +2,9 @@ package com.lowdragmc.mbd2.client;
 
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.block.ProxyPartBlock;
+import com.lowdragmc.mbd2.api.blockentity.ProxyPartBlockEntity;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
+import com.lowdragmc.mbd2.client.renderer.MBDBESRenderer;
 import com.lowdragmc.mbd2.common.item.MBDGadgetsItem;
 import com.lowdragmc.mbd2.integration.create.machine.KineticInstanceRenderer;
 import net.createmod.catnip.render.SuperByteBufferCache;
@@ -33,6 +35,11 @@ public class ClientProxy {
 
     @SubscribeEvent
     public void registerRenderers(EntityRenderersEvent.RegisterRenderers e) {
+        // Baked models on a proxy port render through IBlockRendererProvider, but BER-driven renderers
+        // (GeckoLib above all) need this registration or they get no render call at all (#236). Ports
+        // whose proxy state is model-only stay free: LDLib2's dispatcher mixin drops the renderer when
+        // ProxyPartRenderer reports hasBlockEntityRenderer == false.
+        e.registerBlockEntityRenderer(ProxyPartBlockEntity.TYPE.get(), MBDBESRenderer::getOrCreate);
         MBDRegistries.FAKE_MACHINE().initRenderer(e);
         MBDRegistries.MACHINE_DEFINITIONS.forEach(definition -> definition.initRenderer(e));
     }
