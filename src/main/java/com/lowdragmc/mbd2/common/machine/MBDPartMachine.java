@@ -332,25 +332,24 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
     @Override
     public void internalServerTick() {
         super.internalServerTick();
-        for (var proxy : Objects.requireNonNull(getDefinition().partSettings()).proxyControllerCapabilities()) {
-            if (proxy.autoIO().isEnable()) {
-                var front = getFrontFacing().orElse(Direction.NORTH);
-                var pos = getPos();
-                for (var controller : getControllers()) {
-                    if (controller instanceof MBDMultiblockMachine proxyController) {
-                        for (var trait : proxyController.getAdditionalTraits()) {
-                            if (trait instanceof IProxyAutoIOTrait autoIOTrait && trait.getDefinition().getName().contains(proxy.traitNameFilter())) {
-                                for (var side : Direction.values()) {
-                                    var io =  proxy.autoIO().getIO(front, side);
-                                    if (io != IO.NONE) {
-                                        autoIOTrait.handleAutoIO(pos, side, io);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        var partSettings = getDefinition().partSettings();
+        var staticProxies = partSettings == null
+                ? Collections.<ConfigPartSettings.ProxyCapability>emptyList()
+                : partSettings.proxyControllerCapabilities();
+        // Resolve the synced ids before the early-out, or a part that only proxies via a predicate
+        // would bail out here forever and never auto IO.
+        loadProxyWhileFormedPredicateIdsFromData();
+        if (staticProxies.isEmpty() && proxyWhileFormedPredicateIds.isEmpty()) return;
+        var front = getFrontFacing().orElse(Direction.NORTH);
+        var pos = getPos();
+        var timer = getOffsetTimer();
+        for (var controller : getControllers()) {
+            if (!(controller instanceof MBDMultiblockMachine proxyController)) continue;
+            IProxyAutoIOTrait.handleProxyAutoIO(proxyController, staticProxies, pos, front, timer);
+            // the predicate that matched this part can carry proxy capabilities of its own; they forward
+            // the controller's traits exactly like partSettings does, so they have to auto IO too (#237).
+            IProxyAutoIOTrait.handleProxyAutoIO(proxyController,
+                    getPredicateProxyCapabilities(proxyController.getPos()), pos, front, timer);
         }
     }
 

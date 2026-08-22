@@ -24,7 +24,9 @@ import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.client.renderer.MultiblockInWorldPreviewRenderer;
 import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
+import com.lowdragmc.mbd2.common.machine.definition.config.ConfigPartSettings;
 import com.lowdragmc.mbd2.common.machine.definition.config.event.*;
+import com.lowdragmc.mbd2.common.trait.IProxyAutoIOTrait;
 import com.lowdragmc.mbd2.common.trait.IUIProviderTrait;
 import com.lowdragmc.mbd2.config.ConfigHolder;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
@@ -65,6 +67,11 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
     protected boolean isFormed;
     @Getter
     protected Set<BlockPos> proxyWhileFormedPositions = new HashSet<>();
+    /**
+     * Runtime only, rebuilt on every {@link #onStructureFormed()}: the {@link ProxyPartBlock} ports whose
+     * predicate asked for auto IO. Those block entities never tick, so the controller drives them itself.
+     */
+    private final Map<BlockPos, List<ConfigPartSettings.ProxyCapability>> autoIOProxyPorts = new HashMap<>();
     @Getter
     private final Lock patternLock = new ReentrantLock();
     @Getter
@@ -122,6 +129,36 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
             }
         }
         super.serverTick();
+    }
+
+    @Override
+    protected void internalServerTick() {
+        super.internalServerTick();
+        handleProxyPortAutoIO();
+    }
+
+    /**
+     * Drive the auto IO of every non-MBD block that {@code proxyWhileFormed} turned into a
+     * {@link ProxyPartBlock}. Those block entities have no ticker at all, so without this the port
+     * exposes the proxied trait but never moves anything (#237). Parts run their own ports from
+     * {@link MBDPartMachine#internalServerTick()}, so they are deliberately skipped here.
+     */
+    private void handleProxyPortAutoIO() {
+        // Non-empty only between onStructureFormed and onStructureInvalid, so it doubles as the formed check.
+        if (autoIOProxyPorts.isEmpty()) return;
+        var level = getLevel();
+        if (!(level instanceof ServerLevel)) return;
+        var front = getFrontFacing().orElse(Direction.NORTH);
+        var timer = getOffsetTimer();
+        for (var entry : autoIOProxyPorts.entrySet()) {
+            var pos = entry.getKey();
+            if (!level.isLoaded(pos)) continue;
+            // only drive ports that still proxy us: a shared block may have been claimed by another controller.
+            if (level.getBlockEntity(pos) instanceof ProxyPartBlockEntity proxy
+                    && getPos().equals(proxy.getControllerPos())) {
+                IProxyAutoIOTrait.handleProxyAutoIO(this, entry.getValue(), pos, front, timer);
+            }
+        }
     }
 
     @Override
@@ -333,6 +370,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
         this.isFormedValid = true;
         this.parts.clear();
         this.proxyWhileFormedPositions.clear();
+        this.autoIOProxyPorts.clear();
         // replace configured formed blocks with proxy part blocks
         Map<Long, PatternPredicate.ProxyWhileFormedMatch> proxies = getMultiblockState().getMatchContext().getOrDefault("proxyWhileFormed", Collections.emptyMap());
         for (var entry : proxies.entrySet()) {
@@ -350,6 +388,12 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
                     proxyPartBlockEntity.setProxyData(this.getPos(), proxyMatch.predicateId());
                 } else {
                     ProxyPartBlock.replaceOriginalBlock(this.getPos(), getLevel(), blockPos, proxyMatch.predicateId());
+                }
+                var autoIOCaps = proxyMatch.proxy().getProxyCapabilities().stream()
+                        .filter(cap -> cap.autoIO().isEnable())
+                        .toList();
+                if (!autoIOCaps.isEmpty()) {
+                    autoIOProxyPorts.put(blockPos, autoIOCaps);
                 }
             }
         }
@@ -405,6 +449,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
             }
             this.proxyWhileFormedPositions.clear();
         });
+        this.autoIOProxyPorts.clear();
         // post event
         NeoForge.EVENT_BUS.post(new MachineStructureInvalidEvent(this).postCustomEvent());
         // back to original block
