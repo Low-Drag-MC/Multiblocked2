@@ -11,6 +11,8 @@ import dev.latvian.mods.kubejs.plugin.ClassFilter;
 import dev.latvian.mods.kubejs.plugin.KubeJSPlugin;
 import dev.latvian.mods.kubejs.recipe.schema.RecipeSchemaRegistry;
 import dev.latvian.mods.kubejs.script.BindingRegistry;
+import dev.latvian.mods.kubejs.script.ScriptManager;
+import dev.latvian.mods.kubejs.script.ScriptType;
 import dev.latvian.mods.kubejs.script.TypeWrapperRegistry;
 import net.minecraft.world.phys.shapes.Shapes;
 
@@ -26,6 +28,7 @@ public class MBDKubeJSPlugin implements KubeJSPlugin {
         MBDServerEvents.init();
         if (LDLib2.isClient()) {
             MBDClientEvents.init();
+            registry.register(MBDClientEvents.MBD_CLIENT_EVENTS);
         }
         registry.register(MBDStartupEvents.REGISTRY_EVENTS);
         registry.register(MBDRecipeTypeEvents.MBD_RECIPE_TYPE_EVENTS);
@@ -47,5 +50,14 @@ public class MBDKubeJSPlugin implements KubeJSPlugin {
     @Override
     public void registerBindings(BindingRegistry bindings) {
         bindings.add("Shapes", Shapes.class);
+    }
+
+    @Override
+    public void afterScriptsLoaded(ScriptManager manager) {
+        // called once per script type. Only the client pass may touch MBDClientEvents, it pulls in Dist.CLIENT
+        // classes that a dedicated server cannot load.
+        if (LDLib2.isClient() && manager.scriptType == ScriptType.CLIENT) {
+            MBDClientEvents.reloadCustomRenderers();
+        }
     }
 }

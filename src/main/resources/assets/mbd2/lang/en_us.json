@@ -971,5 +971,22 @@
   "config.recipe.condition.pneumatic_pressure.max": "Max Value",
   "geckolib_model": "Geckolib Model",
   "config.block_pattern.predicate.proxyWhileFormed.proxyCapabilities": "Proxy Capabilities",
-  "config.block_pattern.predicate.proxyWhileFormed.proxyCapabilities.tooltip": "If the part doesnt contain the required capability, the part will proxy the capabilities from controllers’ traits."
+  "config.block_pattern.predicate.proxyWhileFormed.proxyCapabilities.tooltip": "If the part doesnt contain the required capability, the part will proxy the capabilities from controllers’ traits.",
+  "custom_script": "Custom Script",
+  "config.renderer.custom_script.renderer_name": "Renderer",
+  "config.renderer.custom_script.renderer_name.tooltip": "The custom renderer to run, registered by a KubeJS client script through MBDClientEvents.registerCustomRenderers.",
+  "config.renderer.custom_script.data": "Data",
+  "config.renderer.custom_script.data.tooltip": "Extra parameters handed to the renderer, so one script can back several machines.",
+  "beacon_beam": "Beacon Beam",
+  "config.renderer.beacon_beam.texture": "Beam Texture",
+  "config.renderer.beacon_beam.color": "Color",
+  "config.renderer.beacon_beam.y_offset": "Y Offset",
+  "config.renderer.beacon_beam.y_offset.tooltip": "How many blocks above the machine the beam starts.",
+  "config.renderer.beacon_beam.height": "Height",
+  "config.renderer.beacon_beam.height.tooltip": "How many blocks tall the beam is. Negative values make it point downwards.",
+  "config.renderer.beacon_beam.beam_radius": "Beam Radius",
+  "config.renderer.beacon_beam.glow_radius": "Glow Radius",
+  "config.renderer.beacon_beam.texture_scale": "Texture Scale",
+  "config.renderer.beacon_beam.view_distance": "View Distance",
+  "config.renderer.beacon_beam.view_distance.tooltip": "How far away from the camera the beam keeps rendering, in blocks."
 }
