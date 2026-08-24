@@ -108,11 +108,6 @@ public class MultiblockMachineDefinition extends MBDMachineDefinition {
         return new Builder();
     }
 
-//    @Override
-//    public ConfigMachineEvents createMachineEvents() {
-//        return super.createMachineEvents().registerEventGroup("MachineEvent.Multiblock");
-//    }
-
     @Override
     public void loadFactory() {
         super.loadFactory();

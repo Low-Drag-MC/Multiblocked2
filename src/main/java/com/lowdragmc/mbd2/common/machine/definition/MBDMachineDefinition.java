@@ -124,8 +124,6 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
             "config.definition.part_settings.tooltip.2",
     })
     protected ConfigPartSettings partSettings;
-//    @Persisted(subPersisted = true)
-//    protected final ConfigMachineEvents machineEvents;
 
     // runtime
     protected ConfigMachineSettingsFactory machineSettingsFactory;
@@ -155,16 +153,11 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
         this.machineSettingsFactory = machineSettingsFactory == null ? () -> ConfigMachineSettings.builder().build() : machineSettingsFactory;
         this.recipeLogicSettings = recipeLogicSettings == null ? ConfigRecipeLogicSettings.builder().build() : recipeLogicSettings;
         this.partSettingsFactory = allowPartSettings() ? (partSettingsFactory == null ? () -> ConfigPartSettings.builder().build() : partSettingsFactory) : null;
-//        this.machineEvents = createMachineEvents();
     }
 
     public boolean allowPartSettings() {
         return true;
     }
-
-//    public ConfigMachineEvents createMachineEvents() {
-//        return new ConfigMachineEvents().registerEventGroup("MachineEvent");
-//    }
 
     public MachineState createDefaultRootState() {
         return StateMachine.createDefault(MachineState::baseBuilder);
@@ -238,8 +231,6 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
             if (partSettings != null) {
                 partSettings.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("partSettings"));
             }
-            // todo machine events
-//            machineEvents.deserializeNBT(Platform.getFrozenRegistry(), definitionTag.getCompound("machineEvents"));
         });
         return this;
     }

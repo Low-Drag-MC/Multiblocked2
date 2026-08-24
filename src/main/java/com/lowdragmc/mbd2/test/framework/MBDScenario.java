@@ -167,6 +167,7 @@ public class MBDScenario {
         return this;
     }
 
+
     /**
      * Drive {@code ticks} main-thread snapshot captures on the current level's MWSD. Each tick
      * drains up to {@link PatternSnapshot#CAPTURES_PER_TICK} pending positions per snapshot.

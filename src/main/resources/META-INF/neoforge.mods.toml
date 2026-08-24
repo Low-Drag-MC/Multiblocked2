@@ -38,3 +38,10 @@ file="META-INF/accesstransformer.cfg"
     versionRange="${ldlib2_version_range}"
     ordering="NONE"
     side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="kilagraph"
+    type = "required"
+    versionRange="${kilagraph_version_range}"
+    ordering="NONE"
+    side="BOTH"

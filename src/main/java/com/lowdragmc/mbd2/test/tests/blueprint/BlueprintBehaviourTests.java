@@ -1,0 +1,210 @@
+package com.lowdragmc.mbd2.test.tests.blueprint;
+
+import com.lowdragmc.mbd2.MBD2;
+import com.lowdragmc.mbd2.test.framework.MBDScenario;
+import net.minecraft.core.BlockPos;
+import net.minecraft.gametest.framework.GameTest;
+import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Blocks;
+import net.neoforged.neoforge.gametest.GameTestHolder;
+import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+
+/**
+ * One behaviour test per node group: does the group's effect actually reach the machine?
+ *
+ * <p>{@link BlueprintNodeCatalogueTests} already proves every node spawns, round-trips and is
+ * documented, which is the part that scales. These cover what that cannot: that a write lands, that a
+ * read returns the right value rather than merely a value, and that the event it hangs off fires.</p>
+ *
+ * <h2>Why every fixture here hooks Machine Tick</h2>
+ * {@code MachineOnLoadEvent} reaches a blueprint through a server {@code TickTask}, and the gametest
+ * harness ticks the level rather than the server — so when it arrives relative to a test's assertions
+ * is not deterministic. {@code OnLoadEventNode} is covered structurally by
+ * {@link BlueprintNodeCatalogueTests} instead; a behaviour test for it would be flaky, which is worse
+ * than an honest gap.
+ */
+@GameTestHolder(MBD2.MOD_ID)
+public class BlueprintBehaviourTests {
+    static { @SuppressWarnings("unused") var ignored = BlueprintBehaviourFixtures.TIER_MACHINE_ID; }
+
+    /**
+     * Machine action write, Machine Info context read, and the context's fallback to the blueprint's
+     * own machine — all three in one round trip.
+     *
+     * <p>Asserting the exact tier matters: a read that returns nothing stages no output and the signal
+     * ends up zero, which this catches and a "was set at all" assertion would not.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void machineTierRoundTripsThroughInfoContext(GameTestHelper helper) {
+        var scenario = MBDScenario.of(helper)
+                .placeMachine(BlueprintBehaviourFixtures.TIER_MACHINE_ID, new BlockPos(1, 1, 1))
+                .runTicks(5);
+        var machine = scenario.machine();
+        if (machine.getMachineLevel() != BlueprintBehaviourFixtures.TIER) {
+            helper.fail("Set Machine Tier did not apply, tier is " + machine.getMachineLevel());
+            return;
+        }
+        if (machine.getAnalogOutputSignal() != BlueprintBehaviourFixtures.TIER) {
+            helper.fail("tier read back through Machine Info was " + machine.getAnalogOutputSignal());
+            return;
+        }
+        scenario.succeed();
+    }
+
+    /** Set Custom Data then Merge Custom Data: the merge must keep what the set wrote. */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void customDataIsWrittenAndMerged(GameTestHelper helper) {
+        var scenario = MBDScenario.of(helper)
+                .placeMachine(BlueprintBehaviourFixtures.CUSTOM_DATA_MACHINE_ID, new BlockPos(1, 1, 1))
+                .runTicks(5);
+        var data = scenario.machine().getCustomData();
+        if (data.getInt(BlueprintBehaviourFixtures.COUNTER_KEY) != 1) {
+            helper.fail("Set Custom Data did not apply, tag was " + data);
+            return;
+        }
+        if (!data.getBoolean(BlueprintBehaviourFixtures.FLAG_KEY)) {
+            helper.fail("Merge Custom Data did not apply, tag was " + data);
+            return;
+        }
+        scenario.succeed();
+    }
+
+    /** The trait capability bridge plus Receive Energy: the machine fills its own buffer. */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void blueprintFillsOwnEnergyBuffer(GameTestHelper helper) {
+        MBDScenario.of(helper)
+                .placeMachine(BlueprintBehaviourFixtures.ENERGY_MACHINE_ID, new BlockPos(1, 1, 1))
+                .runTicks(5)
+                .assertEnergyAtLeast(5_000)
+                .succeed();
+    }
+
+    /**
+     * Recipe Modify (Before) plus the recipe build nodes plus Set Event Recipe: a blueprint rewrites
+     * every recipe to two thousand ticks, so nothing finishes in forty.
+     *
+     * <p>{@code BlueprintTests.plainMachineRunsRecipe} is the control that makes this mean something —
+     * the same recipe on the same machine shape does finish in forty ticks without the blueprint.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void blueprintRewritesRecipeDuration(GameTestHelper helper) {
+        MBDScenario.of(helper)
+                .placeMachine(BlueprintBehaviourFixtures.SLOW_RECIPE_MACHINE_ID, new BlockPos(1, 1, 1))
+                .insertItem(0, BlueprintFixtures.stone(4))
+                .runTicks(80)
+                .assertItem(1, ItemStack.EMPTY)
+                .succeed();
+    }
+
+    /**
+     * A blueprint holding Set Working Enabled(false) every tick keeps the machine from running.
+     *
+     * <p>Every tick rather than once, because suspending is not a latch - see the fixture.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void blueprintDisablesRecipeLogic(GameTestHelper helper) {
+        var scenario = MBDScenario.of(helper)
+                .placeMachine(BlueprintBehaviourFixtures.DISABLED_MACHINE_ID, new BlockPos(1, 1, 1))
+                .insertItem(0, BlueprintFixtures.stone(4))
+                .runTicks(80);
+        var machine = scenario.machine();
+        // Marker first: it separates "the blueprint never ran" from "it ran and the suspend did not
+        // hold", which are different bugs in different places.
+        if (machine.getAnalogOutputSignal() != BlueprintBehaviourFixtures.DISABLED_MARKER) {
+            helper.fail("the flow never reached Set Working Enabled (marker signal was "
+                    + machine.getAnalogOutputSignal() + ")");
+            return;
+        }
+        if (!machine.getRecipeLogic().isSuspend()) {
+            helper.fail("expected the recipe logic to be suspended, was "
+                    + machine.getRecipeLogic().getStatus());
+            return;
+        }
+        scenario.assertItem(1, ItemStack.EMPTY).succeed();
+    }
+
+    /**
+     * A blueprint holding a client-only action loads and dispatches on a dedicated server.
+     *
+     * <p>This is the question "can a blueprint crash a server" in its concrete form: {@code Play State
+     * Sound} calls an {@code @OnlyIn(Dist.CLIENT)} method whose body touches a client-only class. The
+     * marker downstream of it proves both halves — the server survived, and the skipped action still
+     * passed the flow on rather than dead-ending it.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void clientOnlyActionIsSkippedOnServer(GameTestHelper helper) {
+        var scenario = MBDScenario.of(helper)
+                .placeMachine(BlueprintBehaviourFixtures.CLIENT_ONLY_MACHINE_ID, new BlockPos(1, 1, 1))
+                .runTicks(5);
+        int signal = scenario.machine().getAnalogOutputSignal();
+        if (signal != BlueprintBehaviourFixtures.PAST_CLIENT_ONLY_MARKER) {
+            helper.fail("the flow did not survive the client-only action: marker signal was " + signal);
+            return;
+        }
+        scenario.succeed();
+    }
+
+    /**
+     * Two entry nodes for the same event both run.
+     *
+     * <p>Asserted through two independent effects rather than one shared one, because the order they run
+     * in is node-creation order and is not visible on the canvas — the blueprint warns about exactly
+     * that. What is guaranteed, and what this pins down, is that neither is silently dropped.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void everyEntryForAnEventRuns(GameTestHelper helper) {
+        var scenario = MBDScenario.of(helper)
+                .placeMachine(BlueprintBehaviourFixtures.DOUBLE_ENTRY_MACHINE_ID, new BlockPos(1, 1, 1))
+                .runTicks(5);
+        var machine = scenario.machine();
+        if (machine.getCustomData().getInt(BlueprintBehaviourFixtures.COUNTER_KEY) != 1) {
+            helper.fail("the first Machine Tick entry did not run, custom data was "
+                    + machine.getCustomData());
+            return;
+        }
+        if (machine.getAnalogOutputSignal() != BlueprintBehaviourFixtures.SECOND_ENTRY_MARKER) {
+            helper.fail("the second Machine Tick entry did not run, signal was "
+                    + machine.getAnalogOutputSignal());
+            return;
+        }
+        scenario.succeed();
+    }
+
+    /**
+     * A blueprint on a multiblock controller: Structure Formed fires once the pattern matches, and its
+     * flow reaches a machine action.
+     */
+    @GameTest(template = "empty_multiblock")
+    @PrefixGameTestTemplate(false)
+    public static void multiblockBlueprintReactsToForming(GameTestHelper helper) {
+        BlockPos controller = new BlockPos(5, 1, 5);
+        var stone = Blocks.STONE.defaultBlockState();
+        var scenario = MBDScenario.of(helper)
+                .placeBlock(controller.offset(-1, 0, -1), stone)
+                .placeBlock(controller.offset(0, 0, -1), stone)
+                .placeBlock(controller.offset(1, 0, -1), stone)
+                .placeBlock(controller.offset(-1, 0, 0), stone)
+                .placeBlock(controller.offset(1, 0, 0), stone)
+                .placeBlock(controller.offset(-1, 0, 1), stone)
+                .placeBlock(controller.offset(0, 0, 1), stone)
+                .placeBlock(controller.offset(1, 0, 1), stone)
+                .placeMachine(BlueprintBehaviourFixtures.MULTIBLOCK_MACHINE_ID, controller)
+                .assertFormed()
+                .runTicks(3);
+        int signal = scenario.machine().getAnalogOutputSignal();
+        if (signal != BlueprintBehaviourFixtures.FORMED_SIGNAL) {
+            helper.fail("Structure Formed blueprint did not run: expected signal "
+                    + BlueprintBehaviourFixtures.FORMED_SIGNAL + ", got " + signal);
+            return;
+        }
+        scenario.succeed();
+    }
+}

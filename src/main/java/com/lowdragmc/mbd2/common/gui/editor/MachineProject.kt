@@ -12,6 +12,7 @@ import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture
 import com.lowdragmc.lowdraglib2.utils.TagBuilder
 import com.lowdragmc.mbd2.MBD2
 import com.lowdragmc.mbd2.client.MBDRenderers
+import com.lowdragmc.mbd2.common.gui.editor.blueprint.MachineBlueprintResource
 import com.lowdragmc.mbd2.common.gui.editor.machine.MachineConfigView
 import com.lowdragmc.mbd2.common.gui.editor.machine.MachineTraitView
 import com.lowdragmc.mbd2.common.gui.editor.machine.MachineUIView
@@ -56,7 +57,11 @@ open class MachineProject : IProject {
             IRendererResource.INSTANCE,
             ColorsResource.INSTANCE,
             TexturesResource.INSTANCE,
-            UIResource.INSTANCE
+            UIResource.INSTANCE,
+            // Blueprints are project resources rather than a field on the definition, so one blueprint
+            // can be shared by many machines and pulled into another as an external subgraph. The
+            // resource container gives the whole create/list/open/save flow for free.
+            MachineBlueprintResource.INSTANCE
         )
     }
 

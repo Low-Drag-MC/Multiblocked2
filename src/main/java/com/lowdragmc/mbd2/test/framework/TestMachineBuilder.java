@@ -1,7 +1,10 @@
 package com.lowdragmc.mbd2.test.framework;
 
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
+import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
+import com.lowdragmc.mbd2.common.blueprint.MachineBlueprintGraph;
+import com.lowdragmc.mbd2.common.machine.definition.config.blueprint.MachineBlueprintBinding;
 import com.lowdragmc.mbd2.api.pattern.BlockPattern;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.common.event.MBDRegistryEvent;
@@ -37,6 +40,7 @@ public class TestMachineBuilder {
     private final ResourceLocation id;
     private final boolean multiblock;
     private final List<TraitDefinition> traits = new ArrayList<>();
+    private final List<MachineBlueprintBinding> blueprints = new ArrayList<>();
     private final List<Consumer<ConfigPartSettings>> partSettingsTweaks = new ArrayList<>();
     @Nullable private ResourceLocation recipeTypeId;
     @Nullable private Function<MBDMultiblockMachine, BlockPattern> blockPatternFactory;
@@ -131,6 +135,22 @@ public class TestMachineBuilder {
         return this;
     }
 
+    /**
+     * Attach a blueprint, inlined from a graph the test built itself.
+     *
+     * <p>Inlined rather than referenced because a gametest server has no editor resource folder to
+     * put a {@code .bp.nbt} in — {@link MachineBlueprintBinding#ofInline} exists for exactly this.</p>
+     */
+    public TestMachineBuilder withBlueprint(MachineBlueprintGraph graph) {
+        return withBlueprint(MachineBlueprintBinding.ofInline(
+                graph.graphModel.serializeNBT(Platform.getFrozenRegistry())));
+    }
+
+    public TestMachineBuilder withBlueprint(MachineBlueprintBinding binding) {
+        blueprints.add(binding);
+        return this;
+    }
+
     /** Bind this machine to a recipe type (by id). */
     public TestMachineBuilder withRecipeType(ResourceLocation recipeTypeId) {
         this.recipeTypeId = recipeTypeId;
@@ -171,6 +191,7 @@ public class TestMachineBuilder {
             for (TraitDefinition trait : traits) {
                 settings.addTraitDefinition(trait);
             }
+            settings.blueprints().addAll(blueprints);
             return settings;
         };
 

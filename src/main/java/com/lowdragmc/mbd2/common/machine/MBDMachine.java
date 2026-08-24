@@ -32,6 +32,7 @@ import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.client.MachineSound;
+import com.lowdragmc.mbd2.common.blueprint.MachineBlueprintInstance;
 import com.lowdragmc.mbd2.common.gui.MBDBindingIDs;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigMachineSettings;
@@ -133,6 +134,14 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
     @Nullable
     @OnlyIn(Dist.CLIENT)
     private MachineSound currentSound;
+    /**
+     * The blueprints attached to this machine, one per enabled
+     * {@link com.lowdragmc.mbd2.common.machine.definition.config.blueprint.MachineBlueprintBinding},
+     * in the order the definition lists them. Lazily built on first event so a machine that never
+     * receives one — or a definition with no blueprints at all — pays nothing.
+     */
+    @Nullable
+    private List<MachineBlueprintInstance> blueprintInstances;
 
     public MBDMachine(IMachineBlockEntity machineHolder, MBDMachineDefinition definition, Object... args) {
         this.machineHolder = machineHolder;
@@ -176,6 +185,59 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
         for (ITrait additionalTrait : additionalTraits) {
             additionalTrait.onMachineUnLoad();
         }
+        releaseBlueprints();
+    }
+
+    /**
+     * Post an event to this machine's blueprints.
+     *
+     * <p>Called from {@link MachineEvent#postCustomEvent()}, i.e. from every machine event there is —
+     * including the per-tick ones. The empty-definition case therefore has to be free, which is why the
+     * instance list is built lazily and the per-blueprint entry lookup is a map hit on the event's exact
+     * class rather than a scan.</p>
+     *
+     * <p>Blueprints run in list order and all of them run: for a cancelable event that makes cancelling
+     * a union (any blueprint may cancel), and for a value-modifying event it makes the list a pipeline,
+     * since each blueprint reads the event fields the previous one wrote.</p>
+     */
+    public void postBlueprintEvent(MachineEvent event) {
+        var instances = blueprintInstances;
+        if (instances == null) {
+            instances = blueprintInstances = createBlueprintInstances();
+        }
+        if (instances.isEmpty()) return;
+        var eventClass = event.getClass();
+        for (var instance : instances) {
+            if (instance.handles(eventClass)) {
+                instance.post(event);
+            }
+        }
+    }
+
+    protected List<MachineBlueprintInstance> createBlueprintInstances() {
+        var bindings = getDefinition().machineSettings().blueprints();
+        if (bindings.isEmpty()) return List.of();
+        var instances = new ArrayList<MachineBlueprintInstance>(bindings.size());
+        for (var binding : bindings) {
+            if (binding.isEnabled() && binding.hasBlueprint()) {
+                instances.add(new MachineBlueprintInstance(this, binding));
+            }
+        }
+        return instances;
+    }
+
+    /**
+     * Drop the blueprint executors and their caches.
+     *
+     * <p>Set back to {@code null} rather than emptied so a machine that unloads and reloads rebuilds
+     * from the definition — which also picks up an edited blueprint without a game restart.</p>
+     */
+    protected void releaseBlueprints() {
+        if (blueprintInstances == null) return;
+        for (var instance : blueprintInstances) {
+            instance.release();
+        }
+        blueprintInstances = null;
     }
 
     /**
@@ -198,6 +260,7 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
      * Have to call this method while changing the machine instance. e.g. {@link com.lowdragmc.mbd2.common.blockentity.MachineBlockEntity#setMachine(IMachine)}
      */
     public void detach() {
+        releaseBlueprints();
         if (machineHolder.getRootStorage() instanceof MultiManagedStorage multiManagedStorage) {
             multiManagedStorage.detach(getSyncStorage());
             for (ITrait trait : additionalTraits) {
