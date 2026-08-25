@@ -267,6 +267,19 @@ public final class MBDTestHelper {
         }
     }
 
+    /**
+     * The stack in {@code slot} of the machine's item handler, or empty when it has none.
+     * <p>
+     * Unlike the assertions, this does not fail the test — it is for polling with
+     * {@link MBDScenario#runUntil}, which recipe tests need because recipe searching runs on a
+     * background thread and is only re-polled every 5 ticks. A fixed {@code runTicks(n)} budget makes
+     * such a test a race; waiting for the observable makes it deterministic.
+     */
+    public static ItemStack readItem(GameTestHelper helper, MBDMachine machine, int slot) {
+        IItemHandler handler = capability(helper, machine, Capabilities.ItemHandler.BLOCK);
+        return handler == null || slot >= handler.getSlots() ? ItemStack.EMPTY : handler.getStackInSlot(slot);
+    }
+
     public static void assertItemPresent(GameTestHelper helper, MBDMachine machine, int slot, ItemStack expected) {
         IItemHandler handler = capability(helper, machine, Capabilities.ItemHandler.BLOCK);
         if (handler == null) {
@@ -320,6 +333,34 @@ public final class MBDTestHelper {
      * the machine no longer exists after the round trip.
      */
     public static MBDMachine roundTripPersistence(GameTestHelper helper, BlockPos relPos) {
+        return roundTripPersistence(helper, relPos, tag -> {});
+    }
+
+    /**
+     * As {@link #roundTripPersistence(GameTestHelper, BlockPos)}, but hands the saved tag to
+     * {@code tagMutator} before it is loaded back. Use it to simulate NBT written by an older build
+     * (legacy key migration) or by a newer one (forward-compatibility).
+     */
+    public static MBDMachine roundTripPersistence(GameTestHelper helper, BlockPos relPos,
+                                                  java.util.function.Consumer<CompoundTag> tagMutator) {
+        return roundTripPersistence(helper, relPos, tagMutator, true);
+    }
+
+    /**
+     * As {@link #roundTripPersistence(GameTestHelper, BlockPos, java.util.function.Consumer)}, but lets
+     * you pick the order the reloaded block entity is attached and read in.
+     *
+     * @param attachBeforeLoad {@code true} reproduces the already-loaded-chunk path, where the block
+     *                         entity has a level while its NBT is read. {@code false} reproduces
+     *                         <b>world load</b>: vanilla's {@code ChunkSerializer} calls
+     *                         {@code BlockEntity.loadStatic} — and therefore {@code loadAdditional} —
+     *                         before {@code chunk.setBlockEntity}, so {@code getLevel()} is null
+     *                         throughout deserialization. Anything reacting to loaded data has to
+     *                         survive that.
+     */
+    public static MBDMachine roundTripPersistence(GameTestHelper helper, BlockPos relPos,
+                                                  java.util.function.Consumer<CompoundTag> tagMutator,
+                                                  boolean attachBeforeLoad) {
         ServerLevel level = helper.getLevel();
         BlockPos absPos = helper.absolutePos(relPos);
         BlockEntity be = level.getBlockEntity(absPos);
@@ -329,6 +370,7 @@ public final class MBDTestHelper {
         }
         var provider = level.registryAccess();
         CompoundTag saved = be.saveWithFullMetadata(provider);
+        tagMutator.accept(saved);
         BlockState state = level.getBlockState(absPos);
 
         // Mark the existing BE as removed and detach it
@@ -342,9 +384,14 @@ public final class MBDTestHelper {
             helper.fail("Could not recreate BlockEntity at " + relPos);
             throw new AssertionError();
         }
-        // Attach to the level first so the BE has a valid level reference, then load
-        level.setBlockEntity(fresh);
-        fresh.loadWithComponents(saved, provider);
+        if (attachBeforeLoad) {
+            level.setBlockEntity(fresh);
+            fresh.loadWithComponents(saved, provider);
+        } else {
+            // vanilla world-load order: NBT is read while the block entity still has no level
+            fresh.loadWithComponents(saved, provider);
+            level.setBlockEntity(fresh);
+        }
         // clearRemoved triggers MBDMachine.onLoad which re-attaches the trait storages
         fresh.clearRemoved();
         return getMachine(helper, relPos);

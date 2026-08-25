@@ -3,12 +3,12 @@ package com.lowdragmc.mbd2.integration.mekanism.trait.chemical;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.ConditionalSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
-import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
-import com.lowdragmc.mbd2.common.trait.AutoIO;
+import com.lowdragmc.mbd2.common.runtime.RuntimeAutoIO;
+import com.lowdragmc.mbd2.common.runtime.RuntimeValue;
 import com.lowdragmc.mbd2.common.trait.IAutoIOTrait;
 import com.lowdragmc.mbd2.common.trait.RecipeHandlerTrait;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
@@ -33,15 +33,23 @@ import java.util.Map;
 import java.util.function.Predicate;
 
 public class ChemicalTankCapabilityTrait extends SimpleCapabilityTrait<IChemicalHandler, @Nullable Direction> implements IAutoIOTrait {
-    public static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(ChemicalTankCapabilityTrait.class);
-    @Override
-    public ManagedFieldHolder getFieldHolder() { return MANAGED_FIELD_HOLDER; }
-
     @Persisted
     @DescSynced
     @ConditionalSynced(methodName = "shouldSyncStorage")
     public final ChemicalStorage[] storages;
     private final ChemicalRecipeHandler recipeHandler = new ChemicalRecipeHandler();
+
+    // per-machine overrides of the values authored on the definition
+    public final RuntimeAutoIO autoIO =
+            new RuntimeAutoIO(runtimeValues, "auto_io", () -> getDefinition().getAutoIO());
+    public final RuntimeValue<Boolean> allowSameChemicals =
+            runtimeValues.ofBool("allow_same_chemicals", () -> getDefinition().isAllowSameChemicals())
+            .onChanged(() -> {
+                // the value is baked into the wrapper handed out at capability-resolution time, and a
+                // neighbour's BlockCapabilityCache keeps that wrapper until the position is invalidated
+                getMachine().invalidateCapabilities();
+                getMachine().notifyBlockUpdate();
+            });
     private final Map<BlockPos, EnumMap<Direction, BlockCapabilityCache<IChemicalHandler, @Nullable Direction>>> nearbyCache = new HashMap<>();
 
     public ChemicalTankCapabilityTrait(MBDMachine machine, ChemicalTankCapabilityTraitDefinition definition) {
@@ -56,9 +64,11 @@ public class ChemicalTankCapabilityTrait extends SimpleCapabilityTrait<IChemical
 
     protected ChemicalStorage[] createStorages() {
         var result = new ChemicalStorage[getDefinition().getTankSize()];
-        Predicate<ChemicalStack> validator = getDefinition().getFilterSettings().isEnable()
-                ? getDefinition().getFilterSettings()
-                : s -> true;
+        // live-read, for the reason spelled out in ItemSlotCapabilityTrait#createStorage
+        Predicate<ChemicalStack> validator = stack -> {
+            var filter = getDefinition().getFilterSettings();
+            return !filter.isEnable() || filter.test(stack);
+        };
         for (int i = 0; i < result.length; i++) {
             result[i] = new ChemicalStorage(getDefinition().getCapacity(), validator);
             result[i].setOnContentsChanged(this::notifyListeners);
@@ -68,7 +78,7 @@ public class ChemicalTankCapabilityTrait extends SimpleCapabilityTrait<IChemical
 
     @Override
     public IChemicalHandler getCapContent(IO capabilityIO) {
-        return new ChemicalStorageWrapper(storages, capabilityIO, getDefinition().isAllowSameChemicals());
+        return new ChemicalStorageWrapper(storages, capabilityIO, allowSameChemicals.get());
     }
 
     @Override
@@ -77,8 +87,8 @@ public class ChemicalTankCapabilityTrait extends SimpleCapabilityTrait<IChemical
     }
 
     @Override
-    public @Nullable AutoIO getAutoIO() {
-        return getDefinition().getAutoIO().isEnable() ? getDefinition().getAutoIO() : null;
+    public RuntimeAutoIO getRuntimeAutoIO() {
+        return autoIO;
     }
 
     @NotNull

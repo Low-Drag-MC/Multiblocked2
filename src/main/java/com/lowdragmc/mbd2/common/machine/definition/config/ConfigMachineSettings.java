@@ -53,6 +53,20 @@ public class ConfigMachineSettings implements IPersistedSerializable, IConfigura
         private boolean bottomConnection = false;
 
         public boolean getConnection(Direction front, Direction side) {
+            // A vertically-facing machine has no clockwise/counter-clockwise, and Direction throws for
+            // one — so resolve front/back and treat the remaining ring as "top", the same way AutoIO,
+            // CapabilityIO and ConnectedIO all do. Without this, canConnectRedstone() throws
+            // IllegalStateException for any machine whose rotation state is Y_AXIS or ALL and which is
+            // actually facing up or down.
+            if (front.getAxis() == Direction.Axis.Y) {
+                if (side == front) {
+                    return frontConnection;
+                } else if (side == front.getOpposite()) {
+                    return backConnection;
+                } else {
+                    return topConnection;
+                }
+            }
             if (side == Direction.UP) {
                 return topConnection;
             } else if (side == Direction.DOWN) {

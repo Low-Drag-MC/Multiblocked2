@@ -19,7 +19,6 @@ import appeng.util.ConfigInventory;
 import com.lowdragmc.lowdraglib2.misc.FluidStorage;
 import com.lowdragmc.lowdraglib2.misc.ItemStackTransfer;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
-import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
@@ -53,13 +52,6 @@ import java.util.Random;
 @Getter
 @Setter
 public class MEInterfaceTrait extends SimpleCapabilityTrait<MEStorage, @Nullable Direction> implements IGridConnectedBlockEntity, InterfaceLogicHost, PatternContainer {
-    public static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(MEInterfaceTrait.class);
-
-    @Override
-    public ManagedFieldHolder getFieldHolder() {
-        return MANAGED_FIELD_HOLDER;
-    }
-
     private final Random random = new Random();
 
     @Persisted

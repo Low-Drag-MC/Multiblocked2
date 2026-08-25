@@ -9,6 +9,7 @@ import com.lowdragmc.mbd2.integration.ae2.trait.MEInterfaceTraitDefinition;
 import com.lowdragmc.mbd2.integration.ae2.trait.MEPatternProviderTrait;
 import com.lowdragmc.mbd2.integration.ae2.trait.MEPatternProviderTraitDefinition;
 import com.lowdragmc.mbd2.test.framework.MBDScenario;
+import com.lowdragmc.mbd2.test.framework.MBDTestHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -69,7 +70,12 @@ public class MEPatternProviderTraitTests {
         var trait = patternProvider(h, scenario);
         trait.getStorage().setStack(0, new GenericStack(AEItemKey.of(Items.IRON_INGOT), 1));
 
-        scenario.runTicks(40);
+        // Poll rather than budget a fixed 40 ticks: recipe searching runs on a background thread and is
+        // only re-polled every 5 ticks, so a fixed budget races it. Batch composition changes the timing,
+        // which is why this failed intermittently once unrelated tests were added.
+        for (int tick = 0; tick < 200 && !hasEmerald(trait); tick++) {
+            MBDTestHelper.runTicks(h, 1);
+        }
 
         var output = trait.getReturnInventory().getStack(0);
         if (output == null || !(output.what() instanceof AEItemKey itemKey) || itemKey.getItem() != Items.EMERALD || output.amount() != 1) {
@@ -94,6 +100,12 @@ public class MEPatternProviderTraitTests {
             return;
         }
         h.succeed();
+    }
+
+    /** Non-failing read, for polling: the assertion afterwards is what reports a real failure. */
+    private static boolean hasEmerald(MEPatternProviderTrait trait) {
+        var stack = trait.getReturnInventory().getStack(0);
+        return stack != null && stack.what() instanceof AEItemKey key && key.getItem() == Items.EMERALD;
     }
 
     private static MEPatternProviderTrait patternProvider(GameTestHelper h, MBDScenario scenario) {

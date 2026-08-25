@@ -6,12 +6,14 @@ import com.lowdragmc.lowdraglib2.misc.FluidTransferList;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.ConditionalSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
-import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.common.capability.recipe.FluidRecipeCapability;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
+import com.lowdragmc.mbd2.common.runtime.RuntimeAutoIO;
+import com.lowdragmc.mbd2.common.runtime.RuntimeAutoWorldIO;
+import com.lowdragmc.mbd2.common.runtime.RuntimeValue;
 import com.lowdragmc.mbd2.common.trait.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -32,15 +34,27 @@ import java.util.*;
 import java.util.function.Predicate;
 
 public class FluidTankCapabilityTrait extends SimpleCapabilityTrait<IFluidHandler, @Nullable Direction> implements IAutoIOTrait {
-    public static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(FluidTankCapabilityTrait.class);
-    @Override
-    public ManagedFieldHolder getFieldHolder() { return MANAGED_FIELD_HOLDER; }
-
     @Persisted
     @DescSynced
     @ConditionalSynced(methodName = "shouldSyncStorage")
     public final FluidStorage[] storages;
     private final FluidRecipeHandler recipeHandler = new FluidRecipeHandler();
+
+    // per-machine overrides of the values authored on the definition
+    public final RuntimeAutoIO autoIO =
+            new RuntimeAutoIO(runtimeValues, "auto_io", () -> getDefinition().getAutoIO());
+    public final RuntimeAutoWorldIO autoWorldInput =
+            new RuntimeAutoWorldIO(runtimeValues, "auto_world_input", () -> getDefinition().getAutoInput());
+    public final RuntimeAutoWorldIO autoWorldOutput =
+            new RuntimeAutoWorldIO(runtimeValues, "auto_world_output", () -> getDefinition().getAutoOutput());
+    public final RuntimeValue<Boolean> allowSameFluids =
+            runtimeValues.ofBool("allow_same_fluids", () -> getDefinition().isAllowSameFluids())
+            .onChanged(() -> {
+                // the value is baked into the wrapper handed out at capability-resolution time, and a
+                // neighbour's BlockCapabilityCache keeps that wrapper until the position is invalidated
+                getMachine().invalidateCapabilities();
+                getMachine().notifyBlockUpdate();
+            });
 
     // runtime
     private final Random random = new Random();
@@ -73,9 +87,11 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait<IFluidHandle
         for (int i = 0; i < storages.length; i++) {
             storages[i] = new FluidStorage(getDefinition().getCapacity());
             storages[i].setOnContentsChanged(this::onContentsChanged);
-            if (getDefinition().getFluidFilterSettings().isEnable()) {
-                storages[i].setValidator(getDefinition().getFluidFilterSettings());
-            }
+            // live-read, for the reason spelled out in ItemSlotCapabilityTrait#createStorage
+            storages[i].setValidator(stack -> {
+                var filter = getDefinition().getFluidFilterSettings();
+                return !filter.isEnable() || filter.test(stack);
+            });
         }
         return storages;
     }
@@ -102,11 +118,11 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait<IFluidHandle
     public void serverTick() {
         IAutoIOTrait.super.serverTick();
         var timer = getMachine().getOffsetTimer();
-        var autoInput = getDefinition().getAutoInput();
-        var autoOutput = getDefinition().getAutoOutput();
+        var autoInput = autoWorldInput;
+        var autoOutput = autoWorldOutput;
         var level = getMachine().getLevel();
-        if (autoInput.isEnable() && timer % autoInput.getInterval() == 0) {
-            var leftBlocks = autoInput.getSpeed();
+        if (autoInput.enable.get() && timer % autoInput.intervalTicks() == 0) {
+            var leftBlocks = autoInput.speed.get();
             var range = autoInput.getRotatedRange(getMachine().getFrontFacing().orElse(Direction.NORTH)).move(getMachine().getPos());
             for (int x = (int) Math.round(range.minX); x < (int) Math.round(range.maxX); x++) {
                 if (leftBlocks <= 0) break;
@@ -132,8 +148,8 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait<IFluidHandle
                 }
             }
         }
-        if (autoOutput.isEnable() && timer % autoOutput.getInterval() == 0) {
-            var leftBlocks = autoOutput.getSpeed();
+        if (autoOutput.enable.get() && timer % autoOutput.intervalTicks() == 0) {
+            var leftBlocks = autoOutput.speed.get();
             var range = autoOutput.getRotatedRange(getMachine().getFrontFacing().orElse(Direction.NORTH)).move(getMachine().getPos());
 
             for (int x = (int) Math.round(range.minX); x < (int) Math.round(range.maxX); x++) {
@@ -171,12 +187,12 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait<IFluidHandle
 
     @Override
     public IFluidHandler getCapContent(IO capbilityIO) {
-        return new FluidHandlerWrapper(storages, capbilityIO, getDefinition().isAllowSameFluids());
+        return new FluidHandlerWrapper(storages, capbilityIO, allowSameFluids.get());
     }
 
     @Override
-    public @Nullable AutoIO getAutoIO() {
-        return getDefinition().getAutoIO().isEnable() ? getDefinition().getAutoIO() : null;
+    public RuntimeAutoIO getRuntimeAutoIO() {
+        return autoIO;
     }
 
     @Nonnull
@@ -203,7 +219,7 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait<IFluidHandle
 
                 // fill through the wrapper, not the raw storages — it is what enforces
                 // "allow same fluids", so pulling in bypasses the setting otherwise.
-                var storage = new FluidHandlerWrapper(storages, IO.IN, getDefinition().isAllowSameFluids());
+                var storage = new FluidHandlerWrapper(storages, IO.IN, allowSameFluids.get());
                 var maxAmount = Integer.MAX_VALUE;
 
                 for (int srcIndex = 0; srcIndex < source.getTanks(); srcIndex++) {

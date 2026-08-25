@@ -1,6 +1,5 @@
 package com.lowdragmc.mbd2.integration.naturesaura.trait;
 
-import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
@@ -15,13 +14,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class AuraHandlerTrait extends RecipeCapabilityTrait {
-    public static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(AuraHandlerTrait.class);
-
-    @Override
-    public ManagedFieldHolder getFieldHolder() {
-        return MANAGED_FIELD_HOLDER;
-    }
-
     private final AuraRecipeHandler recipeHandler = new AuraRecipeHandler();
 
     public AuraHandlerTrait(MBDMachine machine, AuraHandlerTraitDefinition definition) {

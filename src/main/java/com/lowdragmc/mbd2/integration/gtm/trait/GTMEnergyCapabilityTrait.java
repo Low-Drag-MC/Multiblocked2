@@ -5,7 +5,6 @@
 //import com.gregtechceu.gtceu.api.misc.EnergyContainerList;
 //import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
 //import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
-//import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
 //import com.lowdragmc.mbd2.api.capability.recipe.IO;
 //import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
 //import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
@@ -24,10 +23,6 @@
 //
 //@Getter
 //public class GTMEnergyCapabilityTrait extends SimpleCapabilityTrait implements IAutoIOTrait {
-//    public static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(GTMEnergyCapabilityTrait.class);
-//    @Override
-//    public ManagedFieldHolder getFieldHolder() { return MANAGED_FIELD_HOLDER; }
-//
 //    @Persisted
 //    @DescSynced
 //    public final CopiableEnergyContainer container;

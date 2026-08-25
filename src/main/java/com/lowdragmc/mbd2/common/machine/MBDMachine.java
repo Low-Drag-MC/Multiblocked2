@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.ProgressBar;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement;
 import com.lowdragmc.lowdraglib2.syncdata.IManaged;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.LazyManaged;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.RPCMethod;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.UpdateListener;
@@ -38,6 +39,10 @@ import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigMachineSettings;
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
 import com.lowdragmc.mbd2.common.machine.definition.config.event.*;
+import com.lowdragmc.mbd2.common.runtime.IRuntimeValueHolder;
+import com.lowdragmc.mbd2.common.runtime.RuntimeSignalConnection;
+import com.lowdragmc.mbd2.common.runtime.RuntimeValue;
+import com.lowdragmc.mbd2.common.runtime.RuntimeValueStorage;
 import com.lowdragmc.mbd2.common.trait.ITrait;
 import com.lowdragmc.mbd2.common.trait.IUIProviderTrait;
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
@@ -85,7 +90,7 @@ import java.util.*;
 import java.util.List;
 
 @Getter
-public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManaged, BlockUIMenuType.BlockUI {
+public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManaged, IRuntimeValueHolder, BlockUIMenuType.BlockUI {
     private final FieldManagedStorage syncStorage = new FieldManagedStorage(this);
     private final MBDMachineDefinition definition;
     private final IMachineBlockEntity machineHolder;
@@ -114,10 +119,64 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
     private final Map<IRenderer, Object> animatableCache = new HashMap<>(); // see IAnimationSource
 //    @Getter
 //    private Map<String, Object> photonFXs = new HashMap<>(); // it's used for Photon
+    /**
+     * @deprecated superseded by the {@link #machineLevel} runtime value. Still read from NBT so worlds
+     *             saved before the runtime value system keep their tier — see
+     *             {@link #migrateLegacyRuntimeOverrides()} — but never written to again, so it now
+     *             always reads {@code -1}. Scripts that used {@code dynamicMachineLevel >= 0} to ask
+     *             "is the tier overridden?" want
+     *             {@code getRuntimeValues().isOverridden("machine_level")} instead.
+     */
+    @Deprecated
     @Persisted
-    @DescSynced
     @Getter
     private int dynamicMachineLevel = -1;
+    /**
+     * Per-machine overrides of values authored on the shared definition. Declared before any
+     * {@link RuntimeValue} field below, because field initialisers run in declaration order.
+     * <p>
+     * Persisted with the block entity and never synced — see {@link RuntimeValueStorage}.
+     * <p>
+     * {@code @LazyManaged} only removes the field from LDLib's per-tick dirty sweep; it is still in
+     * {@code getPersistedFields()} and still saved. {@link RuntimeValue#set} marks it dirty itself.
+     */
+    @Persisted
+    @LazyManaged
+    @Getter
+    protected final RuntimeValueStorage runtimeValues = new RuntimeValueStorage(this);
+    /**
+     * Kept private on purpose: {@code getMachineLevel()} already exists as a no-arg bean property, so a
+     * public {@code machineLevel} field would shadow it in KubeJS/Rhino and hand scripts the slot where
+     * they expect the int. Scripts go through {@link #setMachineLevel}/{@link #clearMachineLevel} or
+     * {@code runtimeValues.set("machine_level", ...)}.
+     */
+    private final RuntimeValue<Integer> machineLevel =
+            runtimeValues.ofInt("machine_level", () -> getDefinition().machineSettings().machineLevel());
+    /*
+     * Deliberately NOT runtime values: hasUI and showUIOnlyFormed gate shouldOpenUI, which
+     * MBDMachineBlock.useWithoutItem calls on BOTH sides, and openUI answers sidedSuccess(isClientSide).
+     * Overrides are never transmitted, so a server-side override would make the client read the
+     * definition, claim SUCCESS and swing the arm while the server returned PASS and ran the default
+     * block/item interaction instead. A value that gates a two-sided interaction has to be one both sides
+     * can agree on, which under a persistence-only design means the definition.
+     *
+     * showUIWhenClickStructure is fine as a runtime value: its only reader is CommonEventListener, which
+     * is gated on ServerLevel.
+     */
+    public final RuntimeValue<Boolean> dropMachineItem =
+            runtimeValues.ofBool("drop_machine_item", () -> getDefinition().machineSettings().dropMachineItem());
+    public final RuntimeSignalConnection signalConnection =
+            new RuntimeSignalConnection(runtimeValues, "signal_connection",
+                    () -> getDefinition().machineSettings().signalConnection());
+    public final RuntimeValue<Boolean> recipeLogicEnabled =
+            runtimeValues.ofBool("recipe_logic.enable", () -> getDefinition().recipeLogicSettings().isEnable());
+    /** Private for the same reason as {@link #machineLevel}: {@code getRecipeDampingValue()} already exists. */
+    private final RuntimeValue<Integer> recipeDampingValue =
+            runtimeValues.ofInt("recipe_logic.damping", () -> getDefinition().recipeLogicSettings().recipeDampingValue());
+    public final RuntimeValue<Boolean> alwaysSearchRecipe =
+            runtimeValues.ofBool("recipe_logic.always_search", () -> getDefinition().recipeLogicSettings().alwaysSearchRecipe());
+    public final RuntimeValue<Boolean> alwaysModifyRecipe =
+            runtimeValues.ofBool("recipe_logic.always_modify", () -> getDefinition().recipeLogicSettings().alwaysModifyRecipe());
     // redstone signal
     @Getter
     @Persisted
@@ -246,12 +305,35 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
     @Override
     public void onLoad() {
         IMachine.super.onLoad();
+        migrateLegacyRuntimeOverrides();
         for (ITrait additionalTrait : additionalTraits) {
             additionalTrait.onMachineLoad();
         }
         if (getLevel() instanceof ServerLevel serverLevel) {
             serverLevel.getServer().tell(new TickTask(0, () -> NeoForge.EVENT_BUS.post(new MachineOnLoadEvent(this).postCustomEvent())));
         }
+    }
+
+    @Override
+    public MBDMachine runtimeValueMachine() {
+        return this;
+    }
+
+    /**
+     * Fold overrides saved before the runtime value system into their slots. Runs from {@link #onLoad()},
+     * which vanilla drives from {@link net.minecraft.world.level.block.entity.BlockEntity#clearRemoved()}
+     * — after the block entity NBT has been read, on the server thread.
+     * <p>
+     * Not hooked into {@code IMachine#loadCustomPersistedData}: LDLib's {@code IPersistManagedHolder}
+     * writes that data under {@code managed.custom} but reads it back from the root {@code custom}, so it
+     * does not round-trip.
+     */
+    private void migrateLegacyRuntimeOverrides() {
+        if (!(getLevel() instanceof ServerLevel)) return;
+        if (dynamicMachineLevel >= 0 && !machineLevel.isOverridden()) {
+            machineLevel.set(dynamicMachineLevel);
+        }
+        dynamicMachineLevel = -1;
     }
 
     /**
@@ -503,14 +585,30 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
      */
     @Override
     public int getMachineLevel() {
-        return dynamicMachineLevel < 0 ? getDefinition().machineSettings().machineLevel() : dynamicMachineLevel;
+        // Clamped because the by-name API is a second door to this slot and does not share
+        // setMachineLevel's "negative means clear" rule: runtimeValues.set("machine_level", -1) stores
+        // -1. The definition's own field is @ConfigNumber(range = {0, MAX}), so negative is out of
+        // contract either way, and MachineLevelCondition and friends should never see one.
+        return Math.max(0, machineLevel.get());
     }
 
     /**
-     * Set the machine level dynamically.
+     * Set the machine level dynamically. A negative level clears the override, putting the machine back
+     * on the level authored in its definition.
      */
     public void setMachineLevel(int level) {
-        dynamicMachineLevel = level;
+        if (level < 0) {
+            machineLevel.clear();
+        } else {
+            machineLevel.set(level);
+        }
+    }
+
+    /**
+     * Put the machine back on the level authored in its definition.
+     */
+    public void clearMachineLevel() {
+        machineLevel.clear();
     }
 
     /**
@@ -606,7 +704,7 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
      * if the machine has no recipe logic or using the {@link MBDRecipeType#DUMMY}, it will return false.
      */
     public boolean runRecipeLogic() {
-        return getDefinition().recipeLogicSettings().isEnable() && IMachine.super.runRecipeLogic();
+        return recipeLogicEnabled.get() && IMachine.super.runRecipeLogic();
     }
 
     @Override
@@ -661,7 +759,7 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
      */
     @Override
     public boolean alwaysTryModifyRecipe() {
-        return !getDefinition().recipeLogicSettings().recipeModifiers().recipeModifiers.isEmpty() || getDefinition().recipeLogicSettings().alwaysModifyRecipe();
+        return !getDefinition().recipeLogicSettings().recipeModifiers().recipeModifiers.isEmpty() || alwaysModifyRecipe.get();
     }
 
     /**
@@ -670,7 +768,7 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
      */
     @Override
     public boolean alwaysReSearchRecipe() {
-        return getDefinition().recipeLogicSettings().alwaysSearchRecipe();
+        return alwaysSearchRecipe.get();
     }
 
     /**
@@ -679,7 +777,7 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
      */
     @Override
     public int getRecipeDampingValue() {
-        return getDefinition().recipeLogicSettings().recipeDampingValue();
+        return recipeDampingValue.get();
     }
 
     @Override
@@ -818,7 +916,7 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
      */
     public boolean canConnectRedstone(Direction direction) {
         if (getOutputSignal(direction) > 0) return true;
-        return getDefinition().machineSettings().signalConnection().getConnection(getFrontFacing().orElse(Direction.NORTH), direction);
+        return signalConnection.getConnection(getFrontFacing().orElse(Direction.NORTH), direction);
     }
 
     /**
@@ -841,7 +939,11 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
      * {@link #getOutputDirectSignal(Direction)}
      */
      public void updateSignal() {
-        if (!getLevel().isClientSide) {
+        // Null-checked: this is reached from a runtime value hook, which fires from
+        // RuntimeValueStorage#deserializeNBT — and vanilla loads a block entity's NBT before attaching
+        // it to its level, so a machine with a saved signal_connection override has no level here.
+        var level = getLevel();
+        if (level != null && !level.isClientSide) {
             notifyBlockUpdate();
         }
     }
@@ -871,7 +973,7 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
      * On machine broken and drops items.
      */
     public void onDrops(Entity entity, List<ItemStack> drops) {
-        if (getDefinition().machineSettings().dropMachineItem()) {
+        if (dropMachineItem.get()) {
             var drop = getDropItem();
             if (!drop.isEmpty()) {
                 drops.add(drop);

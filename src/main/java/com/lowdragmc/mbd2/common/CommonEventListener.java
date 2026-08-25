@@ -47,7 +47,7 @@ public class CommonEventListener {
                     LongSet openUIMask = state.getMatchContext().getOrDefault("openUIMask", LongSets.EMPTY_SET);
                     if (state.getController() instanceof MBDMultiblockMachine machine) {
                         if (machine.getDefinition().machineSettings().hasUI() &&
-                                machine.getDefinition().multiblockSettings().showUIWhenClickStructure() &&
+                                machine.showUIWhenClickStructure.get() &&
                                 openUIMask.contains(pos.asLong())) {
                             machine.openUI(event.getEntity());
                             event.setUseBlock(TriState.FALSE);

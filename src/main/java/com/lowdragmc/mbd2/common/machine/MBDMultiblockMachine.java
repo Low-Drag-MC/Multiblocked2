@@ -26,6 +26,7 @@ import com.lowdragmc.mbd2.client.renderer.MultiblockInWorldPreviewRenderer;
 import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigPartSettings;
 import com.lowdragmc.mbd2.common.machine.definition.config.event.*;
+import com.lowdragmc.mbd2.common.runtime.RuntimeValue;
 import com.lowdragmc.mbd2.common.trait.IProxyAutoIOTrait;
 import com.lowdragmc.mbd2.common.trait.IUIProviderTrait;
 import com.lowdragmc.mbd2.config.ConfigHolder;
@@ -54,6 +55,12 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class MBDMultiblockMachine extends MBDMachine implements IMultiController {
+    // per-machine overrides of the values authored on the definition
+    // showUIOnlyFormed is not a runtime value — see the note in MBDMachine, it gates shouldOpenUI.
+    public final RuntimeValue<Boolean> showUIWhenClickStructure =
+            runtimeValues.ofBool("multiblock.show_ui_when_click_structure",
+                    () -> getDefinition().multiblockSettings().showUIWhenClickStructure());
+
     private MultiblockState multiblockState;
     private final List<IMultiPart> parts = new ArrayList<>();
     @Getter

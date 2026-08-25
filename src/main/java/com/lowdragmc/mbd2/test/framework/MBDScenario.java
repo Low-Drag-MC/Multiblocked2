@@ -355,6 +355,28 @@ public class MBDScenario {
         return this;
     }
 
+    /**
+     * As {@link #assertPersistenceRoundTrip()}, but lets you edit the saved tag before it is loaded back
+     * — for simulating NBT written by an older or newer build.
+     */
+    public MBDScenario assertPersistenceRoundTrip(Consumer<net.minecraft.nbt.CompoundTag> tagMutator) {
+        requireCurrent();
+        this.current = MBDTestHelper.roundTripPersistence(helper, currentRelPos, tagMutator);
+        return this;
+    }
+
+    /**
+     * Round-trip the machine the way <b>world load</b> does it: the block entity's NBT is read before it
+     * is attached to a level, so {@code getLevel()} is null throughout deserialization.
+     *
+     * @see MBDTestHelper#roundTripPersistence(GameTestHelper, BlockPos, Consumer, boolean)
+     */
+    public MBDScenario assertWorldLoadRoundTrip() {
+        requireCurrent();
+        this.current = MBDTestHelper.roundTripPersistence(helper, currentRelPos, tag -> {}, false);
+        return this;
+    }
+
     // endregion
 
     // region auto-IO
@@ -398,6 +420,26 @@ public class MBDScenario {
      */
     public <T extends Entity> MBDScenario spawnEntity(EntityType<T> type, BlockPos relPos, Consumer<T> setup) {
         MBDTestHelper.spawnEntity(helper, type, relPos, setup);
+        return this;
+    }
+
+    // endregion
+
+    // region arbitrary steps
+
+    /** Run arbitrary code against the current machine without breaking the chain. */
+    public MBDScenario with(Consumer<MBDMachine> action) {
+        requireCurrent();
+        action.accept(current);
+        return this;
+    }
+
+    /** Assert a predicate on the current machine, failing the test with {@code message} when false. */
+    public MBDScenario check(String message, Predicate<MBDMachine> predicate) {
+        requireCurrent();
+        if (!predicate.test(current)) {
+            helper.fail(message);
+        }
         return this;
     }
 

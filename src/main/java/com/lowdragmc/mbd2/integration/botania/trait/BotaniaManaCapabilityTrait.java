@@ -2,7 +2,6 @@
 //
 //import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
 //import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
-//import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
 //import com.lowdragmc.mbd2.api.capability.recipe.IO;
 //import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
 //import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
@@ -27,13 +26,6 @@
 //import java.util.Map;
 //
 //public class BotaniaManaCapabilityTrait extends SimpleCapabilityTrait<ManaReceiver, Direction> implements IAutoIOTrait {
-//    public static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(BotaniaManaCapabilityTrait.class);
-//
-//    @Override
-//    public ManagedFieldHolder getFieldHolder() {
-//        return MANAGED_FIELD_HOLDER;
-//    }
-//
 //    @Persisted
 //    @DescSynced
 //    public final CopiableManaPool storage;

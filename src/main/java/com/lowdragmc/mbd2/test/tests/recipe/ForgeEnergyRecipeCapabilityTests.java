@@ -2,6 +2,7 @@ package com.lowdragmc.mbd2.test.tests.recipe;
 
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.test.framework.MBDScenario;
+import com.lowdragmc.mbd2.test.framework.MBDTestHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -22,7 +23,9 @@ public class ForgeEnergyRecipeCapabilityTests {
         MBDScenario.of(h)
                 .placeMachine(ForgeEnergyRecipeCapabilityFixtures.MACHINE_ID, POS)
                 .insertEnergy(10_000)
-                .runTicks(40)
+                // poll rather than budget a fixed 40 ticks: recipe searching is async and only re-polls
+                // every 5 ticks, so a fixed budget races the background thread
+                .runUntil(m -> MBDTestHelper.readItem(h, m, 0).is(Items.DIRT), 200)
                 .assertItem(0, new ItemStack(Items.DIRT, 1))
                 .succeed();
     }

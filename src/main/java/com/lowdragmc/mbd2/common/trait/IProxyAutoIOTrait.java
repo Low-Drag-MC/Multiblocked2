@@ -29,6 +29,18 @@ public interface IProxyAutoIOTrait extends ITrait {
      * {@link ConfigPartSettings#proxyControllerCapabilities()} on a part and the {@code proxyCapabilities}
      * of a matched {@code proxyWhileFormed} predicate.
      *
+     * <h4>How runtime values apply here</h4>
+     * The sides and interval come from the <b>port's</b> {@code ProxyCapability} config, which is a list
+     * element on the part definition and has no per-machine slots of its own — overriding those would
+     * need per-element addressing, and the predicate-driven proxies are rebuilt on every form, so there
+     * is nothing stable to address. Those stay definition-only.
+     * <p>
+     * What <em>is</em> honoured is an explicit runtime override of the proxied trait's own
+     * {@code auto_io.enable}: see {@link #isAutoIOSuppressed}. Without that,
+     * {@link IAutoIOTrait#setAutoIOEnabled}{@code (false)} would stop a trait's direct auto IO but leave
+     * a port happily moving the same items, and "turn auto IO off for this machine" is the whole point of
+     * the feature.
+     *
      * @param controller the machine owning the proxied traits
      * @param proxies    the proxy capability configs to apply
      * @param port       the position acting as the port, i.e. the proxying block
@@ -47,6 +59,7 @@ public interface IProxyAutoIOTrait extends ITrait {
             var filter = proxy.traitNameFilter();
             for (var trait : controller.getAdditionalTraits()) {
                 if (!(trait instanceof IProxyAutoIOTrait autoIOTrait)) continue;
+                if (isAutoIOSuppressed(trait)) continue;
                 // an unset filter means "every trait", same rule the capability side uses
                 if (filter != null && !filter.isEmpty()
                         && !trait.getDefinition().getName().contains(filter)) continue;
@@ -58,5 +71,21 @@ public interface IProxyAutoIOTrait extends ITrait {
                 }
             }
         }
+    }
+
+    /**
+     * Whether {@code trait} has been explicitly switched off at runtime, in which case a port must not
+     * move anything on its behalf either.
+     * <p>
+     * Deliberately keyed on {@link com.lowdragmc.mbd2.common.runtime.RuntimeValue#isOverridden()} rather
+     * than on the effective value. A definition commonly authors a trait's own auto IO as disabled and
+     * lets only the port drive it — gating on the effective value would break every one of those setups.
+     * An override, by contrast, is a runtime instruction from a script, a blueprint or a player, and a
+     * runtime instruction should beat authored config.
+     */
+    static boolean isAutoIOSuppressed(ITrait trait) {
+        if (!(trait instanceof IAutoIOTrait autoIOTrait)) return false;
+        var runtimeAutoIO = autoIOTrait.getRuntimeAutoIO();
+        return runtimeAutoIO != null && runtimeAutoIO.enable.isOverridden() && !runtimeAutoIO.enable.get();
     }
 }

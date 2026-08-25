@@ -1,12 +1,11 @@
 package com.lowdragmc.mbd2.integration.pneumaticcraft.trait.heat;
 
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
-import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
-import com.lowdragmc.mbd2.common.trait.AutoIO;
+import com.lowdragmc.mbd2.common.runtime.RuntimeAutoIO;
 import com.lowdragmc.mbd2.common.trait.IAutoIOTrait;
 import com.lowdragmc.mbd2.common.trait.RecipeHandlerTrait;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
@@ -29,17 +28,17 @@ import java.util.Map;
 
 @Getter
 public class PNCHeatExchangerTrait extends SimpleCapabilityTrait<IHeatExchangerLogic, @Nullable Direction> implements IAutoIOTrait {
-    public static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(PNCHeatExchangerTrait.class);
-
-    @Override
-    public ManagedFieldHolder getFieldHolder() {
-        return MANAGED_FIELD_HOLDER;
-    }
-
     @Persisted
     public final HeatExchanger handler;
 
     private final HeatRecipeHandler recipeHandler = new HeatRecipeHandler();
+
+    // per-machine override of the auto IO authored on the definition
+    // @Getter(NONE): see ForgeEnergyCapabilityTrait — the class @Getter would republish getAutoIO()
+    // with a different type and without the old "null when disabled" contract.
+    @Getter(lombok.AccessLevel.NONE)
+    public final RuntimeAutoIO autoIO =
+            new RuntimeAutoIO(runtimeValues, "auto_io", () -> getDefinition().getAutoIO());
     private final Map<BlockPos, EnumMap<Direction, BlockCapabilityCache<IHeatExchangerLogic, @Nullable Direction>>> nearbyCache = new HashMap<>();
     private boolean isFirstTick = true;
 
@@ -72,8 +71,8 @@ public class PNCHeatExchangerTrait extends SimpleCapabilityTrait<IHeatExchangerL
     }
 
     @Override
-    public @Nullable AutoIO getAutoIO() {
-        return getDefinition().getAutoIO().isEnable() ? getDefinition().getAutoIO() : null;
+    public RuntimeAutoIO getRuntimeAutoIO() {
+        return autoIO;
     }
 
     @Override

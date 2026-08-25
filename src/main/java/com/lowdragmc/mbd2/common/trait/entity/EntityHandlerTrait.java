@@ -1,21 +1,22 @@
 package com.lowdragmc.mbd2.common.trait.entity;
 
-import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.ingredient.EntityIngredient;
 import com.lowdragmc.mbd2.common.capability.recipe.EntityRecipeCapability;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
+import com.lowdragmc.mbd2.common.runtime.RotatedRangeCache;
+import com.lowdragmc.mbd2.common.runtime.RuntimeValue;
 import com.lowdragmc.mbd2.common.trait.RecipeCapabilityTrait;
 import com.lowdragmc.mbd2.common.trait.RecipeHandlerTrait;
-import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,9 +29,10 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 public class EntityHandlerTrait extends RecipeCapabilityTrait {
-    public static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(EntityHandlerTrait.class);
-    @Override
-    public ManagedFieldHolder getFieldHolder() { return MANAGED_FIELD_HOLDER; }
+    /** Per-machine override of the detection area authored on the definition. */
+    public final RuntimeValue<AABB> area =
+            runtimeValues.ofAABB("area", () -> getDefinition().getArea());
+    private final RotatedRangeCache rotatedArea = new RotatedRangeCache(area);
 
     private final List<Entity> entities = new ArrayList<>();
     private final Lock entitiesLock = new ReentrantLock();
@@ -49,7 +51,7 @@ public class EntityHandlerTrait extends RecipeCapabilityTrait {
     public void serverTick() {
         if (getHandlerIO() == IO.IN && getMachine().getOffsetTimer() % 20 == 0) {
             if (entitiesLock.tryLock()) {
-                var area = getDefinition().getArea(getMachine().getFrontFacing().orElse(null));
+                var area = rotatedArea.get(getMachine().getFrontFacing().orElse(null));
                 area = area.move(getMachine().getPos());
                 var detected = getMachine().getLevel().getEntities((Entity)null, area, Entity::isAlive);
                 if (detected.size() != entities.size() || !new HashSet<>(detected).containsAll(entities)) {
@@ -79,7 +81,7 @@ public class EntityHandlerTrait extends RecipeCapabilityTrait {
             if (io == IO.OUT) {
                 if (!simulate && getMachine().getLevel() instanceof ServerLevel serverLevel) {
                     // spawn entities
-                    var area = getDefinition().getArea(getMachine().getFrontFacing().orElse(null));
+                    var area = rotatedArea.get(getMachine().getFrontFacing().orElse(null));
                     area = area.move(getMachine().getPos());
                     for (EntityIngredient entityIngredient : left) {
                         for (EntityType<?> type : entityIngredient.getTypes()) {

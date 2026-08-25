@@ -4,15 +4,11 @@ import com.lowdragmc.lowdraglib2.configurator.IToggleConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.DefaultValue;
-import com.lowdragmc.lowdraglib2.utils.ShapeUtils;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import net.minecraft.core.Direction;
 import net.minecraft.world.phys.AABB;
 
-import java.util.EnumMap;
-import java.util.Map;
 
 @Setter
 @Getter
@@ -31,10 +27,6 @@ public class AutoWorldIO implements IToggleConfigurable {
     @Accessors(chain = true)
     public int speed = 64;
 
-    // runtime
-    private final Map<Direction, AABB> rangeCache = new EnumMap<>(Direction.class);
-
-    public AABB getRotatedRange(Direction direction) {
-        return (direction == Direction.NORTH || direction == null) ? range : this.rangeCache.computeIfAbsent(direction, dir -> ShapeUtils.rotate(range, dir));
-    }
+    // Rotation is memoised per trait instance by RuntimeAutoWorldIO, not here: a cache on this object
+    // would be shared by every machine of the type and had no invalidation when the range changed.
 }

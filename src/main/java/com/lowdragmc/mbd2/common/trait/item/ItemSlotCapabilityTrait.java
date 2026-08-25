@@ -5,13 +5,15 @@ import com.lowdragmc.lowdraglib2.misc.ItemStackTransfer;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.ConditionalSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
-import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.common.capability.recipe.ItemDurabilityRecipeCapability;
 import com.lowdragmc.mbd2.common.capability.recipe.ItemRecipeCapability;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
+import com.lowdragmc.mbd2.common.runtime.RuntimeAutoIO;
+import com.lowdragmc.mbd2.common.runtime.RuntimeAutoWorldIO;
+import com.lowdragmc.mbd2.common.runtime.RuntimeValue;
 import com.lowdragmc.mbd2.common.trait.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -35,10 +37,6 @@ import java.util.*;
 import java.util.function.Predicate;
 
 public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler, @Nullable Direction> implements IAutoIOTrait {
-    public static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(ItemSlotCapabilityTrait.class);
-    @Override
-    public ManagedFieldHolder getFieldHolder() { return MANAGED_FIELD_HOLDER; }
-
     @Persisted
     @DescSynced
     @ConditionalSynced(methodName = "shouldSyncStorage")
@@ -46,6 +44,24 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
 
     private final ItemRecipeHandler itemRecipeHandler = new ItemRecipeHandler();
     private final ItemDurabilityRecipeHandler durabilityRecipeHandler = new ItemDurabilityRecipeHandler();
+
+    // per-machine overrides of the values authored on the definition
+    public final RuntimeAutoIO autoIO =
+            new RuntimeAutoIO(runtimeValues, "auto_io", () -> getDefinition().getAutoIO());
+    public final RuntimeAutoWorldIO autoWorldInput =
+            new RuntimeAutoWorldIO(runtimeValues, "auto_world_input", () -> getDefinition().getAutoWorldInput());
+    public final RuntimeAutoWorldIO autoWorldOutput =
+            new RuntimeAutoWorldIO(runtimeValues, "auto_world_output", () -> getDefinition().getAutoWorldOutput());
+    public final RuntimeValue<Boolean> allowSameItems =
+            runtimeValues.ofBool("allow_same_items", () -> getDefinition().isAllowSameItems())
+            .onChanged(() -> {
+                // the value is baked into the wrapper handed out at capability-resolution time, and a
+                // neighbour's BlockCapabilityCache keeps that wrapper until the position is invalidated
+                getMachine().invalidateCapabilities();
+                getMachine().notifyBlockUpdate();
+            });
+    public final RuntimeValue<Integer> slotLimit =
+            runtimeValues.ofInt("slot_limit", () -> getDefinition().getSlotLimit());
 
     // runtime
     private final Random random = new Random();
@@ -75,7 +91,7 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
 
     @Override
     public IItemHandler getCapContent(IO capabilityIO) {
-        return new ItemHandlerWrapper(storage, capabilityIO, getDefinition().isAllowSameItems());
+        return new ItemHandlerWrapper(storage, capabilityIO, allowSameItems.get());
     }
 
     @Override
@@ -89,12 +105,16 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
         var transfer = new ItemStackTransfer(getDefinition().getSlotSize()) {
             @Override
             public int getSlotLimit(int slot) {
-                return getDefinition().getSlotLimit();
+                return slotLimit.get();
             }
         };
-        if (getDefinition().getItemFilterSettings().isEnable()) {
-            transfer.setFilter(getDefinition().getItemFilterSettings()::test);
-        }
+        // Read the filter live instead of baking the definition's object in at construction. handleAutoIO
+        // always read it live, so a filter toggled after the machine was placed — an editor edit plus
+        // /mbd2 reload_machine_projects — applied to auto IO but not to the slots themselves.
+        transfer.setFilter(stack -> {
+            var filter = getDefinition().getItemFilterSettings();
+            return !filter.isEnable() || filter.test(stack);
+        });
         return transfer;
     }
 
@@ -126,21 +146,21 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
     //////////////////////////////////////
 
     @Override
-    public @Nullable AutoIO getAutoIO() {
-        return getDefinition().getAutoIO().isEnable() ? getDefinition().getAutoIO() : null;
+    public RuntimeAutoIO getRuntimeAutoIO() {
+        return autoIO;
     }
 
     @Override
     public void serverTick() {
         IAutoIOTrait.super.serverTick();
         var timer = getMachine().getOffsetTimer();
-        var autoInput = getDefinition().getAutoWorldInput();
-        var autoOutput = getDefinition().getAutoWorldOutput();
-        if (autoInput.isEnable() && timer % autoInput.getInterval() == 0) {
+        var autoInput = autoWorldInput;
+        var autoOutput = autoWorldOutput;
+        if (autoInput.enable.get() && timer % autoInput.intervalTicks() == 0) {
             var items = getMachine().getLevel().getEntitiesOfClass(ItemEntity.class,
                     autoInput.getRotatedRange(getMachine().getFrontFacing().orElse(Direction.NORTH)).move(getMachine().getPos()),
                             EntitySelector.ENTITY_STILL_ALIVE);
-            var leftCount = autoInput.getSpeed();
+            var leftCount = autoInput.speed.get();
             for (ItemEntity itemEntity : items) {
                 if (leftCount <= 0) break;
                 var stored = itemEntity.getItem().copy();
@@ -165,8 +185,8 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
                 leftCount -= inserted;
             }
         }
-        if (autoOutput.isEnable() && timer % autoOutput.getInterval() == 0) {
-            var leftCount = autoOutput.getSpeed();
+        if (autoOutput.enable.get() && timer % autoOutput.intervalTicks() == 0) {
+            var leftCount = autoOutput.speed.get();
             var range = autoOutput.getRotatedRange(getMachine().getFrontFacing().orElse(Direction.NORTH)).move(getMachine().getPos());
             for (int i = 0; i < storage.getSlots(); i++) {
                 if (leftCount <= 0) break;

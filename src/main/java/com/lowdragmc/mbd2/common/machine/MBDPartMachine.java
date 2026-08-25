@@ -17,6 +17,7 @@ import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigPartSettings;
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
 import com.lowdragmc.mbd2.common.machine.definition.config.StateMachine;
+import com.lowdragmc.mbd2.common.runtime.RuntimeValue;
 import com.lowdragmc.mbd2.common.trait.IProxyAutoIOTrait;
 import com.lowdragmc.mbd2.common.trait.ITrait;
 import com.lowdragmc.mbd2.common.trait.IUIProviderTrait;
@@ -32,6 +33,15 @@ import javax.annotation.Nonnull;
 import java.util.*;
 
 public class MBDPartMachine extends MBDMachine implements IMultiPart {
+    /** Per-machine override of whether this part may be shared between multiblocks. */
+    public final RuntimeValue<Boolean> canShare = runtimeValues
+            .ofBool("part.can_share",
+                    () -> Optional.ofNullable(getDefinition().partSettings()).map(ConfigPartSettings::canShare).orElse(true))
+            .onChanged(() -> {
+                invalidateCapabilities();
+                notifyBlockUpdate();
+            });
+
     @DescSynced
     @RequireRerender
     protected final Set<BlockPos> controllerPositions  = new HashSet<>();
@@ -269,7 +279,7 @@ public class MBDPartMachine extends MBDMachine implements IMultiPart {
      */
     @Override
     public boolean canShared() {
-        return Optional.ofNullable(getDefinition().partSettings()).map(ConfigPartSettings::canShare).orElse(true);
+        return canShare.get();
     }
 
     /**

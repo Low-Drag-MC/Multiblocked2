@@ -43,6 +43,7 @@ public class MBDTestRegistry {
         register(new com.lowdragmc.mbd2.test.tests.multiblock.ProxyAutoIOFixtures());
         register(new com.lowdragmc.mbd2.test.tests.multiblock.PatternRotationFixtures());
         register(new com.lowdragmc.mbd2.test.tests.multiblock.PatternSnapshotFixtures());
+        register(new com.lowdragmc.mbd2.test.tests.runtime.RuntimeValueFixtures());
         register(new com.lowdragmc.mbd2.test.tests.blueprint.BlueprintFixtures());
         register(new com.lowdragmc.mbd2.test.tests.blueprint.BlueprintBehaviourFixtures());
         if (net.neoforged.fml.ModList.get().isLoaded("mekanism")) {

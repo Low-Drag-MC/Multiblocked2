@@ -50,6 +50,14 @@ public class CopiableAirHandler extends MachineAirHandler implements INBTSeriali
         super.setConnectableFaces(sides);
     }
 
+    /**
+     * The faces this handler will connect through. Mirrors what was last handed to
+     * {@link #setConnectableFaces}; PneumaticCraft's own base class keeps no readable copy.
+     */
+    public List<Direction> getConnectableFaces() {
+        return java.util.Collections.unmodifiableList(sides);
+    }
+
     @Override
     public void addAir(int amount) {
         super.addAir(amount);

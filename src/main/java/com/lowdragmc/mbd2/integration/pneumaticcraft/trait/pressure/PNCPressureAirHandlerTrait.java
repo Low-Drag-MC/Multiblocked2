@@ -1,12 +1,12 @@
 package com.lowdragmc.mbd2.integration.pneumaticcraft.trait.pressure;
 
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
-import com.lowdragmc.lowdraglib2.syncdata.field.ManagedFieldHolder;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
-import com.lowdragmc.mbd2.common.trait.AutoIO;
+import com.lowdragmc.mbd2.common.runtime.RuntimeAutoIO;
+import com.lowdragmc.mbd2.common.runtime.RuntimeConnectedIO;
 import com.lowdragmc.mbd2.common.trait.IAutoIOTrait;
 import com.lowdragmc.mbd2.common.trait.RecipeHandlerTrait;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
@@ -31,17 +31,26 @@ import java.util.Map;
 
 @Getter
 public class PNCPressureAirHandlerTrait extends SimpleCapabilityTrait<IAirHandlerMachine, @Nullable Direction> implements IAutoIOTrait {
-    public static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(PNCPressureAirHandlerTrait.class);
-
-    @Override
-    public ManagedFieldHolder getFieldHolder() {
-        return MANAGED_FIELD_HOLDER;
-    }
-
     @Persisted
     public final CopiableAirHandler handler;
 
     private final PressureRecipeHandler recipeHandler = new PressureRecipeHandler();
+
+    // per-machine overrides of the values authored on the definition
+    // @Getter(NONE): see ForgeEnergyCapabilityTrait — the class @Getter would republish getAutoIO()
+    // with a different type and without the old "null when disabled" contract.
+    @Getter(lombok.AccessLevel.NONE)
+    public final RuntimeAutoIO autoIO =
+            new RuntimeAutoIO(runtimeValues, "auto_io", () -> getDefinition().getAutoIO());
+    // @Getter(NONE): would otherwise shadow the definition's getConnectionIO(): ConnectedIO.
+    @Getter(lombok.AccessLevel.NONE)
+    public final RuntimeConnectedIO connectionIO =
+            new RuntimeConnectedIO(runtimeValues, "connection_io", () -> getDefinition().getConnectionIO(),
+                    // updateHullAirHandlers() only recomputes when the facing changed, so without this an
+                    // override would not reach handler.setConnectableFaces until the machine was rotated
+                    // or a neighbour update reset lastFront — air would keep flowing through a side the
+                    // override just closed.
+                    () -> lastFront = null);
     private final Map<BlockPos, EnumMap<Direction, BlockCapabilityCache<IAirHandlerMachine, Direction>>> nearbyCache = new HashMap<>();
     @Nullable
     private Direction lastFront = null;
@@ -73,8 +82,8 @@ public class PNCPressureAirHandlerTrait extends SimpleCapabilityTrait<IAirHandle
     }
 
     @Override
-    public @Nullable AutoIO getAutoIO() {
-        return getDefinition().getAutoIO().isEnable() ? getDefinition().getAutoIO() : null;
+    public RuntimeAutoIO getRuntimeAutoIO() {
+        return autoIO;
     }
 
     protected void updateHullAirHandlers() {
@@ -82,7 +91,7 @@ public class PNCPressureAirHandlerTrait extends SimpleCapabilityTrait<IAirHandle
         if (lastFront == front) return;
         var list = new ArrayList<Direction>();
         for (Direction side : Direction.values()) {
-            if (getDefinition().getConnectionIO().getConnection(front, side)) {
+            if (connectionIO.getConnection(front, side)) {
                 list.add(side);
             }
         }
