@@ -14,6 +14,7 @@ import com.lowdragmc.mbd2.MBD2
 import com.lowdragmc.mbd2.client.MBDRenderers
 import com.lowdragmc.mbd2.common.gui.editor.blueprint.MachineBlueprintResource
 import com.lowdragmc.mbd2.common.gui.editor.machine.MachineConfigView
+import com.lowdragmc.mbd2.common.gui.editor.machine.MachineFXView
 import com.lowdragmc.mbd2.common.gui.editor.machine.MachineTraitView
 import com.lowdragmc.mbd2.common.gui.editor.machine.MachineUIView
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition
@@ -46,6 +47,8 @@ open class MachineProject : IProject {
     var machineTraitView: MachineTraitView? = null
         protected set
     var machineUIView: MachineUIView? = null
+        protected set
+    var machineFXView: MachineFXView? = null
         protected set
 
     init {
@@ -100,6 +103,14 @@ open class MachineProject : IProject {
             editor.placeView(createMachineConfigView(editor).also { machineConfigView = it }, { editor.centerWindow.leftTop })
             editor.placeView(createMachineTraitView(editor).also { machineTraitView = it }, { editor.centerWindow.leftTop })
             editor.placeView(createMachineUIView(editor).also { machineUIView = it }, { editor.centerWindow.leftTop })
+            // Photon only. Without it there is nothing the view could preview, and the effect
+            // configuration still round-trips through NBT untouched — so a pack authored with
+            // Photon opens, edits and saves here without losing its effects.
+            // The reference is behind the guard on purpose: that is what keeps the JVM from
+            // resolving MachineFXView, and through it Photon's classes, when Photon is absent.
+            if (MBD2.isPhotonLoaded()) {
+                editor.placeView(createMachineFXView(editor).also { machineFXView = it }, { editor.centerWindow.leftTop })
+            }
         }
     }
 
@@ -115,6 +126,11 @@ open class MachineProject : IProject {
         return MachineUIView(editor, this)
     }
 
+    /** Only called when Photon is loaded — see [onLoad]. */
+    protected open fun createMachineFXView(editor: MBDEditor): MachineFXView {
+        return MachineFXView(editor, this)
+    }
+
     override fun onClosed(editor: Editor) {
         this.machineConfigView?.removeSelf()
         this.machineConfigView = null
@@ -124,5 +140,8 @@ open class MachineProject : IProject {
 
         this.machineUIView?.removeSelf()
         this.machineUIView = null
+
+        this.machineFXView?.removeSelf()
+        this.machineFXView = null
     }
 }

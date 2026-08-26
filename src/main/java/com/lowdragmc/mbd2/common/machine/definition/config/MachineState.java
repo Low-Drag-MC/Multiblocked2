@@ -12,6 +12,8 @@ import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.utils.ShapeUtils;
 import com.lowdragmc.mbd2.client.MachineSound;
 import com.lowdragmc.mbd2.MBD2;
+import com.lowdragmc.mbd2.common.machine.definition.config.fx.MachineFXConfig;
+import com.lowdragmc.mbd2.common.machine.definition.config.fx.ToggleMachineFXs;
 import com.lowdragmc.mbd2.common.machine.definition.config.toggle.*;
 import com.lowdragmc.mbd2.integration.geckolib.GeckolibRenderer;
 import lombok.*;
@@ -84,6 +86,11 @@ public class MachineState implements ITreeNode<MachineState, Void>, IConfigurabl
             "config.machine_state.machine_sound.tooltip.2",
     })
     protected final ToggleMachineSound machineSound = new ToggleMachineSound();
+    @Configurable(name = "config.machine_state.machine_fxs", subConfigurable = true, tips = {
+            "config.machine_state.machine_fxs.tooltip.0", "config.machine_state.machine_fxs.tooltip.1",
+            "config.machine_state.machine_fxs.tooltip.2",
+    })
+    protected final ToggleMachineFXs machineFXs = new ToggleMachineFXs();
     // runtime
     @Nullable
     private StateMachine<?> stateMachine;
@@ -255,6 +262,19 @@ public class MachineState implements ITreeNode<MachineState, Void>, IConfigurabl
             }
         }
         return machineSound.createMachineSound(pos, predicate);
+    }
+
+    /**
+     * The effects this state plays, inheriting from the parent state when its own toggle is off —
+     * the same fallback every other per-state setting uses.
+     *
+     * @see com.lowdragmc.mbd2.common.machine.definition.config.fx.ToggleMachineFXs
+     */
+    public List<MachineFXConfig> getRealMachineFXs() {
+        if (!machineFXs.isEnable()) {
+            return parent == null ? List.of() : parent.getRealMachineFXs();
+        }
+        return machineFXs.getFxs();
     }
 
     public int getDepth() {

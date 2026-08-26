@@ -39,6 +39,9 @@ import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigMachineSettings;
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
 import com.lowdragmc.mbd2.common.machine.definition.config.event.*;
+import com.lowdragmc.mbd2.common.machine.definition.config.fx.MachineFXConfig;
+import com.lowdragmc.mbd2.common.machine.fx.IMachineFXManager;
+import com.lowdragmc.mbd2.common.machine.fx.MachineFXManagers;
 import com.lowdragmc.mbd2.common.runtime.IRuntimeValueHolder;
 import com.lowdragmc.mbd2.common.runtime.RuntimeSignalConnection;
 import com.lowdragmc.mbd2.common.runtime.RuntimeValue;
@@ -60,6 +63,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.TickTask;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -84,6 +88,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.common.NeoForge;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector3f;
 
 import javax.annotation.Nonnull;
 import java.util.*;
@@ -117,8 +122,6 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
     @Getter
     private final List<ITrait> additionalTraits = new ArrayList<>();
     private final Map<IRenderer, Object> animatableCache = new HashMap<>(); // see IAnimationSource
-//    @Getter
-//    private Map<String, Object> photonFXs = new HashMap<>(); // it's used for Photon
     /**
      * @deprecated superseded by the {@link #machineLevel} runtime value. Still read from NBT so worlds
      *             saved before the runtime value system keep their tier — see
@@ -201,6 +204,26 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
      */
     @Nullable
     private List<MachineBlueprintInstance> blueprintInstances;
+    /**
+     * This machine's live Photon effects. Client-side only in practice — the factory hands back
+     * {@link IMachineFXManager#NOOP} on a server or without Photon — and built lazily so a machine
+     * that never plays one costs nothing.
+     *
+     * <p>Grouped down here with {@link #currentSound} and {@link #blueprintInstances} rather than up
+     * with the managed fields: like those two it is unmanaged per-instance runtime state, rebuilt on
+     * load and thrown away on unload, and none of it belongs in the persisted/synced block above.</p>
+     *
+     * @see #getFXManager()
+     */
+    @Nullable
+    private IMachineFXManager fxManager;
+    /**
+     * The machine state whose effects are currently playing, or {@code null} before the first sync.
+     *
+     * @see #syncStateFX()
+     */
+    @Nullable
+    private String fxSyncedState;
 
     public MBDMachine(IMachineBlockEntity machineHolder, MBDMachineDefinition definition, Object... args) {
         this.machineHolder = machineHolder;
@@ -236,6 +259,7 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
         for (ITrait additionalTrait : additionalTraits) {
             additionalTrait.onChunkUnloaded();
         }
+        releaseFX();
     }
 
     @Override
@@ -245,6 +269,7 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
             additionalTrait.onMachineUnLoad();
         }
         releaseBlueprints();
+        releaseFX();
     }
 
     /**
@@ -299,6 +324,84 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
         blueprintInstances = null;
     }
 
+    //////////////////////////////////////
+    //*******    PHOTON FX     *********//
+    //////////////////////////////////////
+
+    /**
+     * Identifier prefix for the effects a machine state owns.
+     *
+     * <p>Keeps the two authoring routes from colliding: a state's effects live under
+     * {@code state:<fx name>}, while the named library on
+     * {@link ConfigMachineSettings#photonFXs()} — and anything a blueprint emits ad hoc — uses the
+     * bare name. Without the split, a library entry and a state entry called {@code smoke} would
+     * silently fight over one slot.</p>
+     */
+    public static final String STATE_FX_PREFIX = "state:";
+
+    /**
+     * This machine's live effects. Never null; a server machine, or a client without Photon, gets
+     * {@link IMachineFXManager#NOOP}.
+     */
+    public IMachineFXManager getFXManager() {
+        if (fxManager == null) {
+            fxManager = MachineFXManagers.create(this);
+        }
+        return fxManager;
+    }
+
+    /**
+     * Start the current state's effects and stop the previous state's.
+     *
+     * <p>Driven from {@link #clientTick()} rather than from {@link #updateState}, which is the whole
+     * reason state effects work at all for a machine that was already running before the player got
+     * there: {@code updateState} only fires on a <em>change</em>, so a furnace that has been smelting
+     * since before the chunk was sent would never have started its smoke. The block ticker runs as
+     * soon as the chunk loads client-side and {@code machineState} is {@code @DescSynced}, so
+     * comparing against {@link #fxSyncedState} covers first sight, state changes and chunk reloads
+     * with one idempotent path — which the editor preview then gets for free.</p>
+     */
+    @OnlyIn(Dist.CLIENT)
+    protected void syncStateFX() {
+        if (machineState.equals(fxSyncedState)) return;
+        fxSyncedState = machineState;
+        var fxs = getMachineState().getRealMachineFXs();
+        // Read the field, not getFXManager(): a machine whose definition configures no effects — the
+        // overwhelming majority in any world — must never allocate a manager at all. The getter is
+        // still what the RPC entry points use, so an ad-hoc emit on such a machine still works.
+        if (fxs.isEmpty() && fxManager == null) return;
+        stopStateFX();
+        for (var config : fxs) {
+            getFXManager().play(config, STATE_FX_PREFIX + config.getName());
+        }
+    }
+
+    /**
+     * Stop every effect owned by a machine state, leaving library and ad-hoc ones alone.
+     *
+     * <p>Never forced: a state's effects should trail off as the machine stops, the way its sound
+     * does. An effect that wants to vanish the instant its state ends says so with its own
+     * {@code forcedDeath}.</p>
+     */
+    @OnlyIn(Dist.CLIENT)
+    protected void stopStateFX() {
+        if (fxManager != null) {
+            fxManager.stopAllWithPrefix(STATE_FX_PREFIX, false);
+        }
+    }
+
+    /**
+     * Drop every live effect and forget which state they came from, so a machine that unloads and
+     * reloads re-reads its definition — which also picks up an edited effect without a restart.
+     */
+    protected void releaseFX() {
+        if (fxManager != null) {
+            fxManager.stopAll(true);
+            fxManager = null;
+        }
+        fxSyncedState = null;
+    }
+
     /**
      * on machine valid in the chunk.
      */
@@ -343,6 +446,7 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
      */
     public void detach() {
         releaseBlueprints();
+        releaseFX();
         if (machineHolder.getRootStorage() instanceof MultiManagedStorage multiManagedStorage) {
             multiManagedStorage.detach(getSyncStorage());
             for (ITrait trait : additionalTraits) {
@@ -821,6 +925,7 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
         for (ITrait trait : additionalTraits) {
             trait.clientTick();
         }
+        syncStateFX();
         if (currentSound != null && currentSound.loop && currentSound.loopWithShuffle &&
                 !Minecraft.getInstance().getSoundManager().isActive(currentSound)) {
             if (currentSound.predicate.getAsBoolean()) {
@@ -1170,42 +1275,65 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
     }
 
     /**
-     * Emit the photon fx.
+     * Play one of the machine's named effects — an entry in
+     * {@link ConfigMachineSettings#photonFXs()}.
+     *
+     * <p>Safe from either side, like {@link #triggerGeckolibAnim}: called on the server it is relayed
+     * to every tracking client, called on the client it plays locally. Unknown names do nothing.</p>
+     *
+     * <p>Only reaches players who are tracking the chunk <em>now</em> — which is why an effect that
+     * should be visible to whoever turns up later belongs on a machine state instead. See
+     * {@link #syncStateFX()}.</p>
      */
-//    @RPCMethod
-//    public void emitPhotonFx(String identifier, ResourceLocation fxLocation, Vector3f offset, Vector3f rotation, int delay, boolean forcedDeath, boolean replaceExisting){
-//        if (MBD2.isPhotonLoaded()) {
-//            if (isRemote()) {
-//                var fx = FXHelper.getFX(fxLocation);
-//                if (fx != null) {
-//                    var machineFX = new MachineFX(fx, identifier, this);
-//                    machineFX.setOffset(offset.x, offset.y, offset.z);
-//                    machineFX.setRotation(rotation.x, rotation.y, rotation.z);
-//                    machineFX.setDelay(delay);
-//                    machineFX.setForcedDeath(forcedDeath);
-//                    machineFX.setReplaceExisting(replaceExisting);
-//                    machineFX.start();
-//                }
-//            } else {
-//                rpcToTracking("emitPhotonFx", identifier, fxLocation, offset, rotation, delay, forcedDeath, replaceExisting);
-//            }
-//        }
-//    }
+    @RPCMethod
+    public void playMachineFX(String name) {
+        if (isRemote()) {
+            var config = getDefinition().machineSettings().findFX(name);
+            if (config != null) {
+                getFXManager().play(config, name);
+            }
+        } else {
+            rpcToTracking("playMachineFX", name);
+        }
+    }
 
     /**
-     * Kill the photon fx.
+     * Stop the effect playing under {@code identifier}, whatever started it — a named library entry
+     * via {@link #playMachineFX} or an ad-hoc {@link #emitPhotonFx}, which share one slot namespace.
+     *
+     * @param forcedDeath drop the remaining particles immediately instead of letting them drain.
      */
-//    @RPCMethod
-//    public void killPhotonFx(String identifier, boolean forcedDeath) {
-//        if (MBD2.isPhotonLoaded()) {
-//            if (isRemote()) {
-//                if (photonFXs.get(identifier) instanceof MachineFX machineFX) {
-//                    machineFX.kill(forcedDeath);
-//                    photonFXs.remove(identifier);
-//                }
-//            } else {
-//                rpcToTracking("killPhotonFx", identifier, forcedDeath);
-//            }
-//        }
-//    }
+    @RPCMethod
+    public void stopMachineFX(String identifier, boolean forcedDeath) {
+        if (isRemote()) {
+            getFXManager().stop(identifier, forcedDeath);
+        } else {
+            rpcToTracking("stopMachineFX", identifier, forcedDeath);
+        }
+    }
+
+    /**
+     * Play an effect that is not in the machine's library, described inline.
+     *
+     * <p>For a blueprint that computes its effect rather than picking one — otherwise prefer
+     * {@link #playMachineFX}, which is authorable and previewable in the editor.</p>
+     */
+    @RPCMethod
+    public void emitPhotonFx(String identifier, ResourceLocation fxLocation, Vector3f offset,
+                             Vector3f rotation, Vector3f scale, int delay, boolean forcedDeath,
+                             boolean replaceExisting) {
+        if (isRemote()) {
+            var config = new MachineFXConfig(identifier, fxLocation);
+            config.setOffset(offset == null ? new Vector3f() : offset);
+            config.setRotation(rotation == null ? new Vector3f() : rotation);
+            config.setScale(scale == null ? new Vector3f(1, 1, 1) : scale);
+            config.setDelay(delay);
+            config.setForcedDeath(forcedDeath);
+            config.setReplaceExisting(replaceExisting);
+            getFXManager().play(config, identifier);
+        } else {
+            rpcToTracking("emitPhotonFx", identifier, fxLocation, offset, rotation, scale, delay,
+                    forcedDeath, replaceExisting);
+        }
+    }
 }

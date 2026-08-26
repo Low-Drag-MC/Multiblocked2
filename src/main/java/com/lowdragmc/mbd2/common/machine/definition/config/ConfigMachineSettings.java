@@ -16,6 +16,7 @@ import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.ReadOnlyManaged;
 import com.lowdragmc.mbd2.common.gui.MBDBindingIDs;
 import com.lowdragmc.mbd2.common.machine.definition.config.blueprint.MachineBlueprintBinding;
+import com.lowdragmc.mbd2.common.machine.definition.config.fx.MachineFXConfig;
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 import lombok.*;
 import lombok.experimental.Accessors;
@@ -128,6 +129,56 @@ public class ConfigMachineSettings implements IPersistedSerializable, IConfigura
     @ConfigList(configuratorMethod = "blueprintConfigurator", addDefaultMethod = "defaultBlueprint")
     @ReadOnlyManaged(serializeMethod = "blueprintsSerialize", deserializeMethod = "blueprintsDeserialize")
     private final List<MachineBlueprintBinding> blueprints = new ArrayList<>();
+
+    /**
+     * Named Photon effects this machine can play on demand, looked up by
+     * {@link MachineFXConfig#getName()}.
+     *
+     * <p>Separate from the per-state lists on {@link MachineState} because the two answer different
+     * questions: a state's effects are "what this machine looks like while it is in this state" and
+     * start and stop on their own, whereas these are a library a blueprint fires at a moment —
+     * a burst when a recipe finishes, a beam while a button is held. Authoring them here rather than
+     * as eight input pins on the node also means the editor can preview them.</p>
+     */
+    @Builder.Default
+    @Getter
+    @Configurable(name = "config.machine_settings.photon_fxs", tips = {
+            "config.machine_settings.photon_fxs.tooltip.0",
+            "config.machine_settings.photon_fxs.tooltip.1",
+    })
+    @ConfigList(configuratorMethod = "photonFXConfigurator", addDefaultMethod = "defaultPhotonFX")
+    @ReadOnlyManaged(serializeMethod = "photonFXsSerialize", deserializeMethod = "photonFXsDeserialize")
+    private final List<MachineFXConfig> photonFXs = new ArrayList<>();
+
+    /** The library entry called {@code name}, or {@code null}. @see #photonFXs */
+    @Nullable
+    public MachineFXConfig findFX(String name) {
+        for (var fx : photonFXs) {
+            if (fx.getName().equals(name)) {
+                return fx;
+            }
+        }
+        return null;
+    }
+
+    // Same final-list shape as blueprints below; bodies shared with the per-state list, see
+    // MachineFXConfig's list plumbing.
+    protected IntTag photonFXsSerialize(List<MachineFXConfig> fxs) {
+        return MachineFXConfig.sizeTag(fxs);
+    }
+
+    protected List<MachineFXConfig> photonFXsDeserialize(IntTag tag) {
+        return MachineFXConfig.listOfSize(tag);
+    }
+
+    protected Configurator photonFXConfigurator(Supplier<MachineFXConfig> getter,
+                                                Consumer<MachineFXConfig> setter) {
+        return MachineFXConfig.groupConfigurator(getter);
+    }
+
+    protected MachineFXConfig defaultPhotonFX() {
+        return new MachineFXConfig();
+    }
 
     // The list instance is final, so the persisted form has to say how many elements to create before
     // per-element deserialization can run. Same shape as RecipeModifier.RecipeModifiers.

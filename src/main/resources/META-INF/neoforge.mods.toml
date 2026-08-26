@@ -45,3 +45,13 @@ file="META-INF/accesstransformer.cfg"
     versionRange="${kilagraph_version_range}"
     ordering="NONE"
     side="BOTH"
+
+# Optional: machine FX. The range is not cosmetic — MBD2's editor preview constructs a
+# PhotonParticleManager(FXSceneOptions), which only exists from 2.2.5 on. Without the bound an older
+# Photon would load happily and then blow up with NoSuchMethodError the first time the FX view opens.
+[[dependencies.${mod_id}]]
+    modId="photon"
+    type = "optional"
+    versionRange="${photon2_version_range}"
+    ordering="NONE"
+    side="BOTH"

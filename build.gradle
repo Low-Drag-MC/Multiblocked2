@@ -126,6 +126,7 @@ tasks.withType(ProcessResources).configureEach {
             "mod_url": mod_url,
             "ldlib2_version_range": ldlib2_version_range,
             "kilagraph_version_range": kilagraph_version_range,
+            "photon2_version_range": photon2_version_range,
     ]
     inputs.properties replaceProperties
 

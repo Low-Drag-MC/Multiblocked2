@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.common.gui.editor.machine
 
+import com.lowdragmc.lowdraglib2.client.scene.ParticleManager
 import com.lowdragmc.lowdraglib2.editor.ui.View
 import com.lowdragmc.lowdraglib2.editor.ui.sceneeditor.SceneEditor
 import com.lowdragmc.lowdraglib2.gui.ColorPattern
@@ -19,10 +20,18 @@ import com.lowdragmc.mbd2.common.machine.MBDMachine
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.core.BlockPos
 
+/**
+ * @param particleManager the particle host for this scene's dummy world, or null for LDLib2's
+ *   default. A constructor parameter rather than an overridable hook because the manager has to be
+ *   on the level *before* `createScene` copies it onto the renderer — a hook called from this
+ *   constructor could only write subclass state that the subclass's own initializers then run over.
+ *   See [MachineFXView], which passes Photon's manager for its post-effect and sub-viewport handling.
+ */
 open class MachineSceneView(
     name: String,
     val editor: MBDEditor,
     val project: MachineProject,
+    particleManager: ParticleManager? = null,
 ) : View(name) {
     val sceneEditor: SceneEditor = createSceneEditor()
     var previewMachine: MBDMachine? = null
@@ -31,6 +40,7 @@ open class MachineSceneView(
 
     init {
         sceneEditor.layout.widthPercent(100f).heightPercent(100f)
+        particleManager?.let { level.particleManager = it }
         sceneEditor.scene
             .createScene(level)
             .setTickWorld(true)
