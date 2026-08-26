@@ -3,9 +3,9 @@ package com.lowdragmc.mbd2.common.gui.editor.blueprint;
 import com.lowdragmc.lowdraglib2.editor.resource.FileResourceProvider;
 import com.lowdragmc.lowdraglib2.editor.resource.ResourceInstance;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.editor.GraphResource;
 import com.lowdragmc.mbd2.MBD2;
+import com.lowdragmc.mbd2.client.MBDIcons;
 import com.lowdragmc.mbd2.common.blueprint.MachineBlueprintGraph;
 import net.minecraft.nbt.CompoundTag;
 
@@ -36,7 +36,7 @@ public class MachineBlueprintResource extends GraphResource<MachineBlueprintGrap
 
     @Override
     public IGuiTexture getIcon() {
-        return Icons.WIDGET_CUSTOM;
+        return MBDIcons.BLUEPRINT;
     }
 
     @Override

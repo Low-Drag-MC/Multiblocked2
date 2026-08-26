@@ -11,6 +11,7 @@ import com.lowdragmc.lowdraglib2.utils.data.BlockInfo
 import com.lowdragmc.mbd2.MBD2
 import com.lowdragmc.mbd2.api.pattern.predicates.PatternPredicate
 import com.lowdragmc.mbd2.api.registry.MBDRegistries
+import com.lowdragmc.mbd2.client.MBDIcons
 import net.minecraft.core.HolderLookup
 import net.minecraft.nbt.NbtOps
 import net.minecraft.nbt.Tag
@@ -20,7 +21,7 @@ class PredicateResource : Resource<PatternPredicate>() {
     companion object {
         @JvmStatic
         val INSTANCE: PredicateResource = PredicateResource()
-        val ICON: IGuiTexture = Icons.icon("mbd2", "predicate")
+        val ICON: IGuiTexture = MBDIcons.PREDICATE
     }
 
     override fun buildBuiltin(provider: BuiltinResourceProvider<PatternPredicate>) {

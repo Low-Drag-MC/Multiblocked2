@@ -21,6 +21,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder
 import com.lowdragmc.lowdraglib2.utils.ColorUtils
 import com.lowdragmc.mbd2.MBD2
+import com.lowdragmc.mbd2.client.MBDIcons
 import com.lowdragmc.mbd2.common.gui.editor.MBDEditor
 import com.lowdragmc.mbd2.common.gui.editor.MachineProject
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState
@@ -63,11 +64,11 @@ open class MachineConfigView(editor: MBDEditor, project: MachineProject) : Machi
             }
         }) {
             // draw shape
-            toggle(toggleSpec(Icons.icon(MBD2.MOD_ID, "cube_outline"), ColorPattern.WHITE.color, "editor.machine_scene.draw_shape_frame_lines")) {
+            toggle(toggleSpec(MBDIcons.CUBE_OUTLINE, ColorPattern.WHITE.color, "editor.machine_scene.draw_shape_frame_lines")) {
                 bindUIData(drawShapeData)
             }
             // draw rendering box
-            toggle(toggleSpec(Icons.icon(MBD2.MOD_ID, "cube_outline"), ColorPattern.YELLOW.color, "editor.machine_scene.draw_rendering_box_frame_lines")) {
+            toggle(toggleSpec(MBDIcons.CUBE_OUTLINE, ColorPattern.YELLOW.color, "editor.machine_scene.draw_rendering_box_frame_lines")) {
                 bindUIData(drawRenderingBoxData)
             }
             // draw XYZ axes

@@ -25,6 +25,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.layoutDsl
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder
 import com.lowdragmc.lowdraglib2.utils.data.BlockInfo
 import com.lowdragmc.mbd2.api.registry.MBDRegistries
+import com.lowdragmc.mbd2.client.MBDIcons
 import com.lowdragmc.mbd2.common.blockentity.MachineBlockEntity
 import com.lowdragmc.mbd2.common.gui.editor.MBDEditor
 import com.lowdragmc.mbd2.common.gui.editor.MultiblockMachineProject
@@ -97,7 +98,7 @@ class MultiblockPatternView(
 
     private fun setupCacheToggle() {
         cacheToggle.dsl(toggleSpec(
-            Icons.icon(com.lowdragmc.mbd2.MBD2.MOD_ID, "cube_outline"),
+            MBDIcons.CUBE_OUTLINE,
             ColorPattern.CYAN.color,
             "editor.machine.multiblock.multiblock_pattern.cache_toggle.tips"
         )).build()
