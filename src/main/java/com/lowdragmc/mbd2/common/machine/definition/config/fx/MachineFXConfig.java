@@ -4,8 +4,6 @@ import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSearch;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
-import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
-import com.lowdragmc.lowdraglib2.configurator.ui.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib2.configurator.ui.SearchComponentConfigurator;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
@@ -20,7 +18,6 @@ import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
 
 /**
  * One Photon effect a machine can play, as authored in the editor.
@@ -114,10 +111,10 @@ public class MachineFXConfig implements IConfigurable, IPersistedSerializable {
 
     // ---- list plumbing -------------------------------------------------------------------------
     //
-    // LDLib2 resolves @ConfigList / @ReadOnlyManaged methods reflectively on the declaring class, so
-    // every list of these needs its own four stubs. Sharing the bodies here keeps the persisted form
-    // — "an IntTag holding the element count, then per-element deserialization" — defined once
-    // instead of once per list. See ToggleMachineFXs and ConfigMachineSettings#photonFXs.
+    // LDLib2 resolves @ReadOnlyManaged methods reflectively on the declaring class, so every list of
+    // these needs its own pair of stubs. Sharing the bodies here keeps the persisted form — "an IntTag
+    // holding the element count, then per-element deserialization" — defined once instead of once per
+    // list. See ToggleMachineFXs and ConfigMachineSettings#photonFXs.
 
     public static IntTag sizeTag(List<MachineFXConfig> fxs) {
         return IntTag.valueOf(fxs.size());
@@ -129,12 +126,6 @@ public class MachineFXConfig implements IConfigurable, IPersistedSerializable {
             fxs.add(new MachineFXConfig());
         }
         return fxs;
-    }
-
-    public static Configurator groupConfigurator(Supplier<MachineFXConfig> getter) {
-        var group = new ConfiguratorGroup("", false).hideTitle();
-        getter.get().buildConfigurator(group);
-        return group;
     }
 
     /**

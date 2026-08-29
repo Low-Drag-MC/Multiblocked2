@@ -6,6 +6,7 @@ import com.lowdragmc.mbd2.common.machine.fx.IMachineFXManager;
 import com.lowdragmc.photon.client.fx.FXHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.RandomSource;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.Nullable;
@@ -28,6 +29,15 @@ import java.util.Set;
 public class PhotonMachineFXManager implements IMachineFXManager {
 
     private final MBDMachine machine;
+    /**
+     * The editor's deterministic source, or null in the world.
+     *
+     * @see IMachineFXManager#setPreviewSeed
+     */
+    @Nullable
+    private RandomSource previewRandom;
+    @Nullable
+    private Long previewSeed;
     /** Insertion-ordered so {@link #stopAll} is deterministic and reads the way it was authored. */
     private final Map<String, MachineFXExecutor> effects = new LinkedHashMap<>();
     /** Locations {@link FXHelper} could not load, so a broken one is reported once, not per call. */
@@ -70,14 +80,20 @@ public class PhotonMachineFXManager implements IMachineFXManager {
     /**
      * Block entities tick for the whole loaded chunk radius, not the render distance, so without
      * this a machine 200 blocks away still builds a particle system nobody can see.
+     *
+     * <p>The gate only means anything for a machine in the world the player is standing in. An editor
+     * preview machine lives at the origin of its own dummy level, so measuring the player's distance
+     * to it compares two unrelated coordinate spaces — which silently refused to start anything at all
+     * unless the player happened to be within {@code maxDistance} of world origin. That is what the
+     * level check below is for; it used to be a null check on the player, which is only true before a
+     * world is loaded and never when the editor is actually open.</p>
      */
     private boolean isWithinRange(MachineFXConfig config) {
         if (config.getMaxDistance() <= 0) return true;
         var player = Minecraft.getInstance().player;
-        if (player == null) {
-            // No local player yet — the editor preview scene, where distance is meaningless.
-            return true;
-        }
+        if (player == null) return true;
+        // Not the player's level -> an editor preview, where distance to them is meaningless.
+        if (machine.getLevel() != player.level()) return true;
         var pos = machine.getPos();
         return player.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5)
                 <= config.getMaxDistance() * config.getMaxDistance();
@@ -123,6 +139,25 @@ public class PhotonMachineFXManager implements IMachineFXManager {
     @Override
     public List<String> playingIdentifiers() {
         return List.copyOf(effects.keySet());
+    }
+
+    @Override
+    public void setPreviewSeed(@Nullable Long seed) {
+        this.previewSeed = seed;
+        this.previewRandom = seed == null ? null : RandomSource.create(seed);
+    }
+
+    @Override
+    public void resetPreviewRandom() {
+        if (previewRandom != null && previewSeed != null) {
+            previewRandom.setSeed(previewSeed);
+        }
+    }
+
+    /** The source an executor of this machine should draw from; null means "the world's". */
+    @Nullable
+    RandomSource previewRandomSource() {
+        return previewRandom;
     }
 
     // ---- executor callbacks -------------------------------------------------------------------

@@ -8,10 +8,15 @@ import com.lowdragmc.mbd2.common.machine.definition.config.fx.MachineFXConfig;
 import com.lowdragmc.mbd2.common.machine.definition.config.fx.ToggleMachineFXs;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtAccounter;
+import net.minecraft.nbt.NbtIo;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import org.joml.Vector3f;
+
+import java.io.DataInputStream;
 
 /**
  * The machine FX <em>configuration</em> — which is deliberately Photon-free, and so is testable
@@ -198,6 +203,65 @@ public class MachineFXConfigTests {
         }
         if (!copy.stateMachine().getRootState().getRealMachineFXs().isEmpty()) {
             h.fail("the root state should still have no effects of its own");
+        }
+        h.succeed();
+    }
+
+    /**
+     * A definition saved by an older build still loads its effects.
+     *
+     * <h2>Why a recorded file rather than a round trip</h2>
+     * {@link #definition_round_trips_state_and_library_effects} writes and reads with the same code,
+     * so it passes even if the persisted key for a field changes — both halves move together and
+     * every project already on disk is silently emptied. This one reads bytes captured before the FX
+     * lists were moved out of the inspectors ({@code @Configurable} to {@code @Persisted}), which is
+     * exactly the change that could rename a key, so it is the only assertion here that can catch it.
+     *
+     * <p>{@code data/mbd2/test/fx_golden_definition.nbt} is a default definition carrying one library
+     * entry ({@code burst}) and a {@code working} state with one of its own ({@code smoke}).</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void definition_saved_by_an_older_build_still_loads_its_effects(GameTestHelper h) {
+        CompoundTag golden;
+        try (var stream = MachineFXConfigTests.class
+                .getResourceAsStream("/data/mbd2/test/fx_golden_definition.nbt")) {
+            if (stream == null) {
+                h.fail("fx_golden_definition.nbt is not on the classpath");
+                return;
+            }
+            golden = NbtIo.read(new DataInputStream(stream), NbtAccounter.unlimitedHeap());
+        } catch (Exception e) {
+            h.fail("could not read the recorded definition: " + e);
+            return;
+        }
+
+        var definition = MBDMachineDefinition.createDefault();
+        definition.loadFactory();
+        definition.deserializeNBT(Platform.getFrozenRegistry(), golden);
+
+        var library = definition.machineSettings().photonFXs();
+        if (library.size() != 1 || !"burst".equals(library.getFirst().getName())) {
+            h.fail("the FX library was lost loading a definition saved by an older build: " + library.stream()
+                    .map(MachineFXConfig::getName).toList());
+            return;
+        }
+        // A per-entry field too: a list that survives as the right length but empty entries would
+        // otherwise read as a pass.
+        if (library.getFirst().getDelay() != 7) {
+            h.fail("library entry fields were lost: delay=" + library.getFirst().getDelay());
+        }
+        var working = definition.stateMachine().getState("working");
+        if (working == null || working == definition.stateMachine().getRootState()) {
+            h.fail("the working state was lost loading a definition saved by an older build");
+            return;
+        }
+        if (!working.machineFXs().isEnable()) {
+            h.fail("the per-state FX toggle was lost");
+        }
+        if (working.getRealMachineFXs().size() != 1
+                || !"smoke".equals(working.getRealMachineFXs().getFirst().getName())) {
+            h.fail("per-state effects were lost loading a definition saved by an older build");
         }
         h.succeed();
     }

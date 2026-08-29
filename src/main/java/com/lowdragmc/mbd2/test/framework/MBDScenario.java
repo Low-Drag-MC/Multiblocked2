@@ -15,6 +15,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import java.util.function.Consumer;
 import net.neoforged.neoforge.capabilities.BlockCapability;
+import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
@@ -302,6 +303,18 @@ public class MBDScenario {
         requireCurrent();
         MBDTestHelper.assertItemPresent(helper, current, slot, expected);
         return this;
+    }
+
+    /**
+     * What is actually in a slot, for the assertions the fluent ones do not cover — a count that has
+     * to fall inside a range, say, or one whose failure message is worth writing by hand.
+     *
+     * @return the live stack, or {@link ItemStack#EMPTY} when the machine exposes no item handler
+     */
+    public ItemStack getItem(int slot) {
+        requireCurrent();
+        var handler = MBDTestHelper.capability(helper, current, Capabilities.ItemHandler.BLOCK);
+        return handler == null ? ItemStack.EMPTY : handler.getStackInSlot(slot);
     }
 
     /**

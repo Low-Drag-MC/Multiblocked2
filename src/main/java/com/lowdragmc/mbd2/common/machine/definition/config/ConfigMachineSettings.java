@@ -139,14 +139,17 @@ public class ConfigMachineSettings implements IPersistedSerializable, IConfigura
      * start and stop on their own, whereas these are a library a blueprint fires at a moment —
      * a burst when a recipe finishes, a beam while a button is held. Authoring them here rather than
      * as eight input pins on the node also means the editor can preview them.</p>
+     *
+     * <p>{@code @Persisted} rather than {@code @Configurable}: this list is authored in the Machine FX
+     * view, which owns both it and the per-state lists so that there is one place to look. It used to
+     * carry {@code @Configurable} as well, which put a second editor for the same list in the machine
+     * settings inspector — two views over one list, and only one of them knowing when it changed.
+     * Persistence is unaffected, since {@code PersistedParser} keys off the field name for either
+     * annotation.</p>
      */
     @Builder.Default
     @Getter
-    @Configurable(name = "config.machine_settings.photon_fxs", tips = {
-            "config.machine_settings.photon_fxs.tooltip.0",
-            "config.machine_settings.photon_fxs.tooltip.1",
-    })
-    @ConfigList(configuratorMethod = "photonFXConfigurator", addDefaultMethod = "defaultPhotonFX")
+    @Persisted
     @ReadOnlyManaged(serializeMethod = "photonFXsSerialize", deserializeMethod = "photonFXsDeserialize")
     private final List<MachineFXConfig> photonFXs = new ArrayList<>();
 
@@ -169,15 +172,6 @@ public class ConfigMachineSettings implements IPersistedSerializable, IConfigura
 
     protected List<MachineFXConfig> photonFXsDeserialize(IntTag tag) {
         return MachineFXConfig.listOfSize(tag);
-    }
-
-    protected Configurator photonFXConfigurator(Supplier<MachineFXConfig> getter,
-                                                Consumer<MachineFXConfig> setter) {
-        return MachineFXConfig.groupConfigurator(getter);
-    }
-
-    protected MachineFXConfig defaultPhotonFX() {
-        return new MachineFXConfig();
     }
 
     // The list instance is final, so the persisted form has to say how many elements to create before

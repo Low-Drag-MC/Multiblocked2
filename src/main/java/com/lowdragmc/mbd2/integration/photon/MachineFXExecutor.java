@@ -84,6 +84,20 @@ public class MachineFXExecutor extends FXEffectExecutor {
         kill(forcedDeath);
     }
 
+    /**
+     * The editor's deterministic source when the preview set one, the world's otherwise.
+     *
+     * <p>This is the single hook the whole seed feature hangs on: {@code FXObject} seeds each emitted
+     * object from {@code effectExecutor.getRandomSource().nextLong()}, so overriding it here makes
+     * every particle downstream reproducible — the same mechanism Photon's own editor uses through
+     * {@code FXProjectEffectExecutor}.</p>
+     */
+    @Override
+    public net.minecraft.util.RandomSource getRandomSource() {
+        var preview = owner.previewRandomSource();
+        return preview != null ? preview : super.getRandomSource();
+    }
+
     public boolean isAlive() {
         return runtime != null && !runtimeEnded();
     }

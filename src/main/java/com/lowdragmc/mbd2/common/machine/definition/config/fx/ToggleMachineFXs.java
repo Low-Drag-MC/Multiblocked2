@@ -1,9 +1,7 @@
 package com.lowdragmc.mbd2.common.machine.definition.config.fx;
 
 import com.lowdragmc.lowdraglib2.configurator.IToggleConfigurable;
-import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigList;
-import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
-import com.lowdragmc.lowdraglib2.configurator.ui.Configurator;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.ReadOnlyManaged;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,8 +9,6 @@ import net.minecraft.nbt.IntTag;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 /**
  * The effects a {@link com.lowdragmc.mbd2.common.machine.definition.config.MachineState} plays while
@@ -35,8 +31,7 @@ public class ToggleMachineFXs implements IToggleConfigurable {
      * the persisted form has to say how many elements to create before per-element deserialization
      * can run.
      */
-    @Configurable(name = "config.machine_fxs.list", tips = "config.machine_fxs.list.tooltip")
-    @ConfigList(configuratorMethod = "fxConfigurator", addDefaultMethod = "defaultFX")
+    @Persisted
     @ReadOnlyManaged(serializeMethod = "fxsSerialize", deserializeMethod = "fxsDeserialize")
     private final List<MachineFXConfig> fxs = new ArrayList<>();
 
@@ -48,13 +43,5 @@ public class ToggleMachineFXs implements IToggleConfigurable {
 
     protected List<MachineFXConfig> fxsDeserialize(IntTag tag) {
         return MachineFXConfig.listOfSize(tag);
-    }
-
-    protected Configurator fxConfigurator(Supplier<MachineFXConfig> getter, Consumer<MachineFXConfig> setter) {
-        return MachineFXConfig.groupConfigurator(getter);
-    }
-
-    protected MachineFXConfig defaultFX() {
-        return new MachineFXConfig();
     }
 }

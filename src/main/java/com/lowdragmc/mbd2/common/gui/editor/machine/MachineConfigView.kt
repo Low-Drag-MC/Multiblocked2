@@ -1,9 +1,6 @@
 package com.lowdragmc.mbd2.common.gui.editor.machine
 
-import com.lowdragmc.lowdraglib2.client.shader.LDLibRenderTypes
-import com.lowdragmc.lowdraglib2.client.utils.RenderBufferUtils
 import com.lowdragmc.lowdraglib2.gui.ColorPattern
-import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.TrackData
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.getValue
 import com.lowdragmc.lowdraglib2.gui.sync.bindings.impl.setValue
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture
@@ -19,28 +16,18 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents
 import com.lowdragmc.lowdraglib2.gui.ui.layout.pct
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites
 import com.lowdragmc.lowdraglib2.gui.util.TreeBuilder
-import com.lowdragmc.lowdraglib2.utils.ColorUtils
 import com.lowdragmc.mbd2.MBD2
 import com.lowdragmc.mbd2.client.MBDIcons
 import com.lowdragmc.mbd2.common.gui.editor.MBDEditor
 import com.lowdragmc.mbd2.common.gui.editor.MachineProject
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState
-import com.mojang.blaze3d.vertex.PoseStack
 import dev.vfyjxf.taffy.style.AlignContent
 import dev.vfyjxf.taffy.style.AlignItems
 import dev.vfyjxf.taffy.style.FlexDirection
-import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.network.chat.Component
-import org.joml.Vector3f
 
 open class MachineConfigView(editor: MBDEditor, project: MachineProject) : MachineSceneView("editor.machine.basic_settings", editor, project) {
     val machineStateHierarchy: MachineStateHierarchy = MachineStateHierarchy()
-    private val drawShapeData: TrackData<Boolean> = TrackData(true)
-    private val drawRenderingBoxData: TrackData<Boolean> = TrackData(false)
-    private val drawAxesData: TrackData<Boolean> = TrackData(false)
-    var isDrawShape by drawShapeData
-    var isDrawRenderingBox by drawRenderingBoxData
-    var isDrawAxes by drawAxesData
 
     // runtime
     var selectedState: MachineState? = null
@@ -65,68 +52,19 @@ open class MachineConfigView(editor: MBDEditor, project: MachineProject) : Machi
         }) {
             // draw shape
             toggle(toggleSpec(MBDIcons.CUBE_OUTLINE, ColorPattern.WHITE.color, "editor.machine_scene.draw_shape_frame_lines")) {
-                bindUIData(drawShapeData)
+                bindUIData(shapeToggleData())
             }
             // draw rendering box
             toggle(toggleSpec(MBDIcons.CUBE_OUTLINE, ColorPattern.YELLOW.color, "editor.machine_scene.draw_rendering_box_frame_lines")) {
-                bindUIData(drawRenderingBoxData)
+                bindUIData(renderingBoxToggleData())
             }
             // draw XYZ axes
             toggle(toggleSpec(Icons.TRANSFORM_TRANSLATE, ColorPattern.CYAN.color, "editor.machine_scene.draw_axes")) {
-                bindUIData(drawAxesData)
+                bindUIData(axesToggleData())
             }
         })
         // inspect by default
         machineStateHierarchy.configToggle.isOn = true
-    }
-
-    override fun renderAfterWorld(
-        bufferSource: MultiBufferSource,
-        partialTicks: Float
-    ) {
-        previewMachine?.let { machine ->
-            if (isDrawShape) {
-                val buffer = bufferSource.getBuffer(LDLibRenderTypes.noDepthLines())
-                machine.machineState.getShape(null).forAllEdges { x0, y0, z0, x1, y1, z1 ->
-                    val normal = Vector3f((x1 - x0).toFloat(), (y1 - y0).toFloat(), (z1 - z0).toFloat()).normalize()
-                    buffer.addVertex(x0.toFloat(), y0.toFloat(), z0.toFloat())
-                        .setColor(-1)
-                        .setNormal(normal.x, normal.y, normal.z);
-                    buffer.addVertex(x1.toFloat(), y1.toFloat(), z1.toFloat())
-                        .setColor(-1)
-                        .setNormal(normal.x, normal.y, normal.z);
-                }
-            }
-            if (isDrawRenderingBox) {
-                val aabb = machine.machineState.getRenderingBox(null);
-                if (aabb != null) {
-                    val color = 0xffeedd00.toInt()
-                    val buffer = bufferSource.getBuffer(LDLibRenderTypes.noDepthLines())
-                    RenderBufferUtils.drawCubeFrame(PoseStack(), buffer,
-                        aabb.minX.toFloat(),
-                        aabb.minY.toFloat(),
-                        aabb.minZ.toFloat(),
-                        aabb.maxX.toFloat(),
-                        aabb.maxY.toFloat(),
-                        aabb.maxZ.toFloat(),
-                        ColorUtils.red(color),
-                        ColorUtils.green(color),
-                        ColorUtils.blue(color),
-                        ColorUtils.alpha(color)
-                    )
-                }
-            }
-            if (isDrawAxes) {
-                val buffer = bufferSource.getBuffer(LDLibRenderTypes.noDepthLines())
-                // X axis (red), Y axis (green), Z axis (blue) — one block long from the origin.
-                buffer.addVertex(0f, 0f, 0f).setColor(0xffff5555.toInt()).setNormal(1f, 0f, 0f)
-                buffer.addVertex(100f, 0f, 0f).setColor(0xffff5555.toInt()).setNormal(1f, 0f, 0f)
-                buffer.addVertex(0f, 0f, 0f).setColor(0xff55ff55.toInt()).setNormal(0f, 1f, 0f)
-                buffer.addVertex(0f, 100f, 0f).setColor(0xff55ff55.toInt()).setNormal(0f, 1f, 0f)
-                buffer.addVertex(0f, 0f, 0f).setColor(0xff5555ff.toInt()).setNormal(0f, 0f, 1f)
-                buffer.addVertex(0f, 0f, 100f).setColor(0xff5555ff.toInt()).setNormal(0f, 0f, 1f)
-            }
-        }
     }
 
     private data class DraggingMachineState(val draggedNode: MachineState)

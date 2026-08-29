@@ -9,6 +9,7 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.gui.util.ITreeNode;
 import com.lowdragmc.lowdraglib2.integration.kjs.KJSBindings;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.lowdraglib2.utils.ShapeUtils;
 import com.lowdragmc.mbd2.client.MachineSound;
 import com.lowdragmc.mbd2.MBD2;
@@ -86,10 +87,16 @@ public class MachineState implements ITreeNode<MachineState, Void>, IConfigurabl
             "config.machine_state.machine_sound.tooltip.2",
     })
     protected final ToggleMachineSound machineSound = new ToggleMachineSound();
-    @Configurable(name = "config.machine_state.machine_fxs", subConfigurable = true, tips = {
-            "config.machine_state.machine_fxs.tooltip.0", "config.machine_state.machine_fxs.tooltip.1",
-            "config.machine_state.machine_fxs.tooltip.2",
-    })
+    /**
+     * The effects this state plays. Authored in the Machine FX view rather than here, which is why
+     * this is {@code @Persisted(subPersisted = true)} where every sibling setting is
+     * {@code @Configurable(subConfigurable = true)} — the FX view owns the per-state lists and the
+     * machine-level library together, so that "which effects does this machine have" has one answer
+     * in one place. The persisted form is identical either way; only the inspector row is gone.
+     *
+     * @see #getRealMachineFXs()
+     */
+    @Persisted(subPersisted = true)
     protected final ToggleMachineFXs machineFXs = new ToggleMachineFXs();
     // runtime
     @Nullable

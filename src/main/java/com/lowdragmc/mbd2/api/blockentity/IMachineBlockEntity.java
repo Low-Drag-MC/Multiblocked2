@@ -3,6 +3,7 @@ package com.lowdragmc.mbd2.api.blockentity;
 import com.lowdragmc.lowdraglib2.syncdata.holder.IPersistManagedHolder;
 import com.lowdragmc.lowdraglib2.syncdata.holder.blockentity.IRPCBlockEntity;
 import com.lowdragmc.lowdraglib2.syncdata.holder.blockentity.ISyncBlockEntity;
+import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -60,6 +61,25 @@ public interface IMachineBlockEntity extends ISyncBlockEntity, IRPCBlockEntity, 
     IMachine getMetaMachine();
 
     long getOffset();
+
+    /**
+     * How far ahead this machine's {@link #getOffsetTimer()} runs, so that machines placed on the
+     * same tick don't all do their periodic work on the same tick.
+     *
+     * <p>Spreading phase is the entire job, so the range only has to cover the longest period
+     * anything divides the timer by — a minute is well past that. It used to be a full
+     * {@code nextLong()}, which spreads phase just as well but made the timer itself a number around
+     * 4e18, and that is a bad number to hand out. It overflows the moment the world time is added to
+     * it, and it cannot survive a trip through a {@code float}: a float carries 24 bits of mantissa,
+     * so up there a tick and the tick after it are the same float. KilaGraph's arithmetic nodes take
+     * their numeric lane from their operands and so keep a {@code long} exact, but the nodes that
+     * are genuinely float — {@code Lerp}, {@code Remap}, the trig ones, anything feeding a renderer —
+     * cannot, and a timer they cannot tell apart from the next one stops moving without saying so.
+     * A small offset keeps it exact in a float for the first ~16.7M ticks of world time.</p>
+     */
+    static long randomTickOffset() {
+        return MBD2.RND.nextInt(20 * 60);
+    }
 
     @Override
     default boolean isAsyncValid() {

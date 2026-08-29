@@ -46,6 +46,50 @@ public class PhotonFXScene {
         if (manager != null) Client.control(manager, Control.CLEAR);
     }
 
+    /**
+     * Put the scene at tick {@code time} of the effects {@code restart} starts.
+     *
+     * <h2>Re-simulated, not seeked</h2>
+     * Particles carry their own simulation state and cannot be rewound, so the only honest way to
+     * show tick N is to run N ticks. This is a port of Photon's own editor seek
+     * ({@code SceneView.simulateTo}), and the three things it does that a naive loop does not are all
+     * load-bearing:
+     *
+     * <ul>
+     *   <li><b>Forward is incremental.</b> Only a backward seek restarts. Restarting on every seek
+     *       makes dragging a scrub bar feel like a reset button rather than a scrub.</li>
+     *   <li><b>The last two ticks run un-fast.</b> A paused editor renders with
+     *       {@code partialTicks = 0}, and interpolating at 0 returns the <em>origin</em> snapshot — so
+     *       if the final ticks skipped their visual update the scene would draw stale or empty.</li>
+     *   <li><b>The manager's clock is set to match.</b> Otherwise everything reading the scene time —
+     *       a playhead, a readout — keeps reporting the tick it was at before the seek.</li>
+     * </ul>
+     *
+     * <p>Cost is linear in the distance travelled, on the render thread, which is why a caller
+     * dragging a playhead should coalesce to at most one call per frame.</p>
+     */
+    public static void simulateTo(@Nullable ParticleManager manager, Runnable restart, long time) {
+        if (manager == null) {
+            restart.run();
+            return;
+        }
+        Client.simulateTo(manager, restart, Math.max(0, time));
+    }
+
+    /** The scene clock, in ticks. {@code 0} without Photon. */
+    public static long currentTime(@Nullable ParticleManager manager) {
+        return manager == null ? 0 : Client.currentTime(manager);
+    }
+
+    /** The scene clock including the fraction of the current tick, for a playhead that does not step. */
+    public static float currentTime(@Nullable ParticleManager manager, float partialTicks) {
+        return manager == null ? 0 : Client.currentTime(manager, partialTicks);
+    }
+
+    public static boolean isPlaying(@Nullable ParticleManager manager) {
+        return manager != null && Client.isPlaying(manager);
+    }
+
     private enum Control { PLAY, PAUSE, CLEAR }
 
     /**
@@ -70,6 +114,55 @@ public class PhotonFXScene {
                 case PAUSE -> photon.pause();
                 case CLEAR -> photon.clear();
             }
+        }
+
+        private static void simulateTo(ParticleManager manager, Runnable restart, long time) {
+            if (!(manager instanceof com.lowdragmc.photon.client.PhotonParticleManager photon)) {
+                restart.run();
+                return;
+            }
+            var now = photon.getTime();
+            if (time > now) {
+                runTicks(photon, time - now);
+            } else {
+                photon.clear();
+                restart.run();
+                runTicks(photon, time);
+            }
+            photon.setTime(time);
+        }
+
+        private static void runTicks(com.lowdragmc.photon.client.PhotonParticleManager photon, long ticks) {
+            // Bounded like Photon's own: a scrub target is user input and this is the render thread.
+            var count = Math.min(ticks, 500L * 20);
+            try {
+                for (long i = 0; i < count; i++) {
+                    // The last two run un-fast — see simulateTo's javadoc on partialTicks = 0.
+                    com.lowdragmc.photon.client.PhotonParticleManager.setFastSimulation(i < count - 2);
+                    // tickInternal, not tick: the latter is gated on the manager playing, and seeking
+                    // while paused is the whole point.
+                    photon.tickInternal();
+                }
+            } finally {
+                // A throw mid-replay would otherwise leave every particle in the game skipping its
+                // visual updates, since the flag is static and shared.
+                com.lowdragmc.photon.client.PhotonParticleManager.setFastSimulation(false);
+            }
+        }
+
+        private static long currentTime(ParticleManager manager) {
+            return manager instanceof com.lowdragmc.photon.client.PhotonParticleManager photon
+                    ? photon.getTime() : 0;
+        }
+
+        private static float currentTime(ParticleManager manager, float partialTicks) {
+            return manager instanceof com.lowdragmc.photon.client.PhotonParticleManager photon
+                    ? photon.getTime(partialTicks) : 0;
+        }
+
+        private static boolean isPlaying(ParticleManager manager) {
+            return manager instanceof com.lowdragmc.photon.client.PhotonParticleManager photon
+                    && photon.isPlaying();
         }
     }
 }

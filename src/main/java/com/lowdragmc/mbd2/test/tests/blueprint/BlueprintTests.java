@@ -1,7 +1,9 @@
 package com.lowdragmc.mbd2.test.tests.blueprint;
 
 import com.lowdragmc.mbd2.MBD2;
+import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
 import com.lowdragmc.mbd2.test.framework.MBDScenario;
+import com.lowdragmc.mbd2.test.framework.MBDTestHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -95,5 +97,63 @@ public class BlueprintTests {
                 .assertItem(0, ItemStack.EMPTY)
                 .assertItem(1, BlueprintFixtures.stone(4))
                 .succeed();
+    }
+
+    /**
+     * A blueprint gated on {@code Every N Ticks} fires periodically — not never, and not every tick.
+     *
+     * <h2>What this guards</h2>
+     * A periodic gate does not fail by drifting, it fails by freezing: anything that stops the
+     * remainder moving — a conversion lost on the way into the arithmetic, a timer too large for the
+     * lane it ends up in — leaves the gate answering the same thing on every tick. Which value it
+     * froze on then decides whether the machine does the work every single tick or on none of them,
+     * so the assertion is that the count sits strictly between those two. Neither failure can
+     * satisfy that, and being a tick out either way does not trip it.
+     *
+     * <p>The bounds are loose on purpose: the exact count depends on where in the interval the
+     * machine's phase falls and on how many ticks the harness runs around placement, neither of which
+     * this test is about.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void periodicBlueprintFiresOnItsInterval(GameTestHelper helper) {
+        int ticks = 10 * BlueprintFixtures.PERIOD;
+        var scenario = MBDScenario.of(helper)
+                .placeMachine(BlueprintFixtures.PERIODIC_MACHINE_ID, new BlockPos(1, 1, 1))
+                .runTicks(ticks);
+        int count = scenario.getItem(0).getCount();
+        int expected = ticks / BlueprintFixtures.PERIOD;
+        if (count < expected - 2 || count > expected + 2) {
+            helper.fail("Every N Ticks fired " + count + " time(s) over " + ticks
+                    + " ticks; expected about " + expected
+                    + (count == 0 ? " (never fired — the gate is stuck false)" : "")
+                    + (count >= ticks ? " (fired every tick — the gate is stuck true)" : ""));
+            return;
+        }
+        helper.succeed();
+    }
+
+    /**
+     * The machine timer survives a trip through a {@code float}.
+     *
+     * <p>The arithmetic nodes take their lane from their operands, so a graph doing whole-number math
+     * on the timer keeps it exact. The nodes that are genuinely float — {@code Lerp}, {@code Remap},
+     * trig, anything feeding a renderer — cannot, and a timer they cannot tell apart from the next
+     * one stops moving silently, because the math still runs and still produces a number. It used to
+     * be too large for that, because the per-machine offset was a full {@code nextLong()}. Asserting
+     * that {@code timer} and {@code timer + 1} are still different floats is the smallest statement
+     * of what {@link IMachineBlockEntity#randomTickOffset()} has to keep true.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void machineTimerSurvivesAFloat(GameTestHelper helper) {
+        var machine = MBDTestHelper.placeMachine(helper, BlueprintFixtures.PLAIN_MACHINE_ID, new BlockPos(1, 1, 1));
+        long timer = machine.getOffsetTimer();
+        if ((float) timer == (float) (timer + 1)) {
+            helper.fail("offset timer " + timer + " is too large for a float — consecutive ticks "
+                    + "round to " + (float) timer + ", so any float-lane math on it is frozen");
+            return;
+        }
+        helper.succeed();
     }
 }

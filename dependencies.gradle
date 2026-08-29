@@ -35,7 +35,21 @@ dependencies {
     localImplementation("com.eliotlash.mclib:mclib:20")
 
     // Photon
-    localImplementation("com.lowdragmc.photon:photon-neoforge-${minecraft_version}:${photon2_version}") { transitive = false }
+    //
+    // -PnoPhoton takes it off the *runtime* classpath while leaving it on the compile one, so a dev
+    // run can answer the only question the guarded integration raises: does everything still load
+    // when the jar is not there? MBD2 declares photon optional in neoforge.mods.toml and keeps every
+    // Photon type behind a nested class reached only past an isPhotonLoaded() check, and that is a
+    // claim about class resolution — reasoning about it proves nothing, running without the jar does.
+    //
+    //   gradlew runGameTestServer -PnoPhoton
+    //   gradlew runClient -PldTest=mbd2_no_photon -PnoPhoton
+    def photon = "com.lowdragmc.photon:photon-neoforge-${minecraft_version}:${photon2_version}"
+    if (project.hasProperty('noPhoton')) {
+        compileOnly(photon) { transitive = false }
+    } else {
+        localImplementation(photon) { transitive = false }
+    }
 
     // Botania
 //    compileOnly("vazkii.botania:botania-neoforge-${minecraft_version}:${botania_version}:api")

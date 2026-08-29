@@ -97,7 +97,7 @@ public final class PhotonFXNodes {
         @InputPort public String fxLocation = "";
         @InputPort public Vector3f offset;
         @InputPort public Vector3f rotation;
-        @InputPort public Vector3f scale;
+        @InputPort public Vector3f scale = new Vector3f(1, 1, 1);
         @InputPort public int delay;
         @InputPort public boolean forcedDeath;
         @InputPort public boolean replaceExisting;

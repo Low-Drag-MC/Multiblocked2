@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.common.blueprint.node.machine;
 
+import com.lowdragmc.kilagraph.graph.core.InputPort;
 import com.lowdragmc.kilagraph.graph.core.OutputPort;
 import com.lowdragmc.kilagraph.graph.exec.EvalContext;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.NodeAttribute;
@@ -239,6 +240,34 @@ public final class MachineInfoBlocks {
         @Override
         protected void read(MBDMachine machine, EvalContext ctx) {
             ctx.setOutput("value", machine.getOffsetTimer());
+        }
+    }
+
+    /**
+     * True on one tick in every {@code interval} — the staggered-periodic-work test, done for you.
+     *
+     * <p>{@link OffsetTimer} into {@code Modulo} into {@code Equals 0} says the same thing, and says
+     * it correctly: KilaGraph's arithmetic takes its numeric lane from its operands, so a
+     * {@code long} timer stays a {@code long} the whole way through. This block is that chain
+     * written once — worth having because reading the clock is the most common thing a blueprint
+     * does with a machine, and three nodes and a wire is three places to get the phase or the
+     * comparison subtly wrong.</p>
+     *
+     * <p>The phase is the machine's own, so two machines placed at the same moment still land on
+     * different ticks — which is the whole point of {@link OffsetTimer} being offset.</p>
+     */
+    @NodeAttribute(name = "mbd2_machine_every_n_ticks", group = GROUP, graphTypes = MachineBlueprintGraph.class)
+    @UseWithContext(MachineInfoNode.class)
+    public static class EveryNTicks extends MachineBlock {
+        @InputPort public int interval = 20;
+        @OutputPort public boolean value;
+
+        @Override
+        protected void read(MBDMachine machine, EvalContext ctx) {
+            var interval = ctx.getInt("interval", 20);
+            // <= 0 would be a division by zero, and "every zero ticks" has no useful reading either;
+            // false is the answer that makes a mis-set interval do nothing rather than fire always.
+            ctx.setOutput("value", interval > 0 && Math.floorMod(machine.getOffsetTimer(), interval) == 0);
         }
     }
 

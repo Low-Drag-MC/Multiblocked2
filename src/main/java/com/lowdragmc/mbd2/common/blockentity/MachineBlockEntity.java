@@ -1,7 +1,6 @@
 package com.lowdragmc.mbd2.common.blockentity;
 
 import com.lowdragmc.lowdraglib2.syncdata.storage.MultiManagedStorage;
-import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
@@ -22,7 +21,7 @@ public class MachineBlockEntity extends BlockEntity implements IMachineBlockEnti
     @Getter
     public final MultiManagedStorage rootStorage = new MultiManagedStorage();
     @Getter
-    private final long offset = MBD2.RND.nextLong();
+    private final long offset = IMachineBlockEntity.randomTickOffset();
     @Getter
     private IMachine metaMachine;
 
