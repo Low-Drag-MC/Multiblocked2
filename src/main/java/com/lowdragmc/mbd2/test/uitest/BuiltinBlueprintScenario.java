@@ -47,7 +47,7 @@ public class BuiltinBlueprintScenario implements UIScenario {
     private static final List<String> NAMES = List.of(
             "redstone_control", "comparator_progress", "environment_gate", "overclock",
             "upgrade_slots", "part_count_bonus", "upkeep", "chance_output", "output_swap", "heat_buildup",
-            "debug_probe");
+            "auto_io_panel", "debug_probe");
 
     @Override
     public void configure(ScenarioOptions options) {

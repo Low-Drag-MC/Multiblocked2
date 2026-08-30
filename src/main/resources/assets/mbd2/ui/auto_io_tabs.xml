@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    The strip that machine-UI side tabs hang off, shared by every blueprint that adds one.
+
+    Loaded by the first auto-IO blueprint to run and found by the rest, which is what makes several
+    of them append tabs rather than each building its own strip. The id is the contract between them.
+
+    Positioned outside the machine panel's left edge, the way a mod's side tabs usually are. It is a
+    flex column, so a tab is appended simply by being added as a child.
+
+    This file has to exist twice, under assets/ and under data/: LDLib2 resolves a ui xml through the
+    active resource manager, which is assets on the client and datapacks on the server, and a machine
+    UI is assembled on both sides. MachineUIResourceTests keeps the two copies identical.
+-->
+<ui>
+    <root>
+        <element id="mbd2_side_tabs"
+                 style="position: absolute; left: -26; top: 4; width: 24; flex-direction: column; gap: 2;"/>
+    </root>
+</ui>

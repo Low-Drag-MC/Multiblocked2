@@ -5,6 +5,7 @@ import com.lowdragmc.kilagraph.graph.core.OutputPort;
 import com.lowdragmc.kilagraph.graph.exec.EvalContext;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.NodeAttribute;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.UseWithContext;
+import com.lowdragmc.mbd2.api.pattern.util.RelativeDirection;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import com.lowdragmc.mbd2.common.blueprint.MachineBlueprintGraph;
@@ -108,6 +109,28 @@ public final class MachineInfoBlocks {
         @Override
         protected void read(MBDMachine machine, EvalContext ctx) {
             ctx.setOutput("value", machine.getFrontFacing().orElse(Direction.NORTH));
+        }
+    }
+
+    /**
+     * The world direction one of the machine's own faces currently points in.
+     *
+     * <p>Everything a player sees is machine-relative — "the left side", "the back" — and everything
+     * the machine stores is a world direction resolved against its facing. A UI that lets someone
+     * configure a side has to cross that gap, and rotating the machine afterwards has to move the
+     * setting with it. This is the conversion, on its own, so the graph can do the crossing
+     * explicitly rather than each node guessing which of the two it was handed.</p>
+     */
+    @NodeAttribute(name = "mbd2_machine_relative_side", group = GROUP, graphTypes = MachineBlueprintGraph.class)
+    @UseWithContext(MachineInfoNode.class)
+    public static class RelativeSide extends MachineBlock {
+        @InputPort public RelativeDirection relative = RelativeDirection.FRONT;
+        @OutputPort public Direction value;
+
+        @Override
+        protected void read(MBDMachine machine, EvalContext ctx) {
+            var relative = ctx.getInput("relative", RelativeDirection.class, RelativeDirection.FRONT);
+            ctx.setOutput("value", relative.getActualFacing(machine.getFrontFacing().orElse(Direction.NORTH)));
         }
     }
 

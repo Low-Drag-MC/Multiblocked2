@@ -1,0 +1,309 @@
+package com.lowdragmc.mbd2.test.tests.blueprint;
+
+import com.lowdragmc.lowdraglib2.gui.factory.BlockUIMenuType;
+import com.lowdragmc.lowdraglib2.gui.ui.UI;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.mbd2.MBD2;
+import com.lowdragmc.mbd2.api.capability.recipe.IO;
+import com.lowdragmc.mbd2.api.pattern.util.RelativeDirection;
+import com.lowdragmc.mbd2.common.machine.MBDMachine;
+import com.lowdragmc.mbd2.common.trait.IAutoIOTrait;
+import com.lowdragmc.mbd2.test.framework.MBDScenario;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.gametest.framework.GameTest;
+import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.GameType;
+import net.neoforged.neoforge.gametest.GameTestHolder;
+import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
+/**
+ * The {@code auto_io_panel} built-in, checked where it is cheapest to check: the element tree a
+ * machine UI comes out with.
+ *
+ * <h2>Why the tree and not a screenshot</h2>
+ * A blueprint that builds UI can fail in two quite different ways — it can produce the wrong tree, or
+ * it can produce the right tree that looks wrong. Only the second needs a rendered frame, and it is
+ * the rarer one; the first is every wiring mistake in a seventy-node graph. Asserting on the tree
+ * runs in a second, names the missing id when it fails, and works headlessly, so it is what guards
+ * the graph. {@code MachineAutoIOPanelScenario} takes the screenshot.
+ *
+ * <h2>Why a machine UI is buildable here at all</h2>
+ * {@code MBDMachine.createUI} only reaches into its holder for the player, so a gametest can hand it
+ * one built around the machine's own block and get the real thing back — the same call the menu makes,
+ * firing the same {@code MachineUIEvent} the blueprint listens for.
+ */
+@GameTestHolder(MBD2.MOD_ID)
+public class AutoIOPanelTests {
+    static { @SuppressWarnings("unused") var ignored = AutoIOPanelFixtures.ONE_TAB_ID; }
+
+    private static final BlockPos POS = new BlockPos(1, 1, 1);
+    private static final String STRIP = "mbd2_side_tabs";
+    private static final List<String> FACES =
+            List.of("face_UP", "face_DOWN", "face_LEFT", "face_RIGHT", "face_FRONT", "face_BACK");
+
+    /**
+     * One binding puts one tab on the strip, with every part the panel needs.
+     *
+     * <p>Each id is asserted separately because they fail for different reasons: no strip means the
+     * event never reached the graph, a strip with no tab means the tab document did not load, and a
+     * tab missing a face means the document itself is wrong.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void oneBindingAddsOneTab(GameTestHelper helper) {
+        var ui = openUI(helper, AutoIOPanelFixtures.ONE_TAB_ID);
+        if (ui == null) return;
+
+        if (count(ui, STRIP) != 1) {
+            helper.fail("expected exactly one side-tab strip, found " + count(ui, STRIP));
+            return;
+        }
+        if (count(ui, "handle") != 1 || count(ui, "panel") != 1) {
+            helper.fail("the tab is missing its handle or its panel");
+            return;
+        }
+        for (var face : FACES) {
+            if (count(ui, face) != 1) {
+                helper.fail("the panel has no " + face + " button");
+                return;
+            }
+        }
+        helper.succeed();
+    }
+
+    /**
+     * Two bindings append to one strip rather than each building their own.
+     *
+     * <p>This is the difference between tabs that stack up the left edge and tabs drawn on top of each
+     * other, and it is the whole reason the strip is a separate document found by id. One strip and two
+     * of everything else is the shape that says so.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void twoBindingsShareOneStrip(GameTestHelper helper) {
+        var ui = openUI(helper, AutoIOPanelFixtures.TWO_TABS_ID);
+        if (ui == null) return;
+
+        if (count(ui, STRIP) != 1) {
+            helper.fail("expected the two tabs to share one strip, found " + count(ui, STRIP)
+                    + " strips — they built their own instead of appending");
+            return;
+        }
+        if (count(ui, "handle") != 2) {
+            helper.fail("expected two tabs, found " + count(ui, "handle"));
+            return;
+        }
+        var strip = ui.selectId(STRIP).findFirst().orElse(null);
+        if (strip == null || strip.getChildren().size() != 2) {
+            helper.fail("expected both tabs to be children of the strip, it has "
+                    + (strip == null ? "no strip" : strip.getChildren().size() + " children"));
+            return;
+        }
+        helper.succeed();
+    }
+
+    /**
+     * A trait that does not do auto IO gets no tab, not an empty one.
+     *
+     * <p>The panel is only worth showing for a trait that will act on it. Without this check the
+     * blueprint would happily draw six buttons that change nothing, which is worse than no tab —
+     * and the check is in the graph, so this is what proves the graph asks the question.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void anUnknownTraitAddsNothing(GameTestHelper helper) {
+        var ui = openUI(helper, AutoIOPanelFixtures.NO_TRAIT_ID);
+        if (ui == null) return;
+        if (count(ui, STRIP) != 0 || count(ui, "handle") != 0) {
+            helper.fail("a trait that does no auto IO still got a tab");
+            return;
+        }
+        helper.succeed();
+    }
+
+    /**
+     * The control: without the blueprint the machine UI has none of this.
+     *
+     * <p>Otherwise "there is no strip" would be equally consistent with a working guard and with a
+     * machine UI that never had one to begin with.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void aPlainMachineHasNoStrip(GameTestHelper helper) {
+        var ui = openUI(helper, AutoIOPanelFixtures.CONTROL_ID);
+        if (ui == null) return;
+        if (count(ui, STRIP) != 0) {
+            helper.fail("a machine with no blueprint somehow has a side-tab strip");
+            return;
+        }
+        helper.succeed();
+    }
+
+    // ---- helpers ---------------------------------------------------------------------------------
+
+    /** Places the machine and builds its UI the way opening the menu would. */
+    private static UI openUI(GameTestHelper helper, ResourceLocation machineId) {
+        var scenario = MBDScenario.of(helper).placeMachine(machineId, POS);
+        var machine = scenario.machine();
+        var state = helper.getBlockState(POS);
+        if (!(state.getBlock() instanceof BlockUIMenuType.BlockUI blockUI)) {
+            helper.fail("the machine block does not open a ui at all");
+            return null;
+        }
+        var holder = new BlockUIMenuType.BlockUIHolder(blockUI, helper.makeMockPlayer(GameType.CREATIVE), absolute(helper), state);
+        var modular = machine.createUI(holder);
+        if (modular == null) {
+            helper.fail("the machine built no ui");
+            return null;
+        }
+        return modular.ui;
+    }
+
+    private static BlockPos absolute(GameTestHelper helper) {
+        return helper.absolutePos(POS);
+    }
+
+    private static long count(UI ui, String id) {
+        return ui.selectId(id).count();
+    }
+
+    /**
+     * Clicking a face walks its auto IO round the cycle and stops where it started.
+     *
+     * <p>The click handler is registered on the server, where the runtime override lives, and normally
+     * only ever runs because a client sent the matching RPC. Running the listeners directly is the only
+     * way to exercise it headlessly, and it is worth exercising: everything upstream of it — the face
+     * button, the relative-to-world side conversion, the cycle, the write — is graph wiring, and the
+     * structural test would pass just as happily with all of it wired to nothing.</p>
+     *
+     * <p>A full lap rather than one step, because one step cannot tell a working cycle from a node
+     * stuck on {@code IN}, and because coming back to {@code NONE} is what a player expects.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void clickingAFaceCyclesItsAutoIO(GameTestHelper helper) {
+        var scenario = MBDScenario.of(helper).placeMachine(AutoIOPanelFixtures.ONE_TAB_ID, POS);
+        var machine = scenario.machine();
+        var ui = openUI(helper, AutoIOPanelFixtures.ONE_TAB_ID);
+        if (ui == null) return;
+
+        var button = ui.selectId("face_UP").findFirst().orElse(null);
+        if (button == null) {
+            helper.fail("no up-face button to click");
+            return;
+        }
+        // Up is the one relative side that is the same world direction whichever way a machine faces,
+        // so the expectation does not depend on how the fixture happened to be placed.
+        for (var expected : List.of(IO.IN, IO.OUT, IO.BOTH, IO.NONE)) {
+            click(button);
+            var actual = autoIO(machine, RelativeDirection.UP);
+            if (actual != expected) {
+                helper.fail("expected the up face to be " + expected + " after a click, was " + actual);
+                return;
+            }
+        }
+        helper.succeed();
+    }
+
+    /**
+     * The panel shows what the machine actually has, not a fresh set of defaults.
+     *
+     * <p>The face values are read on the server and pushed to the client, because runtime overrides are
+     * never sent with the block entity. This checks the server end of that: the sync value's source is
+     * wired to the real reading, so a face already set to {@code OUT} arrives as {@code OUT}.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void thePanelReadsWhatIsAlreadySet(GameTestHelper helper) {
+        var scenario = MBDScenario.of(helper).placeMachine(AutoIOPanelFixtures.ONE_TAB_ID, POS);
+        var machine = scenario.machine();
+        var trait = machine.getTraitByName(AutoIOPanelFixtures.ITEM_TRAIT);
+        if (!(trait instanceof IAutoIOTrait autoIO)) {
+            helper.fail("the fixture's item slot trait does not do auto IO");
+            return;
+        }
+        autoIO.setAutoIOSide(Direction.UP, IO.OUT);
+
+        var ui = openUI(helper, AutoIOPanelFixtures.ONE_TAB_ID);
+        if (ui == null) return;
+        var button = ui.selectId("face_UP").findFirst().orElse(null);
+        if (button == null) {
+            helper.fail("no up-face button");
+            return;
+        }
+        // One more click: from OUT the cycle goes to BOTH. If the graph had read a fresh NONE instead
+        // of what the machine holds, it would have gone to IN.
+        click(button);
+        var actual = autoIO(machine, RelativeDirection.UP);
+        if (actual != IO.BOTH) {
+            helper.fail("expected the click to continue from OUT to BOTH, landed on " + actual
+                    + " — the panel read a default rather than the machine's own value");
+            return;
+        }
+        helper.succeed();
+    }
+
+    /** Runs the element's server-side click listeners, the way the client's rpc would. */
+    private static void click(UIElement element) {
+        var event = UIEvent.create(UIEvents.CLICK);
+        event.currentElement = element;
+        event.target = element;
+        for (var listener : element.getServerEventListeners(UIEvents.CLICK, false)) {
+            listener.handleEvent(event);
+        }
+    }
+
+    private static IO autoIO(MBDMachine machine, RelativeDirection relative) {
+        var trait = machine.getTraitByName(AutoIOPanelFixtures.ITEM_TRAIT);
+        if (!(trait instanceof IAutoIOTrait autoIO)) return IO.NONE;
+        var runtime = autoIO.getRuntimeAutoIO();
+        if (runtime == null) return IO.NONE;
+        var front = machine.getFrontFacing().orElse(Direction.NORTH);
+        return runtime.getIO(front, relative.getActualFacing(front));
+    }
+
+    /**
+     * The two copies of each ui document are identical.
+     *
+     * <p>LDLib2 resolves a ui xml through whichever resource manager is active — assets on the client,
+     * datapacks on the server — and a machine UI is assembled on both. So each document is shipped
+     * twice, and two copies that drift apart give the client and the server different element trees:
+     * ids that do not line up, sync values with nowhere to land, clicks that reach a listener that was
+     * never registered. None of that throws, and none of it is visible in a single-sided test.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void bothCopiesOfEachUiDocumentMatch(GameTestHelper helper) {
+        for (var name : List.of("auto_io_tab.xml", "auto_io_tabs.xml")) {
+            var asset = read(helper, "/assets/mbd2/ui/" + name);
+            var data = read(helper, "/data/mbd2/ui/" + name);
+            if (asset == null || data == null) {
+                helper.fail(name + " is missing from " + (asset == null ? "assets" : "data")
+                        + " — the side that cannot find it silently builds a different tree");
+                return;
+            }
+            if (!asset.equals(data)) {
+                helper.fail("the assets and data copies of " + name + " have drifted apart");
+                return;
+            }
+        }
+        helper.succeed();
+    }
+
+    private static String read(GameTestHelper helper, String path) {
+        try (var stream = AutoIOPanelTests.class.getResourceAsStream(path)) {
+            return stream == null ? null : new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            helper.fail("could not read " + path + ": " + e.getMessage());
+            return null;
+        }
+    }
+}

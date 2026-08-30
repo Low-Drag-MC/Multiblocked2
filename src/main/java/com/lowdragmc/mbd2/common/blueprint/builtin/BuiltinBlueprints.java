@@ -60,6 +60,7 @@ public final class BuiltinBlueprints {
         BLUEPRINTS.put("chance_output", ChanceOutputBlueprint::build);
         BLUEPRINTS.put("output_swap", OutputSwapBlueprint::build);
         BLUEPRINTS.put("heat_buildup", HeatBuildupBlueprint::build);
+        BLUEPRINTS.put("auto_io_panel", AutoIOPanelBlueprint::build);
         BLUEPRINTS.put("debug_probe", DebugProbeBlueprint::build);
     }
 

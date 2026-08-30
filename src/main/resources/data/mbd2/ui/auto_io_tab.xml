@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    One auto-IO side tab: a handle that stays visible, and a panel that folds out beside it.
+
+    The six face buttons are laid out as the machine sees itself rather than as the world does - the
+    top row is up / front / down and the bottom row left / back / right - because that is what the
+    player is choosing. The blueprint converts each to a world direction against the machine's facing,
+    so the setting follows the machine when it is rotated.
+
+    Every id here is looked up from this subtree, never from the whole UI, so several tabs can carry
+    the same ids without colliding.
+
+    Styles are inline rather than in a stylesheet block: only the root element of this document is
+    kept when a blueprint grafts the tab into a machine UI, and a document-level stylesheet would be
+    dropped with the rest. LDLib2 skips inline styles on the server, which is right - the server needs
+    the same tree, not the same look.
+
+    Mirrored under data/ as well as assets/; see auto_io_tabs.xml for why.
+-->
+<ui>
+    <root>
+        <element id="tab" style="flex-direction: row; align-items: flex-start; gap: 2;">
+            <button id="handle" text="IO" style="width: 22; height: 22;"/>
+            <element id="panel" visible="false"
+                     style="flex-direction: column; gap: 2; padding-all: 4; background: #cc202020;">
+                <label id="title"/>
+                <element style="flex-direction: row; gap: 2;">
+                    <button id="face_UP" text="U" style="width: 22; height: 22;"/>
+                    <button id="face_FRONT" text="F" style="width: 22; height: 22;"/>
+                    <button id="face_DOWN" text="D" style="width: 22; height: 22;"/>
+                </element>
+                <element style="flex-direction: row; gap: 2;">
+                    <button id="face_LEFT" text="L" style="width: 22; height: 22;"/>
+                    <button id="face_BACK" text="B" style="width: 22; height: 22;"/>
+                    <button id="face_RIGHT" text="R" style="width: 22; height: 22;"/>
+                </element>
+            </element>
+        </element>
+    </root>
+</ui>

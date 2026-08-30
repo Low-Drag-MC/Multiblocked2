@@ -13,6 +13,7 @@ import com.lowdragmc.mbd2.common.blueprint.node.MachineNodes;
 import com.lowdragmc.mbd2.common.blueprint.node.MachineTargetActionNode;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.runtime.IRuntimeValueHolder;
+import com.lowdragmc.mbd2.common.runtime.RuntimeAutoIO;
 import com.lowdragmc.mbd2.common.trait.IAutoIOTrait;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
 import net.minecraft.core.Direction;
@@ -213,6 +214,69 @@ public final class MachineRuntimeValueNodes {
         protected void apply(ExecContext ctx, MBDMachine machine) {
             machine.clearMachineLevel();
         }
+    }
+
+    /**
+     * Whether a trait does auto IO at all, and how it is currently set up.
+     *
+     * <p>{@code supported} is the question a blueprint has to ask before offering any of this: most
+     * traits have no auto IO, and the setter nodes below are silent no-ops on one that does not — fine
+     * for a script, useless for a UI that would otherwise draw a panel of controls doing nothing.</p>
+     *
+     * <p>The values are the machine's own, definition or override alike, which is what a UI wants to
+     * show. {@code Is Runtime Value Overridden} answers the other question.</p>
+     */
+    @NodeAttribute(name = "mbd2_machine_auto_io_info", group = INFO_GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class AutoIOInfo extends AnnotatedNode {
+        @InputPort public MBDMachine machine;
+        @InputPort public String trait = "";
+        @OutputPort public boolean supported;
+        @OutputPort public boolean enabled;
+        @OutputPort public int interval;
+
+        @Override
+        public void evaluate(EvalContext ctx) {
+            var autoIO = autoIO(ctx);
+            ctx.setOutput("supported", autoIO != null);
+            ctx.setOutput("enabled", autoIO != null && autoIO.enable.get());
+            ctx.setOutput("interval", autoIO == null ? 0 : autoIO.intervalTicks());
+        }
+    }
+
+    /**
+     * Which way a trait's auto IO currently moves things on one side.
+     *
+     * <p>The read half of {@code Set Auto IO Side}, and {@code side} means the same thing there: a
+     * world direction, resolved against the machine's facing. {@code Relative Side} converts one of
+     * the machine's own faces into it.</p>
+     */
+    @NodeAttribute(name = "mbd2_machine_get_auto_io_side", group = INFO_GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class GetAutoIOSide extends AnnotatedNode {
+        @InputPort public MBDMachine machine;
+        @InputPort public String trait = "";
+        @InputPort public Direction side = Direction.NORTH;
+        @OutputPort public IO io;
+
+        @Override
+        public void evaluate(EvalContext ctx) {
+            var target = MachineNodes.resolve(ctx, MachineNodes.MACHINE_INPUT);
+            var autoIO = autoIO(ctx);
+            var side = ctx.getInput("side", Direction.class, null);
+            if (target == null || autoIO == null || side == null) {
+                ctx.setOutput("io", IO.NONE);
+                return;
+            }
+            ctx.setOutput("io", autoIO.getIO(target.getFrontFacing().orElse(Direction.NORTH), side));
+        }
+    }
+
+    /** The runtime auto IO of the trait a node names, or null when there is none to speak of. */
+    @Nullable
+    private static RuntimeAutoIO autoIO(EvalContext ctx) {
+        var target = MachineNodes.resolve(ctx, MachineNodes.MACHINE_INPUT);
+        if (target == null) return null;
+        var holder = holder(target, ctx.getInput("trait", String.class, ""));
+        return holder instanceof IAutoIOTrait autoIOTrait ? autoIOTrait.getRuntimeAutoIO() : null;
     }
 
     /**

@@ -48,6 +48,7 @@ public class BuiltinBlueprintTests {
             new Expected("output_swap", List.of("product")),
             new Expected("heat_buildup", List.of("heatPerTick", "coolPerTick", "maxHeat",
                     "bonusAtMaxHeat")),
+            new Expected("auto_io_panel", List.of("trait")),
             new Expected("debug_probe", List.of("probeItem")));
 
     private record Expected(String name, List<String> parameters) {}
