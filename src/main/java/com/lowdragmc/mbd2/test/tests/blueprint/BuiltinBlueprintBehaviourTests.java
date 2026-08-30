@@ -468,24 +468,25 @@ public class BuiltinBlueprintBehaviourTests {
      * rests at 0 and a busy one at {@code maxHeat}, which is most of a machine's life. The blueprint
      * gates the write on the heat actually changing; this is what keeps that gate there.</p>
      *
-     * <p>Identity is the observable: {@code Merge Custom Data} builds a fresh tag and hands it to the
-     * setter, so the machine's tag is a different object exactly on the ticks that wrote.</p>
+     * <p>The observable is the <em>absence of the key</em>. A machine that has never been hot has
+     * nothing to record, so with the gate its custom data stays empty; without it, the first tick
+     * writes {@code heat = 0} and the key appears. That survives {@code Merge Custom Data} editing the
+     * tag in place, which an identity check would not.</p>
      */
     @GameTest(template = "empty_simple")
     @PrefixGameTestTemplate(false)
     public static void heatBuildupDoesNotWriteWhenNothingChanged(GameTestHelper helper) {
         var scenario = MBDScenario.of(helper)
                 .placeMachine(HEAT_ID, MACHINE)
-                .runTicks(10);
-        // Idle and already at the floor, so every tick from here computes the same heat it read.
+                .runTicks(40);
+        // Idle from the moment it was placed, so every tick computed the same 0 it read.
         if (heat(scenario.machine()) != 0f) {
             helper.fail("an idle machine did not settle at 0 heat; heat is " + heat(scenario.machine()));
             return;
         }
-        var before = scenario.machine().getCustomData();
-        scenario.runTicks(40);
-        if (scenario.machine().getCustomData() != before) {
-            helper.fail("custom data was rewritten on ticks where the heat never moved");
+        if (scenario.machine().getCustomData().contains(HEAT_KEY)) {
+            helper.fail("custom data was written on ticks where the heat never moved: "
+                    + scenario.machine().getCustomData());
             return;
         }
         scenario.succeed();

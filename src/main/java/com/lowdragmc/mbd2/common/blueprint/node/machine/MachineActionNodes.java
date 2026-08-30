@@ -72,9 +72,16 @@ public final class MachineActionNodes {
     /**
      * Replace the machine's custom data tag.
      *
-     * <p>Replaces rather than merges, because that is what makes the change visible: the tag is
-     * change-tracked by identity, so mutating the machine's own copy would neither sync nor fire
-     * {@code Custom Data Updated}. Use {@code Merge Custom Data} to keep the existing keys.</p>
+     * <p>Replaces rather than merges, which is the difference between this and
+     * {@code Merge Custom Data} — nothing to do with change tracking. The incoming tag is copied
+     * because it belongs to the graph: storing it directly would leave the machine's state aliased to
+     * a value a later node is free to mutate.</p>
+     *
+     * <h2>How the change is noticed</h2>
+     * By content, not by identity. {@code customData} is {@code @DescSynced}, and LDLib2 gives a
+     * {@code Tag} field a {@code MutableDirectRef} whose mark is a deep {@code Tag::copy} compared with
+     * {@code equals} each tick — so an in-place edit is seen, and replacing the tag with an equal one
+     * is not. Neither this node nor the setter pushes anything; the ref polls.
      */
     @NodeAttribute(name = "mbd2_machine_set_custom_data", group = GROUP, graphTypes = MachineBlueprintGraph.class)
     public static class SetCustomData extends MachineTargetActionNode {
@@ -87,7 +94,15 @@ public final class MachineActionNodes {
         }
     }
 
-    /** Merge keys into the machine's custom data, leaving the rest alone. @see SetCustomData */
+    /**
+     * Merge keys into the machine's custom data, leaving the rest alone.
+     *
+     * <p>Merged in place. The change is still noticed — see {@link SetCustomData} on why tracking is
+     * by content — so the copy-then-replace this used to do bought nothing and cost a deep tag copy
+     * every call, which is paid per machine per tick by any blueprint that keeps state.</p>
+     *
+     * @see SetCustomData
+     */
     @NodeAttribute(name = "mbd2_machine_merge_custom_data", group = GROUP, graphTypes = MachineBlueprintGraph.class)
     public static class MergeCustomData extends MachineTargetActionNode {
         @InputPort public CompoundTag data;
@@ -96,9 +111,7 @@ public final class MachineActionNodes {
         protected void apply(ExecContext ctx, MBDMachine machine) {
             var data = ctx.getInput("data", CompoundTag.class, null);
             if (data == null || data.isEmpty()) return;
-            var merged = machine.getCustomData().copy();
-            merged.merge(data);
-            machine.setCustomData(merged);
+            machine.getCustomData().merge(data);
         }
     }
 
