@@ -84,6 +84,14 @@ public class BuiltinBlueprintBehaviourFixtures implements TestFixtureProvider {
      */
     public static final net.minecraft.world.item.Item PROBE_ITEM = Items.DIAMOND;
 
+    /** {@code output_swap} pointed at an item the recipe never mentions. */
+    public static final ResourceLocation OUTPUT_SWAP_ID = MBD2.id("builtin_bp_output_swap");
+    /**
+     * What the swapped machine makes instead of dirt. Deliberately unrelated to the recipe, so seeing
+     * it proves the output came from the blueprint and not from the recipe under some other name.
+     */
+    public static final net.minecraft.world.item.Item SWAPPED_PRODUCT = Items.DIAMOND;
+
     /** {@code environment_gate} at its defaults: refuses to start while it is raining. */
     public static final ResourceLocation ENV_GATE_ID = MBD2.id("builtin_bp_env_gate");
 
@@ -176,6 +184,14 @@ public class BuiltinBlueprintBehaviourFixtures implements TestFixtureProvider {
                 .withBlueprint(builtin("debug_probe")
                         .withVariable("probeItem", constant(TypeHandles.ITEM_STACK,
                                 new net.minecraft.world.item.ItemStack(PROBE_ITEM))))
+                .register(event);
+
+        // Two output slots so "made diamonds" and "made no dirt" are independent facts: with one slot
+        // the second is free, because whichever landed first would block the other.
+        bonusProcessor(OUTPUT_SWAP_ID)
+                .withBlueprint(builtin("output_swap")
+                        .withVariable("product", constant(TypeHandles.ITEM_STACK,
+                                new net.minecraft.world.item.ItemStack(SWAPPED_PRODUCT, 2))))
                 .register(event);
 
         processor(ENV_GATE_ID)

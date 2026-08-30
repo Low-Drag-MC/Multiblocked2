@@ -45,6 +45,7 @@ public class BuiltinBlueprintTests {
             new Expected("part_count_bonus", List.of("speedPerPart", "maxSpeedup")),
             new Expected("upkeep", List.of("traitName", "amountPerTick", "reason")),
             new Expected("chance_output", List.of("bonusItem", "chance", "traitName")),
+            new Expected("output_swap", List.of("product")),
             new Expected("heat_buildup", List.of("heatPerTick", "coolPerTick", "maxHeat",
                     "bonusAtMaxHeat")),
             new Expected("debug_probe", List.of("probeItem")));

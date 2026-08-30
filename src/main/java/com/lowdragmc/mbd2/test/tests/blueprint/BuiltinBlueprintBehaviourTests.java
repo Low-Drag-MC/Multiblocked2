@@ -543,6 +543,42 @@ public class BuiltinBlueprintBehaviourTests {
         upgraded.succeed();
     }
 
+    // ---- output_swap -------------------------------------------------------------------------
+
+    /**
+     * The machine makes the swapped product and none of what the recipe says.
+     *
+     * <p>Both halves matter. Producing diamonds proves {@code Add Recipe Item} reached the machine's
+     * output handling — a recipe edit that the engine ignored would produce nothing new. Producing
+     * <em>no dirt</em> proves {@code Clear Recipe Items} took effect rather than the add simply
+     * appending alongside the original.</p>
+     *
+     * <p>It is also the end-to-end check on the premise these nodes rest on: {@code RecipeLogic}
+     * re-matches the modified recipe before running it, so a recipe whose contents were rewritten
+     * still consumes and produces coherently. If that were not so, this machine would stall.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void outputSwapReplacesWhatTheMachineMakes(GameTestHelper helper) {
+        var scenario = MBDScenario.of(helper)
+                .placeMachine(OUTPUT_SWAP_ID, MACHINE)
+                .insertItem(0, new ItemStack(Items.STONE, 4))
+                .runTicks(RUN_TICKS);
+        if (countInOutput(scenario, SWAPPED_PRODUCT) == 0) {
+            helper.fail("the machine did not make the swapped product; output holds "
+                    + scenario.getItem(1) + " / " + scenario.getItem(2));
+            return;
+        }
+        // The recipe's own output must be gone, not merely joined by the new one — which the second
+        // output slot is there to make observable.
+        if (countInOutput(scenario, Items.DIRT) != 0) {
+            helper.fail("the recipe's original output survived the clear; output holds "
+                    + scenario.getItem(1) + " / " + scenario.getItem(2));
+            return;
+        }
+        scenario.succeed();
+    }
+
     // ---- debug_probe -------------------------------------------------------------------------
 
     /**

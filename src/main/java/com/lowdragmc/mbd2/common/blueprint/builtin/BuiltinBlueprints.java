@@ -58,6 +58,7 @@ public final class BuiltinBlueprints {
         BLUEPRINTS.put("part_count_bonus", PartCountBonusBlueprint::build);
         BLUEPRINTS.put("upkeep", UpkeepBlueprint::build);
         BLUEPRINTS.put("chance_output", ChanceOutputBlueprint::build);
+        BLUEPRINTS.put("output_swap", OutputSwapBlueprint::build);
         BLUEPRINTS.put("heat_buildup", HeatBuildupBlueprint::build);
         BLUEPRINTS.put("debug_probe", DebugProbeBlueprint::build);
     }
