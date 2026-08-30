@@ -86,12 +86,16 @@ import java.util.Map;
  * recipe author wrote into that index, which is the stable way to name one particular content when
  * the recipe has several.
  *
- * <h2>Reading a payload, and building one MBD2 has never heard of</h2>
- * {@code Content Value} hands back the payload typed by the capability, and {@code Ingredient Info} /
- * {@code Fluid Ingredient Info} unpack the two that carry most recipes. For a payload from another
- * mod there is no typed node and cannot be one, so {@code Content To Nbt} / {@code Content From Nbt}
- * go through the capability's own codec instead: every payload has a data form, the NBT node family
- * already knows how to walk it, and it is the same shape the recipe was written in.
+ * <h2>Reading a payload, and building one</h2>
+ * {@code Content Value} hands back the payload typed by the capability, and each capability then
+ * supplies the pair that opens it and builds it — {@code Ingredient Info} and {@code Ingredient Of
+ * Tag} for items, the fluid and entity equivalents below, and one file per mod under
+ * {@code integration/} for the rest, each gated on that mod being installed.
+ *
+ * <p>That pair is the one thing the generic design cannot supply for a capability it has never heard
+ * of, so there is also a way through without it: {@code Content To Nbt} / {@code Content From Nbt}
+ * use the capability's own codec, and every capability has one. The NBT node family already knows
+ * how to walk the result, and it is the same shape the recipe was written in.</p>
  *
  * <h2>Editing is safe because the engine re-matches</h2>
  * {@code Recipe Modify (Before)} fires after a recipe has matched, which makes "swap an input" sound

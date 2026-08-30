@@ -19,6 +19,9 @@ import com.lowdragmc.mbd2.common.blueprint.node.recipe.RecipeContentNodes;
 import com.lowdragmc.mbd2.common.blueprint.node.recipe.RecipeLogicActionNodes;
 import com.lowdragmc.mbd2.common.blueprint.node.trait.EnergyNodes;
 import com.lowdragmc.mbd2.common.blueprint.node.trait.TraitCapabilityNodes;
+import com.lowdragmc.mbd2.common.capability.recipe.EntityRecipeCapability;
+import com.lowdragmc.mbd2.common.capability.recipe.FluidRecipeCapability;
+import com.lowdragmc.mbd2.common.capability.recipe.ItemRecipeCapability;
 import com.lowdragmc.mbd2.common.event.MBDRegistryEvent;
 import com.lowdragmc.mbd2.test.framework.TestFixtureProvider;
 import com.lowdragmc.mbd2.test.framework.TestMachineBuilder;
@@ -77,6 +80,20 @@ public class BlueprintBehaviourFixtures implements TestFixtureProvider {
     /** The same, but the payload is unpacked into a stack by Ingredient Info first. */
     public static final ResourceLocation UNPACK_INGREDIENT_ID = MBD2.id("blueprint_unpack_ingredient");
 
+    /** Builds an item payload from a tag and reads its count back out. */
+    public static final ResourceLocation ITEM_PAYLOAD_ID = MBD2.id("blueprint_item_payload_round_trip");
+    /** Builds a fluid payload from a tag and reads its amount back out. */
+    public static final ResourceLocation FLUID_PAYLOAD_ID = MBD2.id("blueprint_fluid_payload_round_trip");
+    /** Builds an entity payload from a tag, rebuilds it by type, and reads its count back out. */
+    public static final ResourceLocation ENTITY_PAYLOAD_ID = MBD2.id("blueprint_entity_payload_round_trip");
+
+    /** The counts the payload fixtures ask for. Each is distinct and none is a default. */
+    public static final int ITEM_PAYLOAD_COUNT = 3;
+    public static final int FLUID_PAYLOAD_AMOUNT = 6;
+    public static final int ENTITY_PAYLOAD_COUNT = 5;
+    /** What the entity fixture's tag step asks for, so that the rebuild step's count is the one seen. */
+    public static final int ENTITY_TAG_COUNT = 2;
+
     /** The tier the blueprint writes and reads back. Distinct from the default of zero. */
     public static final int TIER = 6;
     /** The signal the multiblock blueprint emits on forming. */
@@ -118,6 +135,10 @@ public class BlueprintBehaviourFixtures implements TestFixtureProvider {
         twoOutputMachine(ECHO_FIRST_OUTPUT_ID).withBlueprint(echoOutputAt(0)).register(event);
         twoOutputMachine(NBT_ROUND_TRIP_ID).withBlueprint(echoOutputThroughNbt(0)).register(event);
         twoOutputMachine(UNPACK_INGREDIENT_ID).withBlueprint(echoOutputThroughStack(0)).register(event);
+
+        TestMachineBuilder.simple(ITEM_PAYLOAD_ID).withBlueprint(itemPayloadRoundTrip()).register(event);
+        TestMachineBuilder.simple(FLUID_PAYLOAD_ID).withBlueprint(fluidPayloadRoundTrip()).register(event);
+        TestMachineBuilder.simple(ENTITY_PAYLOAD_ID).withBlueprint(entityPayloadRoundTrip()).register(event);
 
         TestMachineBuilder.simple(TIER_MACHINE_ID)
                 .withBlueprint(tierRoundTrip())
@@ -495,6 +516,57 @@ public class BlueprintBehaviourFixtures implements TestFixtureProvider {
         KGGameTestHelpers.wire(graph, add.getInputsById().get("content"), of.getOutputsById().get("content"));
         KGGameTestHelpers.wire(graph, write.getInputsById().get("recipe"), add.getOutputsById().get("result"));
         KGGameTestHelpers.wire(graph, write.getInputsById().get("in"), modify.getOutputsById().get("next"));
+        return graph;
+    }
+
+    // ---- payload makers and readers, one capability at a time ------------------------------------
+
+    /** {@code Ingredient Of Tag(#planks, 3)} round-tripped through the item capability. */
+    private static MachineBlueprintGraph itemPayloadRoundTrip() {
+        return PayloadRoundTrip.graph(ItemRecipeCapability.CAP.name,
+                RecipeContentNodes.IngredientOfTag.class, "ingredient",
+                maker -> {
+                    KGGameTestHelpers.setInputConstant(maker, "tag", ResourceLocation.withDefaultNamespace("planks"));
+                    KGGameTestHelpers.setInputConstant(maker, "count", ITEM_PAYLOAD_COUNT);
+                },
+                RecipeContentNodes.IngredientInfo.class, "ingredient", "count", null);
+    }
+
+    /** {@code Fluid Ingredient Of Tag(#water, 6)} round-tripped through the fluid capability. */
+    private static MachineBlueprintGraph fluidPayloadRoundTrip() {
+        return PayloadRoundTrip.graph(FluidRecipeCapability.CAP.name,
+                RecipeContentNodes.FluidIngredientOfTag.class, "ingredient",
+                maker -> {
+                    KGGameTestHelpers.setInputConstant(maker, "tag", ResourceLocation.withDefaultNamespace("water"));
+                    KGGameTestHelpers.setInputConstant(maker, "amount", FLUID_PAYLOAD_AMOUNT);
+                },
+                RecipeContentNodes.FluidIngredientInfo.class, "ingredient", "amount", null);
+    }
+
+    /**
+     * The entity capability, with an extra step the other two do not need.
+     *
+     * <p>{@code Entity Ingredient Of} takes an entity type, and nothing in the node set produces one
+     * as a constant, so the tag maker builds an ingredient first and {@code Entity Ingredient Info}
+     * resolves it to a type. That makes the graph cover three nodes rather than two, and it is why
+     * the tag step asks for a different count than the rebuild does: the signal at the end is the
+     * rebuild's count, so a chain that skipped the rebuild would show two rather than five.</p>
+     */
+    private static MachineBlueprintGraph entityPayloadRoundTrip() {
+        var built = PayloadRoundTrip.build(EntityRecipeCapability.CAP.name,
+                RecipeContentNodes.EntityIngredientOf.class, "ingredient",
+                maker -> KGGameTestHelpers.setInputConstant(maker, "count", ENTITY_PAYLOAD_COUNT),
+                RecipeContentNodes.EntityIngredientInfo.class, "ingredient", "count", null);
+
+        // Feed the maker's entity type from a tag, resolved through a second Info.
+        var graph = built.graph();
+        var maker = built.maker();
+        var fromTag = KGGameTestHelpers.addRegisteredNode(graph, RecipeContentNodes.EntityIngredientOfTag.class);
+        KGGameTestHelpers.setInputConstant(fromTag, "tag", ResourceLocation.withDefaultNamespace("skeletons"));
+        KGGameTestHelpers.setInputConstant(fromTag, "count", ENTITY_TAG_COUNT);
+        var resolve = KGGameTestHelpers.addRegisteredNode(graph, RecipeContentNodes.EntityIngredientInfo.class);
+        KGGameTestHelpers.wire(graph, resolve.getInputsById().get("ingredient"), fromTag.getOutputsById().get("ingredient"));
+        KGGameTestHelpers.wire(graph, maker.getInputsById().get("type"), resolve.getOutputsById().get("first"));
         return graph;
     }
 }

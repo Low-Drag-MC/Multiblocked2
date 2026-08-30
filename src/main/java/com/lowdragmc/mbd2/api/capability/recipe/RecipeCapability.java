@@ -24,6 +24,8 @@ public abstract class RecipeCapability<T> implements ILDLRegister<RecipeCapabili
 
     public final String name;
     public final IContentSerializer<T> serializer;
+    /** Resolved on first use by {@link #contentType()}. */
+    private Type contentType;
 
     protected RecipeCapability(String name, IContentSerializer<T> serializer) {
         this.name = name;
@@ -85,13 +87,12 @@ public abstract class RecipeCapability<T> implements ILDLRegister<RecipeCapabili
      * declared one.</p>
      */
     public final Type contentType() {
+        // Benign race: two threads may both resolve it, and both get the same answer.
         if (contentType == null) {
             contentType = resolveContentType(getClass());
         }
         return contentType;
     }
-
-    private Type contentType;
 
     private static Type resolveContentType(Class<?> type) {
         for (Class<?> current = type; current != null && current != Object.class; current = current.getSuperclass()) {

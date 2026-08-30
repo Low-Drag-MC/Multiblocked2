@@ -3,6 +3,7 @@ package com.lowdragmc.mbd2.test.tests.blueprint;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.test.framework.MBDScenario;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.item.ItemStack;
@@ -343,5 +344,64 @@ public class BlueprintBehaviourTests {
                 .runTicks(80)
                 .assertItemCountAtLeast(1, Items.DIRT, 4)
                 .succeed();
+    }
+
+    // ---- payload makers and readers --------------------------------------------------------------
+
+    /**
+     * The item capability's payload pair survives a full round trip through the generic nodes.
+     *
+     * <p>See {@link PayloadRoundTrip} for the shape and why it goes through NBT. Three is a count no
+     * default in the chain produces: the tag maker's own default is one, and every failure along the
+     * way ends at zero.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void itemPayloadSurvivesTheRoundTrip(GameTestHelper helper) {
+        assertSignal(helper, BlueprintBehaviourFixtures.ITEM_PAYLOAD_ID,
+                BlueprintBehaviourFixtures.ITEM_PAYLOAD_COUNT);
+    }
+
+    /** The fluid capability's payload pair. @see #itemPayloadSurvivesTheRoundTrip */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void fluidPayloadSurvivesTheRoundTrip(GameTestHelper helper) {
+        assertSignal(helper, BlueprintBehaviourFixtures.FLUID_PAYLOAD_ID,
+                BlueprintBehaviourFixtures.FLUID_PAYLOAD_AMOUNT);
+    }
+
+    /**
+     * The entity capability's payload pair, plus the type-taking maker.
+     *
+     * <p>Five rather than the two the tag step asked for is the point: it can only be five if the
+     * entity type resolved out of the tag ingredient and the rebuild actually happened.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void entityPayloadSurvivesTheRoundTrip(GameTestHelper helper) {
+        assertSignal(helper, BlueprintBehaviourFixtures.ENTITY_PAYLOAD_ID,
+                BlueprintBehaviourFixtures.ENTITY_PAYLOAD_COUNT);
+    }
+
+    /**
+     * Runs a payload round-trip machine and requires the number to come out the far end.
+     *
+     * <p>Shared with the mod-gated payload tests, which cannot live in this class: NeoForge
+     * force-loads every {@code @GameTestHolder}, so a class naming a Mekanism type would throw before
+     * the mod check ever ran.</p>
+     */
+    public static void assertSignal(GameTestHelper helper, ResourceLocation machineId, int expected) {
+        var scenario = MBDScenario.of(helper)
+                .placeMachine(machineId, new BlockPos(1, 1, 1))
+                .runTicks(10);
+        var actual = scenario.machine().getAnalogOutputSignal();
+        if (actual != expected) {
+            helper.fail("expected the payload round trip to emit " + expected + ", got " + actual
+                    + " (a non-zero but wrong number means one node in the chain lost the value; zero"
+                    + " means either the chain produced nothing or the blueprint never ran at all,"
+                    + " and the other tests in this class are the ones that tell those apart)");
+            return;
+        }
+        scenario.succeed();
     }
 }

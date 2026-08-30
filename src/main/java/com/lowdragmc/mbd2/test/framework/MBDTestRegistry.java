@@ -52,6 +52,7 @@ public class MBDTestRegistry {
             register(new com.lowdragmc.mbd2.test.tests.trait.ChemicalTankTraitFixtures());
             register(new com.lowdragmc.mbd2.test.tests.trait.MekHeatTraitFixtures());
             register(new com.lowdragmc.mbd2.test.tests.recipe.mekanism.ChemicalRecipeCapabilityFixtures());
+            register(new com.lowdragmc.mbd2.test.tests.blueprint.mekanism.MekanismPayloadFixtures());
         }
         if (net.neoforged.fml.ModList.get().isLoaded("ae2")) {
             register(new com.lowdragmc.mbd2.test.tests.trait.ae2.MEInterfaceTraitFixtures());
@@ -67,10 +68,12 @@ public class MBDTestRegistry {
             register(new com.lowdragmc.mbd2.test.tests.recipe.pneumaticcraft.PNCHeatRecipeCapabilityFixtures());
             register(new com.lowdragmc.mbd2.test.tests.recipe.pneumaticcraft.PNCPressureAirRecipeCapabilityFixtures());
             register(new com.lowdragmc.mbd2.test.tests.recipe.pneumaticcraft.PNCPressureConditionFixtures());
+            register(new com.lowdragmc.mbd2.test.tests.blueprint.pneumaticcraft.PNCPayloadFixtures());
         }
         if (net.neoforged.fml.ModList.get().isLoaded("create")) {
             register(new com.lowdragmc.mbd2.test.tests.trait.create.CreateKineticMachineFixtures());
             register(new com.lowdragmc.mbd2.test.tests.trait.create.CreateRotationPartConditionFixtures());
+            register(new com.lowdragmc.mbd2.test.tests.blueprint.create.CreatePayloadFixtures());
         }
         if (net.neoforged.fml.ModList.get().isLoaded("geckolib")) {
             register(new com.lowdragmc.mbd2.test.tests.multiblock.ProxyRendererFixtures());
@@ -92,6 +95,7 @@ public class MBDTestRegistry {
             event.register(com.lowdragmc.mbd2.test.tests.trait.ChemicalTankTraitTests.class);
             event.register(com.lowdragmc.mbd2.test.tests.trait.MekHeatTraitTests.class);
             event.register(com.lowdragmc.mbd2.test.tests.recipe.mekanism.ChemicalRecipeCapabilityTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.blueprint.mekanism.MekanismPayloadTests.class);
         }
         if (modList.isLoaded("ae2")) {
             event.register(com.lowdragmc.mbd2.test.tests.trait.ae2.MEInterfaceTraitTests.class);
@@ -107,6 +111,7 @@ public class MBDTestRegistry {
             event.register(com.lowdragmc.mbd2.test.tests.recipe.pneumaticcraft.PNCHeatRecipeCapabilityTests.class);
             event.register(com.lowdragmc.mbd2.test.tests.recipe.pneumaticcraft.PNCPressureAirRecipeCapabilityTests.class);
             event.register(com.lowdragmc.mbd2.test.tests.recipe.pneumaticcraft.PNCPressureConditionTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.blueprint.pneumaticcraft.PNCPayloadTests.class);
         }
         if (modList.isLoaded("create")) {
             event.register(com.lowdragmc.mbd2.test.tests.trait.create.KineticRotationPropagationTests.class);
@@ -122,6 +127,7 @@ public class MBDTestRegistry {
             event.register(com.lowdragmc.mbd2.test.tests.trait.create.CreateCogwheelInputTests.class);
             event.register(com.lowdragmc.mbd2.test.tests.recipe.create.CreateRotationRecipeCapabilityTests.class);
             event.register(com.lowdragmc.mbd2.test.tests.recipe.create.CreateRotationContentTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.blueprint.create.CreatePayloadTests.class);
         }
         if (modList.isLoaded("geckolib")) {
             event.register(com.lowdragmc.mbd2.test.tests.geckolib.GeckolibAnimationConfigTests.class);
