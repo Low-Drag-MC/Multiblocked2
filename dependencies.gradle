@@ -97,7 +97,19 @@ dependencies {
     localImplementation("maven.modrinth:natures-aura:${natures_aura_version}")
 
     // Pneumaticcraft
-    localImplementation("me.desht.pneumaticcraft:pneumaticcraft-repressurized:${pneumaticcraft_version}")
+    //
+    // -PnoPneumaticCraft, same idea as -PnoPhoton and -PnoMekanism. Worth having as a second witness
+    // for the guard: PNCPressureAirRecipeCapability reaches PneumaticCraft's ModItems, so anything
+    // touching that capability - the payload fixtures included - force-loads a PNC class. It is one
+    // artifact with nothing else depending on it, which is what makes taking it away a clean test
+    // where doing the same to Create is not.
+    //
+    //   gradlew runGameTestServer -PnoPneumaticCraft
+    if (project.hasProperty('noPneumaticCraft')) {
+        compileOnly("me.desht.pneumaticcraft:pneumaticcraft-repressurized:${pneumaticcraft_version}")
+    } else {
+        localImplementation("me.desht.pneumaticcraft:pneumaticcraft-repressurized:${pneumaticcraft_version}")
+    }
 
     // Blood Magic
 //    implementation("com.wayoftime.bloodmagic:BloodMagic:${blood_magic_version}")
