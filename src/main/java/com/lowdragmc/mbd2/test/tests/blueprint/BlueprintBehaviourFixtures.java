@@ -72,6 +72,10 @@ public class BlueprintBehaviourFixtures implements TestFixtureProvider {
     public static final ResourceLocation ZERO_CHANCE_OUTPUT_ID = MBD2.id("blueprint_zero_chance_output");
     /** Reads the payload out of the first output and adds a second output built from it. */
     public static final ResourceLocation ECHO_FIRST_OUTPUT_ID = MBD2.id("blueprint_echo_first_output");
+    /** The same, but the payload goes out through NBT and comes back. */
+    public static final ResourceLocation NBT_ROUND_TRIP_ID = MBD2.id("blueprint_content_nbt_round_trip");
+    /** The same, but the payload is unpacked into a stack by Ingredient Info first. */
+    public static final ResourceLocation UNPACK_INGREDIENT_ID = MBD2.id("blueprint_unpack_ingredient");
 
     /** The tier the blueprint writes and reads back. Distinct from the default of zero. */
     public static final int TIER = 6;
@@ -112,6 +116,8 @@ public class BlueprintBehaviourFixtures implements TestFixtureProvider {
         twoOutputMachine(REMOVE_BY_SLOT_ID).withBlueprint(removeOutputNamed(BONUS_SLOT)).register(event);
         twoOutputMachine(ZERO_CHANCE_OUTPUT_ID).withBlueprint(zeroChanceOutputAt(1)).register(event);
         twoOutputMachine(ECHO_FIRST_OUTPUT_ID).withBlueprint(echoOutputAt(0)).register(event);
+        twoOutputMachine(NBT_ROUND_TRIP_ID).withBlueprint(echoOutputThroughNbt(0)).register(event);
+        twoOutputMachine(UNPACK_INGREDIENT_ID).withBlueprint(echoOutputThroughStack(0)).register(event);
 
         TestMachineBuilder.simple(TIER_MACHINE_ID)
                 .withBlueprint(tierRoundTrip())
@@ -427,6 +433,64 @@ public class BlueprintBehaviourFixtures implements TestFixtureProvider {
         KGGameTestHelpers.wire(graph, at.getInputsById().get("recipe"), modify.getOutputsById().get("recipe"));
         KGGameTestHelpers.wire(graph, value.getInputsById().get("content"), at.getOutputsById().get("content"));
         KGGameTestHelpers.wire(graph, of.getInputsById().get("value"), value.getOutputsById().get("value"));
+        KGGameTestHelpers.wire(graph, add.getInputsById().get("recipe"), modify.getOutputsById().get("recipe"));
+        KGGameTestHelpers.wire(graph, add.getInputsById().get("content"), of.getOutputsById().get("content"));
+        KGGameTestHelpers.wire(graph, write.getInputsById().get("recipe"), add.getOutputsById().get("result"));
+        KGGameTestHelpers.wire(graph, write.getInputsById().get("in"), modify.getOutputsById().get("next"));
+        return graph;
+    }
+
+    /**
+     * The echo again, except the content goes out to NBT and is parsed back before being added.
+     *
+     * <p>This is the escape hatch a capability from another mod has to rely on, exercised on one MBD2
+     * does have typed nodes for - the point being that the codec path is what is under test, not the
+     * item-ness. A round trip cannot pass by accident: the two nodes have different types on both
+     * sides, so neither can be the identity.</p>
+     */
+    private static MachineBlueprintGraph echoOutputThroughNbt(int index) {
+        var graph = new MachineBlueprintGraph();
+        var modify = KGGameTestHelpers.addRegisteredNode(graph, RecipeModifyBeforeEventNode.class);
+        var at = KGGameTestHelpers.addRegisteredNode(graph, RecipeContentNodes.ContentAt.class);
+        KGGameTestHelpers.setInputConstant(at, "index", index);
+        var toNbt = KGGameTestHelpers.addRegisteredNode(graph, RecipeContentNodes.ContentToNbt.class);
+        var fromNbt = KGGameTestHelpers.addRegisteredNode(graph, RecipeContentNodes.ContentFromNbt.class);
+        var add = KGGameTestHelpers.addRegisteredNode(graph, RecipeContentNodes.AddContent.class);
+        var write = KGGameTestHelpers.addRegisteredNode(graph, SetEventRecipeNode.class);
+
+        KGGameTestHelpers.wire(graph, at.getInputsById().get("recipe"), modify.getOutputsById().get("recipe"));
+        KGGameTestHelpers.wire(graph, toNbt.getInputsById().get("content"), at.getOutputsById().get("content"));
+        KGGameTestHelpers.wire(graph, fromNbt.getInputsById().get("nbt"), toNbt.getOutputsById().get("nbt"));
+        KGGameTestHelpers.wire(graph, add.getInputsById().get("recipe"), modify.getOutputsById().get("recipe"));
+        KGGameTestHelpers.wire(graph, add.getInputsById().get("content"), fromNbt.getOutputsById().get("content"));
+        KGGameTestHelpers.wire(graph, write.getInputsById().get("recipe"), add.getOutputsById().get("result"));
+        KGGameTestHelpers.wire(graph, write.getInputsById().get("in"), modify.getOutputsById().get("next"));
+        return graph;
+    }
+
+    /**
+     * The echo again, except the ingredient is unpacked into a stack and the new content is built
+     * from that stack rather than from the ingredient.
+     *
+     * <p>What that adds over {@link #echoOutputThroughNbt} is {@code Ingredient Info}: the payload has
+     * to actually resolve to an item and a count, not merely be passed along, or the rebuilt content
+     * is an ingredient matching nothing and no extra dirt appears.</p>
+     */
+    private static MachineBlueprintGraph echoOutputThroughStack(int index) {
+        var graph = new MachineBlueprintGraph();
+        var modify = KGGameTestHelpers.addRegisteredNode(graph, RecipeModifyBeforeEventNode.class);
+        var at = KGGameTestHelpers.addRegisteredNode(graph, RecipeContentNodes.ContentAt.class);
+        KGGameTestHelpers.setInputConstant(at, "index", index);
+        var value = KGGameTestHelpers.addRegisteredNode(graph, RecipeContentNodes.ContentValue.class);
+        var info = KGGameTestHelpers.addRegisteredNode(graph, RecipeContentNodes.IngredientInfo.class);
+        var of = KGGameTestHelpers.addRegisteredNode(graph, RecipeContentNodes.ContentOf.class);
+        var add = KGGameTestHelpers.addRegisteredNode(graph, RecipeContentNodes.AddContent.class);
+        var write = KGGameTestHelpers.addRegisteredNode(graph, SetEventRecipeNode.class);
+
+        KGGameTestHelpers.wire(graph, at.getInputsById().get("recipe"), modify.getOutputsById().get("recipe"));
+        KGGameTestHelpers.wire(graph, value.getInputsById().get("content"), at.getOutputsById().get("content"));
+        KGGameTestHelpers.wire(graph, info.getInputsById().get("ingredient"), value.getOutputsById().get("value"));
+        KGGameTestHelpers.wire(graph, of.getInputsById().get("value"), info.getOutputsById().get("first"));
         KGGameTestHelpers.wire(graph, add.getInputsById().get("recipe"), modify.getOutputsById().get("recipe"));
         KGGameTestHelpers.wire(graph, add.getInputsById().get("content"), of.getOutputsById().get("content"));
         KGGameTestHelpers.wire(graph, write.getInputsById().get("recipe"), add.getOutputsById().get("result"));

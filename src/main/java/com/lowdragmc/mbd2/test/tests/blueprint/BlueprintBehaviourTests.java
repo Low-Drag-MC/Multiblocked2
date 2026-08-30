@@ -306,4 +306,42 @@ public class BlueprintBehaviourTests {
                 .assertItemCountAtLeast(1, Items.DIRT, 4)
                 .succeed();
     }
+
+    /**
+     * A content survives a trip out to NBT and back, which is how a blueprint reaches a payload MBD2
+     * has no typed nodes for.
+     *
+     * <p>The capability's own codec is the only thing that can read another mod's payload, and it is
+     * also the only thing that can build one. Exercising it on an item content is deliberate: what is
+     * under test is the codec path, and an item is the payload whose end result is observable.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void blueprintRoundTripsAContentThroughNbt(GameTestHelper helper) {
+        MBDScenario.of(helper)
+                .placeMachine(BlueprintBehaviourFixtures.NBT_ROUND_TRIP_ID, new BlockPos(1, 1, 1))
+                .insertItem(0, BlueprintFixtures.stone(2))
+                .runTicks(80)
+                .assertItemCountAtLeast(1, Items.DIRT, 4)
+                .succeed();
+    }
+
+    /**
+     * Ingredient Info resolves a payload into the stack and count it stands for.
+     *
+     * <p>Passing a payload along proves only that it was not dropped; this requires it to have been
+     * understood, because the content that reaches the recipe is rebuilt from the unpacked stack. An
+     * ingredient that resolved to nothing rebuilds as one matching nothing, and the extra dirt never
+     * appears.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void blueprintUnpacksAnIngredientIntoItsStack(GameTestHelper helper) {
+        MBDScenario.of(helper)
+                .placeMachine(BlueprintBehaviourFixtures.UNPACK_INGREDIENT_ID, new BlockPos(1, 1, 1))
+                .insertItem(0, BlueprintFixtures.stone(2))
+                .runTicks(80)
+                .assertItemCountAtLeast(1, Items.DIRT, 4)
+                .succeed();
+    }
 }

@@ -5,6 +5,7 @@ import com.lowdragmc.kilagraph.graph.core.InputPort;
 import com.lowdragmc.kilagraph.graph.core.OutputPort;
 import com.lowdragmc.kilagraph.graph.exec.EvalContext;
 import com.lowdragmc.kilagraph.graph.type.KGTypeHandles;
+import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.SearchComponentConfigurator;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.IFieldValueConfigurable;
@@ -23,10 +24,19 @@ import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.blueprint.MachineBlueprintGraph;
 import com.lowdragmc.mbd2.common.capability.recipe.FluidRecipeCapability;
 import com.lowdragmc.mbd2.common.capability.recipe.ItemRecipeCapability;
+import com.mojang.serialization.DynamicOps;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.neoforged.neoforge.common.crafting.SizedIngredient;
 import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.crafting.FluidIngredient;
 import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -74,12 +84,24 @@ import java.util.Map;
  * recipe author wrote into that index, which is the stable way to name one particular content when
  * the recipe has several.
  *
+ * <h2>Reading a payload, and building one MBD2 has never heard of</h2>
+ * {@code Content Value} hands back the payload typed by the capability, and {@code Ingredient Info} /
+ * {@code Fluid Ingredient Info} unpack the two that carry most recipes. For a payload from another
+ * mod there is no typed node and cannot be one, so {@code Content To Nbt} / {@code Content From Nbt}
+ * go through the capability's own codec instead: every payload has a data form, the NBT node family
+ * already knows how to walk it, and it is the same shape the recipe was written in.
+ *
  * <h2>Editing is safe because the engine re-matches</h2>
  * {@code Recipe Modify (Before)} fires after a recipe has matched, which makes "swap an input" sound
  * dangerous — the machine matched on iron and would then be asked for copper. It is not:
  * {@code RecipeLogic} re-runs {@code modified.matchRecipe(machine)} on the result of
  * {@code doModifyRecipe} and only starts if that succeeds, and consumption runs off the modified
  * recipe. A swap the machine cannot satisfy simply does not run.
+ *
+ * <p>The converse is the real limit on input swapping: the event fires only for a recipe that
+ * <em>already</em> matched, so a blueprint cannot make a machine accept something it could not
+ * otherwise run at all. Swapping an input widens or redirects what a running recipe consumes; it is
+ * not a way to add a recipe.</p>
  *
  * <h2>Pure data nodes, like the rest of the recipe family</h2>
  * None of these has exec pins, matching {@code Copy}, {@code Scale}, {@code Set Recipe Duration} and
@@ -435,8 +457,8 @@ public final class RecipeContentNodes {
      * The settings on a content, without knowing which capability it belongs to.
      *
      * <p>Its payload is deliberately not exposed: that is an {@code Object} only its capability can
-     * read, and there is no capability here to ask. Use {@code Recipe Items} / {@code Recipe Fluids}
-     * when the payload itself is what you want.</p>
+     * read, and there is no capability here to ask. {@code Content Value} names a capability and so
+     * can.</p>
      */
     @NodeAttribute(name = "mbd2_content_info", group = GROUP, graphTypes = MachineBlueprintGraph.class)
     public static class ContentInfo extends AnnotatedNode {
@@ -526,6 +548,172 @@ public final class RecipeContentNodes {
         }
     }
 
+    // ---- the escape hatch: contents as data ------------------------------------------------------
+
+    /**
+     * A content as the NBT a recipe file would store it in.
+     *
+     * <p>{@code Content Value} can hand back a Mekanism {@code ChemicalStackIngredient}, but no node
+     * knows how to read one, and MBD2 cannot ship a reader for a type it has never heard of. This is
+     * the way out that does not need one: every capability owns a codec, so every payload has a data
+     * form, and the whole NBT node family already knows how to walk it. Pair with
+     * {@code Content From Nbt} to edit a payload MBD2 has no typed nodes for.</p>
+     *
+     * <p>The tag holds the whole content, so the payload sits under {@code content} alongside
+     * {@code chance}, {@code perTick} and the rest — the same shape and the same field names the
+     * recipe was written with.</p>
+     */
+    @NodeAttribute(name = "mbd2_content_to_nbt", group = GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class ContentToNbt extends CapabilityNode {
+        @InputPort public Content content;
+        @OutputPort public CompoundTag nbt;
+
+        @Override
+        public void evaluate(EvalContext ctx) {
+            var capability = capability(ctx);
+            var content = ctx.getInput("content", Content.class, null);
+            if (capability == null || content == null) {
+                ctx.setOutput("nbt", null);
+                return;
+            }
+            // result() rather than getOrThrow(): a payload the capability cannot encode is a graph
+            // that produces nothing, not a machine tick that throws.
+            var encoded = Content.CODEC.apply(capability).encodeStart(nbtOps(), content).result().orElse(null);
+            ctx.setOutput("nbt", encoded instanceof CompoundTag tag ? tag : null);
+        }
+    }
+
+    /**
+     * A content read back out of NBT — the general way to build one for a capability MBD2 has no
+     * typed constructor for.
+     *
+     * <p>{@code Content Of} covers anything the capability's {@code of} can coerce, which in practice
+     * means items, fluids and numbers. This covers the rest: write the data form yourself with the
+     * NBT nodes, or take one from {@code Content To Nbt} and change a field.</p>
+     */
+    @NodeAttribute(name = "mbd2_content_from_nbt", group = GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class ContentFromNbt extends CapabilityNode {
+        @InputPort public CompoundTag nbt;
+        @OutputPort public Content content;
+
+        @Override
+        public void evaluate(EvalContext ctx) {
+            var capability = capability(ctx);
+            var nbt = ctx.getInput("nbt", CompoundTag.class, null);
+            if (capability == null || nbt == null) {
+                ctx.setOutput("content", null);
+                return;
+            }
+            ctx.setOutput("content",
+                    Content.CODEC.apply(capability).parse(nbtOps(), nbt).result().orElse(null));
+        }
+    }
+
+    // ---- typed: reading and building the two payloads that carry most recipes --------------------
+
+    /**
+     * What an item payload accepts, and how many of it.
+     *
+     * <p>An ingredient is not an item: it may be a tag matching many, so {@code stacks} is the whole
+     * set and {@code first} the representative one. Reading {@code first} of a tag ingredient and
+     * treating it as "the" item is the mistake this shape is trying to make visible.</p>
+     */
+    @NodeAttribute(name = "mbd2_ingredient_info", group = GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class IngredientInfo extends AnnotatedNode {
+        @InputPort public SizedIngredient ingredient;
+        @OutputPort public int count;
+        @OutputPort public List<ItemStack> stacks;
+        @OutputPort public ItemStack first;
+
+        @Override
+        public void evaluate(EvalContext ctx) {
+            var ingredient = ctx.getInput("ingredient", SizedIngredient.class, null);
+            if (ingredient == null) {
+                ctx.setOutput("count", 0);
+                ctx.setOutput("stacks", List.of());
+                ctx.setOutput("first", ItemStack.EMPTY);
+                return;
+            }
+            var stacks = new ArrayList<ItemStack>();
+            for (var stack : ingredient.ingredient().getItems()) {
+                stacks.add(stack.copyWithCount(ingredient.count()));
+            }
+            ctx.setOutput("count", ingredient.count());
+            ctx.setOutput("stacks", stacks);
+            ctx.setOutput("first", stacks.isEmpty() ? ItemStack.EMPTY : stacks.getFirst());
+        }
+    }
+
+    /** What a fluid payload accepts, and how much of it. @see IngredientInfo */
+    @NodeAttribute(name = "mbd2_fluid_ingredient_info", group = GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class FluidIngredientInfo extends AnnotatedNode {
+        @InputPort public SizedFluidIngredient ingredient;
+        @OutputPort public int amount;
+        @OutputPort public List<FluidStack> stacks;
+        @OutputPort public FluidStack first;
+
+        @Override
+        public void evaluate(EvalContext ctx) {
+            var ingredient = ctx.getInput("ingredient", SizedFluidIngredient.class, null);
+            if (ingredient == null) {
+                ctx.setOutput("amount", 0);
+                ctx.setOutput("stacks", List.of());
+                ctx.setOutput("first", FluidStack.EMPTY);
+                return;
+            }
+            var stacks = new ArrayList<>(List.of(ingredient.getFluids()));
+            ctx.setOutput("amount", ingredient.amount());
+            ctx.setOutput("stacks", stacks);
+            ctx.setOutput("first", stacks.isEmpty() ? FluidStack.EMPTY : stacks.getFirst());
+        }
+    }
+
+    /**
+     * An item payload that accepts anything in a tag.
+     *
+     * <p>The one thing {@code Content Of} cannot express: it builds from a value, and a value is
+     * always one specific item. Recipes are full of tag inputs, so without this a blueprint could
+     * only ever swap in an exact item.</p>
+     */
+    @NodeAttribute(name = "mbd2_ingredient_of_tag", group = GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class IngredientOfTag extends AnnotatedNode {
+        @InputPort public ResourceLocation tag;
+        @InputPort public int count = 1;
+        @OutputPort public SizedIngredient ingredient;
+
+        @Override
+        public void evaluate(EvalContext ctx) {
+            var tag = ctx.getInput("tag", ResourceLocation.class, null);
+            if (tag == null) {
+                ctx.setOutput("ingredient", null);
+                return;
+            }
+            ctx.setOutput("ingredient", new SizedIngredient(
+                    Ingredient.of(TagKey.create(Registries.ITEM, tag)),
+                    Math.max(1, ctx.getInt("count", 1))));
+        }
+    }
+
+    /** A fluid payload that accepts anything in a tag. @see IngredientOfTag */
+    @NodeAttribute(name = "mbd2_fluid_ingredient_of_tag", group = GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class FluidIngredientOfTag extends AnnotatedNode {
+        @InputPort public ResourceLocation tag;
+        @InputPort public int amount = 1000;
+        @OutputPort public SizedFluidIngredient ingredient;
+
+        @Override
+        public void evaluate(EvalContext ctx) {
+            var tag = ctx.getInput("tag", ResourceLocation.class, null);
+            if (tag == null) {
+                ctx.setOutput("ingredient", null);
+                return;
+            }
+            ctx.setOutput("ingredient", new SizedFluidIngredient(
+                    FluidIngredient.tag(TagKey.create(Registries.FLUID, tag)),
+                    Math.max(1, ctx.getInt("amount", 1000))));
+        }
+    }
+
     // ---- typed projections -----------------------------------------------------------------------
 
     /**
@@ -581,6 +769,11 @@ public final class RecipeContentNodes {
 
     private static IO io(EvalContext ctx) {
         return ctx.getInput("io", IO.class, IO.OUT);
+    }
+
+    /** Registry-aware NBT ops, the same ones {@code IContentSerializer} copies contents through. */
+    private static DynamicOps<Tag> nbtOps() {
+        return Platform.getFrozenRegistry().createSerializationContext(NbtOps.INSTANCE);
     }
 
     /** The contents of the chosen side for one capability, or empty when there is no recipe. */
