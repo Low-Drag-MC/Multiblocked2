@@ -917,6 +917,29 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
     }
 
     /**
+     * The recipe has finished and its outputs have been produced.
+     *
+     * <p>The last of the four points {@link com.lowdragmc.mbd2.api.recipe.RecipeLogic#onRecipeFinish()}
+     * passes through, and the one a blueprint wants for "when a craft completes" — {@code afterWorking}
+     * fires <em>before</em> the outputs exist, so a bonus product added there lands in a slot the
+     * recipe's own output is about to want.</p>
+     */
+    @Override
+    public void onRecipeFinish() {
+        NeoForge.EVENT_BUS.post(
+                new MachineOnRecipeFinishEvent(this, recipeLogic.getLastRecipe()).postCustomEvent());
+        IMachine.super.onRecipeFinish();
+    }
+
+    /** Inputs were consumed after working rather than before — see {@code consumeInputsAfterWorking}. */
+    @Override
+    public void onConsumeInputsAfterWorking() {
+        NeoForge.EVENT_BUS.post(
+                new MachineOnConsumeInputsAfterWorkingEvent(this, recipeLogic.getLastRecipe()).postCustomEvent());
+        IMachine.super.onConsumeInputsAfterWorking();
+    }
+
+    /**
      * Client tick. will be called on client side per tick.
      */
     @OnlyIn(Dist.CLIENT)
