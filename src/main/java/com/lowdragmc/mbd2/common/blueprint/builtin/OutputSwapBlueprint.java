@@ -68,7 +68,7 @@ final class OutputSwapBlueprint {
         b.add("clear", RecipeContentNodes.ClearContents.class, 300, 0)
                 .constant("clear.io", IO.OUT)
                 .title("clear", "drop the old outputs")
-                .add("made", RecipeContentNodes.ContentOfItem.class, 300, 200)
+                .add("made", RecipeContentNodes.ContentOf.class, 300, 200)
                 .title("made", "the new product")
                 .add("add", RecipeContentNodes.AddContent.class, 560, 0)
                 .constant("add.io", IO.OUT)
@@ -77,7 +77,7 @@ final class OutputSwapBlueprint {
                 .title("apply", "use this recipe");
 
         b.wire("clear.recipe", "event.recipe")
-                .wire("made.item", "product")
+                .wire("made.value", "product")
                 .wire("add.recipe", "clear.result")
                 .wire("add.content", "made.content")
                 .wire("apply.recipe", "add.result");

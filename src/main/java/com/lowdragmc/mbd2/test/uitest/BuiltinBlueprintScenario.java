@@ -5,6 +5,7 @@ import com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.SearchComponent;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.GraphView;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.gui.command.GraphCommands;
@@ -102,8 +103,26 @@ public class BuiltinBlueprintScenario implements UIScenario {
                         return !graph.graphModel.getNodeModels().isEmpty()
                                 && !graph.graphModel.getStickyNoteModels().isEmpty();
                     })
-                    .screenshotElement("builtin-" + name, "#root")
-                    .closeScreen();
+                    .screenshotElement("builtin-" + name, "#root");
+
+            // The capability option is the whole point of the generic content nodes, and a screenshot
+            // cannot tell a search dropdown from the plain text field it degrades to when the
+            // configurator is never applied — both render one row reading "item". Counting search
+            // components tells them apart, but only if the count is tied to the option: the editor's
+            // own panels and every blackboard variable row carry one too, and those differ per
+            // blueprint. Counting only the ones actually holding "item" is what makes it specific —
+            // output_swap has exactly three capability nodes and they all default to item.
+            if (name.equals("output_swap")) {
+                s.check("each of the three capability options is a real dropdown", ctx -> {
+                    var pickers = ctx.query().type(SearchComponent.class).list().stream()
+                            .map(ref -> ref.as(SearchComponent.class))
+                            .filter(component -> "item".equals(component.getValue()))
+                            .count();
+                    ctx.attach("capabilityPickers", String.valueOf(pickers));
+                    return pickers == 3;
+                });
+            }
+            s.closeScreen();
         }
     }
 

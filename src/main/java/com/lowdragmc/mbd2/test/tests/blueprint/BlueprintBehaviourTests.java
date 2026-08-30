@@ -6,6 +6,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
@@ -206,5 +207,83 @@ public class BlueprintBehaviourTests {
             return;
         }
         scenario.succeed();
+    }
+
+    // ---- recipe content editing -----------------------------------------------------------------
+
+    /**
+     * The control for the three below: with no blueprint, the two-output recipe makes both items.
+     *
+     * <p>Without it, "the diamond is missing" would be equally consistent with a working Remove node
+     * and with a recipe that never ran, which are not the same news.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void twoOutputRecipeMakesBothItems(GameTestHelper helper) {
+        MBDScenario.of(helper)
+                .placeMachine(BlueprintBehaviourFixtures.TWO_OUTPUT_CONTROL_ID, new BlockPos(1, 1, 1))
+                .insertItem(0, BlueprintFixtures.stone(4))
+                .runTicks(80)
+                .assertItemCountAtLeast(1, Items.DIRT, 1)
+                .assertItemCountAtLeast(2, Items.DIAMOND, 1)
+                .succeed();
+    }
+
+    /**
+     * Remove Recipe Content drops the content it is pointed at and leaves the rest alone.
+     *
+     * <p>The point of the pair of assertions is that removing one is not the same as clearing the
+     * side: a node that dropped every item output would make the diamond vanish just the same, and
+     * only the surviving dirt tells the two apart.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void blueprintRemovesOneOutputAndKeepsTheOther(GameTestHelper helper) {
+        MBDScenario.of(helper)
+                .placeMachine(BlueprintBehaviourFixtures.REMOVE_ONE_OUTPUT_ID, new BlockPos(1, 1, 1))
+                .insertItem(0, BlueprintFixtures.stone(4))
+                .runTicks(80)
+                .assertItemCountAtLeast(1, Items.DIRT, 1)
+                .assertItem(2, ItemStack.EMPTY)
+                .succeed();
+    }
+
+    /**
+     * Content Index Of Slot turns a slot name into the position the write nodes take.
+     *
+     * <p>The bonus output is deliberately the second one, so the three possible answers land in three
+     * different worlds: the right index removes the diamond, a hardcoded zero removes the dirt, and a
+     * lookup that finds nothing (-1) removes neither.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void blueprintRemovesTheOutputNamedByItsSlot(GameTestHelper helper) {
+        MBDScenario.of(helper)
+                .placeMachine(BlueprintBehaviourFixtures.REMOVE_BY_SLOT_ID, new BlockPos(1, 1, 1))
+                .insertItem(0, BlueprintFixtures.stone(4))
+                .runTicks(80)
+                .assertItemCountAtLeast(1, Items.DIRT, 1)
+                .assertItem(2, ItemStack.EMPTY)
+                .succeed();
+    }
+
+    /**
+     * Content At, Content With and Set Recipe Content edit a content the graph cannot interpret.
+     *
+     * <p>This is the case the whole capability-generic design exists for: nothing in the blueprint
+     * knows the content holds a {@code SizedIngredient}, it only reads a chance, changes it and puts
+     * the content back. A chance of zero is never rolled, so the diamond stops appearing while the
+     * untouched dirt keeps coming.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void blueprintRewritesOneOutputsChance(GameTestHelper helper) {
+        MBDScenario.of(helper)
+                .placeMachine(BlueprintBehaviourFixtures.ZERO_CHANCE_OUTPUT_ID, new BlockPos(1, 1, 1))
+                .insertItem(0, BlueprintFixtures.stone(4))
+                .runTicks(80)
+                .assertItemCountAtLeast(1, Items.DIRT, 1)
+                .assertItem(2, ItemStack.EMPTY)
+                .succeed();
     }
 }

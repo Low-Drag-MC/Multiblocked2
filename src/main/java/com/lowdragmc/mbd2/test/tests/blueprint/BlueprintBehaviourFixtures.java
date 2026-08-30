@@ -15,15 +15,20 @@ import com.lowdragmc.mbd2.common.blueprint.node.machine.MachineInfoBlocks;
 import com.lowdragmc.mbd2.common.blueprint.node.machine.MachineInfoNode;
 import com.lowdragmc.mbd2.common.blueprint.node.machine.MachineRedstoneNodes;
 import com.lowdragmc.mbd2.common.blueprint.node.recipe.RecipeBuildNodes;
+import com.lowdragmc.mbd2.common.blueprint.node.recipe.RecipeContentNodes;
 import com.lowdragmc.mbd2.common.blueprint.node.recipe.RecipeLogicActionNodes;
 import com.lowdragmc.mbd2.common.blueprint.node.trait.EnergyNodes;
 import com.lowdragmc.mbd2.common.blueprint.node.trait.TraitCapabilityNodes;
 import com.lowdragmc.mbd2.common.event.MBDRegistryEvent;
 import com.lowdragmc.mbd2.test.framework.TestFixtureProvider;
 import com.lowdragmc.mbd2.test.framework.TestMachineBuilder;
+import com.lowdragmc.mbd2.test.framework.TestRecipeTypeBuilder;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
+
+import java.util.List;
 
 /**
  * Machines whose only interesting behaviour is a blueprint, one per node group under test.
@@ -52,6 +57,20 @@ public class BlueprintBehaviourFixtures implements TestFixtureProvider {
     /** Hooks Machine Tick twice, with two independent effects. */
     public static final ResourceLocation DOUBLE_ENTRY_MACHINE_ID = MBD2.id("blueprint_double_entry_machine");
 
+    /** A recipe type whose one recipe has two outputs, the second bound to a named slot. */
+    public static final ResourceLocation TWO_OUTPUT_RECIPE_TYPE_ID = MBD2.id("blueprint_two_output_recipe_type");
+    public static final ResourceLocation TWO_OUTPUT_RECIPE_ID = MBD2.id("blueprint_stone_to_dirt_and_diamond");
+    /** The slot the second output is bound to, and the name the index lookup searches for. */
+    public static final String BONUS_SLOT = "bonus";
+    /** No blueprint: the control that makes the three below mean something. */
+    public static final ResourceLocation TWO_OUTPUT_CONTROL_ID = MBD2.id("blueprint_two_output_control");
+    /** Removes the output at index 1 and nothing else. */
+    public static final ResourceLocation REMOVE_ONE_OUTPUT_ID = MBD2.id("blueprint_remove_one_output");
+    /** Finds the bonus output by slot name and removes that one. */
+    public static final ResourceLocation REMOVE_BY_SLOT_ID = MBD2.id("blueprint_remove_by_slot");
+    /** Rewrites the chance on the output at index 1 to zero. */
+    public static final ResourceLocation ZERO_CHANCE_OUTPUT_ID = MBD2.id("blueprint_zero_chance_output");
+
     /** The tier the blueprint writes and reads back. Distinct from the default of zero. */
     public static final int TIER = 6;
     /** The signal the multiblock blueprint emits on forming. */
@@ -65,8 +84,32 @@ public class BlueprintBehaviourFixtures implements TestFixtureProvider {
     public static final String COUNTER_KEY = "blueprintCounter";
     public static final String FLAG_KEY = "blueprintFlag";
 
+    /**
+     * Stone into dirt <em>and</em> a diamond, the diamond bound to the {@link #BONUS_SLOT} slot.
+     *
+     * <p>Two outputs of the same capability is what makes "clear the whole side" and "remove one of
+     * them" distinguishable at all, and two <em>different</em> items make it visible which one went.
+     * The diamond is second so that an index lookup returning a hardcoded zero removes the dirt
+     * instead - a wrong answer and a right one produce different worlds, not the same one.</p>
+     */
+    @Override
+    public void registerRecipeTypes(MBDRegistryEvent.MBDRecipeType event) {
+        TestRecipeTypeBuilder.of(TWO_OUTPUT_RECIPE_TYPE_ID)
+                .recipe(TWO_OUTPUT_RECIPE_ID, b -> {
+                    b.inputItems(Items.STONE).outputItems(Items.DIRT);
+                    // Builder state, so it applies from here on: only the diamond is named.
+                    b.slotName(BONUS_SLOT).outputItems(Items.DIAMOND).duration(20);
+                })
+                .register(event);
+    }
+
     @Override
     public void registerMachines(MBDRegistryEvent.Machine event) {
+        twoOutputMachine(TWO_OUTPUT_CONTROL_ID).register(event);
+        twoOutputMachine(REMOVE_ONE_OUTPUT_ID).withBlueprint(removeOutputAt(1)).register(event);
+        twoOutputMachine(REMOVE_BY_SLOT_ID).withBlueprint(removeOutputNamed(BONUS_SLOT)).register(event);
+        twoOutputMachine(ZERO_CHANCE_OUTPUT_ID).withBlueprint(zeroChanceOutputAt(1)).register(event);
+
         TestMachineBuilder.simple(TIER_MACHINE_ID)
                 .withBlueprint(tierRoundTrip())
                 .register(event);
@@ -279,6 +322,82 @@ public class BlueprintBehaviourFixtures implements TestFixtureProvider {
         var signal = KGGameTestHelpers.addRegisteredNode(graph, MachineRedstoneNodes.SetAnalogSignal.class);
         KGGameTestHelpers.setInputConstant(signal, "signal", FORMED_SIGNAL);
         KGGameTestHelpers.wire(graph, signal.getInputsById().get("in"), formed.getOutputsById().get("next"));
+        return graph;
+    }
+
+    // ---- recipe content editing -----------------------------------------------------------------
+
+    /**
+     * Input slot 0, an unnamed output slot 1, and output slot 2 bound to {@link #BONUS_SLOT}.
+     *
+     * <p>The named slot is not decoration: a content with a slot name only matches a handler that
+     * declares that name, so without slot 2 the recipe would never match and every test below would
+     * fail for a reason that has nothing to do with the nodes.</p>
+     */
+    private static TestMachineBuilder twoOutputMachine(ResourceLocation id) {
+        return TestMachineBuilder.simple(id)
+                .withItemSlots(1, IO.IN)
+                .withItemSlots(1, IO.OUT)
+                .withItemSlots(1, IO.OUT, definition -> definition.setSlotNames(List.of(BONUS_SLOT)))
+                .withRecipeType(TWO_OUTPUT_RECIPE_TYPE_ID);
+    }
+
+    /** {@code Recipe Modify -> Remove Recipe Content(OUT, index) -> Set Event Recipe}. */
+    private static MachineBlueprintGraph removeOutputAt(int index) {
+        var graph = new MachineBlueprintGraph();
+        var modify = KGGameTestHelpers.addRegisteredNode(graph, RecipeModifyBeforeEventNode.class);
+        var remove = KGGameTestHelpers.addRegisteredNode(graph, RecipeContentNodes.RemoveContent.class);
+        KGGameTestHelpers.setInputConstant(remove, "index", index);
+        var write = KGGameTestHelpers.addRegisteredNode(graph, SetEventRecipeNode.class);
+
+        KGGameTestHelpers.wire(graph, remove.getInputsById().get("recipe"), modify.getOutputsById().get("recipe"));
+        KGGameTestHelpers.wire(graph, write.getInputsById().get("recipe"), remove.getOutputsById().get("result"));
+        KGGameTestHelpers.wire(graph, write.getInputsById().get("in"), modify.getOutputsById().get("next"));
+        return graph;
+    }
+
+    /** The same, except the index comes from {@code Content Index Of Slot} rather than a constant. */
+    private static MachineBlueprintGraph removeOutputNamed(String slotName) {
+        var graph = new MachineBlueprintGraph();
+        var modify = KGGameTestHelpers.addRegisteredNode(graph, RecipeModifyBeforeEventNode.class);
+        var lookup = KGGameTestHelpers.addRegisteredNode(graph, RecipeContentNodes.ContentIndexOfSlot.class);
+        KGGameTestHelpers.setInputConstant(lookup, "slotName", slotName);
+        var remove = KGGameTestHelpers.addRegisteredNode(graph, RecipeContentNodes.RemoveContent.class);
+        var write = KGGameTestHelpers.addRegisteredNode(graph, SetEventRecipeNode.class);
+
+        KGGameTestHelpers.wire(graph, lookup.getInputsById().get("recipe"), modify.getOutputsById().get("recipe"));
+        KGGameTestHelpers.wire(graph, remove.getInputsById().get("recipe"), modify.getOutputsById().get("recipe"));
+        KGGameTestHelpers.wire(graph, remove.getInputsById().get("index"), lookup.getOutputsById().get("index"));
+        KGGameTestHelpers.wire(graph, write.getInputsById().get("recipe"), remove.getOutputsById().get("result"));
+        KGGameTestHelpers.wire(graph, write.getInputsById().get("in"), modify.getOutputsById().get("next"));
+        return graph;
+    }
+
+    /**
+     * {@code Content At(index) -> Content With(chance 0) -> Set Recipe Content(index) -> Set Event
+     * Recipe}: reading a content, editing it and putting it back, none of which knows or cares which
+     * capability it is dealing with. A chance of zero is never rolled, so the output stops appearing.
+     */
+    private static MachineBlueprintGraph zeroChanceOutputAt(int index) {
+        var graph = new MachineBlueprintGraph();
+        var modify = KGGameTestHelpers.addRegisteredNode(graph, RecipeModifyBeforeEventNode.class);
+        var at = KGGameTestHelpers.addRegisteredNode(graph, RecipeContentNodes.ContentAt.class);
+        KGGameTestHelpers.setInputConstant(at, "index", index);
+        var with = KGGameTestHelpers.addRegisteredNode(graph, RecipeContentNodes.ContentWith.class);
+        KGGameTestHelpers.setInputConstant(with, "chance", 0f);
+        // The slot name has to survive the edit, or the content stops matching the slot it is bound
+        // to and the recipe fails for a reason that is not the one under test.
+        KGGameTestHelpers.setInputConstant(with, "slotName", BONUS_SLOT);
+        var set = KGGameTestHelpers.addRegisteredNode(graph, RecipeContentNodes.SetContent.class);
+        KGGameTestHelpers.setInputConstant(set, "index", index);
+        var write = KGGameTestHelpers.addRegisteredNode(graph, SetEventRecipeNode.class);
+
+        KGGameTestHelpers.wire(graph, at.getInputsById().get("recipe"), modify.getOutputsById().get("recipe"));
+        KGGameTestHelpers.wire(graph, with.getInputsById().get("content"), at.getOutputsById().get("content"));
+        KGGameTestHelpers.wire(graph, set.getInputsById().get("recipe"), modify.getOutputsById().get("recipe"));
+        KGGameTestHelpers.wire(graph, set.getInputsById().get("content"), with.getOutputsById().get("result"));
+        KGGameTestHelpers.wire(graph, write.getInputsById().get("recipe"), set.getOutputsById().get("result"));
+        KGGameTestHelpers.wire(graph, write.getInputsById().get("in"), modify.getOutputsById().get("next"));
         return graph;
     }
 }
