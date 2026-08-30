@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.common.gui.editor.blueprint;
 
+import com.lowdragmc.lowdraglib2.editor.resource.BuiltinResourceProvider;
 import com.lowdragmc.lowdraglib2.editor.resource.FileResourceProvider;
 import com.lowdragmc.lowdraglib2.editor.resource.ResourceInstance;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
@@ -7,6 +8,7 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.editor.GraphResource;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.client.MBDIcons;
 import com.lowdragmc.mbd2.common.blueprint.MachineBlueprintGraph;
+import com.lowdragmc.mbd2.common.blueprint.builtin.BuiltinBlueprints;
 import net.minecraft.nbt.CompoundTag;
 
 import java.io.File;
@@ -49,10 +51,28 @@ public class MachineBlueprintResource extends GraphResource<MachineBlueprintGrap
         return ".bp.nbt";
     }
 
+    /**
+     * Two providers: the blueprints MBD2 ships, then the pack's own folder.
+     *
+     * <p>Shipped first because that is the order the panel lists them in, and a player opening the
+     * blueprint library for the first time should land on the worked examples rather than on an empty
+     * folder. The base implementation is deliberately not called — it would add a second builtin
+     * provider and a {@code global} folder under LDLib2's assets directory, and blueprints live beside
+     * the machines they belong to.</p>
+     */
     @Override
     public void buildBuiltin(ResourceInstance<CompoundTag> resourceInstance) {
+        var builtin = new BuiltinResourceProvider<CompoundTag>(BuiltinBlueprints.PROVIDER_NAME, resourceInstance);
+        buildBuiltin(builtin);
+        resourceInstance.addBuiltinProvider(builtin);
+
         var global = new FileResourceProvider<>(resourceInstance, new File(MBD2.getLocation(), "blueprint"));
         global.setName("global");
         resourceInstance.addBuiltinProvider(global);
+    }
+
+    @Override
+    public void buildBuiltin(BuiltinResourceProvider<CompoundTag> provider) {
+        BuiltinBlueprints.register(provider);
     }
 }

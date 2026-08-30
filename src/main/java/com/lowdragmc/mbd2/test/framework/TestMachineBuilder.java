@@ -45,6 +45,7 @@ public class TestMachineBuilder {
     @Nullable private ResourceLocation recipeTypeId;
     @Nullable private Function<MBDMultiblockMachine, BlockPattern> blockPatternFactory;
     @Nullable private MachineState rootState;
+    private int machineLevel = 0;
 
     private TestMachineBuilder(ResourceLocation id, boolean multiblock) {
         this.id = id;
@@ -151,6 +152,18 @@ public class TestMachineBuilder {
         return this;
     }
 
+    /**
+     * The machine's tier, as its definition declares it.
+     *
+     * <p>Set here rather than through {@code Set Machine Tier} when the tier is a <em>premise</em> of
+     * the test — a blueprint that reads the tier should not have to share the machine with another
+     * blueprint that writes it, or the test also depends on the two running in the right order.</p>
+     */
+    public TestMachineBuilder withMachineLevel(int machineLevel) {
+        this.machineLevel = machineLevel;
+        return this;
+    }
+
     /** Bind this machine to a recipe type (by id). */
     public TestMachineBuilder withRecipeType(ResourceLocation recipeTypeId) {
         this.recipeTypeId = recipeTypeId;
@@ -187,7 +200,7 @@ public class TestMachineBuilder {
                 .recipeType(recipeTypeId != null ? recipeTypeId : MBDRecipeType.DUMMY.getRegistryName())
                 .build();
         var msFactory = (com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition.ConfigMachineSettingsFactory) () -> {
-            ConfigMachineSettings settings = ConfigMachineSettings.builder().build();
+            ConfigMachineSettings settings = ConfigMachineSettings.builder().machineLevel(machineLevel).build();
             for (TraitDefinition trait : traits) {
                 settings.addTraitDefinition(trait);
             }

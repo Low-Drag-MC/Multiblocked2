@@ -46,6 +46,7 @@ public class MBDTestRegistry {
         register(new com.lowdragmc.mbd2.test.tests.runtime.RuntimeValueFixtures());
         register(new com.lowdragmc.mbd2.test.tests.blueprint.BlueprintFixtures());
         register(new com.lowdragmc.mbd2.test.tests.blueprint.BlueprintBehaviourFixtures());
+        register(new com.lowdragmc.mbd2.test.tests.blueprint.BuiltinBlueprintBehaviourFixtures());
         register(new com.lowdragmc.mbd2.test.tests.fx.MachineFXFixtures());
         if (net.neoforged.fml.ModList.get().isLoaded("mekanism")) {
             register(new com.lowdragmc.mbd2.test.tests.trait.ChemicalTankTraitFixtures());
