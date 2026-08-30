@@ -20,6 +20,7 @@ import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
+import com.lowdragmc.mbd2.api.recipe.ingredient.EntityIngredient;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.blueprint.MachineBlueprintGraph;
 import com.lowdragmc.mbd2.common.capability.recipe.FluidRecipeCapability;
@@ -32,6 +33,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.neoforged.neoforge.common.crafting.SizedIngredient;
@@ -240,7 +242,16 @@ public final class RecipeContentNodes {
                 ctx.setOutput("content", null);
                 return;
             }
-            var payload = capability.of(value);
+            Object payload;
+            try {
+                payload = capability.of(value);
+            } catch (RuntimeException e) {
+                // Not every capability's coercion is total — Mekanism's throws on an unknown chemical
+                // id, for instance. A blueprint holding a typo is a graph that produces nothing, not
+                // a machine tick that takes the server down with it.
+                ctx.setOutput("content", null);
+                return;
+            }
             ctx.setOutput("content", payload == null ? null : new Content(
                     payload,
                     ctx.getInput("perTick", Boolean.class, false),
@@ -691,6 +702,85 @@ public final class RecipeContentNodes {
             ctx.setOutput("ingredient", new SizedIngredient(
                     Ingredient.of(TagKey.create(Registries.ITEM, tag)),
                     Math.max(1, ctx.getInt("count", 1))));
+        }
+    }
+
+    /**
+     * What an entity payload accepts, and how many of it.
+     *
+     * <p>Entities are MBD2's own capability rather than a mod's, but the shape is the same as the
+     * item one and so is the caveat: an entity ingredient may be a tag matching many types.</p>
+     */
+    @NodeAttribute(name = "mbd2_entity_ingredient_info", group = GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class EntityIngredientInfo extends AnnotatedNode {
+        @InputPort public EntityIngredient ingredient;
+        @OutputPort public int count;
+        @OutputPort public List<EntityType<?>> types;
+        @OutputPort public EntityType<?> first;
+        @OutputPort public CompoundTag nbt;
+
+        @Override
+        public void evaluate(EvalContext ctx) {
+            var ingredient = ctx.getInput("ingredient", EntityIngredient.class, null);
+            if (ingredient == null) {
+                ctx.setOutput("count", 0);
+                ctx.setOutput("types", List.of());
+                ctx.setOutput("first", null);
+                ctx.setOutput("nbt", null);
+                return;
+            }
+            var types = new ArrayList<EntityType<?>>(List.of(ingredient.getTypes()));
+            ctx.setOutput("count", ingredient.getCount());
+            ctx.setOutput("types", types);
+            ctx.setOutput("first", types.isEmpty() ? null : types.getFirst());
+            ctx.setOutput("nbt", ingredient.getNbt());
+        }
+    }
+
+    /**
+     * An entity payload for one type.
+     *
+     * <p>{@code Content Of} already builds one from an entity type, but always for a single entity —
+     * this is the one that takes a count, and the nbt an entity ingredient can additionally match
+     * on.</p>
+     */
+    @NodeAttribute(name = "mbd2_entity_ingredient_of", group = GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class EntityIngredientOf extends AnnotatedNode {
+        @InputPort public EntityType<?> type;
+        @InputPort public int count = 1;
+        @InputPort public CompoundTag nbt;
+        @OutputPort public EntityIngredient ingredient;
+
+        @Override
+        public void evaluate(EvalContext ctx) {
+            var type = ctx.getInput("type", EntityType.class, null);
+            if (type == null) {
+                ctx.setOutput("ingredient", null);
+                return;
+            }
+            var ingredient = EntityIngredient.of(Math.max(1, ctx.getInt("count", 1)), type);
+            var nbt = ctx.getInput("nbt", CompoundTag.class, null);
+            if (nbt != null) ingredient.setNbt(nbt);
+            ctx.setOutput("ingredient", ingredient);
+        }
+    }
+
+    /** An entity payload that accepts anything in a tag. @see IngredientOfTag */
+    @NodeAttribute(name = "mbd2_entity_ingredient_of_tag", group = GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class EntityIngredientOfTag extends AnnotatedNode {
+        @InputPort public ResourceLocation tag;
+        @InputPort public int count = 1;
+        @OutputPort public EntityIngredient ingredient;
+
+        @Override
+        public void evaluate(EvalContext ctx) {
+            var tag = ctx.getInput("tag", ResourceLocation.class, null);
+            if (tag == null) {
+                ctx.setOutput("ingredient", null);
+                return;
+            }
+            ctx.setOutput("ingredient", EntityIngredient.of(
+                    TagKey.create(Registries.ENTITY_TYPE, tag), Math.max(1, ctx.getInt("count", 1))));
         }
     }
 

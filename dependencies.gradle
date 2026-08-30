@@ -58,11 +58,24 @@ dependencies {
     localRuntimeOnly("vazkii.patchouli:Patchouli:${patchouli_version}")
 
     // Mekanism
+    //
+    // -PnoMekanism, same idea as -PnoPhoton above and for the same reason. Mekanism is the soft
+    // dependency whose absence is most likely to break something: MekanismRecipeContentNodes and
+    // MekanismBlueprintNodes mention Mekanism API types in their very signatures, so registering one
+    // without the jar is a NoClassDefFoundError. They rely on modID = "mekanism" being read from the
+    // ASM scan data before the class is loaded, and that is a claim about class resolution — only a
+    // run without the jar tests it.
+    //
+    //   gradlew runGameTestServer -PnoMekanism
     compileOnly("mekanism:Mekanism:${mekanism_version}:api")
-    localImplementation("mekanism:Mekanism:${mekanism_version}") // Mekanism
-    localRuntimeOnly("mekanism:Mekanism:${mekanism_version}:additions")// Mekanism: Additions
-    localRuntimeOnly("mekanism:Mekanism:${mekanism_version}:generators")// Mekanism: Generators
-    localRuntimeOnly("mekanism:Mekanism:${mekanism_version}:tools")// Mekanism: Tools
+    if (project.hasProperty('noMekanism')) {
+        compileOnly("mekanism:Mekanism:${mekanism_version}")
+    } else {
+        localImplementation("mekanism:Mekanism:${mekanism_version}") // Mekanism
+        localRuntimeOnly("mekanism:Mekanism:${mekanism_version}:additions")// Mekanism: Additions
+        localRuntimeOnly("mekanism:Mekanism:${mekanism_version}:generators")// Mekanism: Generators
+        localRuntimeOnly("mekanism:Mekanism:${mekanism_version}:tools")// Mekanism: Tools
+    }
 
     // GTM
 //    compileOnly("com.gregtechceu.gtceu:gtceu-${minecraft_version}:${gtm_version}") { transitive = false }
