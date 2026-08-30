@@ -161,6 +161,25 @@ public final class ItemHandlerNodes {
         }
     }
 
+    /**
+     * How many slots a handler has.
+     *
+     * <p>The bound every other node here takes a {@code slot} against, and what a loop over a
+     * container counts to. Without it a graph can read and write a slot it already knows the index of
+     * but cannot walk a container it was handed — which is what "drop everything inside" needs.</p>
+     */
+    @NodeAttribute(name = "mbd2_item_slots", group = GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class Slots extends AnnotatedNode {
+        @InputPort public IItemHandler handler;
+        @OutputPort public int value;
+
+        @Override
+        public void evaluate(EvalContext ctx) {
+            var handler = ctx.getInput("handler", IItemHandler.class, null);
+            ctx.setOutput("value", handler == null ? 0 : handler.getSlots());
+        }
+    }
+
     /** How many items a slot can hold — its own limit, which may be below the item's max stack size. */
     @NodeAttribute(name = "mbd2_item_slot_limit", group = GROUP, graphTypes = MachineBlueprintGraph.class)
     public static class SlotLimit extends AnnotatedNode {
