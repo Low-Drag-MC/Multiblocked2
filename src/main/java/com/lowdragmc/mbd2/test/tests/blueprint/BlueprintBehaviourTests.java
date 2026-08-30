@@ -286,4 +286,24 @@ public class BlueprintBehaviourTests {
                 .assertItem(2, ItemStack.EMPTY)
                 .succeed();
     }
+
+    /**
+     * Content Value hands back what a content holds, well enough to build another content from it.
+     *
+     * <p>Reading a payload is the half of the generic design that was missing: a blueprint could add
+     * and remove contents without knowing their capability, but could not look inside one, which made
+     * "double whatever this recipe makes" inexpressible. The blueprint here names no item — it reads
+     * the first output's payload, builds a content from it and adds that, so two stone yield four
+     * dirt where the control yields two.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void blueprintReadsAContentsPayloadAndRebuildsIt(GameTestHelper helper) {
+        MBDScenario.of(helper)
+                .placeMachine(BlueprintBehaviourFixtures.ECHO_FIRST_OUTPUT_ID, new BlockPos(1, 1, 1))
+                .insertItem(0, BlueprintFixtures.stone(2))
+                .runTicks(80)
+                .assertItemCountAtLeast(1, Items.DIRT, 4)
+                .succeed();
+    }
 }

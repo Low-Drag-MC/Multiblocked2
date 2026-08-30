@@ -12,6 +12,10 @@ import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.UseWithContext;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.NodeModel;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.common.blueprint.MachineBlueprintGraph;
+import com.lowdragmc.mbd2.common.blueprint.node.recipe.RecipeContentNodes;
+import com.lowdragmc.mbd2.common.capability.recipe.ForgeEnergyRecipeCapability;
+import com.lowdragmc.mbd2.common.capability.recipe.ItemRecipeCapability;
+import net.neoforged.neoforge.common.crafting.SizedIngredient;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.neoforged.neoforge.gametest.GameTestHolder;
@@ -229,5 +233,42 @@ public class BlueprintNodeCatalogueTests {
             }
         }
         return null;
+    }
+
+    /**
+     * Content Value's output port takes its type from the capability the node is set to.
+     *
+     * <p>Everything else about that node works the same whether the port is properly typed or left
+     * untyped - the value flows either way, so no behaviour test can tell the difference. What a
+     * wrong type costs is in the editor: an untyped port connects to anything and defers the mistake
+     * to runtime, where a recipe silently stops producing. Asserting the port retypes when the
+     * dropdown moves is the only place that is visible.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void contentValuePortFollowsItsCapability(GameTestHelper helper) {
+        var graph = new MachineBlueprintGraph();
+        var node = KGGameTestHelpers.addRegisteredNode(graph, RecipeContentNodes.ContentValue.class);
+
+        var asItem = node.getOutputsById().get("value").getPortDataType();
+        if (asItem != SizedIngredient.class) {
+            helper.fail("expected the default (item) capability to type the port as SizedIngredient, was " + asItem);
+            return;
+        }
+
+        KGGameTestHelpers.setOption(node, "capability", ForgeEnergyRecipeCapability.CAP.name);
+        var asEnergy = node.getOutputsById().get("value").getPortDataType();
+        if (asEnergy != Integer.class) {
+            helper.fail("expected the energy capability to retype the port as Integer, was " + asEnergy);
+            return;
+        }
+
+        // And back, because a retype that only works in one direction is a retype that leaks.
+        KGGameTestHelpers.setOption(node, "capability", ItemRecipeCapability.CAP.name);
+        if (node.getOutputsById().get("value").getPortDataType() != SizedIngredient.class) {
+            helper.fail("the port did not go back to SizedIngredient");
+            return;
+        }
+        helper.succeed();
     }
 }

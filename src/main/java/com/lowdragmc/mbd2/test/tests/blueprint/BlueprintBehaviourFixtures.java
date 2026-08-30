@@ -70,6 +70,8 @@ public class BlueprintBehaviourFixtures implements TestFixtureProvider {
     public static final ResourceLocation REMOVE_BY_SLOT_ID = MBD2.id("blueprint_remove_by_slot");
     /** Rewrites the chance on the output at index 1 to zero. */
     public static final ResourceLocation ZERO_CHANCE_OUTPUT_ID = MBD2.id("blueprint_zero_chance_output");
+    /** Reads the payload out of the first output and adds a second output built from it. */
+    public static final ResourceLocation ECHO_FIRST_OUTPUT_ID = MBD2.id("blueprint_echo_first_output");
 
     /** The tier the blueprint writes and reads back. Distinct from the default of zero. */
     public static final int TIER = 6;
@@ -109,6 +111,7 @@ public class BlueprintBehaviourFixtures implements TestFixtureProvider {
         twoOutputMachine(REMOVE_ONE_OUTPUT_ID).withBlueprint(removeOutputAt(1)).register(event);
         twoOutputMachine(REMOVE_BY_SLOT_ID).withBlueprint(removeOutputNamed(BONUS_SLOT)).register(event);
         twoOutputMachine(ZERO_CHANCE_OUTPUT_ID).withBlueprint(zeroChanceOutputAt(1)).register(event);
+        twoOutputMachine(ECHO_FIRST_OUTPUT_ID).withBlueprint(echoOutputAt(0)).register(event);
 
         TestMachineBuilder.simple(TIER_MACHINE_ID)
                 .withBlueprint(tierRoundTrip())
@@ -397,6 +400,36 @@ public class BlueprintBehaviourFixtures implements TestFixtureProvider {
         KGGameTestHelpers.wire(graph, set.getInputsById().get("recipe"), modify.getOutputsById().get("recipe"));
         KGGameTestHelpers.wire(graph, set.getInputsById().get("content"), with.getOutputsById().get("result"));
         KGGameTestHelpers.wire(graph, write.getInputsById().get("recipe"), set.getOutputsById().get("result"));
+        KGGameTestHelpers.wire(graph, write.getInputsById().get("in"), modify.getOutputsById().get("next"));
+        return graph;
+    }
+
+    /**
+     * {@code Content At(0) -> Content Value -> Content Of -> Add Recipe Content -> Set Event Recipe}:
+     * the payload comes out of one content and goes straight back into a new one, so the machine
+     * produces its first output twice.
+     *
+     * <p>Doubling rather than replacing is what makes it observable: the payload has to survive
+     * unchanged for the count to land on four, and a {@code Content Value} that returned nothing
+     * leaves the recipe alone and the count at two. Nothing in the graph names an item — the whole
+     * round trip is capability-generic.</p>
+     */
+    private static MachineBlueprintGraph echoOutputAt(int index) {
+        var graph = new MachineBlueprintGraph();
+        var modify = KGGameTestHelpers.addRegisteredNode(graph, RecipeModifyBeforeEventNode.class);
+        var at = KGGameTestHelpers.addRegisteredNode(graph, RecipeContentNodes.ContentAt.class);
+        KGGameTestHelpers.setInputConstant(at, "index", index);
+        var value = KGGameTestHelpers.addRegisteredNode(graph, RecipeContentNodes.ContentValue.class);
+        var of = KGGameTestHelpers.addRegisteredNode(graph, RecipeContentNodes.ContentOf.class);
+        var add = KGGameTestHelpers.addRegisteredNode(graph, RecipeContentNodes.AddContent.class);
+        var write = KGGameTestHelpers.addRegisteredNode(graph, SetEventRecipeNode.class);
+
+        KGGameTestHelpers.wire(graph, at.getInputsById().get("recipe"), modify.getOutputsById().get("recipe"));
+        KGGameTestHelpers.wire(graph, value.getInputsById().get("content"), at.getOutputsById().get("content"));
+        KGGameTestHelpers.wire(graph, of.getInputsById().get("value"), value.getOutputsById().get("value"));
+        KGGameTestHelpers.wire(graph, add.getInputsById().get("recipe"), modify.getOutputsById().get("recipe"));
+        KGGameTestHelpers.wire(graph, add.getInputsById().get("content"), of.getOutputsById().get("content"));
+        KGGameTestHelpers.wire(graph, write.getInputsById().get("recipe"), add.getOutputsById().get("result"));
         KGGameTestHelpers.wire(graph, write.getInputsById().get("in"), modify.getOutputsById().get("next"));
         return graph;
     }

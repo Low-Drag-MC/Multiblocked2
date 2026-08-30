@@ -4,11 +4,13 @@ import com.lowdragmc.kilagraph.graph.core.AnnotatedNode;
 import com.lowdragmc.kilagraph.graph.core.InputPort;
 import com.lowdragmc.kilagraph.graph.core.OutputPort;
 import com.lowdragmc.kilagraph.graph.exec.EvalContext;
+import com.lowdragmc.kilagraph.graph.type.KGTypeHandles;
 import com.lowdragmc.lowdraglib2.configurator.IConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.SearchComponentConfigurator;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.IFieldValueConfigurable;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.NodeAttribute;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.ITypeConfigurable;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandle;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandles;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.definition.IOptionDefinitionContext;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.model.node.definition.IPortDefinitionContext;
@@ -200,6 +202,7 @@ public final class RecipeContentNodes {
     public static class ContentOf extends CapabilityNode {
         @InputPort public float chance = 1f;
         @InputPort public boolean perTick = false;
+        @InputPort public String slotName = "";
         @OutputPort public Content content;
 
         @Override
@@ -220,7 +223,9 @@ public final class RecipeContentNodes {
                     payload,
                     ctx.getInput("perTick", Boolean.class, false),
                     ctx.getInput("chance", Float.class, 1f),
-                    0f));
+                    0f,
+                    ctx.getInput("slotName", String.class, ""),
+                    ""));
         }
     }
 
@@ -448,6 +453,42 @@ public final class RecipeContentNodes {
             ctx.setOutput("perTick", content != null && content.perTick);
             ctx.setOutput("slotName", content == null ? "" : content.slotName);
             ctx.setOutput("tierChanceBoost", content == null ? 0f : content.tierChanceBoost);
+        }
+    }
+
+    /**
+     * What the content actually holds — the ingredient, the energy amount, the chemical stack.
+     *
+     * <p>The output port is typed from the chosen capability rather than left untyped, so it carries
+     * a {@code SizedIngredient} on {@code item} and an {@code Integer} on {@code energy} and only
+     * connects where that fits. Change the dropdown and the port retypes; a wire that no longer fits
+     * is parked as a type conflict rather than silently dropped.</p>
+     *
+     * <p>Note the asymmetry with {@code Content Of}, which takes an untyped value: going in, the
+     * capability coerces whatever it is given, and coming out there is exactly one right answer.</p>
+     */
+    @NodeAttribute(name = "mbd2_content_value", group = GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class ContentValue extends CapabilityNode {
+        @InputPort public Content content;
+
+        @Override
+        protected void onDefineDynamicPorts(IPortDefinitionContext context) {
+            context.addOutputPort("value", valueType());
+        }
+
+        /** The payload type of the chosen capability, or UNKNOWN when it cannot be resolved. */
+        private TypeHandle valueType() {
+            var capability = MBDRegistries.RECIPE_CAPABILITIES.get(
+                    optionValue(CAPABILITY, String.class, ItemRecipeCapability.CAP.name));
+            if (capability == null) return TypeHandles.UNKNOWN;
+            var type = capability.contentType();
+            return type == Object.class ? TypeHandles.UNKNOWN : KGTypeHandles.handleFor(type);
+        }
+
+        @Override
+        public void evaluate(EvalContext ctx) {
+            var content = ctx.getInput("content", Content.class, null);
+            ctx.setOutput("value", content == null ? null : content.content);
         }
     }
 

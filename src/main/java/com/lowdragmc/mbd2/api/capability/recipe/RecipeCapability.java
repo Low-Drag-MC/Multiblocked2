@@ -10,6 +10,8 @@ import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.mojang.serialization.Codec;
 import net.minecraft.network.chat.Component;
 
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -69,6 +71,36 @@ public abstract class RecipeCapability<T> implements ILDLRegister<RecipeCapabili
      */
     public T of(Object o) {
         return serializer.of(o);
+    }
+
+    /**
+     * The type of this capability's content payload — {@code SizedIngredient} for items,
+     * {@code Integer} for energy, and so on.
+     *
+     * <p>A {@link Content} holds its payload as a bare {@code Object} and does not record which
+     * capability it belongs to, so anything generic over capabilities has no way to say what it is
+     * holding. This recovers that: the answer is already written down in the type argument every
+     * subclass must declare to compile, so it costs a subclass nothing and cannot drift out of sync
+     * with {@link #serializer}. Returns {@code Object.class} for a subclass raw enough to have not
+     * declared one.</p>
+     */
+    public final Type contentType() {
+        if (contentType == null) {
+            contentType = resolveContentType(getClass());
+        }
+        return contentType;
+    }
+
+    private Type contentType;
+
+    private static Type resolveContentType(Class<?> type) {
+        for (Class<?> current = type; current != null && current != Object.class; current = current.getSuperclass()) {
+            if (current.getGenericSuperclass() instanceof ParameterizedType parameterized
+                    && parameterized.getRawType() == RecipeCapability.class) {
+                return parameterized.getActualTypeArguments()[0];
+            }
+        }
+        return Object.class;
     }
 
     public Component getTraslateComponent() {
