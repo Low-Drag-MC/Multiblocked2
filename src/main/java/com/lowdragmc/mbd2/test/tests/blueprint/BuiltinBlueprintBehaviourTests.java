@@ -579,6 +579,39 @@ public class BuiltinBlueprintBehaviourTests {
         scenario.succeed();
     }
 
+    /**
+     * A machine that rewrites its recipe does not rewrite it for everyone else.
+     *
+     * <p>The recipe passed to {@code Recipe Modify} is the recipe manager's own object, shared by every
+     * machine of that type in the world and reused until the next reload. If the content nodes edited
+     * it rather than a copy, the first swapped machine to run would permanently turn dirt into diamonds
+     * for every other machine — a corruption that no single-machine test can see, and that would
+     * survive as long as the world stayed loaded.</p>
+     *
+     * <p>So: run the swapped machine first, then run a plain one on the same recipe and require the
+     * original output back.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void outputSwapDoesNotCorruptTheSharedRecipe(GameTestHelper helper) {
+        var swapped = MBDScenario.of(helper)
+                .placeMachine(OUTPUT_SWAP_ID, MACHINE)
+                .insertItem(0, new ItemStack(Items.STONE, 4))
+                .runTicks(RUN_TICKS);
+        if (countInOutput(swapped, SWAPPED_PRODUCT) == 0) {
+            helper.fail("the swapped machine never ran, so this proves nothing");
+            return;
+        }
+
+        // A different machine, no blueprint, same recipe type — it must still make dirt.
+        MBDScenario.of(helper)
+                .placeMachine(OVERCLOCK_CONTROL_ID, new BlockPos(3, 1, 1))
+                .insertItem(0, new ItemStack(Items.STONE, 4))
+                .runTicks(RUN_TICKS)
+                .assertItemCountAtLeast(1, Items.DIRT, 1)
+                .succeed();
+    }
+
     // ---- debug_probe -------------------------------------------------------------------------
 
     /**
