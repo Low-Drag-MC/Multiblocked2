@@ -298,6 +298,38 @@ public class AutoIOPanelTests {
         helper.succeed();
     }
 
+    /**
+     * The layer a face draws its neighbour on does not take the click the face is listening for.
+     *
+     * <p>A child element is normally the target of any click that lands on it, and the listener on
+     * the parent then never runs — so this one flag is the difference between a panel that works and
+     * one that silently ignores every click, with nothing thrown anywhere.</p>
+     *
+     * <p>It is also what stops the built-in documents being loaded as {@code UITemplate}s instead of
+     * built in code: {@code allowHitTest} has no {@code @Configurable} and so is not serialised, and
+     * a tree that had been through NBT would come back clickable. Asserting it on the tree the
+     * machine actually builds is what would catch that swap.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void theFaceItemLayerIsClickThrough(GameTestHelper helper) {
+        var ui = openUI(helper, AutoIOPanelFixtures.ONE_TAB_ID);
+        if (ui == null) return;
+        for (var face : FACES) {
+            var layer = ui.selectId(face.replace("face_", "item_")).findFirst().orElse(null);
+            if (layer == null) {
+                helper.fail("no item layer inside " + face);
+                return;
+            }
+            if (layer.isAllowHitTest()) {
+                helper.fail(face + "'s item layer takes hit tests, so it will swallow the clicks the"
+                        + " face is listening for");
+                return;
+            }
+        }
+        helper.succeed();
+    }
+
     /** The text of the tab's title label, which is what a player reads at the top of the panel. */
     private static String title(GameTestHelper helper, ResourceLocation machineId) {
         var ui = openUI(helper, machineId);

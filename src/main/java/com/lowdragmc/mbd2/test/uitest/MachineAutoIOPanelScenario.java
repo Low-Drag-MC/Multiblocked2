@@ -107,6 +107,19 @@ public class MachineAutoIOPanelScenario implements UIScenario {
                 // reserve two panels' worth of room in the strip and the second lands on the first.
                 .check("the panels start folded away", ctx -> ctx.query().withId("panel").list().stream()
                         .noneMatch(ref -> ref.as(UIElement.class).isDisplayed()))
+                // What the document sets has to sit below what a stylesheet sets, or the sheet is
+                // decoration nobody can override. Inline beats stylesheet in the cascade, so the
+                // document's own values are demoted to DEFAULT when a tree is handed out — this
+                // reads the actual origins rather than trusting that it happened.
+                .check("the document's own styling stays out of the stylesheet's way", ctx -> {
+                    var faceWidth = origins(ctx, "face_UP", "width");
+                    var panelBackground = origins(ctx, "panel", "background");
+                    ctx.attach("face_UP.width", String.valueOf(faceWidth));
+                    ctx.attach("panel.background", String.valueOf(panelBackground));
+                    return faceWidth.contains("DEFAULT") && faceWidth.contains("STYLESHEET")
+                            && !faceWidth.contains("INLINE")
+                            && panelBackground.contains("DEFAULT") && !panelBackground.contains("INLINE");
+                })
                 .check("the tab says which trait it configures", ctx -> {
                     var tips = tooltip(ctx, "handle", 0);
                     ctx.attach("handle.tooltip", tips);
@@ -302,6 +315,18 @@ public class MachineAutoIOPanelScenario implements UIScenario {
             }
         }
         return null;
+    }
+
+    /** Every cascade origin holding a value for one property on one element, e.g. [DEFAULT, STYLESHEET]. */
+    private static java.util.List<String> origins(com.lowdragmc.lowdraglib2.uitest.TestContext ctx,
+                                                  String id, String propertyName) {
+        var element = ctx.query().withId(id).nth(0).one().as(UIElement.class);
+        var found = new java.util.ArrayList<String>();
+        element.getStyleBag().candidates.forEach((property, slots) -> {
+            if (!property.name.equals(propertyName)) return;
+            slots.forEach(slot -> found.add(slot.origin().name()));
+        });
+        return found;
     }
 
     /** An element's box, for a report that has to show why two of them overlapped. */

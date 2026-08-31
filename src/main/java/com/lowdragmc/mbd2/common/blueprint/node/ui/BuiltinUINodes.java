@@ -27,12 +27,30 @@ public final class BuiltinUINodes {
     private BuiltinUINodes() {}
 
     /**
-     * A fresh copy of one of MBD2's built-in UIs.
+     * A fresh copy of one of MBD2's built-in UIs, straight from the code that defines it.
      *
-     * <p>{@code ldlib2_ui_load_xml} does the same job for an authored file, and cannot be used for
-     * anything a machine UI needs: a machine UI is assembled on both sides, and a ui xml resolves
-     * through the active resource manager — assets on the client, datapacks on the server. A built-in
-     * is code, so both sides get the same tree with nothing to keep in step.</p>
+     * <h2>Why not {@code ldlib2_ui_template_load}</h2>
+     * These built-ins <em>are</em> registered as {@code UITemplate}s, and loading one by path would
+     * be the obvious way to reach it. It does not work, because a {@code UITemplate} is a
+     * {@code CompoundTag}: the tree goes through NBT on the way out and back, and three things do not
+     * survive the trip.
+     *
+     * <ul>
+     *   <li>{@code UIElement.allowHitTest} has no {@code @Configurable}, so it is never written. The
+     *       auto-IO panel draws each face's neighbouring block on a child element that opts out of
+     *       hit testing; without that flag the child becomes the target of every click and the face
+     *       buttons stop working. Nothing throws — the panel just stops responding.</li>
+     *   <li>{@code UIElement.deserializeNBT} restores inline styles <b>only on the client</b>
+     *       ({@code if (!LDLib2.isServer())}). A machine UI is built on both sides, so the server's
+     *       copy would come back unstyled and the two trees would no longer match.</li>
+     *   <li>Only inline values are serialised at all, so anything a document deliberately puts lower
+     *       in the cascade is lost.</li>
+     * </ul>
+     *
+     * <p>Code has none of those problems: both sides run the same constructor and get the same tree,
+     * flags and all. {@code ldlib2_ui_load_xml} is out for a related reason — a ui xml resolves
+     * through the active resource manager, which is assets on the client and datapacks on the server,
+     * so one file has to ship twice and stay in step.</p>
      *
      * <p>An exec node rather than a pure value for the reason {@code ldlib2_ui_element_new} is one:
      * an element has identity, so when one is made has to be something the graph states.</p>

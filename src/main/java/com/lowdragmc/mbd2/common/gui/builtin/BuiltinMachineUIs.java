@@ -35,9 +35,10 @@ import java.util.function.Supplier;
  * what that class looks like; a pack can restyle the whole panel by shipping its own
  * {@code assets/<any-namespace>/lss/mbd2_auto_io.lss}, because stylesheets merge by path.
  *
- * <p>What is written here is written at {@link StyleOrigin#DEFAULT}, the bottom of the cascade — so
- * it is the fallback that keeps the panel usable with no stylesheet at all (in the editor's preview,
- * for one), and <em>any</em> rule in a sheet beats it.</p>
+ * <p>What is written here is authored inline and then {@linkplain #demote demoted} to
+ * {@link StyleOrigin#DEFAULT}, the bottom of the cascade — so it is the fallback that keeps the panel
+ * usable with no stylesheet at all, and <em>any</em> rule in a sheet beats it. Writing it straight at
+ * {@code DEFAULT} does not work: only inline values are serialised into a {@link UITemplate}.</p>
  *
  * <h2>What the editor sees</h2>
  * The same templates are registered as read-only entries under a {@code mbd2} provider in
@@ -105,14 +106,26 @@ public final class BuiltinMachineUIs {
      *
      * <p>Fresh every call, never a shared instance: an element has identity and belongs to one tree,
      * so two machines showing the same built-in must not be handed the same objects.</p>
+     *
+     * <p>Its styles are {@link #demote}d, so the stylesheet is in charge of what it looks like and
+     * what is written here is only the fallback.</p>
      */
     @Nullable
     public static UIElement create(String name) {
         var builder = BUILDERS.get(name);
-        return builder == null ? null : builder.get();
+        if (builder == null) return null;
+        var root = builder.get();
+        demote(root);
+        return root;
     }
 
-    /** The same trees, as templates, for the editor's resource browser. */
+    /**
+     * The same trees, as templates, for the editor's resource browser.
+     *
+     * <p>Built separately from {@link #create} and <em>not</em> demoted, because a template is NBT
+     * and only inline values are written to it — a demoted tree serialises as a shape with no
+     * styling, which is not what someone opening the built-in wants to see.</p>
+     */
     public static void register(BuiltinResourceProvider<UITemplate> provider) {
         for (var entry : BUILDERS.entrySet()) {
             try {
@@ -303,16 +316,37 @@ public final class BuiltinMachineUIs {
     }
 
     /**
-     * Written at the bottom of the cascade, so a stylesheet rule — MBD2's own or a pack's — wins
-     * without having to out-specify anything. Inline would be the opposite: unbeatable except by
-     * {@code !important}, which is not a look anyone should have to fight.
+     * Written inline, and demoted to {@link StyleOrigin#DEFAULT} by {@link #demote} when a tree is
+     * handed out.
+     *
+     * <p>It has to be written inline first because {@code Style.serializeNBT} only writes a
+     * property's <em>inline</em> value — a style set straight at {@code DEFAULT} is dropped on the
+     * floor when the document is turned into a {@link UITemplate}, so the editor would open these
+     * built-ins with no styling at all. Demoting afterwards is LDLib2's own idiom for this
+     * ({@code Configurator}, {@code ConfiguratorGroup} and the asset browser all do it): author
+     * normally, then step out of the way of the cascade.</p>
      */
     private static void style(UIElement element, String property, String value) {
-        element.lss(property, value, StyleOrigin.DEFAULT);
+        element.lss(property, value, StyleOrigin.INLINE);
     }
 
     /** The same, for a texture, which has no lss spelling that survives a round trip. */
     private static void background(UIElement element, com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture texture) {
-        element.style(style -> style.setDefault(PropertyRegistry.BACKGROUND, texture));
+        element.style(style -> style.backgroundTexture(texture));
+    }
+
+    /**
+     * Moves every inline value in a tree down to {@link StyleOrigin#DEFAULT}.
+     *
+     * <p>Inline is the top of the cascade below animation: a stylesheet cannot beat it, so a panel
+     * authored inline is a panel nobody can restyle. At {@code DEFAULT} the same values are a
+     * fallback — what the built-in looks like with no sheet loaded — and any rule wins over them.</p>
+     *
+     * <p>Recursive because {@code UIElement.moveInlineAsDefault} is not: it moves one element's own
+     * bag, and a document is a tree.</p>
+     */
+    private static void demote(UIElement element) {
+        element.moveInlineAsDefault();
+        element.getChildren().forEach(BuiltinMachineUIs::demote);
     }
 }
