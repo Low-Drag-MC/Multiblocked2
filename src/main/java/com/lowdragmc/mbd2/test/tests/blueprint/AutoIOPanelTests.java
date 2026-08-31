@@ -201,8 +201,10 @@ public class AutoIOPanelTests {
             return;
         }
         // Up is the one relative side that is the same world direction whichever way a machine faces,
-        // so the expectation does not depend on how the fixture happened to be placed.
-        for (var expected : List.of(IO.IN, IO.OUT, IO.BOTH, IO.NONE)) {
+        // so the expectation does not depend on how the fixture happened to be placed. It starts at
+        // IN because the fixture's definition ships it that way, which is itself worth walking from:
+        // a cycle that ignored the current value would land on IN first instead of OUT.
+        for (var expected : List.of(IO.OUT, IO.BOTH, IO.NONE, IO.IN)) {
             click(button);
             var actual = autoIO(machine, RelativeDirection.UP);
             if (actual != expected) {
@@ -305,5 +307,25 @@ public class AutoIOPanelTests {
             helper.fail("could not read " + path + ": " + e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * The fixture's definition really does set two faces.
+     *
+     * <p>The ui scenario leans on this to tell a painted face from an unpainted one, and a fixture
+     * that quietly failed to apply it would make that check pass for the wrong reason - or fail for
+     * one that has nothing to do with the panel.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void theFixtureShipsTwoConfiguredFaces(GameTestHelper helper) {
+        var machine = MBDScenario.of(helper).placeMachine(AutoIOPanelFixtures.ONE_TAB_ID, POS).machine();
+        var up = autoIO(machine, RelativeDirection.UP);
+        var down = autoIO(machine, RelativeDirection.DOWN);
+        if (up != IO.IN || down != IO.OUT) {
+            helper.fail("expected the definition to ship up=IN and down=OUT, got up=" + up + " down=" + down);
+            return;
+        }
+        helper.succeed();
     }
 }

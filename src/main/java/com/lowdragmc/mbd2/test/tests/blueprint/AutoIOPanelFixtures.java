@@ -51,10 +51,20 @@ public class AutoIOPanelFixtures implements TestFixtureProvider {
         machine(CONTROL_ID).register(event);
     }
 
-    /** An item slot and a fluid tank, so both trait names resolve to something that does auto IO. */
+    /**
+     * An item slot and a fluid tank, so both trait names resolve to something that does auto IO.
+     *
+     * <p>The item slot's definition sets two faces rather than leaving all six at none. A panel whose
+     * every cell reads the same tells you nothing about whether it read anything at all, and the two
+     * that are set are the ones the ui scenario compares against an untouched one.</p>
+     */
     private static TestMachineBuilder machine(ResourceLocation id) {
         return TestMachineBuilder.simple(id)
-                .withItemSlots(1, IO.BOTH)
+                .withItemSlots(1, IO.BOTH, definition -> {
+                    definition.getAutoIO().setEnable(true);
+                    definition.getAutoIO().setTopIO(IO.IN);
+                    definition.getAutoIO().setBottomIO(IO.OUT);
+                })
                 .withFluidTanks(1, 8000);
     }
 

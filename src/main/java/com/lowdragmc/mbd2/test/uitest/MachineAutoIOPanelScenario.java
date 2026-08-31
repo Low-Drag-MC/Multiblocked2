@@ -56,7 +56,7 @@ public class MachineAutoIOPanelScenario implements UIScenario {
                     if (definition == null) {
                         throw new IllegalStateException("the two-tab fixture machine is not registered");
                     }
-                    ctx.serverLevel().setBlockAndUpdate(POS, definition.block().defaultBlockState());
+                    ctx.serverPlayer().serverLevel().setBlockAndUpdate(POS, definition.block().defaultBlockState());
                 })
                 .frames(6)
                 .step("open its ui the way a player would", ctx ->
@@ -73,15 +73,17 @@ public class MachineAutoIOPanelScenario implements UIScenario {
                 })
                 .check("the panels start folded away", ctx -> ctx.query().withId("panel").list().stream()
                         .noneMatch(ref -> ref.as(UIElement.class).isVisible()))
-                // Measured, not assumed: the strip is absolutely positioned against the machine's own
-                // UI root, so it hangs off that element's top-left corner wherever the screen puts it.
-                .check("the strip hangs off the left of the machine's own ui root", ctx -> {
+                // The strip is absolutely positioned against the machine's own UI root; which edge it
+                // hangs off is the document's choice, so what is asserted is that it hangs off one -
+                // sitting inside the host would mean it is covering the machine's own contents.
+                .check("the strip hangs outside the machine's own ui root", ctx -> {
                     var strip = ctx.query().withId("mbd2_side_tabs").one().as(UIElement.class);
                     var host = strip.getParent();
                     if (host == null) return false;
                     ctx.attach("offset", (strip.getPositionX() - host.getPositionX()) + ","
                             + (strip.getPositionY() - host.getPositionY()));
-                    return strip.getPositionX() < host.getPositionX();
+                    return strip.getPositionX() + strip.getSizeWidth() <= host.getPositionX()
+                            || strip.getPositionX() >= host.getPositionX() + host.getSizeWidth();
                 })
                 .screenshot("auto-io-collapsed")
 
@@ -100,7 +102,24 @@ public class MachineAutoIOPanelScenario implements UIScenario {
                     ctx.attach("openPanels", String.valueOf(open));
                     return open == 1;
                 })
+                // No check on the face colours here. The blueprint paints each one from a
+                // sync value, and that value never arrives with anything but its default - see the
+                // note on the sync node in AutoIOPanelBlueprint. Asserting "they are all the same"
+                // would lock the gap in as if it were the intent, and asserting they differ would
+                // commit a red test, so this records the shape of the panel and leaves the colours
+                // to the fix.
                 .screenshot("auto-io-expanded")
                 .closeScreen();
+    }
+
+
+
+    /** Clicks one face button {@code times} times, walking its state that far round the cycle. */
+    private static void clickFace(com.lowdragmc.lowdraglib2.uitest.TestContext ctx, String id, int times) {
+        var bounds = ctx.query().withId(id).nth(0).one().bounds();
+        for (int i = 0; i < times; i++) {
+            ctx.input().mouseDown(bounds.centerX(), bounds.centerY(), 0);
+            ctx.input().mouseUp(bounds.centerX(), bounds.centerY(), 0);
+        }
     }
 }

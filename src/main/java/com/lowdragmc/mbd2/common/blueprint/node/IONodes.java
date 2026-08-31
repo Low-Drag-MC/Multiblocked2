@@ -52,6 +52,38 @@ public final class IONodes {
     }
 
     /**
+     * One of four values, picked by an {@link IO} — a colour, a label, a texture, a key.
+     *
+     * <p>Every UI that draws an IO needs this mapping, and expressing it with equality tests and
+     * branches costs four nodes each time and buries what the graph is saying. Here the four answers
+     * sit side by side where they can be read and changed, which for a built-in blueprint means a pack
+     * author can restyle it without touching Java.</p>
+     *
+     * <p>Strings rather than an untyped value, because an untyped port has no inline editor: the four
+     * answers could then only be wired in, which defeats the point of having them here.</p>
+     */
+    @NodeAttribute(name = "mbd2_io_choose", group = GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class Choose extends AnnotatedNode {
+        @InputPort public IO io = IO.NONE;
+        @InputPort public String whenNone = "";
+        @InputPort public String whenIn = "";
+        @InputPort public String whenOut = "";
+        @InputPort public String whenBoth = "";
+        @OutputPort public String value;
+
+        @Override
+        public void evaluate(EvalContext ctx) {
+            var port = switch (ctx.getInput("io", IO.class, IO.NONE)) {
+                case IN -> "whenIn";
+                case OUT -> "whenOut";
+                case BOTH -> "whenBoth";
+                default -> "whenNone";
+            };
+            ctx.setOutput("value", ctx.getInput(port, String.class, ""));
+        }
+    }
+
+    /**
      * An {@link IO} broken out as flags, for a graph that has to branch on which one it is.
      *
      * <p>Comparing enums in a graph means an equality node and a constant per case; this is the same

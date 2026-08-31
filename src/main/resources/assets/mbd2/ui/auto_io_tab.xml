@@ -2,10 +2,23 @@
 <!--
     One auto-IO side tab: a handle that stays visible, and a panel that folds out beside it.
 
-    The six face buttons are laid out as the machine sees itself rather than as the world does - the
-    top row is up / front / down and the bottom row left / back / right - because that is what the
-    player is choosing. The blueprint converts each to a world direction against the machine's facing,
-    so the setting follows the machine when it is rotated.
+    The six faces sit in a three-by-three grid arranged the way a machine sees itself rather than the
+    way the world does:
+
+              UP
+        LEFT FRONT RIGHT
+              DOWN  BACK
+
+    which is why it is a grid and not two rows - the empty cells are what make it read as a machine
+    rather than as a list. The blueprint converts each face to a world direction against the machine's
+    facing, so a setting follows the machine when it is rotated.
+
+    A face carries no child. Its socket is the button's own base/hover/pressed texture and the state
+    is the element background the blueprint paints over it - an inner element would have been the
+    thing under the cursor, and the click would then never reach the button the listener is on.
+    Colour rather than a letter because the state has to be readable at a glance across six cells,
+    and because the four colours live in the blueprint where they can be changed without touching
+    this file.
 
     Every id here is looked up from this subtree, never from the whole UI, so several tabs can carry
     the same ids without colliding.
@@ -20,19 +33,53 @@
 <ui>
     <root>
         <element id="tab" style="flex-direction: row; align-items: flex-start; gap: 2;">
-            <button id="handle" text="IO" style="width: 22; height: 22;"/>
+            <button id="handle" text="" style="width: 20; height: 20;
+                    base-background: group(rect(#FF17303F, 3 0 0 3, 1, #FF2E6E8E), icon(settings));
+                    hover-background: group(rect(#FF1E4256, 3 0 0 3, 1, #FF57A8CC), icon(settings));
+                    pressed-background: group(rect(#FF13252F, 3 0 0 3, 1, #FF2E6E8E), icon(settings));"/>
+
             <element id="panel" visible="false"
-                     style="flex-direction: column; gap: 2; padding-all: 4; background: #cc202020;">
-                <label id="title"/>
-                <element style="flex-direction: row; gap: 2;">
-                    <button id="face_UP" text="U" style="width: 22; height: 22;"/>
-                    <button id="face_FRONT" text="F" style="width: 22; height: 22;"/>
-                    <button id="face_DOWN" text="D" style="width: 22; height: 22;"/>
-                </element>
-                <element style="flex-direction: row; gap: 2;">
-                    <button id="face_LEFT" text="L" style="width: 22; height: 22;"/>
-                    <button id="face_BACK" text="B" style="width: 22; height: 22;"/>
-                    <button id="face_RIGHT" text="R" style="width: 22; height: 22;"/>
+                     style="position: absolute; left: 100%; top: 0;
+                            flex-direction: column; gap: 4; padding-all: 5;
+                            background: rect(#F0102A38, 4, 1, #FF2E6E8E);">
+                <label id="title" style="color: #FFD3E4EE; font-size: 8;"/>
+
+                <element style="flex-direction: row; align-items: flex-start; gap: 5;">
+                    <!-- What the colours mean. Two swatches, in the same order a face cycles. -->
+                    <element style="flex-direction: column; gap: 4; padding-all: 3;
+                                    background: rect(#FF16252F, 3, 1, #FF2E5A72);">
+                        <element style="width: 16; height: 16; background: rect(#FF3C8CE0, 2);"/>
+                        <element style="width: 16; height: 16; background: rect(#FFE08A3C, 2);"/>
+                    </element>
+
+                    <element style="display: grid; gap: 3; padding-all: 3;
+                                    grid-template-columns: 22 22 22; grid-template-rows: 22 22 22;
+                                    background: rect(#FF16252F, 3, 1, #FF2E5A72);">
+                        <button id="face_UP" text="" style="grid-column: 2; grid-row: 1;
+                                base-background: rect(#FF24363F, 2, 1, #FF3D5A66);
+                                hover-background: rect(#FF31505E, 2, 1, #FF6FA8BF);
+                                pressed-background: rect(#FF1B2A31, 2, 1, #FF3D5A66);"/>
+                        <button id="face_LEFT" text="" style="grid-column: 1; grid-row: 2;
+                                base-background: rect(#FF24363F, 2, 1, #FF3D5A66);
+                                hover-background: rect(#FF31505E, 2, 1, #FF6FA8BF);
+                                pressed-background: rect(#FF1B2A31, 2, 1, #FF3D5A66);"/>
+                        <button id="face_FRONT" text="" style="grid-column: 2; grid-row: 2;
+                                base-background: rect(#FF24363F, 2, 1, #FF3D5A66);
+                                hover-background: rect(#FF31505E, 2, 1, #FF6FA8BF);
+                                pressed-background: rect(#FF1B2A31, 2, 1, #FF3D5A66);"/>
+                        <button id="face_RIGHT" text="" style="grid-column: 3; grid-row: 2;
+                                base-background: rect(#FF24363F, 2, 1, #FF3D5A66);
+                                hover-background: rect(#FF31505E, 2, 1, #FF6FA8BF);
+                                pressed-background: rect(#FF1B2A31, 2, 1, #FF3D5A66);"/>
+                        <button id="face_DOWN" text="" style="grid-column: 2; grid-row: 3;
+                                base-background: rect(#FF24363F, 2, 1, #FF3D5A66);
+                                hover-background: rect(#FF31505E, 2, 1, #FF6FA8BF);
+                                pressed-background: rect(#FF1B2A31, 2, 1, #FF3D5A66);"/>
+                        <button id="face_BACK" text="" style="grid-column: 3; grid-row: 3;
+                                base-background: rect(#FF24363F, 2, 1, #FF3D5A66);
+                                hover-background: rect(#FF31505E, 2, 1, #FF6FA8BF);
+                                pressed-background: rect(#FF1B2A31, 2, 1, #FF3D5A66);"/>
+                    </element>
                 </element>
             </element>
         </element>
