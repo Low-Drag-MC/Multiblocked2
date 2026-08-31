@@ -70,12 +70,31 @@ public class AutoIOPanelFixtures implements TestFixtureProvider {
      */
     private static TestMachineBuilder machine(ResourceLocation id) {
         return TestMachineBuilder.simple(id)
+                .withUI(panelUI())
                 .withItemSlots(1, IO.BOTH, definition -> {
                     definition.getAutoIO().setEnable(true);
                     definition.getAutoIO().setTopIO(IO.IN);
                     definition.getAutoIO().setBottomIO(IO.OUT);
                 })
                 .withFluidTanks(1, 8000);
+    }
+
+    /**
+     * A machine UI with something in it.
+     *
+     * <p>An empty one is not a smaller version of a real one: a blueprint grafts its tab into this
+     * tree, and what LDLib2 does with that tree - registering the sync values on it, above all -
+     * behaves differently when the machine has no UI of its own. A fixture without this tests an
+     * environment no player is ever in.</p>
+     */
+    private static com.lowdragmc.lowdraglib2.gui.ui.UITemplate panelUI() {
+        var root = new com.lowdragmc.lowdraglib2.gui.ui.UIElement();
+        root.setId("machine_panel");
+        root.lss("width", "160", com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin.INLINE);
+        root.lss("height", "80", com.lowdragmc.lowdraglib2.gui.ui.style.StyleOrigin.INLINE);
+        root.style(style -> style.backgroundTexture(
+                com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites.BORDER));
+        return com.lowdragmc.lowdraglib2.gui.ui.UITemplate.of(root);
     }
 
     private static MachineBlueprintBinding panelFor(String trait) {

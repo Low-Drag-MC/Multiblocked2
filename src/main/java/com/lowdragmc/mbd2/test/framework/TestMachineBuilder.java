@@ -45,6 +45,7 @@ public class TestMachineBuilder {
     @Nullable private ResourceLocation recipeTypeId;
     @Nullable private Function<MBDMultiblockMachine, BlockPattern> blockPatternFactory;
     @Nullable private MachineState rootState;
+    private com.lowdragmc.lowdraglib2.gui.ui.UITemplate uiTemplate = null;
     private int machineLevel = 0;
 
     private TestMachineBuilder(ResourceLocation id, boolean multiblock) {
@@ -159,6 +160,20 @@ public class TestMachineBuilder {
      * the test — a blueprint that reads the tier should not have to share the machine with another
      * blueprint that writes it, or the test also depends on the two running in the right order.</p>
      */
+    /**
+     * Give the machine a real UI, rather than the empty one a definition built here would otherwise
+     * have.
+     *
+     * <p>Not cosmetic: a machine whose UI has no content still opens a menu, but much of what
+     * LDLib2 does around a modular UI keys off there being something in it — sync values registered
+     * on elements grafted in by a blueprint, for one. A fixture with an empty UI is a different
+     * environment from any real machine, and things pass there that do not pass in a world.</p>
+     */
+    public TestMachineBuilder withUI(com.lowdragmc.lowdraglib2.gui.ui.UITemplate uiTemplate) {
+        this.uiTemplate = uiTemplate;
+        return this;
+    }
+
     public TestMachineBuilder withMachineLevel(int machineLevel) {
         this.machineLevel = machineLevel;
         return this;
@@ -200,7 +215,9 @@ public class TestMachineBuilder {
                 .recipeType(recipeTypeId != null ? recipeTypeId : MBDRecipeType.DUMMY.getRegistryName())
                 .build();
         var msFactory = (com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition.ConfigMachineSettingsFactory) () -> {
-            ConfigMachineSettings settings = ConfigMachineSettings.builder().machineLevel(machineLevel).build();
+            var builder = ConfigMachineSettings.builder().machineLevel(machineLevel);
+            if (uiTemplate != null) builder.uiTemplate(uiTemplate);
+            ConfigMachineSettings settings = builder.build();
             for (TraitDefinition trait : traits) {
                 settings.addTraitDefinition(trait);
             }

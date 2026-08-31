@@ -1,7 +1,6 @@
 package com.lowdragmc.mbd2.common.blueprint.builtin;
 
 import com.lowdragmc.kilagraph.blueprint.nodes.exec.BranchNode;
-import com.lowdragmc.kilagraph.blueprint.nodes.string.ConcatNode;
 import com.lowdragmc.kilagraph.blueprint.nodes.ui.sync.UISyncNodes;
 import com.lowdragmc.kilagraph.graph.type.KGTypeHandles;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
@@ -247,7 +246,6 @@ final class AutoIOPanelBlueprint {
         var side = "side_" + name;
         var read = "read_" + name;
         var sync = "sync_" + name;
-        var syncName = "syncName_" + name;
         var named = "named_" + name;
         var back = "back_" + name;
         var colour = "colour_" + name;
@@ -268,8 +266,7 @@ final class AutoIOPanelBlueprint {
                 // "the blueprint's own machine", which does.
                 .title(read, "what this face does now")
                 .add(sync, UISyncNodes.Declare.class, x + 480, y)
-                .add(syncName, ConcatNode.class, x + 240, y - 120)
-                .constant(syncName + ".in1", "io_" + name + "_")
+                .constant(sync + ".name", "io_" + name)
                 .option(sync, "valueType", KGTypeHandles.handleFor(String.class).getIdentification())
                 .title(sync, "server state, client display")
                 // A name rather than the IO itself: a sync value is serialised by the syncdata
