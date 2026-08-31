@@ -1,6 +1,11 @@
 package com.lowdragmc.mbd2.common.blueprint.builtin;
 
 import com.lowdragmc.kilagraph.blueprint.nodes.exec.BranchNode;
+import com.lowdragmc.kilagraph.blueprint.nodes.mc.block.BlockStateNodes;
+import com.lowdragmc.kilagraph.blueprint.nodes.mc.geometry.BlockPosOffsetNode;
+import com.lowdragmc.kilagraph.blueprint.nodes.mc.item.BlockToItemNode;
+import com.lowdragmc.kilagraph.blueprint.nodes.mc.item.ItemStackCreateNode;
+import com.lowdragmc.kilagraph.blueprint.nodes.mc.world.GetBlockStateNode;
 import com.lowdragmc.kilagraph.blueprint.nodes.mc.nbt.NbtCreateNode;
 import com.lowdragmc.kilagraph.blueprint.nodes.mc.nbt.NbtGetNode;
 import com.lowdragmc.kilagraph.blueprint.nodes.mc.nbt.NbtSetNode;
@@ -25,6 +30,7 @@ import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.pattern.util.RelativeDirection;
 import com.lowdragmc.mbd2.common.blueprint.node.IONodes;
 import com.lowdragmc.mbd2.common.blueprint.node.ui.BuiltinUINodes;
+import com.lowdragmc.mbd2.common.blueprint.node.ui.UIItemNodes;
 import com.lowdragmc.mbd2.common.gui.builtin.BuiltinMachineUIs;
 import com.lowdragmc.mbd2.common.blueprint.node.machine.MachineActionNodes;
 import com.lowdragmc.mbd2.common.blueprint.node.machine.MachineInfoBlocks;
@@ -207,13 +213,15 @@ final class AutoIOPanelBlueprint {
         // a reader opens is the same either way, and one of them being subtly different from the other
         // five is a class of bug this cannot have.
         b.add("machineInfo", MachineInfoNode.class, 3560, 0)
-                .title("machineInfo", "the machine, for the face conversions");
+                .title("machineInfo", "the machine, for the face conversions")
+                .block("machineInfo", "level", MachineInfoBlocks.MachineLevel.class)
+                .block("machineInfo", "pos", MachineInfoBlocks.Position.class);
         // target left unwired: a sync value pulls these conversions long after the UI event returned,
         // and the event's machine output does not survive that. Unwired reads the blueprint's own.
 
         var previous = "onHandle.next";
         for (int i = 0; i < FACES.length; i++) {
-            previous = face(b, FACES[i], previous, 3560, 200 + i * 380f);
+            previous = face(b, FACES[i], previous, 3560, 200 + i * FACE_ROW);
         }
 
         // The seeds publish each face's current state so the panel is right the moment it opens.
@@ -234,7 +242,7 @@ final class AutoIOPanelBlueprint {
             seeded = seed + ".next";
         }
 
-        b.note(3560, 200 + FACES.length * 380f, 900, """
+        b.note(3560, 200 + FACES.length * FACE_ROW, 900, """
                 Each face is read on the server and pushed to the
                 client as a sync value: runtime overrides live on
                 the block entity and are never sent to clients, so
@@ -244,11 +252,14 @@ final class AutoIOPanelBlueprint {
                 Event, because setting one is a change to the
                 world and the client does not get to make it.""");
 
-        b.group("Six faces, one chain each", 3520, 0, 1500, 300 + FACES.length * 380f,
+        b.group("Six faces, one chain each", 3520, 0, 2400, 300 + FACES.length * FACE_ROW,
                 BuiltinNotes.ACT_GROUP);
 
         return b;
     }
+
+    /** Vertical room one face's chain needs on the canvas. */
+    private static final float FACE_ROW = 460f;
 
     /** The machine-relative faces the panel offers, in the order the tab document lays them out. */
     private static final RelativeDirection[] FACES = {
@@ -297,6 +308,13 @@ final class AutoIOPanelBlueprint {
         var cycle = "cycle_" + name;
         var apply = "apply_" + name;
         var enable = "enable_" + name;
+        var neighbour = "neighbour_" + name;
+        var state = "state_" + name;
+        var block = "block_" + name;
+        var item = "item_" + name;
+        var stack = "stack_" + name;
+        var slot = "slot_" + name;
+        var show = "show_" + name;
 
         // ---- what this face is set to, on the server ------------------------------------------
         b.add(button, UIQueryNodes.SelectId.class, x, y)
@@ -353,6 +371,9 @@ final class AutoIOPanelBlueprint {
                 .constant(colour + ".whenBoth", BOTH_BLOCK)
                 .title(colour, "one colour per state")
                 .add(paint, UIStyleNodes.LssSet.class, x + 1900, y)
+                // The overlay, which is the only layer above a Button's own frame: an element paints
+                // its background first, the frame over that, then its children, then the overlay. A
+                // tint on the background would be hidden by the frame it is meant to colour.
                 .option(paint, "property", "overlay")
                 .title(paint, "tint the socket");
 
@@ -363,6 +384,33 @@ final class AutoIOPanelBlueprint {
                 .wire(colour + ".io", ofName + ".io")
                 .wire(paint + ".element", button + ".first")
                 .wire(paint + ".value", colour + ".value");
+
+        // ---- and what is actually on the other side of that face ---------------------------------
+        // Read straight off the client's own level: the neighbour is one block away, so the client
+        // already has it and nothing needs sending. Only the machine's own auto IO has to travel.
+        b.add(neighbour, BlockPosOffsetNode.class, x + 240, y + 200)
+                .title(neighbour, "the block on this face")
+                .add(state, GetBlockStateNode.class, x + 480, y + 200)
+                .add(block, BlockStateNodes.StateBlock.class, x + 700, y + 200)
+                .add(item, BlockToItemNode.class, x + 940, y + 200)
+                .add(stack, ItemStackCreateNode.class, x + 1180, y + 200)
+                .add(slot, UIQueryNodes.SelectId.class, x + 1420, y + 200)
+                .constant(slot + ".id", "item_" + relative.name())
+                .title(slot, "the socket's item layer")
+                .add(show, UIItemNodes.SetItem.class, x + 2140, y)
+                .title(show, "draw it under the tint");
+
+        b.wire(neighbour + ".pos", "pos.value")
+                .wire(neighbour + ".direction", side + ".value")
+                .wire(state + ".level", "level.value")
+                .wire(state + ".pos", neighbour + ".out")
+                .wire(block + ".in", state + ".out")
+                .wire(item + ".in", block + ".out")
+                .wire(stack + ".item", item + ".out")
+                .wire(slot + ".root", "loadTab.root")
+                .wire(show + ".element", slot + ".first")
+                .wire(show + ".item", stack + ".out");
+        b.then(paint, show);
 
         // ---- a click, handled on the server ------------------------------------------------------
         b.add(click, UIEventNodes.OnServerEvent.class, x + 700, y + 320)

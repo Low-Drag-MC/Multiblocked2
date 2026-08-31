@@ -161,6 +161,11 @@ public class BuiltinBlueprintTests {
      * generating models rather than declaring them, which is a bug that does not look like one: the
      * canvas renders correctly and the graph behaves, while the editor pushes thousands of elements
      * through its per-tick change set. That is how the {@code heat_buildup} crash was found.</p>
+     *
+     * <p>The bound is deliberately loose. {@code auto_io_panel} declares six near-identical chains
+     * from a loop and lands around five hundred, which is legitimate — the graph an author opens has
+     * exactly those nodes drawn on it. What this is looking for is the runaway case, an order of
+     * magnitude above anything declared by hand, so the number only has to sit between the two.</p>
      */
     @GameTest(template = "empty_simple")
     @PrefixGameTestTemplate(false)
@@ -174,7 +179,7 @@ public class BuiltinBlueprintTests {
             sizes.put(expected.name(), graph.graphModel.getNodeModels().size()
                     + graph.graphModel.getWireModels().size());
         }
-        var oversized = sizes.entrySet().stream().filter(e -> e.getValue() > 400).toList();
+        var oversized = sizes.entrySet().stream().filter(e -> e.getValue() > 1000).toList();
         if (!oversized.isEmpty()) {
             helper.fail("built-in(s) far larger than they look: " + oversized + " (all: " + sizes + ")");
             return;

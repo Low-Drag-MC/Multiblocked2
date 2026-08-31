@@ -2,6 +2,8 @@ package com.lowdragmc.mbd2.test.uitest;
 
 import com.lowdragmc.lowdraglib2.gui.factory.BlockUIMenuType;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerScreen;
+import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
+import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.registry.RegistrationEnvironment;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
@@ -14,7 +16,10 @@ import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.test.tests.blueprint.AutoIOPanelFixtures;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.block.Blocks;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * The {@code auto_io_panel} built-in as a player sees it.
@@ -76,6 +81,9 @@ public class MachineAutoIOPanelScenario implements UIScenario {
                     }
                     pos = sc.player().blockPosition().above(2);
                     sc.level().setBlockAndUpdate(pos, definition.block().defaultBlockState());
+                    // A neighbour on exactly one face, so the panel's item preview has something to
+                    // show on that one and nothing on the others.
+                    sc.level().setBlockAndUpdate(pos.above(), Blocks.CHEST.defaultBlockState());
                 })
                 // Waited for, not counted in frames: a machine UI is built on both sides and the
                 // client builds its half from its own copy of the block entity, which is at least a
@@ -163,6 +171,23 @@ public class MachineAutoIOPanelScenario implements UIScenario {
                     ctx.attach("face_LEFT", none);
                     return !in.equals(out) && !out.equals(none) && !in.equals(none);
                 })
+                // The other half of what a face shows. The state colour has to travel from the server;
+                // the neighbour does not, because it is one block away and the client already has it.
+                // A chest on the top face and nothing on the left is what tells a working read from a
+                // node that draws whatever it last saw.
+                .check("a face shows the block on the other side of it", ctx -> {
+                    var up = computed(ctx, "item_UP", "overlay");
+                    var left = computed(ctx, "item_LEFT", "overlay");
+                    ctx.attach("item_UP", describe(up));
+                    ctx.attach("item_LEFT", describe(left));
+                    return up instanceof ItemStackTexture item
+                            && item.items.length == 1 && item.items[0].is(Items.CHEST)
+                            && !(left instanceof ItemStackTexture);
+                })
+                // The item layer must not take the click the button is listening for, which is what a
+                // child element normally does to its parent.
+                .check("the item layer does not eat the click", ctx ->
+                        !ctx.query().withId("item_UP").nth(0).one().as(UIElement.class).isAllowHitTest())
                 .step("click a face", ctx -> clickFace(ctx, "face_UP", 1))
                 // A click travels the long way round — client rpc, server runtime write, custom data,
                 // desc sync, client tick — so waiting for the face to change colour is the whole round
@@ -213,21 +238,40 @@ public class MachineAutoIOPanelScenario implements UIScenario {
         }
     }
 
-    /** The computed overlay of the first element with this id — what the blueprint paints state with. */
+    /**
+     * The computed overlay of the first element with this id — what the blueprint tints state with.
+     * The neighbour's item is on a child element, which is a different question.
+     */
     private static String overlay(com.lowdragmc.lowdraglib2.uitest.TestContext ctx, String id) {
+        var texture = computed(ctx, id, "overlay");
+        // The colour, not the instance: two rects of the same colour are different objects, so
+        // toString() would report every face as different from every other.
+        return texture instanceof com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture rect
+                ? Integer.toHexString(rect.color)
+                : describe(texture);
+    }
+
+    @Nullable
+    private static IGuiTexture computed(com.lowdragmc.lowdraglib2.uitest.TestContext ctx,
+                                        String id, String propertyName) {
         var element = ctx.query().withId(id).nth(0).one().as(UIElement.class);
         for (var style : element.getStyles()) {
             for (var property : style.getPropertiesList()) {
-                if (property.name.equals("overlay")) {
-                    var texture = style.getValueSave(property);
-                    // The colour, not the instance: two rects of the same colour are different
-                    // objects, so toString() would report every face as different from every other.
-                    return texture instanceof com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture rect
-                            ? Integer.toHexString(rect.color)
-                            : String.valueOf(texture);
+                if (property.name.equals(propertyName)
+                        && style.getValueSave(property) instanceof IGuiTexture texture) {
+                    return texture;
                 }
             }
         }
-        return "none";
+        return null;
+    }
+
+    /** A texture as something readable in the report — the item for a stack, the class otherwise. */
+    private static String describe(@Nullable IGuiTexture texture) {
+        if (texture instanceof ItemStackTexture item) {
+            return "item(" + java.util.Arrays.stream(item.items)
+                    .map(stack -> stack.getItem().toString()).toList() + ")";
+        }
+        return texture == null ? "none" : texture.getClass().getSimpleName();
     }
 }

@@ -1,7 +1,6 @@
 package com.lowdragmc.mbd2.common.gui.builtin;
 
 import com.lowdragmc.lowdraglib2.editor.resource.BuiltinResourceProvider;
-import com.lowdragmc.lowdraglib2.gui.texture.Icons;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.UITemplate;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
@@ -125,7 +124,10 @@ public final class BuiltinMachineUIs {
         handle.setId("handle");
         style(handle, "width", "20");
         style(handle, "height", "20");
-        handle.style(style -> style.overlay(Icons.SETTINGS).tooltips("mbd2.gui.auto_io.tab"));
+        // Scaled rather than drawn at the button's size: an overlay fills its element, so a full-size
+        // gear covers the button's own frame and the tab stops reading as a button at all.
+        style(handle, "overlay", "icon(settings) scale(0.55)");
+        handle.style(style -> style.tooltips("mbd2.gui.auto_io.tab"));
         tab.addChild(handle);
 
         var panel = new UIElement();
@@ -179,8 +181,8 @@ public final class BuiltinMachineUIs {
         style(grid, "display", "grid");
         style(grid, "gap", "2");
         style(grid, "padding-all", "3");
-        style(grid, "grid-template-columns", "20 20 20");
-        style(grid, "grid-template-rows", "20 20 20");
+        style(grid, "grid-template-columns", FACE_SIZE + " " + FACE_SIZE + " " + FACE_SIZE);
+        style(grid, "grid-template-rows", FACE_SIZE + " " + FACE_SIZE + " " + FACE_SIZE);
         grid.style(style -> style.backgroundTexture(Sprites.RECT_RD_DARK));
 
         grid.addChild(face(RelativeDirection.UP, 2, 1));
@@ -192,16 +194,46 @@ public final class BuiltinMachineUIs {
         return grid;
     }
 
+    /** How wide and tall one face is. Square, and the same number the grid template uses. */
+    private static final String FACE_SIZE = "20";
+
     private static Button face(RelativeDirection relative, int column, int row) {
         var button = new Button();
         button.noText();
         button.setId("face_" + relative.name());
         style(button, "grid-column", String.valueOf(column));
         style(button, "grid-row", String.valueOf(row));
+        // Sized rather than left to stretch: a grid item takes the row's height, and a row sized only
+        // by the template collapses to its content — which for an empty button is a few pixels, so the
+        // faces come out as letterboxes rather than as the squares a block face should be.
+        style(button, "width", FACE_SIZE);
+        style(button, "height", FACE_SIZE);
         button.style(style -> style.tooltips(
                 Component.translatable("mbd2.gui.auto_io.face",
                         Component.translatable("mbd2.gui.auto_io.side." + relative.name().toLowerCase()))));
+        button.addChild(faceItem(relative));
         return button;
+    }
+
+    /**
+     * Where the block on the other side of a face is drawn.
+     *
+     * <p>A child rather than the button's own texture because of the order an element paints in: its
+     * background goes down <em>before</em> a Button's frame, so an item there is covered, and its
+     * overlay goes down after everything, which is where the state colour has to be. Children are
+     * drawn between the two — under the tint, over the frame — which is exactly the stack this wants.
+     *
+     * <p>{@code allowHitTest(false)} is what keeps the button clickable. A child normally becomes the
+     * target of a click that lands on it, and the listener on the parent then never runs; opting out
+     * of hit testing leaves the parent as the only thing under the cursor.</p>
+     */
+    private static UIElement faceItem(RelativeDirection relative) {
+        var item = new UIElement();
+        item.setId("item_" + relative.name());
+        item.setAllowHitTest(false);
+        style(item, "width", "100%");
+        style(item, "height", "100%");
+        return item;
     }
 
     /**
