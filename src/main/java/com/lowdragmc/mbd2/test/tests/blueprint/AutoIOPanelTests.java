@@ -372,4 +372,45 @@ public class AutoIOPanelTests {
         helper.succeed();
     }
 
+
+    /**
+     * The panel publishes each face's state where the client can read it.
+     *
+     * <p>Auto IO overrides are server-side runtime values and are never sent with the block, so the
+     * panel mirrors them into the machine's custom data, which is {@code @DescSynced}. This is the
+     * server end of that: opening the UI publishes what every face is set to, and a click republishes
+     * the one that changed. Without it the panel draws six identical sockets whatever the machine is
+     * doing.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void thePanelPublishesEachFaceForTheClient(GameTestHelper helper) {
+        var scenario = MBDScenario.of(helper).placeMachine(AutoIOPanelFixtures.ONE_TAB_ID, POS);
+        var machine = scenario.machine();
+        var key = "mbd2_autoio_up_" + AutoIOPanelFixtures.ITEM_TRAIT;
+
+        var ui = openUI(helper, AutoIOPanelFixtures.ONE_TAB_ID);
+        if (ui == null) return;
+
+        // The fixture ships the top face as IN, so opening alone must publish that much.
+        var published = machine.getCustomData().getString(key);
+        if (!"IN".equals(published)) {
+            helper.fail("opening the ui published '" + published + "' for the top face, expected IN");
+            return;
+        }
+
+        var face = ui.selectId("face_UP").findFirst().orElse(null);
+        if (face == null) {
+            helper.fail("no up-face button");
+            return;
+        }
+        click(face);
+        var afterClick = machine.getCustomData().getString(key);
+        if (!"OUT".equals(afterClick)) {
+            helper.fail("after one click the top face published '" + afterClick + "', expected OUT"
+                    + " — the client has no other way to know the face changed");
+            return;
+        }
+        helper.succeed();
+    }
 }

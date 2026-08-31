@@ -1,6 +1,10 @@
 package com.lowdragmc.mbd2.common.blueprint.builtin;
 
 import com.lowdragmc.kilagraph.blueprint.nodes.exec.BranchNode;
+import com.lowdragmc.kilagraph.blueprint.nodes.mc.nbt.NbtCreateNode;
+import com.lowdragmc.kilagraph.blueprint.nodes.mc.nbt.NbtGetNode;
+import com.lowdragmc.kilagraph.blueprint.nodes.mc.nbt.NbtSetNode;
+import com.lowdragmc.kilagraph.blueprint.nodes.string.ConcatNode;
 import com.lowdragmc.kilagraph.blueprint.nodes.ui.sync.UISyncNodes;
 import com.lowdragmc.kilagraph.graph.type.KGTypeHandles;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
@@ -22,6 +26,7 @@ import com.lowdragmc.mbd2.api.pattern.util.RelativeDirection;
 import com.lowdragmc.mbd2.common.blueprint.node.IONodes;
 import com.lowdragmc.mbd2.common.blueprint.node.ui.BuiltinUINodes;
 import com.lowdragmc.mbd2.common.gui.builtin.BuiltinMachineUIs;
+import com.lowdragmc.mbd2.common.blueprint.node.machine.MachineActionNodes;
 import com.lowdragmc.mbd2.common.blueprint.node.machine.MachineInfoBlocks;
 import com.lowdragmc.mbd2.common.blueprint.node.machine.MachineInfoNode;
 import com.lowdragmc.mbd2.common.blueprint.node.event.UIEventNode;
@@ -43,6 +48,14 @@ import java.util.Locale;
  * with server-side state, and merged with whatever else is already on the screen. Every node it uses
  * is a general one — load a document, select by id, add a child, listen for a click, sync a value.
  * There is no "auto IO panel" node doing the work behind a single pin.
+ *
+ * <h2>How the client knows what a face is set to</h2>
+ * Through the machine's custom data, not through a UI sync value. Auto IO overrides live in the
+ * machine's runtime values, which are server-side by design and never sent with the block, so the
+ * panel cannot simply read them where it draws. A sync value is the obvious channel and does not
+ * work here — the server side of the graph never declares one, so nothing is ever sent and every
+ * face draws its default. Custom data is {@code @DescSynced}, so writing each face's state there on
+ * the server puts it in front of the client for free; the panel reads it on a UI tick.
  *
  * <h2>Several of them at once</h2>
  * Bind this blueprint twice with different {@code trait} names and you get two tabs, not two panels
@@ -203,6 +216,24 @@ final class AutoIOPanelBlueprint {
             previous = face(b, FACES[i], previous, 3560, 200 + i * 380f);
         }
 
+        // The seeds publish each face's current state so the panel is right the moment it opens.
+        // Server only, and not merely because writing there is pointless on a client: a custom-data
+        // write on the client during UI assembly leaves the modular UI unlaid-out, and the screen
+        // comes up empty. Everything else in this graph runs on both sides on purpose.
+        b.block("machineInfo", "isRemote", MachineInfoBlocks.IsRemote.class)
+                .add("isServer", NotNode.class, 3200, 100)
+                .add("serverOnly", BranchNode.class, 3200, 0)
+                .title("serverOnly", "publishing is the server's job");
+        b.wire("isServer.in", "isRemote.value")
+                .wire("serverOnly.cond", "isServer.out");
+        b.wire("serverOnly.in", previous);
+        var seeded = "serverOnly.trueExec";
+        for (var relative : FACES) {
+            var seed = "seed_" + relative.name().toLowerCase(Locale.ROOT);
+            b.wire(seed + ".in", seeded);
+            seeded = seed + ".next";
+        }
+
         b.note(3560, 200 + FACES.length * 380f, 900, """
                 Each face is read on the server and pushed to the
                 client as a sync value: runtime overrides live on
@@ -228,6 +259,9 @@ final class AutoIOPanelBlueprint {
      * through it, and written as LSS values so a pack author can restyle the panel by editing the
      * blueprint's constants rather than this class.
      */
+    /** Where each face's state is published for the client to read. */
+    private static final String DATA_PREFIX = "mbd2_autoio_";
+
     private static final String NONE_BLOCK = "#40202020";
     private static final String IN_BLOCK = "#804C9BE8";
     private static final String OUT_BLOCK = "#80E8944C";
@@ -245,9 +279,18 @@ final class AutoIOPanelBlueprint {
         var button = "button_" + name;
         var side = "side_" + name;
         var read = "read_" + name;
-        var sync = "sync_" + name;
         var named = "named_" + name;
-        var back = "back_" + name;
+        var key = "key_" + name;
+        var tag = "tag_" + name;
+        var put = "put_" + name;
+        var namedNext = "namedNext_" + name;
+        var putNext = "putNext_" + name;
+        var seed = "seed_" + name;
+        var mirror = "mirror_" + name;
+        var tick = "tick_" + name;
+        var data = "data_" + name;
+        var get = "get_" + name;
+        var ofName = "ofName_" + name;
         var colour = "colour_" + name;
         var paint = "paint_" + name;
         var click = "click_" + name;
@@ -255,87 +298,104 @@ final class AutoIOPanelBlueprint {
         var apply = "apply_" + name;
         var enable = "enable_" + name;
 
+        // ---- what this face is set to, on the server ------------------------------------------
         b.add(button, UIQueryNodes.SelectId.class, x, y)
                 .constant(button + ".id", "face_" + relative.name())
                 .title(button, "this face's socket")
                 .block("machineInfo", side, MachineInfoBlocks.RelativeSide.class)
                 .constant(side + ".relative", relative)
                 .add(read, MachineRuntimeValueNodes.GetAutoIOSide.class, x + 240, y)
-                // machine left unwired on purpose: a sync value pulls its source long after the UI
-                // event returned, and the event node's outputs do not survive that. Unwired means
-                // "the blueprint's own machine", which does.
+                // machine left unwired: this is pulled long after the UI event returned, and the
+                // event node's outputs do not survive that. Unwired reads the blueprint's own.
                 .title(read, "what this face does now")
-                .add(sync, UISyncNodes.Declare.class, x + 480, y)
-                .constant(sync + ".name", "io_" + name)
-                .option(sync, "valueType", KGTypeHandles.handleFor(String.class).getIdentification())
-                .title(sync, "server state, client display")
-                // A name rather than the IO itself: a sync value is serialised by the syncdata
-                // accessor for its type, and a String has one everywhere. Read Auto IO Side gives
-                // the enum, IO Info turns it into a name for the wire, and IO Of Name turns it back
-                // on the far side.
-                //
-                // Known gap: nothing arrives. Every face paints the default however the machine is
-                // set, so a click changes the machine (AutoIOPanelTests walks the whole cycle) but
-                // the panel does not show it. Ruled out: the payload type (enum and String behave
-                // the same), SyncStrategy.ALWAYS, sync value names colliding between two tabs,
-                // stale machine references from the event node, and registration timing - LDLib2
-                // registers an element's sync values when it is attached to a ModularUI, which
-                // happens after this event and is recursive. It is in the layer that carries the
-                // values, not in this graph, so the wiring here is left as it should be.
-                .add(named, IONodes.Info.class, x + 240, y + 120)
-                .title(named, "the state, as a name to send")
-                .add(back, IONodes.OfName.class, x + 720, y + 60)
-                .title(back, "and back again on the client")
-                .add(colour, IONodes.Choose.class, x + 940, y + 120)
+                .add(named, IONodes.Info.class, x + 480, y)
+                .title(named, "as a name to store");
+
+        // ---- mirrored into custom data, which is what actually reaches the client ---------------
+        b.add(key, ConcatNode.class, x + 240, y + 100)
+                .constant(key + ".in1", DATA_PREFIX + name + "_")
+                .title(key, "one key per face per trait")
+                .add(tag, NbtCreateNode.class, x + 480, y + 100)
+                .add(put, NbtSetNode.class, x + 700, y + 100)
+                .title(put, "this face's state")
+                .add(seed, MachineActionNodes.MergeCustomData.class, x + 940, y)
+                .title(seed, "publish it when the ui opens")
+                .add(namedNext, IONodes.Info.class, x + 1180, y + 400)
+                .title(namedNext, "the value just applied")
+                .add(putNext, NbtSetNode.class, x + 1420, y + 400)
+                .add(mirror, MachineActionNodes.MergeCustomData.class, x + 1660, y + 320)
+                .title(mirror, "and again whenever it changes");
+
+        b.wire(button + ".root", "loadTab.root")
+                .wire(read + ".trait", "trait")
+                .wire(read + ".side", side + ".value")
+                .wire(named + ".io", read + ".io")
+                .wire(key + ".in2", "trait")
+                .wire(put + ".tag", tag + ".out")
+                .wire(put + ".key", key + ".out")
+                .wire(put + ".value", named + ".name")
+                .wire(seed + ".data", put + ".out")
+                .wire(putNext + ".tag", tag + ".out")
+                .wire(putNext + ".key", key + ".out")
+                .wire(putNext + ".value", namedNext + ".name")
+                .wire(mirror + ".data", putNext + ".out");
+
+        // ---- the client draws from custom data --------------------------------------------------
+        b.add(tick, UIEventNodes.OnTick.class, x + 1180, y)
+                .title(tick, "keep the face in step")
+                .block("machineInfo", data, MachineInfoBlocks.CustomData.class)
+                .add(get, NbtGetNode.class, x + 1180, y + 100)
+                .add(ofName, IONodes.OfName.class, x + 1420, y + 100)
+                .add(colour, IONodes.Choose.class, x + 1660, y + 100)
                 .constant(colour + ".whenNone", NONE_BLOCK)
                 .constant(colour + ".whenIn", IN_BLOCK)
                 .constant(colour + ".whenOut", OUT_BLOCK)
                 .constant(colour + ".whenBoth", BOTH_BLOCK)
                 .title(colour, "one colour per state")
-                .add(paint, UIStyleNodes.LssSet.class, x + 1180, y)
+                .add(paint, UIStyleNodes.LssSet.class, x + 1900, y)
                 .option(paint, "property", "overlay")
-                .title(paint, "paint it with the state")
-                .add(click, UIEventNodes.OnServerEvent.class, x + 480, y + 280)
+                .title(paint, "tint the socket");
+
+        b.wire(tick + ".element", button + ".first")
+                .wire(get + ".tag", data + ".value")
+                .wire(get + ".key", key + ".out")
+                .wire(ofName + ".name", get + ".out")
+                .wire(colour + ".io", ofName + ".io")
+                .wire(paint + ".element", button + ".first")
+                .wire(paint + ".value", colour + ".value");
+
+        // ---- a click, handled on the server ------------------------------------------------------
+        b.add(click, UIEventNodes.OnServerEvent.class, x + 700, y + 320)
                 .option(click, "eventType", UIEvents.CLICK)
                 .title(click, "a click, handled on the server")
-                .add(cycle, IONodes.Next.class, x + 720, y + 280)
-                .add(apply, MachineRuntimeValueNodes.SetAutoIOSide.class, x + 940, y + 280)
+                .add(cycle, IONodes.Next.class, x + 940, y + 320)
+                .add(apply, MachineRuntimeValueNodes.SetAutoIOSide.class, x + 1180, y + 320)
                 .title(apply, "override it on this machine only")
-                .add(enable, MachineRuntimeValueNodes.SetAutoIOEnabled.class, x + 1180, y + 280)
+                .add(enable, MachineRuntimeValueNodes.SetAutoIOEnabled.class, x + 1300, y + 400)
                 .constant(enable + ".enabled", true)
                 .title(enable, "and switch auto IO on");
 
-        // The name, not the enum: the sync value is declared String, and a graph wire happily
-        // accepts anything into a String port while the value that travels is whatever was wired.
-        // Put an IO on it and the server throws while writing the menu's initial data - which the
-        // packet handler swallows, so the UI opens with no data rather than failing loudly.
-        b.wire(sync + ".source", named + ".name")
-                .wire(button + ".root", "loadTab.root")
-                .wire(read + ".trait", "trait")
-                .wire(read + ".side", side + ".value")
-                .wire(sync + ".element", button + ".first")
-                .wire(back + ".name", sync + ".value")
-                .wire(colour + ".io", back + ".io")
-                .wire(paint + ".element", button + ".first")
-                .wire(paint + ".value", colour + ".value")
-                .wire(click + ".element", button + ".first")
+        b.wire(click + ".element", button + ".first")
                 .wire(cycle + ".io", read + ".io")
                 .wire(apply + ".trait", "trait")
                 .wire(apply + ".side", side + ".value")
                 .wire(apply + ".io", cycle + ".next")
-                .wire(enable + ".trait", "trait");
+                .wire(enable + ".trait", "trait")
+                // The value just applied, not a re-read: the executor memoises a pulled value for the
+                // run, so reading the side again here would hand back what it was before the write.
+                .wire(namedNext + ".io", cycle + ".next");
 
-        // Named pins throughout: a sync value and an event listener each have two exec outputs, and
-        // which of the two a chain continues on is the difference between "carry on building the
-        // panel" and "do this when the player clicks".
-        b.wire(sync + ".trigger", after);
-        b.wire(click + ".trigger", sync + ".next");
-        b.wire(paint + ".trigger", sync + ".onReceived");
+        // Named pins throughout: a tick listener and an event listener each have two exec outputs,
+        // and which one a chain continues on is the difference between "carry on building the panel"
+        // and "do this when it happens".
+        b.wire(tick + ".trigger", after);
+        b.wire(click + ".trigger", tick + ".next");
+        b.wire(paint + ".trigger", tick + ".onTick");
         b.wire(apply + ".in", click + ".onEvent");
         // A side setting does nothing on its own: IAutoIOTrait.serverTick returns immediately while
         // the trait's auto IO is switched off, and a definition that never turned it on is the normal
         // case. Configuring a face is the player asking for it, so that is where it gets switched on.
-        b.then(apply, enable);
+        b.then(apply, enable, mirror);
         return click + ".next";
     }
 }

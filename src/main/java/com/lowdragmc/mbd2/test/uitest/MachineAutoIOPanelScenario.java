@@ -123,6 +123,17 @@ public class MachineAutoIOPanelScenario implements UIScenario {
                     ctx.attach("face_LEFT", none);
                     return true;
                 })
+                .step("click a face", ctx -> {
+                    var b = ctx.query().withId("face_UP").nth(0).one().bounds();
+                    ctx.input().mouseDown(b.centerX(), b.centerY(), 0);
+                    ctx.input().mouseUp(b.centerX(), b.centerY(), 0);
+                })
+                .frames(6)
+                .check("DIAG after click", ctx -> {
+                    ctx.attach("afterClick_UP", overlay(ctx, "face_UP"));
+                    ctx.attach("afterClick_LEFT", overlay(ctx, "face_LEFT"));
+                    return true;
+                })
                 .screenshot("auto-io-expanded")
                 .closeScreen();
     }
@@ -144,7 +155,12 @@ public class MachineAutoIOPanelScenario implements UIScenario {
         for (var style : element.getStyles()) {
             for (var property : style.getPropertiesList()) {
                 if (property.name.equals("overlay")) {
-                    return String.valueOf(style.getValueSave(property));
+                    var texture = style.getValueSave(property);
+                    // The colour, not the instance: two rects of the same colour are different
+                    // objects, so toString() would report every face as different from every other.
+                    return texture instanceof com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture rect
+                            ? Integer.toHexString(rect.color)
+                            : String.valueOf(texture);
                 }
             }
         }
