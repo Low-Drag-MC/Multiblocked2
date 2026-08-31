@@ -1,7 +1,11 @@
 package com.lowdragmc.mbd2.client;
 
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
+import com.lowdragmc.lowdraglib2.editor.resource.BuiltinResourceProvider;
 import com.lowdragmc.lowdraglib2.editor.resource.EditorResourceEvent;
+import com.lowdragmc.lowdraglib2.editor.resource.UIResource;
+import com.lowdragmc.lowdraglib2.gui.ui.UITemplate;
+import com.lowdragmc.mbd2.common.gui.builtin.BuiltinMachineUIs;
 import com.lowdragmc.lowdraglib2.editor.resource.IRendererResource;
 import com.lowdragmc.lowdraglib2.editor.resource.ResourceInstance;
 import com.lowdragmc.lowdraglib2.editor.resource.TexturesResource;
@@ -58,6 +62,14 @@ public class ForgeClientEventListener {
         }
         if (event.resourceInstance.resource == IRendererResource.INSTANCE) {
             MBDRenderers.init((ResourceInstance<IRenderer>) event.resourceInstance);
+        }
+        if (event.resourceInstance.resource == UIResource.INSTANCE) {
+            // Read-only, and copyable: opening one shows how it is put together, and copying it to a
+            // file provider is how someone gets an editable version of their own.
+            var provider = new BuiltinResourceProvider<UITemplate>(MBD2.MOD_ID,
+                    (ResourceInstance<UITemplate>) event.resourceInstance);
+            BuiltinMachineUIs.register(provider);
+            ((ResourceInstance<UITemplate>) event.resourceInstance).addBuiltinProvider(provider);
         }
     }
 }

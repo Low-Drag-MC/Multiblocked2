@@ -20,8 +20,6 @@ import net.minecraft.world.level.GameType;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
@@ -272,42 +270,6 @@ public class AutoIOPanelTests {
         return runtime.getIO(front, relative.getActualFacing(front));
     }
 
-    /**
-     * The two copies of each ui document are identical.
-     *
-     * <p>LDLib2 resolves a ui xml through whichever resource manager is active — assets on the client,
-     * datapacks on the server — and a machine UI is assembled on both. So each document is shipped
-     * twice, and two copies that drift apart give the client and the server different element trees:
-     * ids that do not line up, sync values with nowhere to land, clicks that reach a listener that was
-     * never registered. None of that throws, and none of it is visible in a single-sided test.</p>
-     */
-    @GameTest(template = "empty_simple")
-    @PrefixGameTestTemplate(false)
-    public static void bothCopiesOfEachUiDocumentMatch(GameTestHelper helper) {
-        for (var name : List.of("auto_io_tab.xml", "auto_io_tabs.xml")) {
-            var asset = read(helper, "/assets/mbd2/ui/" + name);
-            var data = read(helper, "/data/mbd2/ui/" + name);
-            if (asset == null || data == null) {
-                helper.fail(name + " is missing from " + (asset == null ? "assets" : "data")
-                        + " — the side that cannot find it silently builds a different tree");
-                return;
-            }
-            if (!asset.equals(data)) {
-                helper.fail("the assets and data copies of " + name + " have drifted apart");
-                return;
-            }
-        }
-        helper.succeed();
-    }
-
-    private static String read(GameTestHelper helper, String path) {
-        try (var stream = AutoIOPanelTests.class.getResourceAsStream(path)) {
-            return stream == null ? null : new String(stream.readAllBytes(), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            helper.fail("could not read " + path + ": " + e.getMessage());
-            return null;
-        }
-    }
 
     /**
      * The fixture's definition really does set two faces.

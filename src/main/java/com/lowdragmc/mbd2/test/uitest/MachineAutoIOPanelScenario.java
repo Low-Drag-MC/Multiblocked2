@@ -102,12 +102,11 @@ public class MachineAutoIOPanelScenario implements UIScenario {
                     ctx.attach("openPanels", String.valueOf(open));
                     return open == 1;
                 })
-                // No check on the face colours here. The blueprint paints each one from a
-                // sync value, and that value never arrives with anything but its default - see the
-                // note on the sync node in AutoIOPanelBlueprint. Asserting "they are all the same"
-                // would lock the gap in as if it were the intent, and asserting they differ would
-                // commit a red test, so this records the shape of the panel and leaves the colours
-                // to the fix.
+                // No check on the face colours. The blueprint paints each face from a sync value
+                // and that value never arrives with anything but its default - see the note on the
+                // sync node in AutoIOPanelBlueprint for what has been ruled out. Asserting they are
+                // all the same would lock the gap in as if it were intended, and asserting they
+                // differ would commit a red test, so the shape of the panel is what is recorded.
                 .screenshot("auto-io-expanded")
                 .closeScreen();
     }

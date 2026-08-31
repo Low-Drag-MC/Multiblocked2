@@ -1,6 +1,7 @@
 package com.lowdragmc.mbd2.common.blueprint.builtin;
 
 import com.lowdragmc.kilagraph.blueprint.nodes.exec.BranchNode;
+import com.lowdragmc.kilagraph.blueprint.nodes.string.ConcatNode;
 import com.lowdragmc.kilagraph.blueprint.nodes.ui.sync.UISyncNodes;
 import com.lowdragmc.kilagraph.graph.type.KGTypeHandles;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
@@ -20,6 +21,8 @@ import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.pattern.util.RelativeDirection;
 import com.lowdragmc.mbd2.common.blueprint.node.IONodes;
+import com.lowdragmc.mbd2.common.blueprint.node.ui.BuiltinUINodes;
+import com.lowdragmc.mbd2.common.gui.builtin.BuiltinMachineUIs;
 import com.lowdragmc.mbd2.common.blueprint.node.machine.MachineInfoBlocks;
 import com.lowdragmc.mbd2.common.blueprint.node.machine.MachineInfoNode;
 import com.lowdragmc.mbd2.common.blueprint.node.event.UIEventNode;
@@ -57,7 +60,7 @@ final class AutoIOPanelBlueprint {
     private AutoIOPanelBlueprint() {}
 
     /** The ids the two ui documents agree on. */
-    private static final String STRIP_ID = "mbd2_side_tabs";
+    private static final String STRIP_ID = BuiltinMachineUIs.STRIP_ID;
 
     static BlueprintBuilder build() {
         var b = BlueprintBuilder.create();
@@ -101,9 +104,9 @@ final class AutoIOPanelBlueprint {
                 .title("look", "is a strip already there?")
                 .add("missing", IsNullNode.class, 1240, 200)
                 .add("needStrip", BranchNode.class, 1240, 0)
-                .add("loadStrip", UIDocNodes.LoadXml.class, 1480, 0)
-                .constant("loadStrip.location", MBD2.id("ui/auto_io_tabs.xml"))
-                .title("loadStrip", "the strip document")
+                .add("loadStrip", BuiltinUINodes.Builtin.class, 1480, 0)
+                .constant("loadStrip.name", BuiltinMachineUIs.SIDE_TAB_STRIP)
+                .title("loadStrip", "the built-in strip")
                 .add("addStrip", UIElementNodes.AddChild.class, 1720, 0)
                 .add("strip", UIQueryNodes.SelectId.class, 1480, 200)
                 .constant("strip.id", STRIP_ID)
@@ -131,9 +134,9 @@ final class AutoIOPanelBlueprint {
         b.group("Find or create the strip", 780, 0, 1180, 560, BuiltinNotes.DECIDE_GROUP);
 
         // ---- build this trait's tab --------------------------------------------------------------
-        b.add("loadTab", UIDocNodes.LoadXml.class, 2020, 0)
-                .constant("loadTab.location", MBD2.id("ui/auto_io_tab.xml"))
-                .title("loadTab", "the tab document")
+        b.add("loadTab", BuiltinUINodes.Builtin.class, 2020, 0)
+                .constant("loadTab.name", BuiltinMachineUIs.AUTO_IO_TAB)
+                .title("loadTab", "the built-in tab")
                 .add("addTab", UIElementNodes.AddChild.class, 2260, 0)
                 .title("addTab", "append, not replace")
                 .add("titleOf", UIQueryNodes.SelectId.class, 2020, 200)
@@ -222,13 +225,14 @@ final class AutoIOPanelBlueprint {
             RelativeDirection.UP, RelativeDirection.FRONT, RelativeDirection.DOWN,
             RelativeDirection.LEFT, RelativeDirection.BACK, RelativeDirection.RIGHT};
     /**
-     * What a face's insert is painted with, per state. Written as LSS texture values so a pack author
-     * can restyle the panel by editing the blueprint's constants rather than this class.
+     * What a face is tinted with, per state. Translucent so the button's own texture still reads
+     * through it, and written as LSS values so a pack author can restyle the panel by editing the
+     * blueprint's constants rather than this class.
      */
     private static final String NONE_BLOCK = "empty";
-    private static final String IN_BLOCK = "rect(#FF3C8CE0, 2)";
-    private static final String OUT_BLOCK = "rect(#FFE08A3C, 2)";
-    private static final String BOTH_BLOCK = "rect(#FF57C77A, 2)";
+    private static final String IN_BLOCK = "#804C9BE8";
+    private static final String OUT_BLOCK = "#80E8944C";
+    private static final String BOTH_BLOCK = "#805FCB84";
 
     /**
      * One face's chain: read it, show it, and let a click change it.
@@ -243,6 +247,9 @@ final class AutoIOPanelBlueprint {
         var side = "side_" + name;
         var read = "read_" + name;
         var sync = "sync_" + name;
+        var syncName = "syncName_" + name;
+        var named = "named_" + name;
+        var back = "back_" + name;
         var colour = "colour_" + name;
         var paint = "paint_" + name;
         var click = "click_" + name;
@@ -260,29 +267,41 @@ final class AutoIOPanelBlueprint {
                 // "the blueprint's own machine", which does.
                 .title(read, "what this face does now")
                 .add(sync, UISyncNodes.Declare.class, x + 480, y)
-                .constant(sync + ".name", "io_" + name)
-                .option(sync, "valueType", KGTypeHandles.handleFor(IO.class).getIdentification())
+                .add(syncName, ConcatNode.class, x + 240, y - 120)
+                .constant(syncName + ".in1", "io_" + name + "_")
+                .option(sync, "valueType", KGTypeHandles.handleFor(String.class).getIdentification())
                 .title(sync, "server state, client display")
-                // Known gap: the value reaches the client as the type's default and never updates,
-                // so every face paints as NONE however the machine is actually set. Isolated to the
-                // sync layer - the server reading is right (AutoIOPanelTests walks the whole cycle
-                // through it) and the paint runs (an unset face renders the NONE value), but no
-                // change ever arrives. Left wired rather than removed: the graph is what it should
-                // be, and the fix belongs where the values are carried.
-                .add(colour, IONodes.Choose.class, x + 720, y + 120)
+                // A name rather than the IO itself: a sync value is serialised by the syncdata
+                // accessor for its type, and a String has one everywhere. Read Auto IO Side gives
+                // the enum, IO Info turns it into a name for the wire, and IO Of Name turns it back
+                // on the far side.
+                //
+                // Known gap: nothing arrives. Every face paints the default however the machine is
+                // set, so a click changes the machine (AutoIOPanelTests walks the whole cycle) but
+                // the panel does not show it. Ruled out: the payload type (enum and String behave
+                // the same), SyncStrategy.ALWAYS, sync value names colliding between two tabs,
+                // stale machine references from the event node, and registration timing - LDLib2
+                // registers an element's sync values when it is attached to a ModularUI, which
+                // happens after this event and is recursive. It is in the layer that carries the
+                // values, not in this graph, so the wiring here is left as it should be.
+                .add(named, IONodes.Info.class, x + 240, y + 120)
+                .title(named, "the state, as a name to send")
+                .add(back, IONodes.OfName.class, x + 720, y + 60)
+                .title(back, "and back again on the client")
+                .add(colour, IONodes.Choose.class, x + 940, y + 120)
                 .constant(colour + ".whenNone", NONE_BLOCK)
                 .constant(colour + ".whenIn", IN_BLOCK)
                 .constant(colour + ".whenOut", OUT_BLOCK)
                 .constant(colour + ".whenBoth", BOTH_BLOCK)
                 .title(colour, "one colour per state")
-                .add(paint, UIStyleNodes.LssSet.class, x + 1000, y)
-                .option(paint, "property", "background")
+                .add(paint, UIStyleNodes.LssSet.class, x + 1180, y)
+                .option(paint, "property", "overlay")
                 .title(paint, "paint it with the state")
-                .add(click, UIEventNodes.OnServerEvent.class, x + 480, y + 260)
+                .add(click, UIEventNodes.OnServerEvent.class, x + 480, y + 280)
                 .option(click, "eventType", UIEvents.CLICK)
                 .title(click, "a click, handled on the server")
-                .add(cycle, IONodes.Next.class, x + 720, y + 260)
-                .add(apply, MachineRuntimeValueNodes.SetAutoIOSide.class, x + 1000, y + 260)
+                .add(cycle, IONodes.Next.class, x + 720, y + 280)
+                .add(apply, MachineRuntimeValueNodes.SetAutoIOSide.class, x + 940, y + 280)
                 .title(apply, "override it on this machine only");
 
         b.wire(sync + ".source", read + ".io")
@@ -290,7 +309,8 @@ final class AutoIOPanelBlueprint {
                 .wire(read + ".trait", "trait")
                 .wire(read + ".side", side + ".value")
                 .wire(sync + ".element", button + ".first")
-                .wire(colour + ".io", sync + ".value")
+                .wire(back + ".name", sync + ".value")
+                .wire(colour + ".io", back + ".io")
                 .wire(paint + ".element", button + ".first")
                 .wire(paint + ".value", colour + ".value")
                 .wire(click + ".element", button + ".first")

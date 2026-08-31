@@ -84,6 +84,35 @@ public final class IONodes {
     }
 
     /**
+     * The {@link IO} a name stands for, the inverse of {@code IO Info}'s {@code name}.
+     *
+     * <p>Exists because a sync value is serialised by the accessor for its type, and a name is a
+     * {@code String} — which every side can carry — where an enum's support is less certain. Send the
+     * name, turn it back here.</p>
+     *
+     * <p>An unknown name is {@code NONE} rather than an error: a value that arrived garbled should
+     * make a panel show nothing, not stop it drawing.</p>
+     */
+    @NodeAttribute(name = "mbd2_io_of_name", group = GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class OfName extends AnnotatedNode {
+        @InputPort public String name = "";
+        @OutputPort public IO io;
+
+        @Override
+        public void evaluate(EvalContext ctx) {
+            var name = ctx.getInput("name", String.class, "");
+            var io = IO.NONE;
+            for (var candidate : IO.values()) {
+                if (candidate.name().equalsIgnoreCase(name)) {
+                    io = candidate;
+                    break;
+                }
+            }
+            ctx.setOutput("io", io);
+        }
+    }
+
+    /**
      * An {@link IO} broken out as flags, for a graph that has to branch on which one it is.
      *
      * <p>Comparing enums in a graph means an equality node and a constant per case; this is the same

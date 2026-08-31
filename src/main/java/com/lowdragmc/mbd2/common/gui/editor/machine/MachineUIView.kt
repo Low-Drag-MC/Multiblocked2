@@ -24,7 +24,6 @@ import com.lowdragmc.mbd2.common.gui.MBDBindingIDs
 import com.lowdragmc.mbd2.common.gui.MBDSprites
 import com.lowdragmc.mbd2.common.gui.editor.MBDEditor
 import com.lowdragmc.mbd2.common.gui.editor.MachineProject
-import com.lowdragmc.mbd2.common.machine.MBDMachine
 import com.lowdragmc.mbd2.common.trait.IUIProviderTrait
 import com.lowdragmc.mbd2.common.trait.IUIProviderTrait.TraitUILayoutType
 import com.lowdragmc.mbd2.common.trait.RecipeCapabilityTraitDefinition
