@@ -107,18 +107,22 @@ public class MachineAutoIOPanelScenario implements UIScenario {
                 // reserve two panels' worth of room in the strip and the second lands on the first.
                 .check("the panels start folded away", ctx -> ctx.query().withId("panel").list().stream()
                         .noneMatch(ref -> ref.as(UIElement.class).isDisplayed()))
-                // What the document sets has to sit below what a stylesheet sets, or the sheet is
-                // decoration nobody can override. Inline beats stylesheet in the cascade, so the
-                // document's own values are demoted to DEFAULT when a tree is handed out — this
-                // reads the actual origins rather than trusting that it happened.
-                .check("the document's own styling stays out of the stylesheet's way", ctx -> {
-                    var faceWidth = origins(ctx, "face_UP", "width");
-                    var panelBackground = origins(ctx, "panel", "background");
-                    ctx.attach("face_UP.width", String.valueOf(faceWidth));
-                    ctx.attach("panel.background", String.valueOf(panelBackground));
-                    return faceWidth.contains("DEFAULT") && faceWidth.contains("STYLESHEET")
-                            && !faceWidth.contains("INLINE")
-                            && panelBackground.contains("DEFAULT") && !panelBackground.contains("INLINE");
+                // Every bit of the look comes from the stylesheet and nothing from the document, so a
+                // pack shipping its own lss/mbd2_auto_io.lss has nothing to out-rank. An INLINE value
+                // here would be unbeatable except by !important; a DEFAULT one would mean the document
+                // is styling itself again. Reads the actual cascade rather than trusting either.
+                .check("the panel is styled by the stylesheet and nothing else", ctx -> {
+                    var checked = java.util.Map.of(
+                            "face_UP", "width",
+                            "panel", "background",
+                            "item_UP", "height");
+                    var ok = true;
+                    for (var entry : checked.entrySet()) {
+                        var found = origins(ctx, entry.getKey(), entry.getValue());
+                        ctx.attach(entry.getKey() + "." + entry.getValue(), String.valueOf(found));
+                        ok &= found.equals(java.util.List.of("STYLESHEET"));
+                    }
+                    return ok;
                 })
                 .check("the tab says which trait it configures", ctx -> {
                     var tips = tooltip(ctx, "handle", 0);
@@ -213,6 +217,30 @@ public class MachineAutoIOPanelScenario implements UIScenario {
                 // desc sync has not arrived yet" apart from "the server never wrote it".
                 .waitForSync("the up face", sc -> serverData(sc).getString(key("up")),
                         ctx -> clientData(ctx).getString(key("up")))
+                // After the tick chain has run, not before: it sets each face's class list, and a list
+                // missing the side class leaves the stylesheet with nothing to place the face by — the
+                // cross collapses into whatever order the grid packs six items in, one tick after the
+                // panel opens. Colours would still be right, which is why this is asserted separately.
+                .check("the faces are laid out as a cross", ctx -> {
+                    var up = box(ctx, "face_UP");
+                    var front = box(ctx, "face_FRONT");
+                    var left = box(ctx, "face_LEFT");
+                    var down = box(ctx, "face_DOWN");
+                    ctx.attach("face_UP", up);
+                    ctx.attach("face_FRONT", front);
+                    ctx.attach("face_LEFT", left);
+                    ctx.attach("face_DOWN", down);
+                    var upEl = element(ctx, "face_UP");
+                    var frontEl = element(ctx, "face_FRONT");
+                    var leftEl = element(ctx, "face_LEFT");
+                    var downEl = element(ctx, "face_DOWN");
+                    return upEl.getPositionX() == frontEl.getPositionX()
+                            && upEl.getPositionY() < frontEl.getPositionY()
+                            && leftEl.getPositionY() == frontEl.getPositionY()
+                            && leftEl.getPositionX() < frontEl.getPositionX()
+                            && downEl.getPositionX() == frontEl.getPositionX()
+                            && downEl.getPositionY() > frontEl.getPositionY();
+                })
                 .check("each face is painted with its own state", ctx -> {
                     var in = overlay(ctx, "face_UP");
                     var out = overlay(ctx, "face_DOWN");
@@ -327,6 +355,16 @@ public class MachineAutoIOPanelScenario implements UIScenario {
             slots.forEach(slot -> found.add(slot.origin().name()));
         });
         return found;
+    }
+
+    /** The first element with this id. */
+    private static UIElement element(com.lowdragmc.lowdraglib2.uitest.TestContext ctx, String id) {
+        return ctx.query().withId(id).nth(0).one().as(UIElement.class);
+    }
+
+    /** Its box, for a report that has to show where six things ended up. */
+    private static String box(com.lowdragmc.lowdraglib2.uitest.TestContext ctx, String id) {
+        return rect(element(ctx, id));
     }
 
     /** An element's box, for a report that has to show why two of them overlapped. */

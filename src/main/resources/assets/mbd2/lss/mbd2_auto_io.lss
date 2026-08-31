@@ -1,15 +1,18 @@
-// The auto-IO side panel.
+// The auto-IO side panel — all of it. The built-in documents behind this panel are ids, classes and
+// nesting only; every size, colour, texture and grid position is here.
 //
-// Loaded by the auto_io_panel built-in blueprint as a *merged* stylesheet, which means the namespace
-// is ignored and every lss/mbd2_auto_io.lss in every loaded pack contributes. To restyle the panel,
-// ship your own file at that path — you do not have to copy this one, only the rules you disagree
-// with, and later packs win.
+// Loaded as a *merged* stylesheet, which means the namespace is ignored and every
+// lss/mbd2_auto_io.lss in every loaded pack contributes. To restyle the panel, ship your own file at
+// that path — you do not have to copy this one, only the rules you disagree with, and later packs
+// win. The template also carries a reference to it, so the editor's preview of the built-in looks
+// like the real thing.
 //
-// It is attached to the tab strip rather than to the whole screen, so nothing here can leak into the
-// machine's own UI. What the built-in document sets in code is written at the DEFAULT origin, so
-// every rule below beats it without needing !important.
+// It is attached to the tab strip, not to the whole screen, so nothing here can leak into the
+// machine's own UI.
 
 // ---- the strip the tabs hang off ------------------------------------------------------------
+// Absolute, so appending tabs never moves the machine's own contents and the strip sits outside the
+// machine panel rather than covering it.
 .mbd2-side-tabs {
   position: absolute;
   left: 100%;
@@ -31,13 +34,19 @@
 .mbd2-auto-io-handle {
   width: 20;
   height: 20;
+  // Scaled, because an overlay fills its element: a full-size gear covers the button's own frame and
+  // the tab stops reading as a button at all.
   overlay: icon(settings) scale(0.55);
 }
 
+// display, not visibility - a hidden panel has to leave the layout, or the strip reserves its space
+// and the next tab lands on top of it. The blueprint flips this on the handle's click.
 .mbd2-auto-io-panel {
+  display: none;
   flex-direction: column;
   gap: 3;
   padding-all: 5;
+  background: built-in(ui-gdp:BORDER);
 }
 
 .mbd2-auto-io-body {
@@ -51,6 +60,7 @@
   flex-direction: column;
   gap: 3;
   padding-all: 3;
+  background: built-in(ui-gdp:RECT_RD_DARK);
 }
 
 .mbd2-auto-io-swatch {
@@ -59,20 +69,28 @@
 }
 
 // ---- the six faces -------------------------------------------------------------------------
-// A cross, laid out the way the machine sees itself: up above front, left and right beside it,
-// down and back below. The empty cells are what make it read as a block rather than as a list.
+// A cross, laid out the way the machine sees itself: up above front, left and right beside it, down
+// and back below. The empty cells are what make it read as a block rather than as a list.
 .mbd2-auto-io-grid {
   display: grid;
   gap: 2;
   padding-all: 3;
   grid-template-columns: 20 20 20;
   grid-template-rows: 20 20 20;
+  background: built-in(ui-gdp:RECT_RD_DARK);
 }
 
 .mbd2-auto-io-face {
   width: 20;
   height: 20;
 }
+
+.mbd2-auto-io-face.mbd2-side-up    { grid-column: 2; grid-row: 1; }
+.mbd2-auto-io-face.mbd2-side-left  { grid-column: 1; grid-row: 2; }
+.mbd2-auto-io-face.mbd2-side-front { grid-column: 2; grid-row: 2; }
+.mbd2-auto-io-face.mbd2-side-right { grid-column: 3; grid-row: 2; }
+.mbd2-auto-io-face.mbd2-side-down  { grid-column: 2; grid-row: 3; }
+.mbd2-auto-io-face.mbd2-side-back  { grid-column: 3; grid-row: 3; }
 
 // The layer the neighbouring block is drawn on, under the state tint and over the button's frame.
 .mbd2-auto-io-face-item {

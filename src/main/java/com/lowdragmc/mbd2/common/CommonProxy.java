@@ -39,6 +39,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.ModLoader;
 import net.neoforged.fml.config.ModConfig;
+import com.lowdragmc.mbd2.common.gui.builtin.BuiltinMachineUIs;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLConstructModEvent;
 import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
@@ -157,7 +158,10 @@ public class CommonProxy {
 
     @SubscribeEvent
     public void commonSetup(FMLCommonSetupEvent e) {
-        e.enqueueWork(() -> {});
+        // Both sides: a machine UI is built on both, and the graph that builds one loads these by the
+        // same path on each. They are also read-only entries in the editor's library, which is where
+        // someone copies one out to make their own editable version.
+        e.enqueueWork(BuiltinMachineUIs::register);
     }
 
     @SubscribeEvent

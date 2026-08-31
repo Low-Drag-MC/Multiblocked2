@@ -32,7 +32,6 @@ import com.lowdragmc.kilagraph.blueprint.nodes.ui.event.UIEventNodes;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.pattern.util.RelativeDirection;
 import com.lowdragmc.mbd2.common.blueprint.node.IONodes;
-import com.lowdragmc.mbd2.common.blueprint.node.ui.BuiltinUINodes;
 import com.lowdragmc.mbd2.common.blueprint.node.ui.UIItemNodes;
 import com.lowdragmc.mbd2.common.gui.builtin.BuiltinMachineUIs;
 import com.lowdragmc.mbd2.common.blueprint.node.machine.MachineActionNodes;
@@ -132,15 +131,18 @@ final class AutoIOPanelBlueprint {
                 .title("look", "is a strip already there?")
                 .add("missing", IsNullNode.class, 1240, 200)
                 .add("needStrip", BranchNode.class, 1240, 0)
-                .add("loadStrip", BuiltinUINodes.Builtin.class, 1480, 0)
-                .constant("loadStrip.name", BuiltinMachineUIs.SIDE_TAB_STRIP)
-                .title("loadStrip", "the built-in strip")
+                .add("stripDoc", UIDocNodes.TemplateLoad.class, 1360, -120)
+                .constant("stripDoc.path", BuiltinMachineUIs.path(BuiltinMachineUIs.SIDE_TAB_STRIP))
+                .title("stripDoc", "the built-in strip")
+                .add("loadStrip", UIDocNodes.TemplateCreateUI.class, 1480, 0)
+                .title("loadStrip", "one copy of it")
                 .add("addStrip", UIElementNodes.AddChild.class, 1720, 0)
                 .add("strip", UIQueryNodes.SelectId.class, 1480, 200)
                 .constant("strip.id", STRIP_ID)
                 .title("strip", "now certainly there");
 
-        b.wire("unpack.ui", "event.ui")
+        b.wire("loadStrip.template", "stripDoc.template")
+                .wire("unpack.ui", "event.ui")
                 .wire("look.root", "unpack.root")
                 .wire("missing.in", "look.first")
                 .wire("needStrip.cond", "missing.out")
@@ -193,9 +195,11 @@ final class AutoIOPanelBlueprint {
                 .wire("label.ifFalse", "trait");
 
         // ---- build this trait's tab --------------------------------------------------------------
-        b.add("loadTab", BuiltinUINodes.Builtin.class, 2020, 0)
-                .constant("loadTab.name", BuiltinMachineUIs.AUTO_IO_TAB)
-                .title("loadTab", "the built-in tab")
+        b.add("tabDoc", UIDocNodes.TemplateLoad.class, 1900, -120)
+                .constant("tabDoc.path", BuiltinMachineUIs.path(BuiltinMachineUIs.AUTO_IO_TAB))
+                .title("tabDoc", "the built-in tab")
+                .add("loadTab", UIDocNodes.TemplateCreateUI.class, 2020, 0)
+                .title("loadTab", "one copy of it")
                 .add("addTab", UIElementNodes.AddChild.class, 2260, 0)
                 .title("addTab", "append, not replace")
                 .add("titleOf", UIQueryNodes.SelectId.class, 2020, 200)
@@ -204,7 +208,8 @@ final class AutoIOPanelBlueprint {
                 .add("setTitle", UIValueNodes.SetText.class, 2500, 0)
                 .title("setTitle", "name the tab after the trait");
 
-        b.wire("addTab.parent", "strip.first")
+        b.wire("loadTab.template", "tabDoc.template")
+                .wire("addTab.parent", "strip.first")
                 .wire("addTab.child", "loadTab.root")
                 .wire("titleOf.root", "loadTab.root")
                 .wire("titleText.text", "label.out")
@@ -329,14 +334,19 @@ final class AutoIOPanelBlueprint {
     private static final String DATA_PREFIX = "mbd2_autoio_";
 
     /**
-     * The whole class list a face carries in one state: its own identity plus what it is set to.
+     * The <em>whole</em> class list a face carries in one state: what it is, which side it is, and
+     * what it is set to.
      *
-     * <p>The identity class has to be repeated because the node <em>sets</em> the list rather than
-     * adding to it, and setting is what makes the four states exclusive — adding {@code in} would
-     * leave {@code out} behind from the tick before.</p>
+     * <p>All three have to be here because the node <em>sets</em> the list rather than adding to it,
+     * and setting is what makes the four states exclusive — adding {@code in} would leave {@code out}
+     * behind from the tick before. Leaving one out is not a small mistake: the side class is what the
+     * stylesheet places the face on the cross by, so a list missing it collapses the six faces into
+     * whatever order the grid packs them in, one tick after the panel opens.</p>
      */
-    private static String faceClasses(IO io) {
-        return BuiltinMachineUIs.FACE_CLASS + " " + BuiltinMachineUIs.ioClass(io);
+    private static String faceClasses(RelativeDirection relative, IO io) {
+        return BuiltinMachineUIs.FACE_CLASS
+                + " " + BuiltinMachineUIs.sideClass(relative)
+                + " " + BuiltinMachineUIs.ioClass(io);
     }
 
     /**
@@ -376,6 +386,7 @@ final class AutoIOPanelBlueprint {
         var stack = "stack_" + name;
         var slot = "slot_" + name;
         var show = "show_" + name;
+        var clickThrough = "clickThrough_" + name;
 
         // ---- what this face is set to, on the server ------------------------------------------
         b.add(button, UIQueryNodes.SelectId.class, x, y)
@@ -426,10 +437,10 @@ final class AutoIOPanelBlueprint {
                 .add(get, NbtGetNode.class, x + 1180, y + 100)
                 .add(ofName, IONodes.OfName.class, x + 1420, y + 100)
                 .add(colour, IONodes.Choose.class, x + 1660, y + 100)
-                .constant(colour + ".whenNone", faceClasses(IO.NONE))
-                .constant(colour + ".whenIn", faceClasses(IO.IN))
-                .constant(colour + ".whenOut", faceClasses(IO.OUT))
-                .constant(colour + ".whenBoth", faceClasses(IO.BOTH))
+                .constant(colour + ".whenNone", faceClasses(relative, IO.NONE))
+                .constant(colour + ".whenIn", faceClasses(relative, IO.IN))
+                .constant(colour + ".whenOut", faceClasses(relative, IO.OUT))
+                .constant(colour + ".whenBoth", faceClasses(relative, IO.BOTH))
                 .title(colour, "one class per state")
                 .add(paint, UIStyleNodes.ClassNames.class, x + 1900, y)
                 // A class, not a colour. What "in" looks like then lives in the stylesheet, where a
@@ -494,9 +505,21 @@ final class AutoIOPanelBlueprint {
                 // run, so reading the side again here would hand back what it was before the write.
                 .wire(namedNext + ".io", cycle + ".next");
 
+        // The one property a document cannot carry: allowHitTest has no @Configurable, so it is not
+        // written into the template and comes back true. Left that way, the item layer is the target
+        // of every click that lands on the face and the face's own listener never runs — a panel that
+        // looks right and does nothing, with nothing thrown anywhere.
+        b.add(clickThrough, UIStateNodes.SetFlag.class, x + 1900, y + 200)
+                .option(clickThrough, "flag", UIStateNodes.Flag.HIT_TEST)
+                .constant(clickThrough + ".value", false)
+                .title(clickThrough, "let clicks through to the face");
+        b.wire(clickThrough + ".element", slot + ".first");
+
         // Named pins throughout: a tick listener and an event listener each have two exec outputs,
         // and which one a chain continues on is the difference between "carry on building the panel"
         // and "do this when it happens".
+        b.wire(clickThrough + ".trigger", after);
+        after = clickThrough + ".next";
         b.wire(tick + ".trigger", after);
         b.wire(click + ".trigger", tick + ".next");
         b.wire(paint + ".trigger", tick + ".onTick");

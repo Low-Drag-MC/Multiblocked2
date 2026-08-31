@@ -56,13 +56,6 @@ public class ClientProxy {
     public void clientSetup(final FMLClientSetupEvent e) {
         // MBD2's built-in UIs, in the editor's ui resource browser. Read-only, and copyable to a file
         // provider for anyone who wants their own editable version.
-        e.enqueueWork(() -> {
-            var instance = com.lowdragmc.lowdraglib2.editor.resource.UIResource.INSTANCE.getResourceInstance();
-            var provider = new com.lowdragmc.lowdraglib2.editor.resource.BuiltinResourceProvider<
-                    com.lowdragmc.lowdraglib2.gui.ui.UITemplate>(MBD2.MOD_ID, instance);
-            com.lowdragmc.mbd2.common.gui.builtin.BuiltinMachineUIs.register(provider);
-            instance.addBuiltinProvider(provider);
-        });
         e.enqueueWork(()-> ItemProperties.register(MBDRegistries.GADGETS_ITEM(), MBD2.id("mode"),
                 (itemStack, clientWorld, entity, seed) ->
                         Optional.ofNullable(MBDGadgetsItem.getMode(itemStack)).orElse(MBDGadgetsItem.Mode.RECIPE_DEBUGGER).id)
