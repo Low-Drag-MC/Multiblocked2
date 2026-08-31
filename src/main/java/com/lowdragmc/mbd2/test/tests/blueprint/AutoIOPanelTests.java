@@ -299,31 +299,31 @@ public class AutoIOPanelTests {
     }
 
     /**
-     * The layer a face draws its neighbour on does not take the click the face is listening for.
+     * A face listens in the capture phase, so what is drawn on top of it cannot swallow the click.
      *
-     * <p>A child element is normally the target of any click that lands on it, and the listener on
-     * the parent then never runs — so this one flag is the difference between a panel that works and
-     * one that silently ignores every click, with nothing thrown anywhere.</p>
+     * <p>Each face has the neighbouring block drawn on a child that fills it, which makes that child
+     * the target of any click that lands there. A bubble listener would be at the mercy of what a
+     * document happens to put inside a face; a capture one sees the event on the way <em>down</em> to
+     * the target, before any descendant. The alternative — marking the child click-through — is a
+     * flag that no {@code UITemplate} can carry, so it would come back wrong from the library.</p>
      *
-     * <p>It is also what stops the built-in documents being loaded as {@code UITemplate}s instead of
-     * built in code: {@code allowHitTest} has no {@code @Configurable} and so is not serialised, and
-     * a tree that had been through NBT would come back clickable. Asserting it on the tree the
-     * machine actually builds is what would catch that swap.</p>
+     * <p>Nothing about a wrongly-phased listener throws or looks different: the panel renders exactly
+     * the same and silently ignores every click.</p>
      */
     @GameTest(template = "empty_simple")
     @PrefixGameTestTemplate(false)
-    public static void theFaceItemLayerIsClickThrough(GameTestHelper helper) {
+    public static void aFaceHearsClicksMeantForWhatIsDrawnOnIt(GameTestHelper helper) {
         var ui = openUI(helper, AutoIOPanelFixtures.ONE_TAB_ID);
         if (ui == null) return;
         for (var face : FACES) {
-            var layer = ui.selectId(face.replace("face_", "item_")).findFirst().orElse(null);
-            if (layer == null) {
-                helper.fail("no item layer inside " + face);
+            var button = ui.selectId(face).findFirst().orElse(null);
+            if (button == null) {
+                helper.fail("no " + face + " button");
                 return;
             }
-            if (layer.isAllowHitTest()) {
-                helper.fail(face + "'s item layer takes hit tests, so it will swallow the clicks the"
-                        + " face is listening for");
+            if (button.getServerEventListeners(UIEvents.CLICK, true).isEmpty()) {
+                helper.fail(face + " has no capture-phase click listener, so the item drawn on it"
+                        + " will swallow every click meant for the face");
                 return;
             }
         }
@@ -338,13 +338,21 @@ public class AutoIOPanelTests {
                 .findFirst().map(label -> label.getText().getString()).orElse(null);
     }
 
-    /** Runs the element's server-side click listeners, the way the client's rpc would. */
+    /**
+     * Runs the element's server-side click listeners, the way the client's rpc would.
+     *
+     * <p>Both phases, because which one a listener is registered in is the graph's choice and not
+     * something a caller should have to know — the panel's face listeners are capture, the handle's
+     * would be bubble.</p>
+     */
     private static void click(UIElement element) {
         var event = UIEvent.create(UIEvents.CLICK);
         event.currentElement = element;
         event.target = element;
-        for (var listener : element.getServerEventListeners(UIEvents.CLICK, false)) {
-            listener.handleEvent(event);
+        for (var capture : List.of(true, false)) {
+            for (var listener : element.getServerEventListeners(UIEvents.CLICK, capture)) {
+                listener.handleEvent(event);
+            }
         }
     }
 

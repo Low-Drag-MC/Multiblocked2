@@ -230,9 +230,9 @@ public final class BuiltinMachineUIs {
      * overlay goes down after everything, which is where the state colour has to be. Children are
      * drawn between the two — under the tint, over the frame — which is exactly the stack this wants.
      *
-     * <p>It must not take hit tests, or it becomes the target of every click that lands on the face
-     * and the face's own listener never runs. That flag is not serialised with the document, so the
-     * blueprint sets it after loading; see {@code Set Flag(hit_test)} in the per-face chain.</p>
+     * <p>It fills the face, so it — not the face — is what a click lands on. That is fine and needs
+     * nothing done to it: the face listens in the <em>capture</em> phase, which reaches an ancestor
+     * on the way down to the target, before any descendant sees the event.</p>
      */
     private static UIElement faceItem(RelativeDirection relative) {
         var item = new UIElement();

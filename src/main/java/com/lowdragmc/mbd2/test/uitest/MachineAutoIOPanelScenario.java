@@ -263,10 +263,6 @@ public class MachineAutoIOPanelScenario implements UIScenario {
                             && item.items.length == 1 && item.items[0].is(Items.CHEST)
                             && !(left instanceof ItemStackTexture);
                 })
-                // The item layer must not take the click the button is listening for, which is what a
-                // child element normally does to its parent.
-                .check("the item layer does not eat the click", ctx ->
-                        !ctx.query().withId("item_UP").nth(0).one().as(UIElement.class).isAllowHitTest())
                 .step("click a face", ctx -> clickFace(ctx, "face_UP", 1))
                 // A click travels the long way round — client rpc, server runtime write, custom data,
                 // desc sync, client tick — so waiting for the face to change colour is the whole round

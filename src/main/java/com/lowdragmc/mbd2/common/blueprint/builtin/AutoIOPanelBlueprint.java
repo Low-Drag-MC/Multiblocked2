@@ -386,7 +386,6 @@ final class AutoIOPanelBlueprint {
         var stack = "stack_" + name;
         var slot = "slot_" + name;
         var show = "show_" + name;
-        var clickThrough = "clickThrough_" + name;
 
         // ---- what this face is set to, on the server ------------------------------------------
         b.add(button, UIQueryNodes.SelectId.class, x, y)
@@ -487,6 +486,12 @@ final class AutoIOPanelBlueprint {
         // ---- a click, handled on the server ------------------------------------------------------
         b.add(click, UIEventNodes.OnServerEvent.class, x + 700, y + 320)
                 .option(click, "eventType", UIEvents.CLICK)
+                // Capture, so the face hears the click on the way *down* to whatever is on top of it.
+                // The item layer fills the button, which makes it the event's target; a bubble
+                // listener would be at the mercy of what a document happens to put inside a face,
+                // and the alternative — making that layer click-through — is a flag no document can
+                // carry through a template.
+                .constant(click + ".useCapture", true)
                 .title(click, "a click, handled on the server")
                 .add(cycle, IONodes.Next.class, x + 940, y + 320)
                 .add(apply, MachineRuntimeValueNodes.SetAutoIOSide.class, x + 1180, y + 320)
@@ -505,21 +510,9 @@ final class AutoIOPanelBlueprint {
                 // run, so reading the side again here would hand back what it was before the write.
                 .wire(namedNext + ".io", cycle + ".next");
 
-        // The one property a document cannot carry: allowHitTest has no @Configurable, so it is not
-        // written into the template and comes back true. Left that way, the item layer is the target
-        // of every click that lands on the face and the face's own listener never runs — a panel that
-        // looks right and does nothing, with nothing thrown anywhere.
-        b.add(clickThrough, UIStateNodes.SetFlag.class, x + 1900, y + 200)
-                .option(clickThrough, "flag", UIStateNodes.Flag.HIT_TEST)
-                .constant(clickThrough + ".value", false)
-                .title(clickThrough, "let clicks through to the face");
-        b.wire(clickThrough + ".element", slot + ".first");
-
         // Named pins throughout: a tick listener and an event listener each have two exec outputs,
         // and which one a chain continues on is the difference between "carry on building the panel"
         // and "do this when it happens".
-        b.wire(clickThrough + ".trigger", after);
-        after = clickThrough + ".next";
         b.wire(tick + ".trigger", after);
         b.wire(click + ".trigger", tick + ".next");
         b.wire(paint + ".trigger", tick + ".onTick");
