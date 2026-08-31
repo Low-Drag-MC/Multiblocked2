@@ -111,7 +111,15 @@ public final class BlueprintBuilder {
         return node;
     }
 
-    /** Set a node option, redefining the node so option-driven ports update. */
+    /**
+     * Set a node option, redefining the node so option-driven ports update.
+     *
+     * <p>Type-checked for the same reason {@link #constant} is, and it was worth adding the hard way:
+     * an option whose type is an enum, given the string spelling of one of its constants, takes the
+     * value happily and then throws a {@code ClassCastException} deep inside serialization — which is
+     * logged rather than raised, leaving a built-in blueprint that half exists and a machine UI that
+     * will not open.</p>
+     */
     public BlueprintBuilder option(String nodeName, String optionId, Object value) {
         var node = node(nodeName);
         NodeOption option = null;
@@ -126,6 +134,14 @@ public final class BlueprintBuilder {
         }
         var constant = node.getInputConstantsById().get(option.portModel.getUniqueName());
         if (constant == null) throw new IllegalStateException("No constant for option " + optionId);
+        var expected = constant.getType();
+        if (value != null && expected instanceof Class<?> expectedClass
+                && !boxed(expectedClass).isInstance(value)) {
+            throw new IllegalArgumentException("Option '" + optionId + "' on '" + nodeName + "' takes "
+                    + expectedClass.getSimpleName() + " but was given a "
+                    + value.getClass().getSimpleName()
+                    + " — an enum option wants the constant itself, not its name");
+        }
         constant.setValue(value);
         node.defineNode();
         return this;

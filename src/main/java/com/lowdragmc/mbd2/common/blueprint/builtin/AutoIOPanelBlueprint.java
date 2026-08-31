@@ -168,7 +168,7 @@ final class AutoIOPanelBlueprint {
                 .block("panelInfo", "panelState", UIElementInfoBlocks.State.class)
                 .add("flip", NotNode.class, 3220, 200)
                 .add("fold", UIStateNodes.SetFlag.class, 3220, 60)
-                .option("fold", "flag", "visible")
+                .option("fold", "flag", UIStateNodes.Flag.VISIBLE)
                 .title("fold", "show it, or hide it again");
 
         b.wire("panelOf.root", "loadTab.root")

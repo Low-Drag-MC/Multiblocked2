@@ -290,4 +290,27 @@ public class AutoIOPanelTests {
         }
         helper.succeed();
     }
+
+    /**
+     * Right-clicking a machine opens its menu.
+     *
+     * <p>The other tests here build the UI directly, which is the cheapest way to look at the tree but
+     * skips the open event and the menu around it. Those are where a right-click ends up, and a
+     * regression in them shows as a packet the server refuses to handle and nothing else.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void rightClickingOpensTheMenu(GameTestHelper helper) {
+        var machine = MBDScenario.of(helper).placeMachine(AutoIOPanelFixtures.TWO_TABS_ID, POS).machine();
+        var player = helper.makeMockPlayer(GameType.CREATIVE);
+        var result = machine.openUI(player);
+        if (result == net.minecraft.world.InteractionResult.PASS) {
+            helper.fail("opening the machine ui was refused");
+            return;
+        }
+        // No assertion on the menu itself: a gametest's mock player has no connection, so nothing
+        // is ever sent to it. What this covers is the half that runs before that - the open event,
+        // the ui assembly and the menu construction - throwing.
+        helper.succeed();
+    }
 }
