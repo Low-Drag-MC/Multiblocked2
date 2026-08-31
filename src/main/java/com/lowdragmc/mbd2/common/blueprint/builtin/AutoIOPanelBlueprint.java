@@ -229,7 +229,7 @@ final class AutoIOPanelBlueprint {
      * through it, and written as LSS values so a pack author can restyle the panel by editing the
      * blueprint's constants rather than this class.
      */
-    private static final String NONE_BLOCK = "empty";
+    private static final String NONE_BLOCK = "#40202020";
     private static final String IN_BLOCK = "#804C9BE8";
     private static final String OUT_BLOCK = "#80E8944C";
     private static final String BOTH_BLOCK = "#805FCB84";
@@ -255,6 +255,7 @@ final class AutoIOPanelBlueprint {
         var click = "click_" + name;
         var cycle = "cycle_" + name;
         var apply = "apply_" + name;
+        var enable = "enable_" + name;
 
         b.add(button, UIQueryNodes.SelectId.class, x, y)
                 .constant(button + ".id", "face_" + relative.name())
@@ -302,7 +303,10 @@ final class AutoIOPanelBlueprint {
                 .title(click, "a click, handled on the server")
                 .add(cycle, IONodes.Next.class, x + 720, y + 280)
                 .add(apply, MachineRuntimeValueNodes.SetAutoIOSide.class, x + 940, y + 280)
-                .title(apply, "override it on this machine only");
+                .title(apply, "override it on this machine only")
+                .add(enable, MachineRuntimeValueNodes.SetAutoIOEnabled.class, x + 1180, y + 280)
+                .constant(enable + ".enabled", true)
+                .title(enable, "and switch auto IO on");
 
         // The name, not the enum: the sync value is declared String, and a graph wire happily
         // accepts anything into a String port while the value that travels is whatever was wired.
@@ -321,7 +325,8 @@ final class AutoIOPanelBlueprint {
                 .wire(cycle + ".io", read + ".io")
                 .wire(apply + ".trait", "trait")
                 .wire(apply + ".side", side + ".value")
-                .wire(apply + ".io", cycle + ".next");
+                .wire(apply + ".io", cycle + ".next")
+                .wire(enable + ".trait", "trait");
 
         // Named pins throughout: a sync value and an event listener each have two exec outputs, and
         // which of the two a chain continues on is the difference between "carry on building the
@@ -330,6 +335,10 @@ final class AutoIOPanelBlueprint {
         b.wire(click + ".trigger", sync + ".next");
         b.wire(paint + ".trigger", sync + ".onReceived");
         b.wire(apply + ".in", click + ".onEvent");
+        // A side setting does nothing on its own: IAutoIOTrait.serverTick returns immediately while
+        // the trait's auto IO is switched off, and a definition that never turned it on is the normal
+        // case. Configuring a face is the player asking for it, so that is where it gets switched on.
+        b.then(apply, enable);
         return click + ".next";
     }
 }

@@ -29,6 +29,11 @@ public class AutoIOPanelFixtures implements TestFixtureProvider {
     public static final ResourceLocation NO_TRAIT_ID = MBD2.id("auto_io_panel_no_trait");
     /** No blueprint: the machine UI as it is without any of this. */
     public static final ResourceLocation CONTROL_ID = MBD2.id("auto_io_panel_control");
+    /**
+     * A machine whose trait has auto IO left switched off, which is what a definition ships unless
+     * its author turned it on — and so the case that decides whether the panel does anything at all.
+     */
+    public static final ResourceLocation AUTO_IO_OFF_ID = MBD2.id("auto_io_panel_off");
 
     public static final String ITEM_TRAIT = "item_slot";
     public static final String FLUID_TRAIT = "fluid_tank";
@@ -49,6 +54,11 @@ public class AutoIOPanelFixtures implements TestFixtureProvider {
                 .register(event);
 
         machine(CONTROL_ID).register(event);
+
+        TestMachineBuilder.simple(AUTO_IO_OFF_ID)
+                .withItemSlots(1, IO.BOTH)
+                .withBlueprint(panelFor(ITEM_TRAIT))
+                .register(event);
     }
 
     /**

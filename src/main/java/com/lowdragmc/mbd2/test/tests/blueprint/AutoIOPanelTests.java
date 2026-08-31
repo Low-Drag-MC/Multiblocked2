@@ -314,4 +314,61 @@ public class AutoIOPanelTests {
         helper.succeed();
     }
 
+
+    /**
+     * Configuring a face actually moves items.
+     *
+     * <p>The test that was missing, and the one that matters: everything else here checks that a click
+     * changes a stored value, which it did all along while the machine went on doing nothing.
+     * {@code IAutoIOTrait.serverTick} returns immediately while the trait's auto IO is switched off,
+     * and a definition that never turned it on is the normal case — so a panel that only sets side
+     * directions is a panel that does nothing at all.</p>
+     *
+     * <p>The machine is the one whose definition leaves auto IO switched off, because that is what a
+     * definition ships unless its author turned it on — a fixture that pre-enables it cannot tell a
+     * working panel from one that only writes side directions.</p>
+     *
+     * <p>Up is the face used because it is the same world direction whichever way the machine faces,
+     * so the chest above it is the right neighbour no matter how the fixture was placed.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void configuringAFaceMakesTheMachineMoveItems(GameTestHelper helper) {
+        var above = POS.above();
+        var scenario = MBDScenario.of(helper)
+                .placeMachine(AutoIOPanelFixtures.AUTO_IO_OFF_ID, POS)
+                .placeBlock(above, net.minecraft.world.level.block.Blocks.CHEST.defaultBlockState())
+                .insertItem(0, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.DIRT, 8));
+
+        var ui = openUI(helper, AutoIOPanelFixtures.AUTO_IO_OFF_ID);
+        if (ui == null) return;
+        var face = ui.selectId("face_UP").findFirst().orElse(null);
+        if (face == null) {
+            helper.fail("no up-face button");
+            return;
+        }
+        // Clicked until it reads OUT rather than a fixed number of times: this machine starts from
+        // its definition's defaults, and how many steps that is away from OUT is not the point.
+        while (autoIO(scenario.machine(), RelativeDirection.UP) != IO.OUT) {
+            click(face);
+        }
+
+        scenario.runTicks(60);
+        var chest = helper.getBlockEntity(above);
+        if (!(chest instanceof net.minecraft.world.Container container)) {
+            helper.fail("no chest above the machine");
+            return;
+        }
+        var moved = 0;
+        for (int slot = 0; slot < container.getContainerSize(); slot++) {
+            var stack = container.getItem(slot);
+            if (stack.is(net.minecraft.world.item.Items.DIRT)) moved += stack.getCount();
+        }
+        if (moved == 0) {
+            helper.fail("the machine kept its dirt — a configured face moved nothing, so auto IO is"
+                    + " still switched off however the sides are set");
+            return;
+        }
+        helper.succeed();
+    }
 }
