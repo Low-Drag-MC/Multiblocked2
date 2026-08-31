@@ -102,11 +102,22 @@ public class MachineAutoIOPanelScenario implements UIScenario {
                     ctx.attach("openPanels", String.valueOf(open));
                     return open == 1;
                 })
-                // No check on the face colours. The blueprint paints each face from a sync value
-                // and that value never arrives with anything but its default - see the note on the
-                // sync node in AutoIOPanelBlueprint for what has been ruled out. Asserting they are
-                // all the same would lock the gap in as if it were intended, and asserting they
-                // differ would commit a red test, so the shape of the panel is what is recorded.
+                // The one place the whole loop runs: the machine's auto IO lives on the server and
+                // is never sent with the block, so these cells can only differ if the server pushed
+                // each face's state and the client painted it. The fixture ships top=IN and
+                // bottom=OUT and leaves the rest alone, so three different answers is the sync
+                // working end to end in a live menu — and the guard against wiring a value of one
+                // type into a sync channel declared as another, which throws while the menu is being
+                // sent and is swallowed by the packet handler.
+                .check("each state paints its face differently", ctx -> {
+                    var in = overlay(ctx, "face_UP");
+                    var out = overlay(ctx, "face_DOWN");
+                    var none = overlay(ctx, "face_LEFT");
+                    ctx.attach("face_UP", in);
+                    ctx.attach("face_DOWN", out);
+                    ctx.attach("face_LEFT", none);
+                    return !in.equals(none) && !out.equals(none) && !in.equals(out);
+                })
                 .screenshot("auto-io-expanded")
                 .closeScreen();
     }
@@ -120,5 +131,18 @@ public class MachineAutoIOPanelScenario implements UIScenario {
             ctx.input().mouseDown(bounds.centerX(), bounds.centerY(), 0);
             ctx.input().mouseUp(bounds.centerX(), bounds.centerY(), 0);
         }
+    }
+
+    /** The computed overlay of the first element with this id — what the blueprint paints state with. */
+    private static String overlay(com.lowdragmc.lowdraglib2.uitest.TestContext ctx, String id) {
+        var element = ctx.query().withId(id).nth(0).one().as(UIElement.class);
+        for (var style : element.getStyles()) {
+            for (var property : style.getPropertiesList()) {
+                if (property.name.equals("overlay")) {
+                    return String.valueOf(style.getValueSave(property));
+                }
+            }
+        }
+        return "none";
     }
 }

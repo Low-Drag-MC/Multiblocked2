@@ -304,7 +304,11 @@ final class AutoIOPanelBlueprint {
                 .add(apply, MachineRuntimeValueNodes.SetAutoIOSide.class, x + 940, y + 280)
                 .title(apply, "override it on this machine only");
 
-        b.wire(sync + ".source", read + ".io")
+        // The name, not the enum: the sync value is declared String, and a graph wire happily
+        // accepts anything into a String port while the value that travels is whatever was wired.
+        // Put an IO on it and the server throws while writing the menu's initial data - which the
+        // packet handler swallows, so the UI opens with no data rather than failing loudly.
+        b.wire(sync + ".source", named + ".name")
                 .wire(button + ".root", "loadTab.root")
                 .wire(read + ".trait", "trait")
                 .wire(read + ".side", side + ".value")

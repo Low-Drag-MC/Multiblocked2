@@ -313,4 +313,5 @@ public class AutoIOPanelTests {
         // the ui assembly and the menu construction - throwing.
         helper.succeed();
     }
+
 }
