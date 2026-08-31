@@ -251,6 +251,61 @@ public class AutoIOPanelTests {
         helper.succeed();
     }
 
+    /**
+     * The tab is named after the trait, and after the {@code name} parameter when one is given.
+     *
+     * <p>Both halves in one test because either alone passes for the wrong reason: a panel that
+     * always shows the trait satisfies the first, and one that always shows the override satisfies
+     * the second. What is being checked is that the choice is made.</p>
+     *
+     * <p>The title is the visible half of it; the invisible half is that the machine's stored keys
+     * are still keyed by trait, which {@link #renamingATabDoesNotMoveItsStoredState} covers.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void aTabIsNamedAfterItsTraitUnlessTold(GameTestHelper helper) {
+        var byTrait = title(helper, AutoIOPanelFixtures.ONE_TAB_ID);
+        if (!AutoIOPanelFixtures.ITEM_TRAIT.equals(byTrait)) {
+            helper.fail("with no name given the tab should fall back to the trait, showed '" + byTrait + "'");
+            return;
+        }
+        var byName = title(helper, AutoIOPanelFixtures.NAMED_ID);
+        if (!AutoIOPanelFixtures.CUSTOM_NAME.equals(byName)) {
+            helper.fail("the name parameter should override the trait, tab showed '" + byName + "'");
+            return;
+        }
+        helper.succeed();
+    }
+
+    /**
+     * Renaming a tab does not move where the machine's state is published.
+     *
+     * <p>The keys are what the client reads each face from, so keying them by the display name would
+     * mean a pack changing a label silently blanked every panel built before the change — and worse,
+     * a machine already in a world. Named by trait, they are stable.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void renamingATabDoesNotMoveItsStoredState(GameTestHelper helper) {
+        var machine = MBDScenario.of(helper).placeMachine(AutoIOPanelFixtures.NAMED_ID, POS).machine();
+        if (openUI(helper, AutoIOPanelFixtures.NAMED_ID) == null) return;
+        var byTrait = "mbd2_autoio_up_" + AutoIOPanelFixtures.ITEM_TRAIT;
+        if (machine.getCustomData().getString(byTrait).isEmpty()) {
+            helper.fail("a renamed tab published nothing under its trait's key; keys are: "
+                    + machine.getCustomData().getAllKeys());
+            return;
+        }
+        helper.succeed();
+    }
+
+    /** The text of the tab's title label, which is what a player reads at the top of the panel. */
+    private static String title(GameTestHelper helper, ResourceLocation machineId) {
+        var ui = openUI(helper, machineId);
+        if (ui == null) return null;
+        return ui.selectId("title", com.lowdragmc.lowdraglib2.gui.ui.elements.Label.class)
+                .findFirst().map(label -> label.getText().getString()).orElse(null);
+    }
+
     /** Runs the element's server-side click listeners, the way the client's rpc would. */
     private static void click(UIElement element) {
         var event = UIEvent.create(UIEvents.CLICK);

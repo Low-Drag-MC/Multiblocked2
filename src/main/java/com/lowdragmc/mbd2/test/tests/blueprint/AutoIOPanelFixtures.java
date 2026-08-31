@@ -34,9 +34,13 @@ public class AutoIOPanelFixtures implements TestFixtureProvider {
      * its author turned it on — and so the case that decides whether the panel does anything at all.
      */
     public static final ResourceLocation AUTO_IO_OFF_ID = MBD2.id("auto_io_panel_off");
+    /** Bound with a display name, which must be shown instead of the trait's own id. */
+    public static final ResourceLocation NAMED_ID = MBD2.id("auto_io_panel_named");
 
     public static final String ITEM_TRAIT = "item_slot";
     public static final String FLUID_TRAIT = "fluid_tank";
+    /** What {@link #NAMED_ID} calls its item slot on screen. */
+    public static final String CUSTOM_NAME = "Ingredients";
 
     @Override
     public void registerMachines(MBDRegistryEvent.Machine event) {
@@ -54,6 +58,11 @@ public class AutoIOPanelFixtures implements TestFixtureProvider {
                 .register(event);
 
         machine(CONTROL_ID).register(event);
+
+        machine(NAMED_ID)
+                .withBlueprint(panelFor(ITEM_TRAIT).withVariable("name",
+                        constant(TypeHandles.STRING, CUSTOM_NAME)))
+                .register(event);
 
         TestMachineBuilder.simple(AUTO_IO_OFF_ID)
                 .withItemSlots(1, IO.BOTH)

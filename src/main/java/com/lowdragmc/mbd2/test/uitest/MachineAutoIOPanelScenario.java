@@ -103,8 +103,15 @@ public class MachineAutoIOPanelScenario implements UIScenario {
                     ctx.attach("handles", String.valueOf(handles));
                     return strips == 1 && handles == 2;
                 })
+                // Displayed, not visible: a folded panel has to be out of the layout, or two tabs
+                // reserve two panels' worth of room in the strip and the second lands on the first.
                 .check("the panels start folded away", ctx -> ctx.query().withId("panel").list().stream()
-                        .noneMatch(ref -> ref.as(UIElement.class).isVisible()))
+                        .noneMatch(ref -> ref.as(UIElement.class).isDisplayed()))
+                .check("the tab says which trait it configures", ctx -> {
+                    var tips = tooltip(ctx, "handle", 0);
+                    ctx.attach("handle.tooltip", tips);
+                    return tips.contains(AutoIOPanelFixtures.ITEM_TRAIT);
+                })
                 // The strip is absolutely positioned against the machine's own UI root; which edge it
                 // hangs off is the document's choice, so what is asserted is that it hangs off one -
                 // sitting inside the host would mean it is covering the machine's own contents.
@@ -129,11 +136,42 @@ public class MachineAutoIOPanelScenario implements UIScenario {
                 .frames(4)
                 .check("clicking the handle folds a panel out", ctx -> {
                     var open = ctx.query().withId("panel").list().stream()
-                            .filter(ref -> ref.as(UIElement.class).isVisible())
+                            .filter(ref -> ref.as(UIElement.class).isDisplayed())
                             .count();
                     ctx.attach("openPanels", String.valueOf(open));
                     return open == 1;
                 })
+                // Two panels open at once is the case that used to draw one on top of the other,
+                // because a hidden panel still held its place in the strip.
+                .step("open the second tab as well", ctx -> {
+                    var handle = ctx.query().withId("handle").nth(1).one().bounds();
+                    ctx.input().mouseDown(handle.centerX(), handle.centerY(), 0);
+                    ctx.input().mouseUp(handle.centerX(), handle.centerY(), 0);
+                })
+                .frames(4)
+                .check("two open panels do not overlap", ctx -> {
+                    var panels = ctx.query().withId("panel").list().stream()
+                            .map(ref -> ref.as(UIElement.class))
+                            .filter(UIElement::isDisplayed)
+                            .toList();
+                    ctx.attach("openPanels", String.valueOf(panels.size()));
+                    if (panels.size() != 2) return false;
+                    var a = panels.get(0);
+                    var z = panels.get(1);
+                    ctx.attach("panel0", rect(a));
+                    ctx.attach("panel1", rect(z));
+                    return a.getPositionY() + a.getSizeHeight() <= z.getPositionY()
+                            || z.getPositionY() + z.getSizeHeight() <= a.getPositionY()
+                            || a.getPositionX() + a.getSizeWidth() <= z.getPositionX()
+                            || z.getPositionX() + z.getSizeWidth() <= a.getPositionX();
+                })
+                .screenshot("auto-io-both-open")
+                .step("fold the second tab away again", ctx -> {
+                    var handle = ctx.query().withId("handle").nth(1).one().bounds();
+                    ctx.input().mouseDown(handle.centerX(), handle.centerY(), 0);
+                    ctx.input().mouseUp(handle.centerX(), handle.centerY(), 0);
+                })
+                .frames(4)
                 // The one place the whole loop runs: the machine's auto IO lives on the server and is
                 // never sent with the block, so these cells can only differ if the server published
                 // each face's state into custom data, the block entity's desc sync carried it, and
@@ -264,6 +302,21 @@ public class MachineAutoIOPanelScenario implements UIScenario {
             }
         }
         return null;
+    }
+
+    /** An element's box, for a report that has to show why two of them overlapped. */
+    private static String rect(UIElement element) {
+        return element.getPositionX() + "," + element.getPositionY()
+                + " " + element.getSizeWidth() + "x" + element.getSizeHeight();
+    }
+
+    /** The tooltip lines of the nth element with this id, joined — what a hover would show. */
+    private static String tooltip(com.lowdragmc.lowdraglib2.uitest.TestContext ctx, String id, int nth) {
+        var element = ctx.query().withId(id).nth(nth).one().as(UIElement.class);
+        var tooltips = element.getStyle().tooltips();
+        return tooltips == null ? "" : tooltips.asList().stream()
+                .map(net.minecraft.network.chat.Component::getString)
+                .reduce("", (a, z) -> a + z);
     }
 
     /** A texture as something readable in the report — the item for a stack, the class otherwise. */

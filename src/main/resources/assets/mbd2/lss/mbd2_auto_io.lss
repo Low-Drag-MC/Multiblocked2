@@ -1,0 +1,93 @@
+// The auto-IO side panel.
+//
+// Loaded by the auto_io_panel built-in blueprint as a *merged* stylesheet, which means the namespace
+// is ignored and every lss/mbd2_auto_io.lss in every loaded pack contributes. To restyle the panel,
+// ship your own file at that path — you do not have to copy this one, only the rules you disagree
+// with, and later packs win.
+//
+// It is attached to the tab strip rather than to the whole screen, so nothing here can leak into the
+// machine's own UI. What the built-in document sets in code is written at the DEFAULT origin, so
+// every rule below beats it without needing !important.
+
+// ---- the strip the tabs hang off ------------------------------------------------------------
+.mbd2-side-tabs {
+  position: absolute;
+  left: 100%;
+  top: 4;
+  flex-direction: column;
+  gap: 2;
+}
+
+// ---- one tab -----------------------------------------------------------------------------------
+// Row, so the panel folds out to the right of its handle. The panel is in the row rather than
+// floating over it: an open one makes the tab as tall as itself and the column below moves down,
+// which is what keeps two open tabs from overlapping.
+.mbd2-auto-io-tab {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 2;
+}
+
+.mbd2-auto-io-handle {
+  width: 20;
+  height: 20;
+  overlay: icon(settings) scale(0.55);
+}
+
+.mbd2-auto-io-panel {
+  flex-direction: column;
+  gap: 3;
+  padding-all: 5;
+}
+
+.mbd2-auto-io-body {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 5;
+}
+
+// ---- the key -------------------------------------------------------------------------------
+.mbd2-auto-io-legend {
+  flex-direction: column;
+  gap: 3;
+  padding-all: 3;
+}
+
+.mbd2-auto-io-swatch {
+  width: 14;
+  height: 14;
+}
+
+// ---- the six faces -------------------------------------------------------------------------
+// A cross, laid out the way the machine sees itself: up above front, left and right beside it,
+// down and back below. The empty cells are what make it read as a block rather than as a list.
+.mbd2-auto-io-grid {
+  display: grid;
+  gap: 2;
+  padding-all: 3;
+  grid-template-columns: 20 20 20;
+  grid-template-rows: 20 20 20;
+}
+
+.mbd2-auto-io-face {
+  width: 20;
+  height: 20;
+}
+
+// The layer the neighbouring block is drawn on, under the state tint and over the button's frame.
+.mbd2-auto-io-face-item {
+  width: 100%;
+  height: 100%;
+}
+
+// ---- what each state looks like -----------------------------------------------------------
+// The blueprint puts one of these classes on a face; it never picks a colour. Change these four
+// pairs and both the faces and the key move together.
+.mbd2-auto-io-face.mbd2-io-none { overlay: #40202020; }
+.mbd2-auto-io-face.mbd2-io-in   { overlay: #804c9be8; }
+.mbd2-auto-io-face.mbd2-io-out  { overlay: #80e8944c; }
+.mbd2-auto-io-face.mbd2-io-both { overlay: #805fcb84; }
+
+.mbd2-auto-io-swatch.mbd2-io-in   { background: #ff4c9be8; }
+.mbd2-auto-io-swatch.mbd2-io-out  { background: #ffe8944c; }
+.mbd2-auto-io-swatch.mbd2-io-both { background: #ff5fcb84; }

@@ -1,6 +1,9 @@
 package com.lowdragmc.mbd2.common.blueprint.builtin;
 
 import com.lowdragmc.kilagraph.blueprint.nodes.exec.BranchNode;
+import com.lowdragmc.kilagraph.blueprint.nodes.flow.SelectNode;
+import com.lowdragmc.kilagraph.blueprint.nodes.compare.GreaterThanNode;
+import com.lowdragmc.kilagraph.blueprint.nodes.string.LengthNode;
 import com.lowdragmc.kilagraph.blueprint.nodes.mc.block.BlockStateNodes;
 import com.lowdragmc.kilagraph.blueprint.nodes.mc.geometry.BlockPosOffsetNode;
 import com.lowdragmc.kilagraph.blueprint.nodes.mc.item.BlockToItemNode;
@@ -10,8 +13,6 @@ import com.lowdragmc.kilagraph.blueprint.nodes.mc.nbt.NbtCreateNode;
 import com.lowdragmc.kilagraph.blueprint.nodes.mc.nbt.NbtGetNode;
 import com.lowdragmc.kilagraph.blueprint.nodes.mc.nbt.NbtSetNode;
 import com.lowdragmc.kilagraph.blueprint.nodes.string.ConcatNode;
-import com.lowdragmc.kilagraph.blueprint.nodes.ui.sync.UISyncNodes;
-import com.lowdragmc.kilagraph.graph.type.KGTypeHandles;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.kilagraph.blueprint.nodes.logic.NotNode;
 import com.lowdragmc.kilagraph.blueprint.nodes.mc.text.TextNodes;
@@ -22,10 +23,12 @@ import com.lowdragmc.kilagraph.blueprint.nodes.ui.element.UIElementInfoNode;
 import com.lowdragmc.kilagraph.blueprint.nodes.ui.element.UIElementNodes;
 import com.lowdragmc.kilagraph.blueprint.nodes.ui.element.UIQueryNodes;
 import com.lowdragmc.kilagraph.blueprint.nodes.ui.element.UIStateNodes;
+import com.lowdragmc.kilagraph.blueprint.nodes.ui.style.UIAnimationNodes;
 import com.lowdragmc.kilagraph.blueprint.nodes.ui.style.UIStyleNodes;
+import com.lowdragmc.kilagraph.blueprint.nodes.ui.style.UIStylesheetNodes;
+import com.lowdragmc.lowdraglib2.nodegraphtookit.api.type.TypeHandles;
 import com.lowdragmc.kilagraph.blueprint.nodes.ui.element.UIValueNodes;
 import com.lowdragmc.kilagraph.blueprint.nodes.ui.event.UIEventNodes;
-import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.pattern.util.RelativeDirection;
 import com.lowdragmc.mbd2.common.blueprint.node.IONodes;
@@ -91,17 +94,24 @@ final class AutoIOPanelBlueprint {
 
                 trait   the name of the trait to configure, as it
                         appears in the editor's trait list
+                name    what to call it on screen. Leave it empty
+                        and the trait's own name is used.
 
                 Nothing is added if that trait does not do auto IO.
 
                 Bind this blueprint more than once with different
                 trait names and the tabs stack up the left edge -
                 they append to one shared strip rather than each
-                building their own.""");
+                building their own.
+
+                The look is a stylesheet, not constants in this
+                graph: every element carries a class and
+                lss/mbd2_auto_io.lss says what it looks like.""");
 
         // ---- does this trait even do auto IO? --------------------------------------------------
         b.add("event", UIEventNode.class, 0, 0)
                 .parameter("trait", String.class, "", 0, 260)
+                .parameter("name", String.class, "", 0, 340)
                 .add("supports", MachineRuntimeValueNodes.AutoIOInfo.class, 260, 200)
                 .title("supports", "does this trait do auto IO?")
                 .add("gate", BranchNode.class, 520, 0)
@@ -138,9 +148,20 @@ final class AutoIOPanelBlueprint {
                 .wire("addStrip.child", "loadStrip.root")
                 .wire("strip.root", "unpack.root");
 
+        // The stylesheet goes on with the strip, so it is attached exactly once however many tabs
+        // end up there — and scoped to the strip, so none of it can reach the machine's own UI.
+        b.add("sheet", UIStylesheetNodes.Load.class, 1720, 200)
+                .constant("sheet.location", BuiltinMachineUIs.AUTO_IO_STYLESHEET)
+                .title("sheet", "every lss/mbd2_auto_io.lss there is")
+                .add("skin", UIStylesheetNodes.LocalStylesheet.class, 1960, 0)
+                .option("skin", "op", UIStylesheetNodes.LocalOp.ADD)
+                .title("skin", "dress the strip and everything in it");
+        b.wire("skin.element", "loadStrip.root")
+                .wire("skin.stylesheet", "sheet.stylesheet");
+
         b.wire("needStrip.in", "gate.trueExec")
                 .wire("loadStrip.trigger", "needStrip.trueExec");
-        b.then("loadStrip", "addStrip");
+        b.then("loadStrip", "addStrip", "skin");
 
         b.note(780, 420, 700, """
                 Look, maybe create, then look again. The second
@@ -150,6 +171,26 @@ final class AutoIOPanelBlueprint {
                 one wire, but it can ask the same question twice.""");
 
         b.group("Find or create the strip", 780, 0, 1180, 560, BuiltinNotes.DECIDE_GROUP);
+
+        // ---- what to call it ----------------------------------------------------------------------
+        // The trait name is an editor-facing id ("item_slot"), which is fine as a default and poor as
+        // a label. `name` overrides it everywhere it is shown — and nowhere it is stored: the custom
+        // data keys stay keyed by trait, so renaming a tab does not orphan what a machine already has.
+        // Length against zero rather than a comparison with "": an empty string is the one value a
+        // graph constant cannot carry unambiguously — it is indistinguishable from "no constant" —
+        // and the untyped ports of Equals make it worse. A number and a typed compare have neither
+        // problem, and `> 0` needs no constant at all.
+        b.add("nameLength", LengthNode.class, 1480, 420)
+                .add("named", GreaterThanNode.class, 1720, 420)
+                .title("named", "was a name given?")
+                .add("label", SelectNode.class, 1960, 420)
+                .option("label", "type", TypeHandles.STRING.getIdentification())
+                .title("label", "the name to show");
+        b.wire("nameLength.in", "name")
+                .wire("named.a", "nameLength.out")
+                .wire("label.cond", "named.out")
+                .wire("label.ifTrue", "name")
+                .wire("label.ifFalse", "trait");
 
         // ---- build this trait's tab --------------------------------------------------------------
         b.add("loadTab", BuiltinUINodes.Builtin.class, 2020, 0)
@@ -166,12 +207,12 @@ final class AutoIOPanelBlueprint {
         b.wire("addTab.parent", "strip.first")
                 .wire("addTab.child", "loadTab.root")
                 .wire("titleOf.root", "loadTab.root")
-                .wire("titleText.text", "trait")
+                .wire("titleText.text", "label.out")
                 .wire("setTitle.element", "titleOf.first")
                 .wire("setTitle.text", "titleText.out");
 
         b.wire("loadTab.trigger", "needStrip.falseExec")
-                .wire("loadTab.trigger", "addStrip.next");
+                .wire("loadTab.trigger", "skin.next");
         b.then("loadTab", "addTab", "setTitle");
 
         // ---- fold out and back -------------------------------------------------------------------
@@ -186,19 +227,38 @@ final class AutoIOPanelBlueprint {
                 .block("panelInfo", "panelState", UIElementInfoBlocks.State.class)
                 .add("flip", NotNode.class, 3220, 200)
                 .add("fold", UIStateNodes.SetFlag.class, 3220, 60)
-                .option("fold", "flag", UIStateNodes.Flag.VISIBLE)
+                // Display, not visibility: an invisible panel still occupies its place in the strip,
+                // so two tabs would reserve two panels' worth of room and the second would sit on top
+                // of the first. Undisplayed leaves the layout, and an open tab pushes the rest down.
+                .option("fold", "flag", UIStateNodes.Flag.DISPLAY)
                 .title("fold", "show it, or hide it again");
 
         b.wire("panelOf.root", "loadTab.root")
                 .wire("handleOf.root", "loadTab.root")
                 .wire("onHandle.element", "handleOf.first")
                 .wire("panelInfo.target", "panelOf.first")
-                .wire("flip.in", "panelState.visible")
+                .wire("flip.in", "panelState.displayed")
                 .wire("fold.element", "panelOf.first")
                 .wire("fold.value", "flip.out");
 
         b.then("setTitle", "onHandle");
         b.wire("fold.trigger", "onHandle.onEvent");
+
+        // ---- and say what the tab is for ----------------------------------------------------------
+        // Several tabs are several identical gears otherwise, and which one configures which trait is
+        // then something a player can only find by opening each.
+        b.add("tipHead", TextNodes.Translatable.class, 2740, 60)
+                .constant("tipHead.key", "mbd2.gui.auto_io.tab.named")
+                .add("tipName", TextNodes.Literal.class, 2740, 140)
+                .add("tip", TextNodes.Append.class, 2980, 100)
+                .add("nameTab", UIAnimationNodes.Tooltip.class, 3220, -60)
+                .title("nameTab", "which trait this tab is for");
+        b.wire("tipName.text", "label.out")
+                .wire("tip.a", "tipHead.out")
+                .wire("tip.b", "tipName.out")
+                .wire("nameTab.element", "handleOf.first")
+                .wire("nameTab.line", "tip.out");
+        b.wire("nameTab.trigger", "onHandle.next");
 
         b.note(2740, 420, 700, """
                 The click handler runs on the client: folding a
@@ -219,7 +279,7 @@ final class AutoIOPanelBlueprint {
         // target left unwired: a sync value pulls these conversions long after the UI event returned,
         // and the event's machine output does not survive that. Unwired reads the blueprint's own.
 
-        var previous = "onHandle.next";
+        var previous = "nameTab.next";
         for (int i = 0; i < FACES.length; i++) {
             previous = face(b, FACES[i], previous, 3560, 200 + i * FACE_ROW);
         }
@@ -265,18 +325,19 @@ final class AutoIOPanelBlueprint {
     private static final RelativeDirection[] FACES = {
             RelativeDirection.UP, RelativeDirection.FRONT, RelativeDirection.DOWN,
             RelativeDirection.LEFT, RelativeDirection.BACK, RelativeDirection.RIGHT};
-    /**
-     * What a face is tinted with, per state. Translucent so the button's own texture still reads
-     * through it, and written as LSS values so a pack author can restyle the panel by editing the
-     * blueprint's constants rather than this class.
-     */
     /** Where each face's state is published for the client to read. */
     private static final String DATA_PREFIX = "mbd2_autoio_";
 
-    private static final String NONE_BLOCK = "#40202020";
-    private static final String IN_BLOCK = "#804C9BE8";
-    private static final String OUT_BLOCK = "#80E8944C";
-    private static final String BOTH_BLOCK = "#805FCB84";
+    /**
+     * The whole class list a face carries in one state: its own identity plus what it is set to.
+     *
+     * <p>The identity class has to be repeated because the node <em>sets</em> the list rather than
+     * adding to it, and setting is what makes the four states exclusive — adding {@code in} would
+     * leave {@code out} behind from the tick before.</p>
+     */
+    private static String faceClasses(IO io) {
+        return BuiltinMachineUIs.FACE_CLASS + " " + BuiltinMachineUIs.ioClass(io);
+    }
 
     /**
      * One face's chain: read it, show it, and let a click change it.
@@ -365,17 +426,17 @@ final class AutoIOPanelBlueprint {
                 .add(get, NbtGetNode.class, x + 1180, y + 100)
                 .add(ofName, IONodes.OfName.class, x + 1420, y + 100)
                 .add(colour, IONodes.Choose.class, x + 1660, y + 100)
-                .constant(colour + ".whenNone", NONE_BLOCK)
-                .constant(colour + ".whenIn", IN_BLOCK)
-                .constant(colour + ".whenOut", OUT_BLOCK)
-                .constant(colour + ".whenBoth", BOTH_BLOCK)
-                .title(colour, "one colour per state")
-                .add(paint, UIStyleNodes.LssSet.class, x + 1900, y)
-                // The overlay, which is the only layer above a Button's own frame: an element paints
-                // its background first, the frame over that, then its children, then the overlay. A
-                // tint on the background would be hidden by the frame it is meant to colour.
-                .option(paint, "property", "overlay")
-                .title(paint, "tint the socket");
+                .constant(colour + ".whenNone", faceClasses(IO.NONE))
+                .constant(colour + ".whenIn", faceClasses(IO.IN))
+                .constant(colour + ".whenOut", faceClasses(IO.OUT))
+                .constant(colour + ".whenBoth", faceClasses(IO.BOTH))
+                .title(colour, "one class per state")
+                .add(paint, UIStyleNodes.ClassNames.class, x + 1900, y)
+                // A class, not a colour. What "in" looks like then lives in the stylesheet, where a
+                // pack can change it, rather than as a constant baked into this graph. Set rather
+                // than add, because the four states are exclusive and the previous one has to go.
+                .option(paint, "op", UIStyleNodes.ClassOp.SET)
+                .title(paint, "mark what this face is doing");
 
         b.wire(tick + ".element", button + ".first")
                 .wire(get + ".tag", data + ".value")
@@ -383,7 +444,7 @@ final class AutoIOPanelBlueprint {
                 .wire(ofName + ".name", get + ".out")
                 .wire(colour + ".io", ofName + ".io")
                 .wire(paint + ".element", button + ".first")
-                .wire(paint + ".value", colour + ".value");
+                .wire(paint + ".classes", colour + ".value");
 
         // ---- and what is actually on the other side of that face ---------------------------------
         // Read straight off the client's own level: the neighbour is one block away, so the client

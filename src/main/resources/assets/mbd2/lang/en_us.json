@@ -1470,6 +1470,7 @@
   "kg.node.mbd2_ui_set_item.out.ok": "Whether there was an element to draw on.",
   "ui": "UI",
   "mbd2.gui.auto_io.tab": "Auto IO",
+  "mbd2.gui.auto_io.tab.named": "Auto IO — ",
   "mbd2.gui.auto_io.in": "Pulls in",
   "mbd2.gui.auto_io.out": "Pushes out",
   "mbd2.gui.auto_io.both": "Both ways",
