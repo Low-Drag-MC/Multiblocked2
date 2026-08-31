@@ -14,6 +14,13 @@ import com.lowdragmc.mbd2.common.blueprint.node.machine.MachineActionNodes;
 import com.lowdragmc.mbd2.common.blueprint.node.machine.MachineInfoBlocks;
 import com.lowdragmc.mbd2.common.blueprint.node.machine.MachineInfoNode;
 import com.lowdragmc.mbd2.common.blueprint.node.machine.MachineRedstoneNodes;
+import com.lowdragmc.kilagraph.blueprint.nodes.mc.nbt.NbtCreateNode;
+import com.lowdragmc.kilagraph.blueprint.nodes.mc.nbt.NbtSetNode;
+import com.lowdragmc.kilagraph.blueprint.nodes.mc.nbt.NbtValueType;
+import com.lowdragmc.mbd2.common.blueprint.node.IONodes;
+import com.lowdragmc.mbd2.common.blueprint.node.machine.MachineRuntimeValueNodes;
+import com.lowdragmc.mbd2.common.blueprint.node.multiblock.MultiblockNodes;
+import net.minecraft.core.Direction;
 import com.lowdragmc.mbd2.common.blueprint.node.recipe.RecipeBuildNodes;
 import com.lowdragmc.mbd2.common.blueprint.node.recipe.RecipeContentNodes;
 import com.lowdragmc.mbd2.common.blueprint.node.recipe.RecipeLogicActionNodes;
@@ -59,6 +66,23 @@ public class BlueprintBehaviourFixtures implements TestFixtureProvider {
     public static final ResourceLocation CLIENT_ONLY_MACHINE_ID = MBD2.id("blueprint_client_only_machine");
     /** Hooks Machine Tick twice, with two independent effects. */
     public static final ResourceLocation DOUBLE_ENTRY_MACHINE_ID = MBD2.id("blueprint_double_entry_machine");
+    /** Writes three runtime values and reads all three back through the getter nodes. */
+    public static final ResourceLocation RUNTIME_READBACK_MACHINE_ID = MBD2.id("blueprint_runtime_readback_machine");
+    /** A controller that puts a tier on itself, for the part below to go and find. */
+    public static final ResourceLocation CONTROLLER_TIER_ID = MBD2.id("blueprint_controller_tier");
+    /** A part that reads its controller's tier and emits it as its own signal. */
+    public static final ResourceLocation PART_READS_CONTROLLER_ID = MBD2.id("blueprint_part_reads_controller");
+
+    /** The trait the runtime readback machine writes to and reads from. */
+    public static final String READBACK_TRAIT = "item_slot";
+    /** The interval it writes, chosen to be nothing any definition would produce on its own. */
+    public static final int READBACK_INTERVAL = 7;
+    /** Where the readback machine publishes what the two IO getters returned. */
+    public static final String CAPABILITY_IO_KEY = "read_capability_io";
+    public static final String RUNTIME_IO_KEY = "read_runtime_io";
+    public static final String RUNTIME_BOOL_KEY = "read_runtime_bool";
+    /** The tier the controller gives itself, and so the signal its part must end up emitting. */
+    public static final int CONTROLLER_TIER = 9;
 
     /** A recipe type whose one recipe has two outputs, the second bound to a named slot. */
     public static final ResourceLocation TWO_OUTPUT_RECIPE_TYPE_ID = MBD2.id("blueprint_two_output_recipe_type");
@@ -185,6 +209,146 @@ public class BlueprintBehaviourFixtures implements TestFixtureProvider {
                         .build())
                 .withBlueprint(signalOnFormed())
                 .register(event);
+
+        TestMachineBuilder.simple(RUNTIME_READBACK_MACHINE_ID)
+                .withItemSlots(1, IO.BOTH)
+                .withBlueprint(runtimeReadback())
+                .register(event);
+
+        var readingPart = TestMachineBuilder.simple(PART_READS_CONTROLLER_ID)
+                .withBlueprint(readControllerTier())
+                .register(event);
+
+        // Lazily, so the part's block exists by the time the pattern asks for it. "SCP" with the
+        // controller's default NORTH facing puts the stone at +X and the part at -X.
+        TestMachineBuilder.multiblock(CONTROLLER_TIER_ID)
+                .withBlockPattern(controller -> FactoryBlockPattern.start()
+                        .aisle("SCP")
+                        .where('C', Predicates.controller(Predicates.any()))
+                        .where('P', Predicates.blocks(readingPart.block()))
+                        .where('S', Predicates.blocks(Blocks.STONE))
+                        .build())
+                .withBlueprint(tierOnSelf())
+                .register(event);
+    }
+
+    /**
+     * {@code Machine Tick →} write three runtime values {@code →} read all three back.
+     *
+     * <p>The int comes out as the comparator signal and the two IO values as custom data, because a
+     * runtime value that cannot be read back is a value nobody can act on — the setters existed
+     * without getters, which made the whole system write-only.</p>
+     *
+     * <p>Each value is read by a <em>different</em> route on purpose: the interval by the generic
+     * {@code Get Runtime Int}, the top side by the dedicated {@code Get Capability IO Side}, and the
+     * internal side by the generic {@code Get Runtime IO}. The internal side is used for the generic
+     * one because it is the one slot no direction maps to, so the two writes cannot collide.</p>
+     */
+    private static MachineBlueprintGraph runtimeReadback() {
+        var graph = new MachineBlueprintGraph();
+        var tick = KGGameTestHelpers.addRegisteredNode(graph, TickEventNode.class);
+
+        var setInterval = KGGameTestHelpers.addRegisteredNode(graph, MachineRuntimeValueNodes.SetRuntimeInt.class);
+        KGGameTestHelpers.setInputConstant(setInterval, "trait", READBACK_TRAIT);
+        KGGameTestHelpers.setInputConstant(setInterval, "key", "auto_io.interval");
+        KGGameTestHelpers.setInputConstant(setInterval, "value", READBACK_INTERVAL);
+
+        var setCapability = KGGameTestHelpers.addRegisteredNode(graph, MachineRuntimeValueNodes.SetCapabilityIOSide.class);
+        KGGameTestHelpers.setInputConstant(setCapability, "trait", READBACK_TRAIT);
+        KGGameTestHelpers.setInputConstant(setCapability, "side", Direction.UP);
+        KGGameTestHelpers.setInputConstant(setCapability, "io", IO.OUT);
+
+        var setEnabled = KGGameTestHelpers.addRegisteredNode(graph, MachineRuntimeValueNodes.SetRuntimeBool.class);
+        KGGameTestHelpers.setInputConstant(setEnabled, "trait", READBACK_TRAIT);
+        KGGameTestHelpers.setInputConstant(setEnabled, "key", "auto_io.enable");
+        KGGameTestHelpers.setInputConstant(setEnabled, "value", true);
+
+        var setInternal = KGGameTestHelpers.addRegisteredNode(graph, MachineRuntimeValueNodes.SetRuntimeIO.class);
+        KGGameTestHelpers.setInputConstant(setInternal, "trait", READBACK_TRAIT);
+        KGGameTestHelpers.setInputConstant(setInternal, "key", "capability_io.internal");
+        KGGameTestHelpers.setInputConstant(setInternal, "value", IO.IN);
+
+        var getInterval = KGGameTestHelpers.addRegisteredNode(graph, MachineRuntimeValueNodes.GetRuntimeInt.class);
+        KGGameTestHelpers.setInputConstant(getInterval, "trait", READBACK_TRAIT);
+        KGGameTestHelpers.setInputConstant(getInterval, "key", "auto_io.interval");
+        var signal = KGGameTestHelpers.addRegisteredNode(graph, MachineRedstoneNodes.SetAnalogSignal.class);
+        KGGameTestHelpers.wire(graph, signal.getInputsById().get("signal"), getInterval.getOutputsById().get("value"));
+
+        var getCapability = KGGameTestHelpers.addRegisteredNode(graph, MachineRuntimeValueNodes.GetCapabilityIOSide.class);
+        KGGameTestHelpers.setInputConstant(getCapability, "trait", READBACK_TRAIT);
+        KGGameTestHelpers.setInputConstant(getCapability, "side", Direction.UP);
+        var getInternal = KGGameTestHelpers.addRegisteredNode(graph, MachineRuntimeValueNodes.GetRuntimeIO.class);
+        KGGameTestHelpers.setInputConstant(getInternal, "trait", READBACK_TRAIT);
+        KGGameTestHelpers.setInputConstant(getInternal, "key", "capability_io.internal");
+
+        var publish = KGGameTestHelpers.addRegisteredNode(graph, MachineActionNodes.MergeCustomData.class);
+        var tag = KGGameTestHelpers.addRegisteredNode(graph, NbtCreateNode.class);
+        var putCapability = KGGameTestHelpers.addRegisteredNode(graph, NbtSetNode.class);
+        KGGameTestHelpers.setInputConstant(putCapability, "key", CAPABILITY_IO_KEY);
+        var putInternal = KGGameTestHelpers.addRegisteredNode(graph, NbtSetNode.class);
+        KGGameTestHelpers.setInputConstant(putInternal, "key", RUNTIME_IO_KEY);
+        var putEnabled = KGGameTestHelpers.addRegisteredNode(graph, NbtSetNode.class);
+        KGGameTestHelpers.setOption(putEnabled, "valueType", NbtValueType.BOOL);
+        KGGameTestHelpers.setInputConstant(putEnabled, "key", RUNTIME_BOOL_KEY);
+        var capabilityName = KGGameTestHelpers.addRegisteredNode(graph, IONodes.Info.class);
+        var internalName = KGGameTestHelpers.addRegisteredNode(graph, IONodes.Info.class);
+
+        KGGameTestHelpers.wire(graph, capabilityName.getInputsById().get("io"), getCapability.getOutputsById().get("io"));
+        KGGameTestHelpers.wire(graph, internalName.getInputsById().get("io"), getInternal.getOutputsById().get("value"));
+        KGGameTestHelpers.wire(graph, putCapability.getInputsById().get("tag"), tag.getOutputsById().get("out"));
+        KGGameTestHelpers.wire(graph, putCapability.getInputsById().get("value"), capabilityName.getOutputsById().get("name"));
+        KGGameTestHelpers.wire(graph, putInternal.getInputsById().get("tag"), putCapability.getOutputsById().get("out"));
+        KGGameTestHelpers.wire(graph, putInternal.getInputsById().get("value"), internalName.getOutputsById().get("name"));
+        var getEnabled = KGGameTestHelpers.addRegisteredNode(graph, MachineRuntimeValueNodes.GetRuntimeBool.class);
+        KGGameTestHelpers.setInputConstant(getEnabled, "trait", READBACK_TRAIT);
+        KGGameTestHelpers.setInputConstant(getEnabled, "key", "auto_io.enable");
+        KGGameTestHelpers.wire(graph, putEnabled.getInputsById().get("tag"), putInternal.getOutputsById().get("out"));
+        KGGameTestHelpers.wire(graph, putEnabled.getInputsById().get("value"), getEnabled.getOutputsById().get("value"));
+        KGGameTestHelpers.wire(graph, publish.getInputsById().get("data"), putEnabled.getOutputsById().get("out"));
+
+        KGGameTestHelpers.wire(graph, setInterval.getInputsById().get("in"), tick.getOutputsById().get("next"));
+        KGGameTestHelpers.wire(graph, setCapability.getInputsById().get("in"), setInterval.getOutputsById().get("next"));
+        KGGameTestHelpers.wire(graph, setEnabled.getInputsById().get("in"), setCapability.getOutputsById().get("next"));
+        KGGameTestHelpers.wire(graph, setInternal.getInputsById().get("in"), setEnabled.getOutputsById().get("next"));
+        KGGameTestHelpers.wire(graph, signal.getInputsById().get("in"), setInternal.getOutputsById().get("next"));
+        KGGameTestHelpers.wire(graph, publish.getInputsById().get("in"), signal.getOutputsById().get("next"));
+        return graph;
+    }
+
+    /** {@code Machine Tick → Set Machine Tier(9)}, for a part to come and read. */
+    private static MachineBlueprintGraph tierOnSelf() {
+        var graph = new MachineBlueprintGraph();
+        var tick = KGGameTestHelpers.addRegisteredNode(graph, TickEventNode.class);
+        var setTier = KGGameTestHelpers.addRegisteredNode(graph, MachineActionNodes.SetTier.class);
+        KGGameTestHelpers.setInputConstant(setTier, "tier", CONTROLLER_TIER);
+        KGGameTestHelpers.wire(graph, setTier.getInputsById().get("in"), tick.getOutputsById().get("next"));
+        return graph;
+    }
+
+    /**
+     * {@code Machine Tick → Set Analog Signal(Part Controllers.first → Controller Machine → Tier)}.
+     *
+     * <p>The tier is the controller's and nothing else in the part produces it, so the signal can only
+     * be nine if every step of the hop worked. Before {@code Controller Machine} existed the chain
+     * stopped at {@code Part Controllers}: a part could find what it belonged to and then read
+     * nothing off it.</p>
+     */
+    private static MachineBlueprintGraph readControllerTier() {
+        var graph = new MachineBlueprintGraph();
+        var tick = KGGameTestHelpers.addRegisteredNode(graph, TickEventNode.class);
+        var controllers = KGGameTestHelpers.addRegisteredNode(graph, MultiblockNodes.PartControllers.class);
+        var controllerMachine = KGGameTestHelpers.addRegisteredNode(graph, MultiblockNodes.ControllerMachine.class);
+        var info = KGGameTestHelpers.addRegisteredNode(graph, MachineInfoNode.class);
+        var tier = KGGameTestHelpers.addBlock(graph, info, MachineInfoBlocks.MachineTier.class);
+        var signal = KGGameTestHelpers.addRegisteredNode(graph, MachineRedstoneNodes.SetAnalogSignal.class);
+
+        KGGameTestHelpers.wire(graph, controllerMachine.getInputsById().get("controller"),
+                controllers.getOutputsById().get("first"));
+        KGGameTestHelpers.wire(graph, info.getInputsById().get("target"),
+                controllerMachine.getOutputsById().get("machine"));
+        KGGameTestHelpers.wire(graph, signal.getInputsById().get("signal"), tier.getOutputsById().get("value"));
+        KGGameTestHelpers.wire(graph, signal.getInputsById().get("in"), tick.getOutputsById().get("next"));
+        return graph;
     }
 
     /**

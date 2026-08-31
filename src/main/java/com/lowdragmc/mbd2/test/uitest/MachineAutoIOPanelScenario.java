@@ -2,6 +2,7 @@ package com.lowdragmc.mbd2.test.uitest;
 
 import com.lowdragmc.lowdraglib2.gui.factory.BlockUIMenuType;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerScreen;
+import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.IGuiTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.ItemStackTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -9,6 +10,8 @@ import com.lowdragmc.lowdraglib2.registry.RegistrationEnvironment;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib2.uitest.ScenarioBuilder;
 import com.lowdragmc.lowdraglib2.uitest.ScenarioOptions;
+import com.lowdragmc.lowdraglib2.uitest.ServerContext;
+import com.lowdragmc.lowdraglib2.uitest.TestContext;
 import com.lowdragmc.lowdraglib2.uitest.UIScenario;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
@@ -16,10 +19,15 @@ import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.test.tests.blueprint.AutoIOPanelFixtures;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.Blocks;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * The {@code auto_io_panel} built-in as a player sees it.
@@ -120,12 +128,12 @@ public class MachineAutoIOPanelScenario implements UIScenario {
                     for (var entry : checked.entrySet()) {
                         var found = origins(ctx, entry.getKey(), entry.getValue());
                         ctx.attach(entry.getKey() + "." + entry.getValue(), String.valueOf(found));
-                        ok &= found.equals(java.util.List.of("STYLESHEET"));
+                        ok &= found.equals(List.of("STYLESHEET"));
                     }
                     return ok;
                 })
                 .check("the tab says which trait it configures", ctx -> {
-                    var tips = tooltip(ctx, "handle", 0);
+                    var tips = tooltip(ctx, "handle");
                     ctx.attach("handle.tooltip", tips);
                     return tips.contains(AutoIOPanelFixtures.ITEM_TRAIT);
                 })
@@ -255,15 +263,15 @@ public class MachineAutoIOPanelScenario implements UIScenario {
                 // A chest on the top face and nothing on the left is what tells a working read from a
                 // node that draws whatever it last saw.
                 .check("a face shows the block on the other side of it", ctx -> {
-                    var up = computed(ctx, "item_UP", "overlay");
-                    var left = computed(ctx, "item_LEFT", "overlay");
+                    var up = overlayOf(ctx, "item_UP");
+                    var left = overlayOf(ctx, "item_LEFT");
                     ctx.attach("item_UP", describe(up));
                     ctx.attach("item_LEFT", describe(left));
                     return up instanceof ItemStackTexture item
                             && item.items.length == 1 && item.items[0].is(Items.CHEST)
                             && !(left instanceof ItemStackTexture);
                 })
-                .step("click a face", ctx -> clickFace(ctx, "face_UP", 1))
+                .step("click a face", ctx -> clickFace(ctx, "face_UP"))
                 // A click travels the long way round — client rpc, server runtime write, custom data,
                 // desc sync, client tick — so waiting for the face to change colour is the whole round
                 // trip, not just a listener firing. IN cycles to OUT, which is what the bottom face
@@ -279,20 +287,18 @@ public class MachineAutoIOPanelScenario implements UIScenario {
                 .closeScreen();
     }
 
-
-
     /** Where the blueprint publishes one face's state, for the item-slot tab this asserts on. */
     private static String key(String face) {
         return "mbd2_autoio_" + face + "_" + AutoIOPanelFixtures.ITEM_TRAIT;
     }
 
     /** The machine's custom data as the server holds it — what the blueprint wrote. */
-    private CompoundTag serverData(com.lowdragmc.lowdraglib2.uitest.ServerContext sc) {
+    private CompoundTag serverData(ServerContext sc) {
         return customData(sc.level(), pos);
     }
 
     /** The same, as the client holds it — what the desc sync delivered. */
-    private CompoundTag clientData(com.lowdragmc.lowdraglib2.uitest.TestContext ctx) {
+    private CompoundTag clientData(TestContext ctx) {
         return customData(ctx.level(), pos);
     }
 
@@ -304,35 +310,33 @@ public class MachineAutoIOPanelScenario implements UIScenario {
         return new CompoundTag();
     }
 
-    /** Clicks one face button {@code times} times, walking its state that far round the cycle. */
-    private static void clickFace(com.lowdragmc.lowdraglib2.uitest.TestContext ctx, String id, int times) {
+    /** Presses and releases one face button, walking its state one step round the cycle. */
+    private static void clickFace(TestContext ctx, String id) {
         var bounds = ctx.query().withId(id).nth(0).one().bounds();
-        for (int i = 0; i < times; i++) {
-            ctx.input().mouseDown(bounds.centerX(), bounds.centerY(), 0);
-            ctx.input().mouseUp(bounds.centerX(), bounds.centerY(), 0);
-        }
+        ctx.input().mouseDown(bounds.centerX(), bounds.centerY(), 0);
+        ctx.input().mouseUp(bounds.centerX(), bounds.centerY(), 0);
     }
 
     /**
-     * The computed overlay of the first element with this id — what the blueprint tints state with.
-     * The neighbour's item is on a child element, which is a different question.
+     * The computed overlay of the first element with this id, as a colour where it is one.
+     *
+     * <p>The colour rather than the instance: two rects of the same colour are different objects, so
+     * {@code toString()} would report every face as different from every other.</p>
      */
-    private static String overlay(com.lowdragmc.lowdraglib2.uitest.TestContext ctx, String id) {
-        var texture = computed(ctx, id, "overlay");
-        // The colour, not the instance: two rects of the same colour are different objects, so
-        // toString() would report every face as different from every other.
-        return texture instanceof com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture rect
+    private static String overlay(TestContext ctx, String id) {
+        var texture = overlayOf(ctx, id);
+        return texture instanceof ColorRectTexture rect
                 ? Integer.toHexString(rect.color)
                 : describe(texture);
     }
 
+    /** The same, as the texture itself — for the faces' item layer, which is not a colour. */
     @Nullable
-    private static IGuiTexture computed(com.lowdragmc.lowdraglib2.uitest.TestContext ctx,
-                                        String id, String propertyName) {
-        var element = ctx.query().withId(id).nth(0).one().as(UIElement.class);
+    private static IGuiTexture overlayOf(TestContext ctx, String id) {
+        var element = element(ctx, id);
         for (var style : element.getStyles()) {
             for (var property : style.getPropertiesList()) {
-                if (property.name.equals(propertyName)
+                if (property.name.equals("overlay")
                         && style.getValueSave(property) instanceof IGuiTexture texture) {
                     return texture;
                 }
@@ -341,12 +345,10 @@ public class MachineAutoIOPanelScenario implements UIScenario {
         return null;
     }
 
-    /** Every cascade origin holding a value for one property on one element, e.g. [DEFAULT, STYLESHEET]. */
-    private static java.util.List<String> origins(com.lowdragmc.lowdraglib2.uitest.TestContext ctx,
-                                                  String id, String propertyName) {
-        var element = ctx.query().withId(id).nth(0).one().as(UIElement.class);
-        var found = new java.util.ArrayList<String>();
-        element.getStyleBag().candidates.forEach((property, slots) -> {
+    /** Every cascade origin holding a value for one property on one element, e.g. [STYLESHEET]. */
+    private static List<String> origins(TestContext ctx, String id, String propertyName) {
+        var found = new ArrayList<String>();
+        element(ctx, id).getStyleBag().candidates.forEach((property, slots) -> {
             if (!property.name.equals(propertyName)) return;
             slots.forEach(slot -> found.add(slot.origin().name()));
         });
@@ -354,12 +356,12 @@ public class MachineAutoIOPanelScenario implements UIScenario {
     }
 
     /** The first element with this id. */
-    private static UIElement element(com.lowdragmc.lowdraglib2.uitest.TestContext ctx, String id) {
+    private static UIElement element(TestContext ctx, String id) {
         return ctx.query().withId(id).nth(0).one().as(UIElement.class);
     }
 
     /** Its box, for a report that has to show where six things ended up. */
-    private static String box(com.lowdragmc.lowdraglib2.uitest.TestContext ctx, String id) {
+    private static String box(TestContext ctx, String id) {
         return rect(element(ctx, id));
     }
 
@@ -369,19 +371,18 @@ public class MachineAutoIOPanelScenario implements UIScenario {
                 + " " + element.getSizeWidth() + "x" + element.getSizeHeight();
     }
 
-    /** The tooltip lines of the nth element with this id, joined — what a hover would show. */
-    private static String tooltip(com.lowdragmc.lowdraglib2.uitest.TestContext ctx, String id, int nth) {
-        var element = ctx.query().withId(id).nth(nth).one().as(UIElement.class);
-        var tooltips = element.getStyle().tooltips();
+    /** The tooltip lines of the first element with this id, joined — what a hover would show. */
+    private static String tooltip(TestContext ctx, String id) {
+        var tooltips = element(ctx, id).getStyle().tooltips();
         return tooltips == null ? "" : tooltips.asList().stream()
-                .map(net.minecraft.network.chat.Component::getString)
+                .map(Component::getString)
                 .reduce("", (a, z) -> a + z);
     }
 
     /** A texture as something readable in the report — the item for a stack, the class otherwise. */
     private static String describe(@Nullable IGuiTexture texture) {
         if (texture instanceof ItemStackTexture item) {
-            return "item(" + java.util.Arrays.stream(item.items)
+            return "item(" + Arrays.stream(item.items)
                     .map(stack -> stack.getItem().toString()).toList() + ")";
         }
         return texture == null ? "none" : texture.getClass().getSimpleName();

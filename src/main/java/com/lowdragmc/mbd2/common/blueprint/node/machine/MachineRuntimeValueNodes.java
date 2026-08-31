@@ -280,6 +280,107 @@ public final class MachineRuntimeValueNodes {
     }
 
     /**
+     * Read a runtime value by name — the mirror of {@link SetRuntimeValue}.
+     *
+     * <p>Without this a graph can write a per-machine value and never read it back, which makes the
+     * whole system write-only: a blueprint that stores a mode on a machine cannot then act on it.
+     * The value returned is what the machine <em>uses</em> — its override if it has one, its
+     * definition's otherwise — which is the question nearly every caller is asking.
+     * {@code Is Runtime Value Overridden} answers the other one.</p>
+     *
+     * <p>{@code found} separates "the value is false/zero" from "there is no such value here",
+     * which a typed output cannot express on its own.</p>
+     */
+    private abstract static class GetRuntimeValue extends AnnotatedNode {
+        @InputPort public MBDMachine machine;
+        @InputPort public String trait = "";
+        @InputPort public String key = "";
+        @OutputPort public boolean found;
+
+        @Override
+        public final void evaluate(EvalContext ctx) {
+            ctx.setOutput("found", false);
+            publish(ctx, null);
+            var target = MachineNodes.resolve(ctx, MachineNodes.MACHINE_INPUT);
+            var key = ctx.getInput("key", String.class, "");
+            if (target == null || key.isEmpty()) return;
+            var holder = holder(target, ctx.getInput("trait", String.class, ""));
+            if (holder == null || holder.getRuntimeValues().slot(key) == null) return;
+            ctx.setOutput("found", true);
+            publish(ctx, holder.getRuntimeValues().get(key));
+        }
+
+        /** Put {@code value} on this node's typed output, or its zero when there is nothing to put. */
+        protected abstract void publish(EvalContext ctx, @Nullable Object value);
+    }
+
+    /** @see GetRuntimeValue */
+    @NodeAttribute(name = "mbd2_machine_get_runtime_bool", group = INFO_GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class GetRuntimeBool extends GetRuntimeValue {
+        @OutputPort public boolean value;
+
+        @Override
+        protected void publish(EvalContext ctx, @Nullable Object value) {
+            ctx.setOutput("value", value instanceof Boolean bool && bool);
+        }
+    }
+
+    /** @see GetRuntimeValue */
+    @NodeAttribute(name = "mbd2_machine_get_runtime_int", group = INFO_GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class GetRuntimeInt extends GetRuntimeValue {
+        @OutputPort public int value;
+
+        @Override
+        protected void publish(EvalContext ctx, @Nullable Object value) {
+            ctx.setOutput("value", value instanceof Number number ? number.intValue() : 0);
+        }
+    }
+
+    /** @see GetRuntimeValue */
+    @NodeAttribute(name = "mbd2_machine_get_runtime_io", group = INFO_GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class GetRuntimeIO extends GetRuntimeValue {
+        @OutputPort public IO value;
+
+        @Override
+        protected void publish(EvalContext ctx, @Nullable Object value) {
+            ctx.setOutput("value", value instanceof IO io ? io : IO.NONE);
+        }
+    }
+
+    /**
+     * Which way a trait's capability faces on one side — the mirror of {@code Set Capability IO Side}.
+     *
+     * <p>{@code side} is a world direction, resolved against the machine's facing, exactly as the
+     * setter takes one; {@code Relative Side} converts one of the machine's own faces into it. This is
+     * about what neighbouring pipes and hoppers may do, which is a different question from auto IO —
+     * that is the machine reaching out, this is what it lets others reach in for.</p>
+     */
+    @NodeAttribute(name = "mbd2_machine_get_capability_io_side", group = INFO_GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class GetCapabilityIOSide extends AnnotatedNode {
+        @InputPort public MBDMachine machine;
+        @InputPort public String trait = "";
+        @InputPort public Direction side = Direction.NORTH;
+        @OutputPort public IO io;
+        @OutputPort public boolean supported;
+
+        @Override
+        public void evaluate(EvalContext ctx) {
+            ctx.setOutput("io", IO.NONE);
+            ctx.setOutput("supported", false);
+            var target = MachineNodes.resolve(ctx, MachineNodes.MACHINE_INPUT);
+            var side = ctx.getInput("side", Direction.class, null);
+            if (target == null || side == null) return;
+            if (!(holder(target, ctx.getInput("trait", String.class, ""))
+                    instanceof SimpleCapabilityTrait<?, ?> capabilityTrait)) {
+                return;
+            }
+            ctx.setOutput("supported", true);
+            ctx.setOutput("io", capabilityTrait.capabilityIO.getIO(
+                    target.getFrontFacing().orElse(Direction.NORTH), side));
+        }
+    }
+
+    /**
      * Whether a value is currently overridden on this machine, as opposed to being read from its
      * definition. For a blueprint that wants to override something only once, or show the difference.
      */

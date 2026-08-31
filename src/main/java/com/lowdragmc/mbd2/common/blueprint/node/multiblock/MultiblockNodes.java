@@ -130,6 +130,25 @@ public final class MultiblockNodes {
     }
 
     /**
+     * The machine of a multiblock controller, so the machine nodes can read it.
+     *
+     * <p>The other half of {@code Part Machine}. Without it, {@code Part Controllers} hands back a
+     * list nothing else in the graph accepts: a part could find the controllers it belongs to and
+     * then ask them nothing — not their state, not their recipe logic, not even where they are.</p>
+     */
+    @NodeAttribute(name = "mbd2_multiblock_controller_machine", group = GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class ControllerMachine extends AnnotatedNode {
+        @InputPort public IMultiController controller;
+        @OutputPort public MBDMachine machine;
+
+        @Override
+        public void evaluate(EvalContext ctx) {
+            var controller = ctx.getInput("controller", IMultiController.class, null);
+            ctx.setOutput("machine", controller instanceof MBDMachine controllerMachine ? controllerMachine : null);
+        }
+    }
+
+    /**
      * Why the structure did not form, when it did not.
      *
      * <p>The same text the multiblock preview shows. Absent while the structure is fine.</p>
@@ -153,19 +172,29 @@ public final class MultiblockNodes {
         }
     }
 
-    /** The controllers a part belongs to. A shared part can serve more than one. */
+    /**
+     * The controllers a part belongs to. A shared part can serve more than one.
+     *
+     * <p>{@code first} is there because one controller is the overwhelmingly common case, and going
+     * through the list for it costs a {@code List Get} whose element type has to be spelled out —
+     * friction for the answer nearly every caller wants. The list is still the truth for a part that
+     * serves several.</p>
+     */
     @NodeAttribute(name = "mbd2_multiblock_part_controllers", group = GROUP, graphTypes = MachineBlueprintGraph.class)
     public static class PartControllers extends AnnotatedNode {
         @InputPort public MBDMachine machine;
         @OutputPort public List<IMultiController> controllers;
+        @OutputPort public IMultiController first;
         @OutputPort public boolean isPart;
 
         @Override
         public void evaluate(EvalContext ctx) {
             var target = MachineNodes.resolve(ctx, MachineNodes.MACHINE_INPUT);
             var part = target instanceof MBDPartMachine partMachine ? partMachine : null;
+            var controllers = part == null ? List.<IMultiController>of() : part.getControllers();
             ctx.setOutput("isPart", part != null);
-            ctx.setOutput("controllers", part == null ? List.of() : part.getControllers());
+            ctx.setOutput("controllers", controllers);
+            ctx.setOutput("first", controllers.isEmpty() ? null : controllers.iterator().next());
         }
     }
 

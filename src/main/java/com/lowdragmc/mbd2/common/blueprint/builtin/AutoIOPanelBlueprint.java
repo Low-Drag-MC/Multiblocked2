@@ -54,8 +54,13 @@ import java.util.Locale;
  * Because the interesting question was whether a blueprint can build UI at all, and this is the
  * smallest honest test of it: a panel that has to be created, styled, wired to events, kept in step
  * with server-side state, and merged with whatever else is already on the screen. Every node it uses
- * is a general one — load a document, select by id, add a child, listen for a click, sync a value.
- * There is no "auto IO panel" node doing the work behind a single pin.
+ * is a general one — load a template, select by id, add a child, attach a stylesheet, set a class,
+ * listen for a click. There is no "auto IO panel" node doing the work behind a single pin.
+ *
+ * <h2>Where the look comes from</h2>
+ * {@code lss/mbd2_auto_io.lss}, attached to the strip when it is created. The graph never picks a
+ * colour or a size: it puts a class on a face saying what that face is set to and lets the sheet say
+ * what that looks like, so a pack restyles the panel by shipping its own file at that path.
  *
  * <h2>How the client knows what a face is set to</h2>
  * Through the machine's custom data, not through a UI sync value. Auto IO overrides live in the

@@ -9,6 +9,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.pattern.util.RelativeDirection;
+import dev.vfyjxf.taffy.style.AlignContent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
@@ -101,11 +102,6 @@ public final class BuiltinMachineUIs {
 
     private BuiltinMachineUIs() {}
 
-    /** Every built-in UI's name, in the order they are declared. */
-    public static Iterable<String> names() {
-        return BUILDERS.keySet();
-    }
-
     /**
      * Put these in the editor's UI resource library, where {@code ldlib2_ui_template_load} finds them.
      *
@@ -114,7 +110,7 @@ public final class BuiltinMachineUIs {
      */
     public static void register() {
         var instance = UIResource.INSTANCE.getResourceInstance();
-        var provider = new BuiltinResourceProvider<UITemplate>(PROVIDER_NAME, instance);
+        var provider = new BuiltinResourceProvider<>(PROVIDER_NAME, instance);
         for (var entry : BUILDERS.entrySet()) {
             try {
                 provider.addResource(entry.getKey(), UITemplate.of(entry.getValue().get(), AUTO_IO_STYLESHEET));
@@ -164,7 +160,7 @@ public final class BuiltinMachineUIs {
 
         var panel = new UIElement();
         panel.setId("panel");
-        panel.addClasses(PANEL_CLASS);
+        panel.addClasses(PANEL_CLASS, "panel_bg");
         tab.addChild(panel);
 
         var title = new Label();
@@ -184,7 +180,8 @@ public final class BuiltinMachineUIs {
     /** What the colours mean, in the order a face cycles through them. */
     private static UIElement legend() {
         var legend = new UIElement();
-        legend.addClasses("mbd2-auto-io-legend");
+        legend.addClasses("mbd2-auto-io-legend", "preview_bg");
+        legend.layout(layout -> layout.justifyContent(AlignContent.SPACE_BETWEEN));
         for (var io : new IO[]{IO.IN, IO.OUT, IO.BOTH}) {
             var swatch = new UIElement();
             // Both the shared swatch class and the state class the faces use, so a pack recolouring
@@ -193,13 +190,14 @@ public final class BuiltinMachineUIs {
             swatch.style(style -> style.tooltips("mbd2.gui.auto_io." + io.name().toLowerCase(Locale.ROOT)));
             legend.addChild(swatch);
         }
+        legend.moveInlineAsDefault();
         return legend;
     }
 
     /** The face cross. Grid rather than rows: the gaps are what make it a machine. */
     private static UIElement faceGrid() {
         var grid = new UIElement();
-        grid.addClasses("mbd2-auto-io-grid");
+        grid.addClasses("mbd2-auto-io-grid", "preview_bg");
         for (var relative : new RelativeDirection[]{RelativeDirection.UP, RelativeDirection.LEFT,
                 RelativeDirection.FRONT, RelativeDirection.RIGHT, RelativeDirection.DOWN,
                 RelativeDirection.BACK}) {

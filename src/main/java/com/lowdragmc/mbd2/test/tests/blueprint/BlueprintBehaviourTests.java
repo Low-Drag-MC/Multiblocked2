@@ -2,6 +2,7 @@ package com.lowdragmc.mbd2.test.tests.blueprint;
 
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.test.framework.MBDScenario;
+import com.lowdragmc.mbd2.test.framework.MBDTestHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.gametest.framework.GameTest;
@@ -208,6 +209,80 @@ public class BlueprintBehaviourTests {
             return;
         }
         scenario.succeed();
+    }
+
+    /**
+     * Every runtime value a blueprint can write, it can read back.
+     *
+     * <p>The setters shipped without getters, which made the whole system write-only: a blueprint
+     * could put a mode on a machine and never act on it again. Three values by three different
+     * routes, because they fail independently — the generic int getter, the dedicated capability-IO
+     * one, and the generic IO one.</p>
+     *
+     * <p>The values are ones nothing else in the machine produces, so a getter that reads nothing
+     * lands on zero or {@code NONE} rather than accidentally on the right answer.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void everyRuntimeValueWrittenCanBeReadBack(GameTestHelper helper) {
+        var scenario = MBDScenario.of(helper)
+                .placeMachine(BlueprintBehaviourFixtures.RUNTIME_READBACK_MACHINE_ID, new BlockPos(1, 1, 1))
+                .runTicks(5);
+        var machine = scenario.machine();
+
+        int interval = machine.getAnalogOutputSignal();
+        if (interval != BlueprintBehaviourFixtures.READBACK_INTERVAL) {
+            helper.fail("Get Runtime Int read back " + interval + ", expected "
+                    + BlueprintBehaviourFixtures.READBACK_INTERVAL);
+            return;
+        }
+        var data = machine.getCustomData();
+        var capability = data.getString(BlueprintBehaviourFixtures.CAPABILITY_IO_KEY);
+        if (!"OUT".equals(capability)) {
+            helper.fail("Get Capability IO Side read back '" + capability + "', expected OUT");
+            return;
+        }
+        var generic = data.getString(BlueprintBehaviourFixtures.RUNTIME_IO_KEY);
+        if (!"IN".equals(generic)) {
+            helper.fail("Get Runtime IO read back '" + generic + "', expected IN");
+            return;
+        }
+        if (!data.getBoolean(BlueprintBehaviourFixtures.RUNTIME_BOOL_KEY)) {
+            helper.fail("Get Runtime Bool read back false for a flag the same graph had just set");
+            return;
+        }
+        scenario.succeed();
+    }
+
+    /**
+     * A part can reach its controller and read it.
+     *
+     * <p>{@code Part Controllers} hands back controllers and, until {@code Controller Machine}
+     * existed, nothing else in the graph accepted one — a part could find what it belonged to and
+     * then ask it nothing. The tier is the controller's own and the part has no way to produce it
+     * otherwise, so the signal is only nine if every step of the hop worked.</p>
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void aPartCanReadItsController(GameTestHelper helper) {
+        var controller = new BlockPos(1, 1, 1);
+        var part = new BlockPos(0, 1, 1);
+        var scenario = MBDScenario.of(helper)
+                .placeBlock(new BlockPos(2, 1, 1), Blocks.STONE.defaultBlockState())
+                .placeMachine(BlueprintBehaviourFixtures.PART_READS_CONTROLLER_ID, part)
+                .placeMachine(BlueprintBehaviourFixtures.CONTROLLER_TIER_ID, controller)
+                .assertFormed()
+                .runTicks(5);
+
+        var partMachine = MBDTestHelper.getMachine(helper, part);
+        int signal = partMachine.getAnalogOutputSignal();
+        if (signal != BlueprintBehaviourFixtures.CONTROLLER_TIER) {
+            helper.fail("the part read " + signal + " off its controller, expected "
+                    + BlueprintBehaviourFixtures.CONTROLLER_TIER
+                    + " — Part Controllers → Controller Machine → Tier did not complete");
+            return;
+        }
+        helper.succeed();
     }
 
     // ---- recipe content editing -----------------------------------------------------------------
