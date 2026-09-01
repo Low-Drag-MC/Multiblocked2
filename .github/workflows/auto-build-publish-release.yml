@@ -227,8 +227,9 @@ jobs:
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
 
           files: |
-            build/libs/!(*-@(dev|sources|javadoc|dev-shadow|all)).jar
-            build/libs/*-@(sources).jar
+            build/libs/*-all.jar
+            build/libs/!(*-@(all|sources|javadoc|dev-shadow)).jar
+            build/libs/*-@(sources|javadoc|dev-shadow).jar
 
           name: Multiblocked2-${{ env.MINECRAFT_VERSION }}-${{ needs.validate.outputs.version }}-neoforge
           version: mc${{ env.MINECRAFT_VERSION }}-${{ needs.validate.outputs.version }}-neoforge
