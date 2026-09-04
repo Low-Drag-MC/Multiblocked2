@@ -1,4 +1,8 @@
 # ChangeLogs
+## v21.1.1
+* Added more runtime values
+* Added Ars Nouveau compat
+
 ## v21.1.0
 * Added machine blueprints: a node graph that gives a machine its logic, edited in-game and stored with the definition
 * Added runtime values so a machine can override its definition's config per placed instance
