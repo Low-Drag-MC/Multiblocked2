@@ -13,6 +13,8 @@ import com.lowdragmc.mbd2.api.recipe.ingredient.EntityIngredient;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.capability.recipe.*;
 import com.lowdragmc.mbd2.common.recipe.*;
+import com.lowdragmc.mbd2.integration.arsnouveau.ArsSourceNearbyCondition;
+import com.lowdragmc.mbd2.integration.arsnouveau.ArsSourceRecipeCapability;
 import com.lowdragmc.mbd2.integration.create.CreateRotation;
 import com.lowdragmc.mbd2.integration.create.CreateRotationCondition;
 import com.lowdragmc.mbd2.integration.create.CreateRotationRecipeCapability;
@@ -311,6 +313,20 @@ public interface MBDRecipeSchema {
             return outputs(NaturesAuraRecipeCapability.CAP, aura);
         }
 
+        public MBDRecipeJS inputSource(int source) {
+            if (!MBD2.isArsNouveauLoaded()) {
+                throw new IllegalStateException("Try to add a source ingredient while the ars nouveau is not loaded!");
+            }
+            return inputs(ArsSourceRecipeCapability.CAP, source);
+        }
+
+        public MBDRecipeJS outputSource(int source) {
+            if (!MBD2.isArsNouveauLoaded()) {
+                throw new IllegalStateException("Try to add a source ingredient while the ars nouveau is not loaded!");
+            }
+            return outputs(ArsSourceRecipeCapability.CAP, source);
+        }
+
 //        public MBDRecipeJS inputEmber(double ember) {
 //            if (!MBD2.isEmbersLoaded()) {
 //                throw new IllegalStateException("Try to add a ember ingredient while the embers is not loaded!");
@@ -521,6 +537,14 @@ public interface MBDRecipeSchema {
                 throw new IllegalStateException("Try to add a temperature condition while the pneumatic is not loaded!");
             }
             addCondition(new PNCTemperatureCondition(minTemperature, maxTemperature));
+            return this;
+        }
+
+        public MBDRecipeJS arsSourceNearbyCondition(int radius, int minSource, int maxSource) {
+            if (!MBD2.isArsNouveauLoaded()) {
+                throw new IllegalStateException("Try to add a source condition while the ars nouveau is not loaded!");
+            }
+            addCondition(new ArsSourceNearbyCondition(radius, minSource, maxSource));
             return this;
         }
 

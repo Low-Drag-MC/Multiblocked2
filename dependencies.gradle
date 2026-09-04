@@ -125,7 +125,39 @@ dependencies {
     localImplementation("maven.modrinth:jade:${jade_version}")
 
     // Ars Nouveau
-//    localImplementation("com.hollingsworth.ars_nouveau:ars_nouveau-${minecraft_version}:${ars_nouveau_version}")
+    //
+    // -PnoArsNouveau, same idea as -PnoPhoton / -PnoMekanism / -PnoPneumaticCraft above. The trait
+    // definition's nested Type names ISourceCap in its own signature and the blueprint nodes reach
+    // SourceUtil, so registering either without the jar would be a NoClassDefFoundError; both rely on
+    // modID = "ars_nouveau" being read from the ASM scan data before the class is loaded. That is a
+    // claim about class resolution, and only a run without the jar tests it.
+    //
+    //   gradlew runGameTestServer -PnoArsNouveau
+    //
+    // The curse.maven exclusion is not optional: Ars Nouveau's runtime variant pulls
+    // curse.maven:jade-324717, and we already have maven.modrinth:jade. Two jars, one mod id, and FML
+    // refuses to start.
+    def arsNouveau = "com.hollingsworth.ars_nouveau:ars_nouveau-${minecraft_version}:${ars_nouveau_version}"
+    if (project.hasProperty('noArsNouveau')) {
+        compileOnly(arsNouveau) { transitive = false }
+    } else {
+        localImplementation(arsNouveau) {
+            exclude group: "curse.maven"
+        }
+        // Ars Nouveau asks for nuggets as "[1.0.4,)", and Gradle honours an open range by taking the
+        // newest — which is how a March 2025 Ars Nouveau ends up running against a January 2026
+        // nuggets. Between those two, nuggets renamed BaseScreen's bookLeft/bookTop/bookRight/
+        // bookBottom to screenLeft/screenTop/..., and BaseDocScreen extends BaseScreen: opening the
+        // Worn Notebook dies with "NoSuchFieldError: bookLeft". So pin nuggets to the build Ars
+        // Nouveau 5.5.1.978 was actually compiled against, and move the two together.
+        //
+        // `strictly` rather than an exclude on purpose. An exclude would silently hand a future Ars
+        // Nouveau a nuggets older than its minimum and we would be back here with a different field
+        // name; a strict version fails resolution loudly instead.
+        localRuntimeOnly("com.hollingsworth.nuggets:nuggets-neoforge-1.21") {
+            version { strictly "1.0.4.35" }
+        }
+    }
 
     // AE2
     localImplementation("org.appliedenergistics:appliedenergistics2:${ae2_version}")

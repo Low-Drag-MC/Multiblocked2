@@ -63,6 +63,11 @@ public class MBDTestRegistry {
             register(new com.lowdragmc.mbd2.test.tests.trait.naturesaura.AuraHandlerTraitFixtures());
             register(new com.lowdragmc.mbd2.test.tests.recipe.naturesaura.NaturesAuraRecipeCapabilityFixtures());
         }
+        if (net.neoforged.fml.ModList.get().isLoaded("ars_nouveau")) {
+            register(new com.lowdragmc.mbd2.test.tests.trait.arsnouveau.SourceStorageTraitFixtures());
+            register(new com.lowdragmc.mbd2.test.tests.trait.arsnouveau.NearbySourceTraitFixtures());
+            register(new com.lowdragmc.mbd2.test.tests.recipe.arsnouveau.ArsSourceRecipeCapabilityFixtures());
+        }
         if (net.neoforged.fml.ModList.get().isLoaded("pneumaticcraft")) {
             register(new com.lowdragmc.mbd2.test.tests.trait.pneumaticcraft.PNCHeatTraitFixtures());
             register(new com.lowdragmc.mbd2.test.tests.trait.pneumaticcraft.PNCPressureTraitFixtures());
@@ -105,6 +110,12 @@ public class MBDTestRegistry {
         if (modList.isLoaded("naturesaura")) {
             event.register(com.lowdragmc.mbd2.test.tests.trait.naturesaura.AuraHandlerTraitTests.class);
             event.register(com.lowdragmc.mbd2.test.tests.recipe.naturesaura.NaturesAuraRecipeCapabilityTests.class);
+        }
+        if (modList.isLoaded("ars_nouveau")) {
+            event.register(com.lowdragmc.mbd2.test.tests.trait.arsnouveau.SourceStorageTraitTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.trait.arsnouveau.NearbySourceTraitTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.recipe.arsnouveau.ArsSourceRecipeCapabilityTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.recipe.arsnouveau.ArsSourceNearbyConditionTests.class);
         }
         if (modList.isLoaded("pneumaticcraft")) {
             event.register(com.lowdragmc.mbd2.test.tests.trait.pneumaticcraft.PNCHeatTraitTests.class);

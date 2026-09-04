@@ -34,6 +34,9 @@ public final class MBDSprites {
     public final static SpriteTexture MEK_HEAT_BAR = SpriteTexture.of("mbd2:textures/gui/mek_heat_bar.png");
     public final static SpriteTexture PRESSURE_AIR_BAR = SpriteTexture.of("mbd2:textures/gui/pressure_air_bar.png").setBorder(1);
     public final static SpriteTexture NATURES_AURA = SpriteTexture.of("naturesaura:textures/item/aura_cache.png");
+    public final static SpriteTexture ARS_SOURCE = SpriteTexture.of("ars_nouveau:textures/item/source_gem.png");
+    public final static SpriteTexture ARS_SOURCE_BAR = SpriteTexture.of("mbd2:textures/gui/ars_source_bar.png")
+            .setBorder(1).setWrapMode(SpriteTexture.WrapMode.REPEAT);
 
 
     public static void init(ResourceInstance<IGuiTexture> instance) {

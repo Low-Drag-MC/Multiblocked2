@@ -96,6 +96,10 @@ public class MBD2 {
         return LDLib2.isModLoaded("ae2");
     }
 
+    public static boolean isArsNouveauLoaded() {
+        return LDLib2.isModLoaded("ars_nouveau");
+    }
+
     public static boolean isEmbeddiumLoaded() {
         return LDLib2.isModLoaded("embeddium");
     }
