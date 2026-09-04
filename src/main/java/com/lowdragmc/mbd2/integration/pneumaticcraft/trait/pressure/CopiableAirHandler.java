@@ -20,7 +20,13 @@ public class CopiableAirHandler extends MachineAirHandler implements INBTSeriali
     public Runnable onContentsChanged = () -> {};
 
     private final PressureTier tier;
-    private final float maxPressure;
+    /**
+     * Not final: it fronts the {@code max_pressure} runtime value, which a machine can override.
+     * {@code tier} needs no such treatment — the trait hands in a {@link PressureTier} that reads its
+     * own slots, and {@code MachineAirHandler} calls through it on every query.
+     */
+    @Setter
+    private float maxPressure;
     private List<Direction> sides = new ArrayList<>();
 
     public CopiableAirHandler(PressureTier tier, int baseVolume, float maxPressure) {

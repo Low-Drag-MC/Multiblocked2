@@ -14,10 +14,17 @@ import com.lowdragmc.mbd2.common.blueprint.node.MachineTargetActionNode;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.runtime.IRuntimeValueHolder;
 import com.lowdragmc.mbd2.common.runtime.RuntimeAutoIO;
+import com.lowdragmc.mbd2.common.runtime.RuntimeAutoWorldIO;
+import com.lowdragmc.mbd2.common.runtime.RuntimeValue;
 import com.lowdragmc.mbd2.common.trait.IAutoIOTrait;
+import com.lowdragmc.mbd2.common.trait.IAutoWorldIOTrait;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
 import net.minecraft.core.Direction;
+import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.Collection;
+import java.util.stream.Collectors;
 
 /**
  * Overriding, per machine, the values a definition authors — auto IO, capability IO, and any other
@@ -35,8 +42,25 @@ public final class MachineRuntimeValueNodes {
 
     private static final String ACTION_GROUP = "mbd2/machine/action";
     private static final String INFO_GROUP = "mbd2/machine";
+    /** What the box readers publish when there is no box to read, so their outputs are never stale. */
+    private static final AABB EMPTY_BOX = new AABB(0, 0, 0, 0, 0, 0);
 
     private MachineRuntimeValueNodes() {}
+
+    /**
+     * A runtime value as text, for {@link GetRuntimeString}.
+     *
+     * <p>A list joins on commas rather than using {@code List.toString} so the result is exactly what
+     * {@link SetRuntimeString} takes back — {@code "[a, b]"} would not round-trip.</p>
+     */
+    private static String asText(@Nullable Object value) {
+        if (value == null) return "";
+        if (value instanceof Enum<?> constant) return constant.name();
+        if (value instanceof Collection<?> collection) {
+            return collection.stream().map(String::valueOf).collect(Collectors.joining(","));
+        }
+        return String.valueOf(value);
+    }
 
     /**
      * The runtime value holder a {@code trait} name selects: the machine when empty, otherwise the named
@@ -121,6 +145,73 @@ public final class MachineRuntimeValueNodes {
         @Override
         protected Object value(ExecContext ctx) {
             return ctx.getInput("value", IO.class, IO.NONE);
+        }
+    }
+
+    /**
+     * @see SetRuntimeValue
+     *
+     * <p>{@code Set Runtime Value (Number)} also writes a decimal value — it just rounds on the way in,
+     * because an integral slot refuses a fraction. This one is for the slots that keep it.</p>
+     */
+    @NodeAttribute(name = "mbd2_machine_set_runtime_float", group = ACTION_GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class SetRuntimeFloat extends SetRuntimeValue {
+        @InputPort public float value;
+
+        @Override
+        protected Object value(ExecContext ctx) {
+            return ctx.getInput("value", Float.class, 0f);
+        }
+    }
+
+    /**
+     * @see SetRuntimeValue
+     *
+     * <p>Reaches more than the text slots: a value is coerced to whatever the slot holds, so this also
+     * sets an enum by constant name and a list of names from a comma-separated string —
+     * {@code "input,catalyst"} into {@code slot_names}.</p>
+     */
+    @NodeAttribute(name = "mbd2_machine_set_runtime_string", group = ACTION_GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class SetRuntimeString extends SetRuntimeValue {
+        @InputPort public String value = "";
+
+        @Override
+        protected Object value(ExecContext ctx) {
+            return ctx.getInput("value", String.class, "");
+        }
+    }
+
+    /**
+     * Write a box-shaped runtime value — {@code area} on an entity handler, {@code auto_world_input.range}
+     * and {@code auto_world_output.range} on an item or fluid trait.
+     *
+     * <p>Six numbers rather than one box input because a graph has no box type to wire, and because the
+     * corners are usually computed — a scan area that grows with the machine's tier is
+     * {@code -tier, -tier, -tier} to {@code 1 + tier, ...}.</p>
+     *
+     * <p>The box is machine-relative and unrotated, exactly as the editor authors it; the trait rotates
+     * it to the machine's facing when it uses it.</p>
+     */
+    @NodeAttribute(name = "mbd2_machine_set_runtime_box", group = ACTION_GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class SetRuntimeBox extends SetRuntimeValue {
+        @InputPort public double minX;
+        @InputPort public double minY;
+        @InputPort public double minZ;
+        @InputPort public double maxX = 1;
+        @InputPort public double maxY = 1;
+        @InputPort public double maxZ = 1;
+
+        @Override
+        protected Object value(ExecContext ctx) {
+            // AABB's constructor sorts the corners itself, so a graph that wires them the wrong way round
+            // gets the box it meant rather than one that contains nothing
+            return new AABB(
+                    ctx.getInput("minX", Double.class, 0d),
+                    ctx.getInput("minY", Double.class, 0d),
+                    ctx.getInput("minZ", Double.class, 0d),
+                    ctx.getInput("maxX", Double.class, 1d),
+                    ctx.getInput("maxY", Double.class, 1d),
+                    ctx.getInput("maxZ", Double.class, 1d));
         }
     }
 
@@ -279,6 +370,136 @@ public final class MachineRuntimeValueNodes {
         return holder instanceof IAutoIOTrait autoIOTrait ? autoIOTrait.getRuntimeAutoIO() : null;
     }
 
+    // ***** auto world IO ***** //
+
+    /**
+     * Base for the auto <b>world</b> IO setters — the scan box a trait picks dropped items or fluid
+     * blocks up from, as opposed to {@code Set Auto IO ...}, which is about neighbouring block
+     * capabilities.
+     *
+     * <p>{@code io} picks which of the two sets of values to write: {@code IN} for pulling out of the
+     * world, {@code OUT} for pushing into it. Anything else is not a choice between them and does
+     * nothing.</p>
+     */
+    private abstract static class AutoWorldIOAction extends RuntimeValueAction {
+        @InputPort public IO io = IO.IN;
+
+        @Override
+        protected final void apply(ExecContext ctx, MBDMachine machine, IRuntimeValueHolder holder) {
+            if (!(holder instanceof IAutoWorldIOTrait worldIOTrait)) return;
+            var values = worldIOTrait.getRuntimeAutoWorldIO(ctx.getInput("io", IO.class, IO.IN));
+            if (values != null) {
+                apply(ctx, values);
+            }
+        }
+
+        protected abstract void apply(ExecContext ctx, RuntimeAutoWorldIO values);
+    }
+
+    /** Turn a trait's world scanning on or off for this machine only. */
+    @NodeAttribute(name = "mbd2_machine_set_auto_world_io_enabled", group = ACTION_GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class SetAutoWorldIOEnabled extends AutoWorldIOAction {
+        @InputPort public boolean enabled;
+
+        @Override
+        protected void apply(ExecContext ctx, RuntimeAutoWorldIO values) {
+            values.enable.set(ctx.getInput("enabled", Boolean.class, false));
+        }
+    }
+
+    /** Set how often a trait scans the world, in ticks, for this machine only. */
+    @NodeAttribute(name = "mbd2_machine_set_auto_world_io_interval", group = ACTION_GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class SetAutoWorldIOInterval extends AutoWorldIOAction {
+        @InputPort public int interval = 20;
+
+        @Override
+        protected void apply(ExecContext ctx, RuntimeAutoWorldIO values) {
+            values.interval.set(Math.max(1, ctx.getInput("interval", Integer.class, 20)));
+        }
+    }
+
+    /** How much a trait moves per scan — items for an item slot, mB for a tank. */
+    @NodeAttribute(name = "mbd2_machine_set_auto_world_io_speed", group = ACTION_GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class SetAutoWorldIOSpeed extends AutoWorldIOAction {
+        @InputPort public int speed = 1;
+
+        @Override
+        protected void apply(ExecContext ctx, RuntimeAutoWorldIO values) {
+            values.speed.set(Math.max(0, ctx.getInput("speed", Integer.class, 1)));
+        }
+    }
+
+    /**
+     * Set the box a trait scans, for this machine only.
+     *
+     * <p>Machine-relative and unrotated, the way the editor authors it — the trait turns it to face the
+     * machine when it uses it, so a box wired here does not need rotating first.</p>
+     */
+    @NodeAttribute(name = "mbd2_machine_set_auto_world_io_range", group = ACTION_GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class SetAutoWorldIORange extends AutoWorldIOAction {
+        @InputPort public double minX;
+        @InputPort public double minY;
+        @InputPort public double minZ;
+        @InputPort public double maxX = 1;
+        @InputPort public double maxY = 1;
+        @InputPort public double maxZ = 1;
+
+        @Override
+        protected void apply(ExecContext ctx, RuntimeAutoWorldIO values) {
+            values.range.set(new AABB(
+                    ctx.getInput("minX", Double.class, 0d),
+                    ctx.getInput("minY", Double.class, 0d),
+                    ctx.getInput("minZ", Double.class, 0d),
+                    ctx.getInput("maxX", Double.class, 1d),
+                    ctx.getInput("maxY", Double.class, 1d),
+                    ctx.getInput("maxZ", Double.class, 1d)));
+        }
+    }
+
+    /**
+     * Whether a trait scans the world at all, and how it is currently set up.
+     *
+     * <p>{@code supported} is the question to ask before drawing any of the controls above: most traits
+     * do not do this, and the setters are silent no-ops on one that does not.</p>
+     */
+    @NodeAttribute(name = "mbd2_machine_auto_world_io_info", group = INFO_GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class AutoWorldIOInfo extends AnnotatedNode {
+        @InputPort public MBDMachine machine;
+        @InputPort public String trait = "";
+        @InputPort public IO io = IO.IN;
+        @OutputPort public boolean supported;
+        @OutputPort public boolean enabled;
+        @OutputPort public int interval;
+        @OutputPort public int speed;
+        @OutputPort public double minX;
+        @OutputPort public double minY;
+        @OutputPort public double minZ;
+        @OutputPort public double maxX;
+        @OutputPort public double maxY;
+        @OutputPort public double maxZ;
+
+        @Override
+        public void evaluate(EvalContext ctx) {
+            RuntimeAutoWorldIO values = null;
+            var target = MachineNodes.resolve(ctx, MachineNodes.MACHINE_INPUT);
+            if (target != null
+                    && holder(target, ctx.getInput("trait", String.class, "")) instanceof IAutoWorldIOTrait worldIOTrait) {
+                values = worldIOTrait.getRuntimeAutoWorldIO(ctx.getInput("io", IO.class, IO.IN));
+            }
+            ctx.setOutput("supported", values != null);
+            ctx.setOutput("enabled", values != null && values.enable.get());
+            ctx.setOutput("interval", values == null ? 0 : values.intervalTicks());
+            ctx.setOutput("speed", values == null ? 0 : values.speed.get());
+            var box = values == null ? EMPTY_BOX : values.range.get();
+            ctx.setOutput("minX", box.minX);
+            ctx.setOutput("minY", box.minY);
+            ctx.setOutput("minZ", box.minZ);
+            ctx.setOutput("maxX", box.maxX);
+            ctx.setOutput("maxY", box.maxY);
+            ctx.setOutput("maxZ", box.maxZ);
+        }
+    }
+
     /**
      * Read a runtime value by name — the mirror of {@link SetRuntimeValue}.
      *
@@ -344,6 +565,85 @@ public final class MachineRuntimeValueNodes {
         @Override
         protected void publish(EvalContext ctx, @Nullable Object value) {
             ctx.setOutput("value", value instanceof IO io ? io : IO.NONE);
+        }
+    }
+
+    /** @see GetRuntimeValue */
+    @NodeAttribute(name = "mbd2_machine_get_runtime_float", group = INFO_GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class GetRuntimeFloat extends GetRuntimeValue {
+        @OutputPort public float value;
+
+        @Override
+        protected void publish(EvalContext ctx, @Nullable Object value) {
+            ctx.setOutput("value", value instanceof Number number ? number.floatValue() : 0f);
+        }
+    }
+
+    /**
+     * @see GetRuntimeValue
+     *
+     * <p>Every slot has a readable text form, so this answers for all of them: an enum comes back as its
+     * constant name and a list of slot names comma-separated, which is the form
+     * {@code Set Runtime Value (Text)} takes back.</p>
+     */
+    @NodeAttribute(name = "mbd2_machine_get_runtime_string", group = INFO_GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class GetRuntimeString extends GetRuntimeValue {
+        @OutputPort public String value;
+
+        @Override
+        protected void publish(EvalContext ctx, @Nullable Object value) {
+            ctx.setOutput("value", asText(value));
+        }
+    }
+
+    /** Read a box-shaped runtime value. @see SetRuntimeBox */
+    @NodeAttribute(name = "mbd2_machine_get_runtime_box", group = INFO_GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class GetRuntimeBox extends GetRuntimeValue {
+        @OutputPort public double minX;
+        @OutputPort public double minY;
+        @OutputPort public double minZ;
+        @OutputPort public double maxX;
+        @OutputPort public double maxY;
+        @OutputPort public double maxZ;
+
+        @Override
+        protected void publish(EvalContext ctx, @Nullable Object value) {
+            var box = value instanceof AABB aabb ? aabb : EMPTY_BOX;
+            ctx.setOutput("minX", box.minX);
+            ctx.setOutput("minY", box.minY);
+            ctx.setOutput("minZ", box.minZ);
+            ctx.setOutput("maxX", box.maxX);
+            ctx.setOutput("maxY", box.maxY);
+            ctx.setOutput("maxZ", box.maxZ);
+        }
+    }
+
+    /**
+     * Every runtime value name available on the target, comma-separated, and how many there are.
+     *
+     * <p>The rest of these nodes are addressed by name, and until now there was no way to find out what
+     * the names <em>are</em> short of reading the source — a typo just logged a warning somewhere.
+     * Wire this into a debug label while authoring, or use {@code count} to check a trait supports
+     * anything at all before offering a panel of controls for it.</p>
+     */
+    @NodeAttribute(name = "mbd2_machine_runtime_value_keys", group = INFO_GROUP, graphTypes = MachineBlueprintGraph.class)
+    public static class RuntimeValueKeys extends AnnotatedNode {
+        @InputPort public MBDMachine machine;
+        @InputPort public String trait = "";
+        @OutputPort public String keys;
+        @OutputPort public int count;
+
+        @Override
+        public void evaluate(EvalContext ctx) {
+            ctx.setOutput("keys", "");
+            ctx.setOutput("count", 0);
+            var target = MachineNodes.resolve(ctx, MachineNodes.MACHINE_INPUT);
+            if (target == null) return;
+            var holder = holder(target, ctx.getInput("trait", String.class, ""));
+            if (holder == null) return;
+            var slots = holder.getRuntimeValues().slots();
+            ctx.setOutput("keys", slots.stream().map(RuntimeValue::getKey).collect(Collectors.joining(",")));
+            ctx.setOutput("count", slots.size());
         }
     }
 

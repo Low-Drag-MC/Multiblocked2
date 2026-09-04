@@ -36,7 +36,8 @@ import javax.annotation.Nonnull;
 import java.util.*;
 import java.util.function.Predicate;
 
-public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler, @Nullable Direction> implements IAutoIOTrait {
+public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler, @Nullable Direction>
+        implements IAutoIOTrait, IAutoWorldIOTrait {
     @Persisted
     @DescSynced
     @ConditionalSynced(methodName = "shouldSyncStorage")
@@ -62,6 +63,18 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
             });
     public final RuntimeValue<Integer> slotLimit =
             runtimeValues.ofInt("slot_limit", () -> getDefinition().getSlotLimit());
+    /**
+     * Whether the definition's item filter applies to this machine.
+     * <p>
+     * Only the on/off leaf, not the filter's contents — those are a whole configurable object, and the
+     * blueprint that wants a different filter wants a second trait rather than a rewritten one. Turning
+     * it off is the case that comes up: an otherwise filtered machine that should take anything.
+     * <p>
+     * No {@code onChanged} hook: every read of it goes through a live lambda, so nothing is cached that
+     * could go stale.
+     */
+    public final RuntimeValue<Boolean> filterEnabled =
+            runtimeValues.ofBool("filter.enable", () -> getDefinition().getItemFilterSettings().isEnable());
 
     // runtime
     private final Random random = new Random();
@@ -111,10 +124,10 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
         // Read the filter live instead of baking the definition's object in at construction. handleAutoIO
         // always read it live, so a filter toggled after the machine was placed — an editor edit plus
         // /mbd2 reload_machine_projects — applied to auto IO but not to the slots themselves.
-        transfer.setFilter(stack -> {
-            var filter = getDefinition().getItemFilterSettings();
-            return !filter.isEnable() || filter.test(stack);
-        });
+        // matches() rather than test(): test() short-circuits on the definition's own enable flag, so a
+        // machine that switched the filter ON over a definition that has it off would filter nothing
+        transfer.setFilter(stack -> !filterEnabled.get()
+                || getDefinition().getItemFilterSettings().matches(stack));
         return transfer;
     }
 
@@ -148,6 +161,16 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
     @Override
     public RuntimeAutoIO getRuntimeAutoIO() {
         return autoIO;
+    }
+
+    @Override
+    public RuntimeAutoWorldIO getRuntimeAutoWorldInput() {
+        return autoWorldInput;
+    }
+
+    @Override
+    public RuntimeAutoWorldIO getRuntimeAutoWorldOutput() {
+        return autoWorldOutput;
     }
 
     @Override
@@ -227,8 +250,8 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
             if (io.support(IO.IN)) {
                 var source = nearby;
 
-                Predicate<ItemStack> filter = getDefinition().getItemFilterSettings().isEnable() ?
-                        getDefinition().getItemFilterSettings() : Predicates.alwaysTrue();
+                Predicate<ItemStack> filter = filterEnabled.get()
+                        ? getDefinition().getItemFilterSettings()::matches : Predicates.alwaysTrue();
 
                 int maxAmount = Integer.MAX_VALUE;
 

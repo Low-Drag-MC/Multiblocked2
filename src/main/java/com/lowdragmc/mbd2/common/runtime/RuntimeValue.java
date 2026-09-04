@@ -7,6 +7,10 @@ import com.mojang.serialization.DynamicOps;
 import net.minecraft.nbt.Tag;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 
@@ -184,6 +188,9 @@ public final class RuntimeValue<T> {
                     "Runtime value '%s' cannot be set to null — clear() is how you remove an override"
                             .formatted(key));
         }
+        // before the isInstance check below: an ArrayList *is* a List, and returning the caller's own
+        // mutable list would put a value behind the slot that someone else can still change
+        if (type == List.class) return (T) coerceStringList(value);
         if (type.isInstance(value)) return (T) value;
         if (value instanceof Number number) {
             // Rhino hands every JS number over as a Double, so an integral slot sees 7.0 rather than 7.
@@ -210,6 +217,35 @@ public final class RuntimeValue<T> {
         }
         throw new IllegalArgumentException("Cannot use %s as runtime value '%s' of type %s"
                 .formatted(value, key, type.getSimpleName()));
+    }
+
+    /**
+     * Convert an untyped value to the immutable string list a {@code ofStringList} slot holds.
+     * <p>
+     * Accepts a collection, an array, or a single string — the last one split on commas, because the
+     * blueprint's string node and a KubeJS string literal are the only ways most authors will ever reach
+     * a list slot, and {@code "input,catalyst"} is what they will type. Elements are trimmed and blanks
+     * dropped, so a trailing comma is not a slot named {@code ""}.
+     */
+    private List<String> coerceStringList(Object value) {
+        Iterable<?> elements;
+        if (value instanceof Collection<?> collection) {
+            elements = collection;
+        } else if (value instanceof Object[] array) {
+            elements = Arrays.asList(array);
+        } else if (value instanceof CharSequence sequence) {
+            elements = Arrays.asList(sequence.toString().split(","));
+        } else {
+            throw new IllegalArgumentException("Cannot use %s as runtime value '%s', which is a list of strings"
+                    .formatted(value, key));
+        }
+        var result = new ArrayList<String>();
+        for (var element : elements) {
+            if (element == null) continue;
+            var text = element.toString().trim();
+            if (!text.isEmpty()) result.add(text);
+        }
+        return List.copyOf(result);
     }
 
     private int exactInt(Number number) {

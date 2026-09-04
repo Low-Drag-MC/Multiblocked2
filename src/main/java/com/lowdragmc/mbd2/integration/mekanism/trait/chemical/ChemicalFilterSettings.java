@@ -43,7 +43,11 @@ public class ChemicalFilterSettings implements IToggleConfigurable, Predicate<Ch
 
     @Override
     public boolean test(ChemicalStack stack) {
-        if (!enable) return true;
+        return !enable || matches(stack);
+    }
+
+    /** @see com.lowdragmc.mbd2.common.trait.item.ItemFilterSettings#matches */
+    public boolean matches(ChemicalStack stack) {
         var chemicalKey = MekanismAPI.CHEMICAL_REGISTRY.getKey(stack.getChemical());
         if (chemicalKey != null) {
             for (var entry : filterChemicals) {

@@ -25,6 +25,7 @@ import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.common.capability.recipe.FluidRecipeCapability;
 import com.lowdragmc.mbd2.common.capability.recipe.ItemRecipeCapability;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
+import com.lowdragmc.mbd2.common.runtime.RuntimeValue;
 import com.lowdragmc.mbd2.common.trait.RecipeHandlerTrait;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
 import lombok.Getter;
@@ -60,6 +61,18 @@ public class MEPatternProviderTrait extends SimpleCapabilityTrait<MEStorage, @Nu
     private final SerializablePatternProviderLogic patternProviderLogic;
     private final ItemRecipeHandler itemRecipeHandler = new ItemRecipeHandler();
     private final FluidRecipeHandler fluidRecipeHandler = new FluidRecipeHandler();
+
+    // per-machine overrides of the values authored on the definition. patternSize / slotSize are
+    // deliberately absent: they size the provider's inventories, which cannot be resized under a running
+    // grid without losing what is in them.
+    /** How many items of one kind this provider will buffer. */
+    public final RuntimeValue<Integer> itemCapacity =
+            runtimeValues.ofInt("item_capacity", () -> getDefinition().getItemCapacity())
+                    .onChanged(this::applyCapacities);
+    /** How much fluid of one kind this provider will buffer, in mB. */
+    public final RuntimeValue<Integer> fluidCapacity =
+            runtimeValues.ofInt("fluid_capacity", () -> getDefinition().getFluidCapacity())
+                    .onChanged(this::applyCapacities);
 
     public MEPatternProviderTrait(MBDMachine machine, MEPatternProviderTraitDefinition definition) {
         super(machine, definition);
@@ -99,7 +112,7 @@ public class MEPatternProviderTrait extends SimpleCapabilityTrait<MEStorage, @Nu
     }
 
     public void applyCapacities() {
-        patternProviderLogic.applyCapacities(getDefinition().getItemCapacity(), getDefinition().getFluidCapacity());
+        patternProviderLogic.applyCapacities(itemCapacity.get(), fluidCapacity.get());
     }
 
     @Override

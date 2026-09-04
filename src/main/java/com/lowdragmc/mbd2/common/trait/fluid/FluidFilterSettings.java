@@ -45,9 +45,11 @@ public class FluidFilterSettings implements IToggleConfigurable, Predicate<Fluid
 
     @Override
     public boolean test(FluidStack fluidStack) {
-        if (!enable) {
-            return true;
-        }
+        return !enable || matches(fluidStack);
+    }
+
+    /** @see com.lowdragmc.mbd2.common.trait.item.ItemFilterSettings#matches */
+    public boolean matches(FluidStack fluidStack) {
         for (var filterFluids : filterFluids) {
             if (matchComponent) {
                 if (FluidStack.isSameFluidSameComponents(filterFluids, fluidStack)) {

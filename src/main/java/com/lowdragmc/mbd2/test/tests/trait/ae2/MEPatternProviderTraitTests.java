@@ -2,8 +2,10 @@ package com.lowdragmc.mbd2.test.tests.trait.ae2;
 
 import appeng.api.stacks.AEFluidKey;
 import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import com.lowdragmc.mbd2.MBD2;
+import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigMachineSettings;
 import com.lowdragmc.mbd2.integration.ae2.trait.MEInterfaceTraitDefinition;
 import com.lowdragmc.mbd2.integration.ae2.trait.MEPatternProviderTrait;
@@ -121,6 +123,49 @@ public class MEPatternProviderTraitTests {
         }
         h.fail("No ME pattern provider trait on " + MEPatternProviderTraitFixtures.MACHINE_ID);
         throw new AssertionError();
+    }
+
+    /**
+     * The buffer capacities as runtime values. {@code applyCapacities()} already existed and is already
+     * re-appliable, so the slots only had to read from themselves and hook it — but the hook is what
+     * makes an override reach AE2's inventories, which cache the capacity per key type.
+     */
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
+    @PrefixGameTestTemplate(false)
+    public static void pattern_provider_capacity_overrides_reach_the_inventories(GameTestHelper h) {
+        MBDScenario.of(h)
+                .placeMachine(MEPatternProviderTraitFixtures.MACHINE_ID, POS)
+                .check("the buffers start on the definition",
+                        m -> itemBufferCapacity(m) == 16 && fluidBufferCapacity(m) == 8000)
+                .with(m -> providerTrait(m).itemCapacity.set(64))
+                .with(m -> providerTrait(m).fluidCapacity.set(16_000))
+                .check("an override should reach the storage inventory",
+                        m -> itemBufferCapacity(m) == 64 && fluidBufferCapacity(m) == 16_000)
+                .assertPersistenceRoundTrip()
+                .check("and survive a save/load cycle",
+                        m -> itemBufferCapacity(m) == 64 && fluidBufferCapacity(m) == 16_000)
+                .with(m -> {
+                    providerTrait(m).itemCapacity.clear();
+                    providerTrait(m).fluidCapacity.clear();
+                })
+                .check("clearing should go back to the definition",
+                        m -> itemBufferCapacity(m) == 16 && fluidBufferCapacity(m) == 8000)
+                .succeed();
+    }
+
+    private static long itemBufferCapacity(MBDMachine machine) {
+        return providerTrait(machine).getPatternProviderLogic().getReturnInventory().getCapacity(AEKeyType.items());
+    }
+
+    private static long fluidBufferCapacity(MBDMachine machine) {
+        return providerTrait(machine).getPatternProviderLogic().getReturnInventory().getCapacity(AEKeyType.fluids());
+    }
+
+    private static MEPatternProviderTrait providerTrait(MBDMachine machine) {
+        for (var trait : machine.getAdditionalTraits()) {
+            if (trait instanceof MEPatternProviderTrait providerTrait) return providerTrait;
+        }
+        throw new AssertionError("fixture machine has no ME pattern provider trait");
     }
 
     @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)

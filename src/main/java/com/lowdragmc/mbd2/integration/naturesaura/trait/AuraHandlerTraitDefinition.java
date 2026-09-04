@@ -93,7 +93,9 @@ public class AuraHandlerTraitDefinition extends RecipeCapabilityTraitDefinition 
                     var level = auraTrait.getMachine().getLevel();
                     var pos = auraTrait.getMachine().getPos();
                     if (level == null) return 0;
-                    return IAuraChunk.getAuraInArea(level, pos, auraTrait.getDefinition().getRadius());
+                    // the trait's effective radius, not the definition's: an overridden machine draws
+                    // from a different area than this would otherwise report
+                    return IAuraChunk.getAuraInArea(level, pos, auraTrait.radiusBlocks());
                 }).remoteSetter(aura::set).build();
                 label.addSyncValue(auraSync.getSyncValue());
                 label.bindDataSource(SupplierDataSource.of(() ->

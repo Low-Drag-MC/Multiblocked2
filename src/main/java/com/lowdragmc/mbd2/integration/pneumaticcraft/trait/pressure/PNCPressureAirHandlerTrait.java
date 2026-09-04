@@ -7,6 +7,7 @@ import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.runtime.RuntimeAutoIO;
 import com.lowdragmc.mbd2.common.runtime.RuntimeConnectedIO;
+import com.lowdragmc.mbd2.common.runtime.RuntimeValue;
 import com.lowdragmc.mbd2.common.trait.IAutoIOTrait;
 import com.lowdragmc.mbd2.common.trait.RecipeHandlerTrait;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
@@ -14,6 +15,7 @@ import com.lowdragmc.mbd2.integration.pneumaticcraft.PNCPressureAirRecipeCapabil
 import com.lowdragmc.mbd2.integration.pneumaticcraft.PressureAir;
 import lombok.Getter;
 import me.desht.pneumaticcraft.api.PNCCapabilities;
+import me.desht.pneumaticcraft.api.pressure.PressureTier;
 import me.desht.pneumaticcraft.api.tileentity.IAirHandlerMachine;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -51,14 +53,80 @@ public class PNCPressureAirHandlerTrait extends SimpleCapabilityTrait<IAirHandle
                     // or a neighbour update reset lastFront — air would keep flowing through a side the
                     // override just closed.
                     () -> lastFront = null);
+    // The four below are @Getter(NONE) for a milder version of the same reason as autoIO above: the
+    // handler this trait hands out already has getVolume(), maxPressure(), getDangerPressure() and
+    // getCriticalPressure(), all returning the number. A generated twin on the trait returning the slot
+    // instead is exactly the kind of pair a caller picks the wrong one of.
+    /**
+     * The air volume this machine's tank holds.
+     * <p>
+     * Shrinking it scales the stored air down with it, the way PneumaticCraft's own
+     * {@code setVolumeUpgrades} does: the alternative — keeping the air and letting the pressure rise —
+     * turns "give this machine a smaller tank" into "make this machine explode".
+     */
+    @Getter(lombok.AccessLevel.NONE)
+    public final RuntimeValue<Integer> volume =
+            runtimeValues.ofInt("volume", () -> getDefinition().getVolume())
+                    .onChanged(this::onVolumeChanged);
+    /** The pressure this machine bursts at. @see PNCPressureAirHandlerTraitDefinition#getMaxPressure() */
+    @Getter(lombok.AccessLevel.NONE)
+    public final RuntimeValue<Float> maxPressure =
+            runtimeValues.ofFloat("max_pressure", () -> getDefinition().getMaxPressure())
+                    .onChanged(() -> getHandler().setMaxPressure(this.maxPressure.get()));
+    /** Zero means "same as max pressure", exactly as on the definition. */
+    @Getter(lombok.AccessLevel.NONE)
+    public final RuntimeValue<Float> dangerPressure =
+            runtimeValues.ofFloat("danger_pressure", () -> getDefinition().getDangerPressure());
+    /** Zero means "same as the danger pressure", exactly as on the definition. */
+    @Getter(lombok.AccessLevel.NONE)
+    public final RuntimeValue<Float> criticalPressure =
+            runtimeValues.ofFloat("critical_pressure", () -> getDefinition().getCriticalPressure());
     private final Map<BlockPos, EnumMap<Direction, BlockCapabilityCache<IAirHandlerMachine, Direction>>> nearbyCache = new HashMap<>();
     @Nullable
     private Direction lastFront = null;
 
     public PNCPressureAirHandlerTrait(MBDMachine machine, PNCPressureAirHandlerTraitDefinition definition) {
         super(machine, definition);
-        handler = new CopiableAirHandler(definition.getPressureTier(), definition.getVolume(), definition.getMaxPressure());
+        // a tier that reads this trait's slots rather than the definition's fields: MachineAirHandler
+        // stores the tier once and calls through it on every query, so this is what makes the two
+        // pressure thresholds overridable at all
+        handler = new CopiableAirHandler(new PressureTier() {
+            @Override
+            public float getDangerPressure() {
+                return realDangerPressure();
+            }
+
+            @Override
+            public float getCriticalPressure() {
+                return realCriticalPressure();
+            }
+        }, volume.get(), maxPressure.get());
         handler.setOnContentsChanged(this::notifyListeners);
+    }
+
+    /** @see PNCPressureAirHandlerTraitDefinition#getRealDangerPressure() */
+    public float realDangerPressure() {
+        var danger = dangerPressure.get();
+        return danger == 0 ? maxPressure.get() : danger;
+    }
+
+    /** @see PNCPressureAirHandlerTraitDefinition#getRealCriticalPressure() */
+    public float realCriticalPressure() {
+        var critical = criticalPressure.get();
+        return critical == 0 ? realDangerPressure() : critical;
+    }
+
+    private void onVolumeChanged() {
+        var handler = getHandler();
+        var newVolume = Math.max(1, volume.get());
+        var oldVolume = handler.getVolume();
+        if (oldVolume == newVolume) return;
+        if (newVolume < oldVolume) {
+            var scaled = (int) (handler.getAir() * (float) newVolume / oldVolume);
+            handler.addAir(scaled - handler.getAir());
+        }
+        handler.setBaseVolume(newVolume);
+        notifyListeners();
     }
 
     @Override

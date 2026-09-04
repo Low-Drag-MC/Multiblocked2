@@ -123,6 +123,14 @@ public class PNCPressureAirHandlerTraitDefinition extends SimpleCapabilityTraitD
         return criticalPressure == 0 ? getRealDangerPressure() : criticalPressure;
     }
 
+    /**
+     * @deprecated the tier a machine actually runs on comes from its own
+     *             {@code danger_pressure} / {@code critical_pressure} runtime values, so a tier built
+     *             from these fields ignores every per-machine override. {@link PNCPressureAirHandlerTrait}
+     *             builds its handler's tier from its slots instead; ask
+     *             {@code handler.getDangerPressure()} for what a given machine uses.
+     */
+    @Deprecated
     public PressureTier getPressureTier() {
         return new PressureTier() {
             @Override

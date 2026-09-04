@@ -25,6 +25,7 @@ import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.common.capability.recipe.FluidRecipeCapability;
 import com.lowdragmc.mbd2.common.capability.recipe.ItemRecipeCapability;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
+import com.lowdragmc.mbd2.common.runtime.RuntimeValue;
 import com.lowdragmc.mbd2.common.trait.RecipeHandlerTrait;
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTrait;
 import lombok.Getter;
@@ -60,6 +61,17 @@ public class MEInterfaceTrait extends SimpleCapabilityTrait<MEStorage, @Nullable
     private final SerializableInterfaceLogic interfaceLogic;
     private final ItemRecipeHandler itemRecipeHandler = new ItemRecipeHandler();
     private final FluidRecipeHandler fluidRecipeHandler = new FluidRecipeHandler();
+
+    // per-machine overrides of the values authored on the definition. slotSize is deliberately absent:
+    // it sizes the interface's inventories, which cannot be resized under a running grid.
+    /** How many items of one kind this interface will hold. */
+    public final RuntimeValue<Integer> itemCapacity =
+            runtimeValues.ofInt("item_capacity", () -> getDefinition().getItemCapacity())
+                    .onChanged(this::applyCapacities);
+    /** How much fluid of one kind this interface will hold, in mB. */
+    public final RuntimeValue<Integer> fluidCapacity =
+            runtimeValues.ofInt("fluid_capacity", () -> getDefinition().getFluidCapacity())
+                    .onChanged(this::applyCapacities);
 
     public MEInterfaceTrait(MBDMachine machine, MEInterfaceTraitDefinition definition) {
         super(machine, definition);
@@ -100,11 +112,12 @@ public class MEInterfaceTrait extends SimpleCapabilityTrait<MEStorage, @Nullable
     }
 
     public void applyCapacities() {
-        var definition = getDefinition();
-        interfaceLogic.getStorage().setCapacity(AEKeyType.items(), definition.getItemCapacity());
-        interfaceLogic.getStorage().setCapacity(AEKeyType.fluids(), definition.getFluidCapacity());
-        interfaceLogic.getConfig().setCapacity(AEKeyType.items(), definition.getItemCapacity());
-        interfaceLogic.getConfig().setCapacity(AEKeyType.fluids(), definition.getFluidCapacity());
+        var items = itemCapacity.get();
+        var fluids = fluidCapacity.get();
+        interfaceLogic.getStorage().setCapacity(AEKeyType.items(), items);
+        interfaceLogic.getStorage().setCapacity(AEKeyType.fluids(), fluids);
+        interfaceLogic.getConfig().setCapacity(AEKeyType.items(), items);
+        interfaceLogic.getConfig().setCapacity(AEKeyType.fluids(), fluids);
     }
 
     @Override

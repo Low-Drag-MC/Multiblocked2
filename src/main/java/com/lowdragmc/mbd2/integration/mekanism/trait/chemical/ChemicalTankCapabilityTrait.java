@@ -50,6 +50,18 @@ public class ChemicalTankCapabilityTrait extends SimpleCapabilityTrait<IChemical
                 getMachine().invalidateCapabilities();
                 getMachine().notifyBlockUpdate();
             });
+    /** Whether the definition's chemical filter applies to this machine. @see ItemSlotCapabilityTrait#filterEnabled */
+    public final RuntimeValue<Boolean> filterEnabled =
+            runtimeValues.ofBool("filter.enable", () -> getDefinition().getFilterSettings().isEnable());
+    /**
+     * Per-tank capacity. Read live by {@link ChemicalStorage#getCapacity()}, so the hook only has to
+     * spill what no longer fits after a shrink.
+     */
+    public final RuntimeValue<Long> capacity =
+            runtimeValues.ofLong("capacity", () -> getDefinition().getCapacity())
+            // through a method rather than inline: `storages` is a blank final assigned in the
+            // constructor, and a field initialiser may not read one even from inside a lambda
+            .onChanged(this::onCapacityChanged);
     private final Map<BlockPos, EnumMap<Direction, BlockCapabilityCache<IChemicalHandler, @Nullable Direction>>> nearbyCache = new HashMap<>();
 
     public ChemicalTankCapabilityTrait(MBDMachine machine, ChemicalTankCapabilityTraitDefinition definition) {
@@ -64,16 +76,27 @@ public class ChemicalTankCapabilityTrait extends SimpleCapabilityTrait<IChemical
 
     protected ChemicalStorage[] createStorages() {
         var result = new ChemicalStorage[getDefinition().getTankSize()];
-        // live-read, for the reason spelled out in ItemSlotCapabilityTrait#createStorage
-        Predicate<ChemicalStack> validator = stack -> {
-            var filter = getDefinition().getFilterSettings();
-            return !filter.isEnable() || filter.test(stack);
-        };
+        // live-read, and matches() rather than test(), both for the reasons spelled out in
+        // ItemSlotCapabilityTrait#createStorage
+        Predicate<ChemicalStack> validator = stack -> !filterEnabled.get()
+                || getDefinition().getFilterSettings().matches(stack);
         for (int i = 0; i < result.length; i++) {
-            result[i] = new ChemicalStorage(getDefinition().getCapacity(), validator);
+            result[i] = new ChemicalStorage(() -> capacity.get(), validator);
             result[i].setOnContentsChanged(this::notifyListeners);
         }
         return result;
+    }
+
+    private void onCapacityChanged() {
+        var spilled = false;
+        for (var storage : storages) {
+            spilled |= storage.clampToCapacity();
+        }
+        if (spilled) {
+            notifyListeners();
+        }
+        getMachine().invalidateCapabilities();
+        getMachine().notifyBlockUpdate();
     }
 
     @Override
@@ -103,8 +126,8 @@ public class ChemicalTankCapabilityTrait extends SimpleCapabilityTrait<IChemical
         if (!(getMachine().getLevel() instanceof ServerLevel serverLevel)) return;
         var neighbor = getNearbyCache(serverLevel, port, side).getCapability();
         if (neighbor == null) return;
-        Predicate<ChemicalStack> filter = getDefinition().getFilterSettings().isEnable()
-                ? getDefinition().getFilterSettings()
+        Predicate<ChemicalStack> filter = filterEnabled.get()
+                ? getDefinition().getFilterSettings()::matches
                 : s -> true;
         if (io.support(IO.IN)) {
             for (int t = 0; t < neighbor.getChemicalTanks(); t++) {

@@ -55,6 +55,17 @@ public final class RuntimeValueStorage implements INBTSerializable<CompoundTag> 
             Vec3.CODEC.fieldOf("max").forGetter(AABB::getMaxPosition)
     ).apply(instance, AABB::new));
 
+    /** Decodes to an unmodifiable list, so a decoded override cannot be mutated behind the slot's back. */
+    public static final Codec<List<String>> STRING_LIST_CODEC =
+            Codec.STRING.listOf().xmap(List::copyOf, List::copyOf);
+
+    /**
+     * The runtime type token for {@link #ofStringList}. {@code Class} cannot express {@code List<String>},
+     * so the slot checks {@code List} and {@link RuntimeValue#coerce} does the element conversion.
+     */
+    @SuppressWarnings("unchecked")
+    public static final Class<List<String>> STRING_LIST_TYPE = (Class<List<String>>) (Class<?>) List.class;
+
     private final IRuntimeValueHolder holder;
     private final Map<String, RuntimeValue<?>> slots = new LinkedHashMap<>();
     /**
@@ -84,6 +95,35 @@ public final class RuntimeValueStorage implements INBTSerializable<CompoundTag> 
 
     public RuntimeValue<Integer> ofInt(String key, Supplier<Integer> fallback) {
         return of(key, Integer.class, Codec.INT, fallback);
+    }
+
+    public RuntimeValue<Long> ofLong(String key, Supplier<Long> fallback) {
+        return of(key, Long.class, Codec.LONG, fallback);
+    }
+
+    public RuntimeValue<Float> ofFloat(String key, Supplier<Float> fallback) {
+        return of(key, Float.class, Codec.FLOAT, fallback);
+    }
+
+    public RuntimeValue<Double> ofDouble(String key, Supplier<Double> fallback) {
+        return of(key, Double.class, Codec.DOUBLE, fallback);
+    }
+
+    public RuntimeValue<String> ofString(String key, Supplier<String> fallback) {
+        return of(key, String.class, Codec.STRING, fallback);
+    }
+
+    /**
+     * A slot holding an <b>immutable</b> list of strings — {@code slot_names} is the one that exists.
+     * <p>
+     * The codec copies on both ends, and {@link RuntimeValue#coerce} copies whatever a script or a node
+     * hands over, so the value behind the slot can never be a list the caller still holds a reference to.
+     * That matters more here than for the scalar slots: {@link #serializeNBT} runs on LDLib's async
+     * persistence thread, and a caller mutating its own {@code ArrayList} afterwards would be a data race
+     * with no obvious cause.
+     */
+    public RuntimeValue<List<String>> ofStringList(String key, Supplier<List<String>> fallback) {
+        return of(key, STRING_LIST_TYPE, STRING_LIST_CODEC, () -> List.copyOf(fallback.get()));
     }
 
     public RuntimeValue<AABB> ofAABB(String key, Supplier<AABB> fallback) {

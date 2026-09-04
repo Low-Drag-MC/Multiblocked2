@@ -4,6 +4,7 @@ import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
+import com.lowdragmc.mbd2.common.runtime.RuntimeValue;
 import com.lowdragmc.mbd2.common.trait.RecipeCapabilityTrait;
 import com.lowdragmc.mbd2.common.trait.RecipeHandlerTrait;
 import com.lowdragmc.mbd2.integration.naturesaura.NaturesAuraRecipeCapability;
@@ -16,6 +17,10 @@ import java.util.List;
 public class AuraHandlerTrait extends RecipeCapabilityTrait {
     private final AuraRecipeHandler recipeHandler = new AuraRecipeHandler();
 
+    /** How far this machine reaches for aura, in blocks. */
+    public final RuntimeValue<Integer> radius =
+            runtimeValues.ofInt("radius", () -> getDefinition().getRadius());
+
     public AuraHandlerTrait(MBDMachine machine, AuraHandlerTraitDefinition definition) {
         super(machine, definition);
     }
@@ -23,6 +28,21 @@ public class AuraHandlerTrait extends RecipeCapabilityTrait {
     @Override
     public AuraHandlerTraitDefinition getDefinition() {
         return (AuraHandlerTraitDefinition) super.getDefinition();
+    }
+
+    /**
+     * The effective radius — every reader goes through here.
+     * <p>
+     * There are two: the recipe handler below, and the aura readout the definition binds into the
+     * machine's UI. They have to agree, or an overridden machine would draw from one area and report
+     * another.
+     * <p>
+     * Not named {@code getRadius()}: that would be a bean property with the same name as the
+     * {@link #radius} slot field, and KubeJS/Rhino would have to pick one — see the note on
+     * {@code MBDMachine.machineLevel}.
+     */
+    public int radiusBlocks() {
+        return radius.get();
     }
 
     @Override
@@ -42,7 +62,7 @@ public class AuraHandlerTrait extends RecipeCapabilityTrait {
             var level = getMachine().getLevel();
             if (level == null) return left;
             var pos = getMachine().getPos();
-            int radius = getDefinition().getRadius();
+            int radius = radiusBlocks();
             int sum = left.stream().reduce(0, Integer::sum);
             if (io == IO.IN) {
                 BlockPos spot = IAuraChunk.getHighestSpot(level, pos, radius, pos);

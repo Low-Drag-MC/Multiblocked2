@@ -180,6 +180,22 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
             runtimeValues.ofBool("recipe_logic.always_search", () -> getDefinition().recipeLogicSettings().alwaysSearchRecipe());
     public final RuntimeValue<Boolean> alwaysModifyRecipe =
             runtimeValues.ofBool("recipe_logic.always_modify", () -> getDefinition().recipeLogicSettings().alwaysModifyRecipe());
+    /**
+     * Whether inputs are taken when the recipe <em>finishes</em> rather than when it starts.
+     *
+     * <p>Read by {@link #consumeInputsAfterWorking(MBDRecipe)}, which until now did not exist — the
+     * definition setting was authored in the editor and never consulted, so
+     * {@link RecipeLogic#setupRecipe} always saw {@code IMachine}'s {@code false} default. That also kept
+     * {@code MachineOnConsumeInputsAfterWorkingEvent} — and with it the blueprint event node and the
+     * KubeJS {@code onConsumeInputsAfterWorking} hook — from ever firing.</p>
+     *
+     * <p>Private for the same reason as {@link #machineLevel}: the name is already a method on this
+     * class, and a public field would shadow it in KubeJS/Rhino. Scripts and nodes go through
+     * {@code runtimeValues.set("recipe_logic.consume_inputs_after_working", ...)}.</p>
+     */
+    private final RuntimeValue<Boolean> consumeInputsAfterWorkingValue =
+            runtimeValues.ofBool("recipe_logic.consume_inputs_after_working",
+                    () -> getDefinition().recipeLogicSettings().consumeInputsAfterWorking());
     // redstone signal
     @Getter
     @Persisted
@@ -882,6 +898,16 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
     @Override
     public int getRecipeDampingValue() {
         return recipeDampingValue.get();
+    }
+
+    /**
+     * Whether this recipe's inputs are consumed after working rather than before.
+     *
+     * @see #consumeInputsAfterWorkingValue the slot, and why this override was missing until now
+     */
+    @Override
+    public boolean consumeInputsAfterWorking(MBDRecipe recipe) {
+        return consumeInputsAfterWorkingValue.get();
     }
 
     @Override

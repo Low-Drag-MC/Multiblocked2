@@ -47,6 +47,7 @@ public class TestMachineBuilder {
     @Nullable private MachineState rootState;
     private com.lowdragmc.lowdraglib2.gui.ui.UITemplate uiTemplate = null;
     private int machineLevel = 0;
+    private boolean consumeInputsAfterWorking = false;
 
     private TestMachineBuilder(ResourceLocation id, boolean multiblock) {
         this.id = id;
@@ -179,6 +180,16 @@ public class TestMachineBuilder {
         return this;
     }
 
+    /**
+     * Take the recipe's inputs when it finishes rather than when it starts.
+     *
+     * @see com.lowdragmc.mbd2.common.machine.definition.config.ConfigRecipeLogicSettings#consumeInputsAfterWorking()
+     */
+    public TestMachineBuilder withConsumeInputsAfterWorking(boolean consumeInputsAfterWorking) {
+        this.consumeInputsAfterWorking = consumeInputsAfterWorking;
+        return this;
+    }
+
     /** Bind this machine to a recipe type (by id). */
     public TestMachineBuilder withRecipeType(ResourceLocation recipeTypeId) {
         this.recipeTypeId = recipeTypeId;
@@ -213,6 +224,7 @@ public class TestMachineBuilder {
                 (multiblock ? StateMachine.createMultiblockDefault(MachineState::baseBuilder, () -> IRenderer.EMPTY) : StateMachine.createDefault(MachineState::baseBuilder));
         ConfigRecipeLogicSettings recipeLogic = ConfigRecipeLogicSettings.builder()
                 .recipeType(recipeTypeId != null ? recipeTypeId : MBDRecipeType.DUMMY.getRegistryName())
+                .consumeInputsAfterWorking(consumeInputsAfterWorking)
                 .build();
         var msFactory = (com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition.ConfigMachineSettingsFactory) () -> {
             var builder = ConfigMachineSettings.builder().machineLevel(machineLevel);

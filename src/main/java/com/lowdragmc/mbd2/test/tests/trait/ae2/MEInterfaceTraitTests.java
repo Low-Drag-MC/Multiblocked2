@@ -4,8 +4,10 @@ import appeng.api.AECapabilities;
 import appeng.api.behaviors.GenericInternalInventory;
 import appeng.api.stacks.AEFluidKey;
 import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import com.lowdragmc.mbd2.MBD2;
+import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.integration.ae2.trait.AEInterfaceSlot;
 import com.lowdragmc.mbd2.integration.ae2.trait.MEInterfaceTrait;
 import com.lowdragmc.mbd2.test.framework.MBDScenario;
@@ -132,6 +134,50 @@ public class MEInterfaceTraitTests {
             return;
         }
         h.succeed();
+    }
+
+    /**
+     * The interface's buffer capacities as runtime values, the same shape as the pattern provider's.
+     *
+     * <p>{@code applyCapacities()} read the definition directly, so the slots had to take that read over
+     * as well as hook it — otherwise an override would be recorded and then ignored on the next apply.</p>
+     */
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
+    @PrefixGameTestTemplate(false)
+    public static void interface_capacity_overrides_reach_the_inventories(GameTestHelper h) {
+        MBDScenario.of(h)
+                .placeMachine(MEInterfaceTraitFixtures.CAPPED_MACHINE_ID, POS)
+                .check("the buffers start on the definition",
+                        m -> storageCapacity(m, AEKeyType.items()) == 16
+                                && storageCapacity(m, AEKeyType.fluids()) == 8000)
+                .with(m -> interfaceTraitOf(m).itemCapacity.set(64))
+                .with(m -> interfaceTraitOf(m).fluidCapacity.set(16_000))
+                .check("an override should reach the storage inventory",
+                        m -> storageCapacity(m, AEKeyType.items()) == 64
+                                && storageCapacity(m, AEKeyType.fluids()) == 16_000)
+                .assertPersistenceRoundTrip()
+                .check("and survive a save/load cycle",
+                        m -> storageCapacity(m, AEKeyType.items()) == 64
+                                && storageCapacity(m, AEKeyType.fluids()) == 16_000)
+                .with(m -> {
+                    interfaceTraitOf(m).itemCapacity.clear();
+                    interfaceTraitOf(m).fluidCapacity.clear();
+                })
+                .check("clearing should go back to the definition",
+                        m -> storageCapacity(m, AEKeyType.items()) == 16
+                                && storageCapacity(m, AEKeyType.fluids()) == 8000)
+                .succeed();
+    }
+
+    private static long storageCapacity(MBDMachine machine, AEKeyType keyType) {
+        return interfaceTraitOf(machine).getInterfaceLogic().getStorage().getCapacity(keyType);
+    }
+
+    private static MEInterfaceTrait interfaceTraitOf(MBDMachine machine) {
+        for (var trait : machine.getAdditionalTraits()) {
+            if (trait instanceof MEInterfaceTrait interfaceTrait) return interfaceTrait;
+        }
+        throw new AssertionError("fixture machine has no ME interface trait");
     }
 
     private static MEInterfaceTrait interfaceTrait(GameTestHelper h, MBDScenario scenario) {

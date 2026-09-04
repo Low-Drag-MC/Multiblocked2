@@ -55,6 +55,27 @@ public class ForgeEnergyCapabilityTrait extends SimpleCapabilityTrait<IEnergySto
                 getMachine().invalidateCapabilities();
                 getMachine().notifyBlockUpdate();
             });
+    /**
+     * Buffer size, for a machine whose tier should hold more than its definition says.
+     * <p>
+     * Unlike its two siblings the value is not read live: {@link CopiableEnergyStorage} owns it, and the
+     * stored energy has to be clamped when it shrinks. The hook resizes the storage instead, which is
+     * also why {@link #createStorages} still reads the definition — at construction time there is no
+     * override to read yet, and the hook applies one the moment NBT restores it.
+     */
+    public final RuntimeValue<Integer> capacity =
+            runtimeValues.ofInt("capacity", () -> getDefinition().getCapacity())
+            // getStorage() rather than the field, and `this.capacity` rather than a bare name: inside a
+            // field initialiser the blank final `storage` is not definitely assigned yet and `capacity` is
+            // an illegal forward reference to the field being declared. Neither restriction is real here —
+            // the hook runs long after the constructor — but both are compile errors as written.
+            .onChanged(() -> {
+                if (getStorage().setCapacity(this.capacity.get())) {
+                    notifyListeners();
+                    getMachine().invalidateCapabilities();
+                    getMachine().notifyBlockUpdate();
+                }
+            });
     private final Map<BlockPos, EnumMap<Direction, BlockCapabilityCache<IEnergyStorage, @Nullable Direction>>> nearbyCache = new HashMap<>();
 
     public ForgeEnergyCapabilityTrait(MBDMachine machine, ForgeEnergyCapabilityTraitDefinition definition) {

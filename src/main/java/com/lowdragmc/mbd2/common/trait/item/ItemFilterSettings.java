@@ -43,9 +43,19 @@ public class ItemFilterSettings implements IToggleConfigurable, Predicate<ItemSt
 
     @Override
     public boolean test(ItemStack itemStack) {
-        if (!enable) {
-            return true;
-        }
+        return !enable || matches(itemStack);
+    }
+
+    /**
+     * The filter's verdict on its own terms, ignoring whether it is switched on.
+     * <p>
+     * {@link #test} answers "does this settings object let the stack through", which includes "it is
+     * switched off, so yes". A caller that decides for itself whether the filter applies — a trait
+     * reading the {@code filter.enable} runtime value, which a machine may have turned <b>on</b> over a
+     * definition that has it off — needs the verdict without that shortcut, or enabling it would let
+     * everything through.
+     */
+    public boolean matches(ItemStack itemStack) {
         for (var filterItem : filterItems) {
             if (matchComponent) {
                 if (ItemStack.isSameItemSameComponents(filterItem, itemStack)) {
