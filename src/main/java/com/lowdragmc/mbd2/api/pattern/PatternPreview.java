@@ -16,6 +16,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.Switch;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Toggle;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
+import com.lowdragmc.lowdraglib2.integration.xei.jei.LDLibJEIPlugin;
 import com.lowdragmc.lowdraglib2.utils.data.BlockInfo;
 import com.lowdragmc.lowdraglib2.utils.virtuallevel.TrackedDummyWorld;
 import com.lowdragmc.mbd2.MBD2;
@@ -32,8 +33,8 @@ import com.lowdragmc.mbd2.utils.FormattingUtil;
 import dev.emi.emi.api.stack.EmiStack;
 import dev.vfyjxf.taffy.style.*;
 import me.shedaniel.rei.api.common.util.EntryStacks;
+import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.recipe.RecipeIngredientRole;
-import mezz.jei.library.ingredients.itemStacks.TypedItemStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -453,7 +454,9 @@ public class PatternPreview extends UIElement {
     public static class JEIPlugin {
         public static void lookupItemStack(ItemSlot slot, int button) {
             if (LDLib2.isJeiLoaded() && (button == 0 || button == 1)) {
-                MBDJEIPlugin.lookupIngredient(TypedItemStack.create(slot.getValue()), button == 0 ? RecipeIngredientRole.OUTPUT : RecipeIngredientRole.INPUT);
+                LDLibJEIPlugin.createTypedIngredient(VanillaTypes.ITEM_STACK, slot.getValue())
+                        .ifPresent(ingredient -> MBDJEIPlugin.lookupIngredient(ingredient,
+                                button == 0 ? RecipeIngredientRole.OUTPUT : RecipeIngredientRole.INPUT));
             }
         }
     }

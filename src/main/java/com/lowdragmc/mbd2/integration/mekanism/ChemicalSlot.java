@@ -347,7 +347,7 @@ public class ChemicalSlot extends BindableUIElement<ChemicalStack> {
             EMISupport.recipeSlot(this, () -> chance, () -> amount, allPossibleChemicals);
         }
         if (LDLib2.isJeiLoaded()) {
-            JEISupport.recipeSlot(this, allPossibleChemicals);
+            JEISupport.recipeSlot(this, io, allPossibleChemicals);
         }
         return this;
     }
@@ -367,14 +367,10 @@ public class ChemicalSlot extends BindableUIElement<ChemicalStack> {
                     .collect(Collectors.toList()));
         }
 
-        public static void recipeSlot(ChemicalSlot slot, Supplier<Stream<ChemicalStack>> allPossible) {
-            LDLibJEIPlugin.recipeSlot(slot, () -> {
-                var current = slot.getChemical();
-                if (current.isEmpty()) return null;
-                return LDLibJEIPlugin.createTypedIngredient(JEISupport.<ChemicalStack>chemicalType(), current).orElse(null);
-            }, () -> allPossible.get()
-                    .map(stack -> LDLibJEIPlugin.createTypedIngredient(JEISupport.<ChemicalStack>chemicalType(), stack).orElseThrow())
-                    .collect(Collectors.toList()));
+        public static void recipeSlot(ChemicalSlot slot, IngredientIO io, Supplier<Stream<ChemicalStack>> allPossible) {
+            slot.registerValueListener(LDLibJEIPlugin.recipeSlot(slot, io,
+                    JEISupport.<ChemicalStack>chemicalType(), allPossible,
+                    chemical -> slot.setValue(chemical, false)));
         }
     }
 

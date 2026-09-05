@@ -183,7 +183,7 @@ public class EntityIngredientSlot extends BindableUIElement<EntityIngredient> {
 
     public EntityIngredientSlot xeiRecipeSlot(IngredientIO io, float chance) {
         if (LDLib2.isJeiLoaded()) {
-            EntityIngredientSlot.JEISupport.recipeSlot(this);
+            EntityIngredientSlot.JEISupport.recipeSlot(this, io);
         }
         if (LDLib2.isReiLoaded()) {
             EntityIngredientSlot.REISupport.recipeSlot(this, io);
@@ -439,17 +439,21 @@ public class EntityIngredientSlot extends BindableUIElement<EntityIngredient> {
             );
         }
 
-        public static void recipeSlot(EntityIngredientSlot entityIngredientSlot) {
-            LDLibJEIPlugin.recipeSlot(entityIngredientSlot, () -> {
-                var item = entityIngredientSlot.getEntityItem();
-                return item.isEmpty() ? null : LDLibJEIPlugin
-                        .createTypedIngredient(VanillaTypes.ITEM_STACK, entityIngredientSlot.getEntityItem())
-                        .orElse(null);
-            }, () -> {
-                var item = entityIngredientSlot.getEntityItem();
-                return List.of(LDLibJEIPlugin.createTypedIngredient(VanillaTypes.ITEM_STACK, item)
-                        .orElseThrow());
-            });
+        public static void recipeSlot(EntityIngredientSlot entityIngredientSlot, IngredientIO io) {
+            var displayedIngredientUpdater = LDLibJEIPlugin.recipeSlot(entityIngredientSlot, io,
+                    VanillaTypes.ITEM_STACK,
+                    entityIngredientSlot::getEntityItems,
+                    itemStack -> {
+                        // JEI cycles the genuine slot through the entity alternatives; follow it so the
+                        // rendered entity is the one JEI is describing in its tooltip and lookups.
+                        if (itemStack != null && itemStack.getItem() instanceof SpawnEggItem spawnEggItem) {
+                            entityIngredientSlot.setValue(EntityIngredient.of(
+                                    entityIngredientSlot.getValue().getCount(),
+                                    spawnEggItem.getType(itemStack)), false);
+                        }
+                    });
+            entityIngredientSlot.registerValueListener(ingredient ->
+                    displayedIngredientUpdater.accept(entityIngredientSlot.getEntityItem()));
         }
     }
 
