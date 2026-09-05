@@ -1,4 +1,7 @@
 # ChangeLogs
+## v21.1.1.a
+* Bump up JEI support
+
 ## v21.1.1
 * Added more runtime values
 * Added Ars Nouveau compat
