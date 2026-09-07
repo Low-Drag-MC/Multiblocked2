@@ -1,4 +1,6 @@
 # ChangeLogs
+## v1.0.39.a
+* Added javac `-parameters` for kjs
 
 ## v1.0.39
 * Fixed disable render when formed doesn't work for the predicates bound with a slot name
