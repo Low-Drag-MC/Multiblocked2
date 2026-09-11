@@ -164,6 +164,36 @@ public class AutoIOTraitTests {
         h.succeed();
     }
 
+    /**
+     * FE auto IO in both directions. Until this test existed
+     * {@code ForgeEnergyCapabilityTrait#handleAutoIO} resolved the capability at its own position
+     * instead of the neighbour's, so it pumped its buffer into itself and moved nothing — silently,
+     * because a no-op transfer throws nothing and logs nothing.
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void energy_auto_output_pushes_to_adjacent_machine(GameTestHelper h) {
+        var target = MBDTestHelper.placeMachine(h, ForgeEnergyTraitFixtures.MACHINE_ID, EAST);
+        MBDScenario.of(h)
+                .placeMachineFacing(AutoIOTraitFixtures.ENERGY_AUTO_OUTPUT, MACHINE, Direction.NORTH)
+                .insertEnergy(10_000)
+                .runTicks(2);
+        MBDTestHelper.assertEnergyAtLeast(h, target, 5_000);
+        h.succeed();
+    }
+
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void energy_auto_input_pulls_from_adjacent_machine(GameTestHelper h) {
+        var source = MBDTestHelper.placeMachine(h, ForgeEnergyTraitFixtures.MACHINE_ID, EAST);
+        MBDTestHelper.insertEnergy(h, source, 10_000);
+        MBDScenario.of(h)
+                .placeMachineFacing(AutoIOTraitFixtures.ENERGY_AUTO_INPUT, MACHINE, Direction.NORTH)
+                .runTicks(2)
+                .assertEnergyAtLeast(5_000)
+                .succeed();
+    }
+
     private static void assertItemAt(GameTestHelper h, BlockPos pos, net.minecraft.world.item.Item item, int count) {
         var handler = MBDTestHelper.capability(h, pos, Capabilities.ItemHandler.BLOCK, null);
         if (handler == null || !handler.getStackInSlot(0).is(item) || handler.getStackInSlot(0).getCount() < count) {

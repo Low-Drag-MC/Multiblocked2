@@ -79,7 +79,7 @@
 //    public void handleAutoIO(BlockPos port, @NotNull Direction side, IO io) {
 //        if (getMachine().getLevel() instanceof ServerLevel serverLevel) {
 //            if (io.support(IO.IN)) {
-//                var source = getNearbyCache(serverLevel, port, side).getCapability();
+//                var source = getNearbyCache(serverLevel, port.relative(side), side.getOpposite()).getCapability();
 //                if (source != null) {
 //                    var available = source.getCurrentMana();
 //                    var cost = Math.min(available, storage.getMaxMana() - storage.getCurrentMana());
@@ -88,7 +88,7 @@
 //                }
 //            }
 //            if (io.support(IO.OUT)) {
-//                var target = getNearbyCache(serverLevel, port, side).getCapability();
+//                var target = getNearbyCache(serverLevel, port.relative(side), side.getOpposite()).getCapability();
 //                if (target != null) {
 //                    var available = storage.getCurrentMana();
 //                    var cost = target instanceof ManaPool pool ? Math.min(available, pool.getMaxMana() - pool.getCurrentMana()) : available;

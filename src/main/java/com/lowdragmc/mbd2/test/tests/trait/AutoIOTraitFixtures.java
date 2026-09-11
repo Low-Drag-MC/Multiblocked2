@@ -18,6 +18,10 @@ public class AutoIOTraitFixtures implements TestFixtureProvider {
     public static final ResourceLocation FLUID_AUTO_OUTPUT = MBD2.id("test_fluid_auto_output");
     public static final ResourceLocation FLUID_WORLD_INPUT = MBD2.id("test_fluid_world_input");
     public static final ResourceLocation FLUID_WORLD_OUTPUT = MBD2.id("test_fluid_world_output");
+    // Energy had no auto-IO fixture at all, which is exactly why ForgeEnergyCapabilityTrait could
+    // resolve its own capability instead of the neighbour's and move nothing without anyone noticing.
+    public static final ResourceLocation ENERGY_AUTO_INPUT = MBD2.id("test_energy_auto_input");
+    public static final ResourceLocation ENERGY_AUTO_OUTPUT = MBD2.id("test_energy_auto_output");
 
     private static final AABB EAST_BLOCK = new AABB(1, 0, 0, 2, 1, 1);
     private static final AABB FAR_BLOCK = new AABB(4, 0, 0, 5, 1, 1);
@@ -59,6 +63,13 @@ public class AutoIOTraitFixtures implements TestFixtureProvider {
         TestMachineBuilder.simple(FLUID_WORLD_OUTPUT)
                 .withFluidTanks(1, 4000, definition -> configureWorldIO(
                         definition.getAutoInput(), definition.getAutoOutput(), false))
+                .register(event);
+
+        TestMachineBuilder.simple(ENERGY_AUTO_INPUT)
+                .withEnergy(50_000, definition -> configureAutoIO(definition.getAutoIO(), IO.IN))
+                .register(event);
+        TestMachineBuilder.simple(ENERGY_AUTO_OUTPUT)
+                .withEnergy(50_000, definition -> configureAutoIO(definition.getAutoIO(), IO.OUT))
                 .register(event);
     }
 

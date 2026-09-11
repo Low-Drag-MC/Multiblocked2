@@ -10,6 +10,7 @@ import mekanism.api.chemical.ChemicalStack;
 import mekanism.common.capabilities.Capabilities;
 import mekanism.common.registries.MekanismChemicals;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
@@ -20,6 +21,7 @@ public class ChemicalTankTraitTests {
     static { @SuppressWarnings("unused") var ignored = ChemicalTankTraitFixtures.MACHINE_ID; }
 
     private static final BlockPos POS = new BlockPos(1, 1, 1);
+    private static final BlockPos EAST = POS.relative(Direction.EAST);
 
     @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
@@ -77,6 +79,49 @@ public class ChemicalTankTraitTests {
                         m -> !tank(m).isValid(hydrogen(1)))
                 .with(m -> chemicalTrait(m).filterEnabled.clear())
                 .check("clearing should put it back", m -> tank(m).isValid(hydrogen(1)))
+                .succeed();
+    }
+
+    /**
+     * Chemical auto IO in both directions. {@code ChemicalTankCapabilityTrait#handleAutoIO} used to
+     * resolve the chemical handler at its own position rather than the neighbour's, so it "transferred"
+     * its tank into itself: nothing left the machine, nothing entered it, and nothing said so.
+     */
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
+    @PrefixGameTestTemplate(false)
+    public static void chemical_auto_output_pushes_to_adjacent_tank(GameTestHelper h) {
+        var target = MBDScenario.of(h)
+                .placeMachine(ChemicalTankTraitFixtures.MACHINE_ID, EAST)
+                .machine();
+        if (target == null) { h.fail("Target machine was not placed"); return; }
+
+        MBDScenario.of(h)
+                .placeMachineFacing(ChemicalTankTraitFixtures.AUTO_OUTPUT_ID, POS, Direction.NORTH)
+                .with(m -> tank(m).insertChemical(hydrogen(8_000), Action.EXECUTE))
+                .runTicks(3);
+
+        if (tank(target).getStored() < 8_000) {
+            h.fail("Auto output should have pushed 8000 hydrogen to the neighbour, it holds "
+                    + tank(target).getStored());
+            return;
+        }
+        h.succeed();
+    }
+
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
+    @PrefixGameTestTemplate(false)
+    public static void chemical_auto_input_pulls_from_adjacent_tank(GameTestHelper h) {
+        var source = MBDScenario.of(h)
+                .placeMachine(ChemicalTankTraitFixtures.MACHINE_ID, EAST)
+                .machine();
+        if (source == null) { h.fail("Source machine was not placed"); return; }
+        tank(source).insertChemical(hydrogen(8_000), Action.EXECUTE);
+
+        MBDScenario.of(h)
+                .placeMachineFacing(ChemicalTankTraitFixtures.AUTO_INPUT_ID, POS, Direction.NORTH)
+                .runTicks(3)
+                .check("auto input should have pulled the neighbour's hydrogen in",
+                        m -> tank(m).getStored() >= 8_000)
                 .succeed();
     }
 

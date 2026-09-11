@@ -98,7 +98,10 @@ public class MekHeatCapabilityTrait extends SimpleCapabilityTrait<IHeatHandler, 
     @Override
     public void handleAutoIO(BlockPos port, @NotNull Direction side, IO io) {
         if (!(getMachine().getLevel() instanceof ServerLevel serverLevel)) return;
-        var neighbor = getNearbyCache(serverLevel, port, side).getCapability();
+        // port is our own block; the neighbour is one step along `side`, asked from the face
+        // pointing back at us. Reading (port, side) resolves our own handler and transfers into
+        // itself, which is why this moved nothing.
+        var neighbor = getNearbyCache(serverLevel, port.relative(side), side.getOpposite()).getCapability();
         if (neighbor == null) return;
         if (io.support(IO.OUT)) {
             transfer(storage, neighbor);

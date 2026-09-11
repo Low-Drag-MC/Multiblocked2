@@ -15,8 +15,16 @@ import java.util.List;
 public interface IProxyAutoIOTrait extends ITrait {
     /**
      * Handle the auto IO. It will be called on the server side.
-     * @param port port pos.
-     * @param side the side of the port.
+     * <p>
+     * <b>{@code port} is our own block, never the neighbour's.</b> {@link IAutoIOTrait#serverTick}
+     * passes the machine's position and {@link #handleProxyAutoIO} passes the proxying part's, so the
+     * block to trade with is {@code port.relative(side)}, and the face to ask it for is
+     * {@code side.getOpposite()}. Resolving a capability at {@code (port, side)} instead finds our own
+     * and transfers the buffer into itself — no error, no log, nothing moves. Five traits shipped that
+     * way; see {@code ItemSlotCapabilityTrait#handleAutoIO} for the shape to copy.
+     *
+     * @param port our own block's position — the port, not the target.
+     * @param side the side of the port the neighbour sits on.
      */
     void handleAutoIO(BlockPos port, @NotNull Direction side, IO io);
 

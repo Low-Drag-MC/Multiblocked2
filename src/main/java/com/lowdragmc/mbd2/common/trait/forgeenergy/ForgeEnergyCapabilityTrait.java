@@ -127,9 +127,13 @@ public class ForgeEnergyCapabilityTrait extends SimpleCapabilityTrait<IEnergySto
     @Override
     public void handleAutoIO(BlockPos port, @NotNull Direction side, IO io) {
         if (getMachine().getLevel() instanceof ServerLevel serverLevel) {
+            // port is our own block: the neighbour is one step along `side`, asked from the face
+            // pointing back at us. Reading (port, side) resolves our own storage and moves energy
+            // into itself, which is why auto IO for FE never pushed anything.
+            var neighbour = getNearbyCache(serverLevel, port.relative(side), side.getOpposite()).getCapability();
+            if (neighbour == null) return;
             if (io.support(IO.IN)) {
-                var source = getNearbyCache(serverLevel, port, side).getCapability();
-                if (source == null) return;
+                var source = neighbour;
 
                 source.extractEnergy(
                         storage.receiveEnergy(source.extractEnergy(maxReceive.get(), true),
@@ -137,8 +141,7 @@ public class ForgeEnergyCapabilityTrait extends SimpleCapabilityTrait<IEnergySto
                         false);
             }
             if (io.support(IO.OUT)) {
-                var target = getNearbyCache(serverLevel, port, side).getCapability();
-                if (target == null) return;
+                var target = neighbour;
 
                 target.receiveEnergy(
                         storage.extractEnergy(target.receiveEnergy(maxExtract.get(), true),

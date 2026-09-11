@@ -1,6 +1,7 @@
 package com.lowdragmc.mbd2.test.tests.trait.pneumaticcraft;
 
 import com.lowdragmc.mbd2.MBD2;
+import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.integration.pneumaticcraft.trait.pressure.CopiableAirHandler;
 import com.lowdragmc.mbd2.integration.pneumaticcraft.trait.pressure.PNCPressureAirHandlerTrait;
@@ -20,6 +21,7 @@ public class PNCPressureTraitTests {
     static { @SuppressWarnings("unused") var ignored = PNCPressureTraitFixtures.MACHINE_ID; }
 
     private static final BlockPos POS = new BlockPos(1, 1, 1);
+    private static final BlockPos EAST = POS.relative(Direction.EAST);
 
     @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
@@ -138,6 +140,58 @@ public class PNCPressureTraitTests {
                 .with(m -> pressureTrait(m).volume.clear())
                 .check("clearing should go back to the definition", m -> handler(m).getVolume() == 2000)
                 .succeed();
+    }
+
+    /**
+     * Auto IO has to reach the neighbour's air handler. Resolving the capability at its own position
+     * ran {@code transferAir} source-against-source, so the pressure comparison was never greater and
+     * no air moved.
+     *
+     * <p>Driven by calling {@code handleAutoIO} rather than by ticking: {@code serverTick} also runs
+     * {@code handler.tick(holder)}, and PneumaticCraft's own machine network equalises adjacent air
+     * handlers by itself. A ticked test would pass regardless of what auto IO did.</p>
+     */
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
+    @PrefixGameTestTemplate(false)
+    public static void air_auto_output_pushes_to_the_neighbour(GameTestHelper h) {
+        var target = MBDScenario.of(h).placeMachine(PNCPressureTraitFixtures.MACHINE_ID, EAST).machine();
+        var machine = MBDScenario.of(h).placeMachine(PNCPressureTraitFixtures.MACHINE_ID, POS).machine();
+        if (target == null || machine == null) { h.fail("Machines were not placed"); return; }
+
+        handler(machine).addAir(8000);
+        int targetBefore = handler(target).getAir();
+        int machineBefore = handler(machine).getAir();
+
+        pressureTrait(machine).handleAutoIO(h.absolutePos(POS), Direction.EAST, IO.OUT);
+
+        if (handler(target).getAir() <= targetBefore) {
+            h.fail("Auto output moved no air to the neighbour; it holds " + handler(target).getAir());
+            return;
+        }
+        if (handler(machine).getAir() >= machineBefore) {
+            h.fail("The air came from nowhere — the machine did not lose any");
+            return;
+        }
+        h.succeed();
+    }
+
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
+    @PrefixGameTestTemplate(false)
+    public static void air_auto_input_pulls_from_the_neighbour(GameTestHelper h) {
+        var source = MBDScenario.of(h).placeMachine(PNCPressureTraitFixtures.MACHINE_ID, EAST).machine();
+        var machine = MBDScenario.of(h).placeMachine(PNCPressureTraitFixtures.MACHINE_ID, POS).machine();
+        if (source == null || machine == null) { h.fail("Machines were not placed"); return; }
+
+        handler(source).addAir(8000);
+        int machineBefore = handler(machine).getAir();
+
+        pressureTrait(machine).handleAutoIO(h.absolutePos(POS), Direction.EAST, IO.IN);
+
+        if (handler(machine).getAir() <= machineBefore) {
+            h.fail("Auto input pulled no air from the neighbour");
+            return;
+        }
+        h.succeed();
     }
 
     private static CopiableAirHandler handler(MBDMachine machine) {
