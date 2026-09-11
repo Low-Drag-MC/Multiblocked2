@@ -7,6 +7,7 @@ import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.pattern.MultiblockWorldSavedData;
 import com.lowdragmc.mbd2.api.pattern.BlockPattern;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
+import com.lowdragmc.mbd2.common.block.MBDMachineBlock;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
@@ -71,9 +72,8 @@ public final class MBDTestHelper {
             throw new AssertionError();
         }
         BlockState state = def.block().defaultBlockState();
-        var property = def.blockProperties().rotationState().property;
-        if (property.isPresent() && property.get().getPossibleValues().contains(facing)) {
-            state = state.setValue(property.get(), facing);
+        if (def.block() instanceof MBDMachineBlock machineBlock) {
+            state = machineBlock.withFrontFacing(state, facing);
         }
         helper.setBlock(relPos, state);
         return getMachine(helper, relPos);

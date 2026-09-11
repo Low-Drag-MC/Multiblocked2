@@ -7,6 +7,7 @@ import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.simibubi.create.content.kinetics.KineticNetwork;
 import com.simibubi.create.content.kinetics.base.IRotate;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
+import com.simibubi.create.content.kinetics.simpleRelays.ICogWheel;
 import com.simibubi.create.foundation.utility.CreateLang;
 import lombok.Getter;
 import net.minecraft.ChatFormatting;
@@ -14,6 +15,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
@@ -39,6 +41,8 @@ public class MBDKineticMachineBlockEntity extends KineticBlockEntity implements 
      */
     @org.jetbrains.annotations.Nullable
     protected Float dynamicTorqueOverride;
+    /** Transient: the axis only needs re-deriving once, on the first tick after loading. */
+    private boolean rotationAxisChecked;
 
     public MBDKineticMachineBlockEntity(CreateKineticMachineDefinition definition,
                                         BlockEntityType<?> type, BlockPos pos, BlockState blockState,
@@ -77,6 +81,29 @@ public class MBDKineticMachineBlockEntity extends KineticBlockEntity implements 
     public void onChunkUnloaded() {
         super.onChunkUnloaded();
         if (metaMachine != null) metaMachine.onChunkUnloaded();
+    }
+
+    /**
+     * Large cogwheels mesh diagonally, so the propagator has to be told to look there — the six
+     * direct neighbours it checks by default never touch another large cog.
+     *
+     * <p>{@link KineticBlockEntity#addPropagationLocations} only adds diagonals for <i>small</i>
+     * cogs ({@code canPropagateDiagonally}), which left a {@code LARGE_COGWHEEL} machine able to be
+     * found by a neighbouring cog but never able to find one itself. Same rule as Create's own
+     * {@code SimpleKineticBlockEntity}: every offset two steps away, in any plane.</p>
+     */
+    @Override
+    public List<BlockPos> addPropagationLocations(IRotate block, BlockState state, List<BlockPos> neighbours) {
+        if (!ICogWheel.isLargeCog(state)) {
+            return super.addPropagationLocations(block, state, neighbours);
+        }
+        BlockPos.betweenClosedStream(new BlockPos(-1, -1, -1), new BlockPos(1, 1, 1))
+                .forEach(offset -> {
+                    if (offset.distSqr(BlockPos.ZERO) == 2) {
+                        neighbours.add(worldPosition.offset(offset));
+                    }
+                });
+        return neighbours;
     }
 
     @Override
@@ -219,13 +246,50 @@ public class MBDKineticMachineBlockEntity extends KineticBlockEntity implements 
         }
     }
 
+    /**
+     * Bring {@link MBDKineticMachineBlock#AXIS} back in line with the machine's rotation facing.
+     *
+     * <p>The axis is derived from the facing, so anything that changes what the facing means has to be
+     * picked up by already-placed machines. Two cases, neither of which reports an error — the cog just
+     * silently stops meshing:</p>
+     * <ul>
+     *     <li>A machine saved before the property existed has no {@code axis} in its palette entry, so
+     *     loading restores the facing but falls the axis back to the block's default.</li>
+     *     <li>{@code /mbd2 reload_machine_projects} re-reads {@code kineticMachineSettings} into the
+     *     live definition, so a changed {@code frontRotation} moves the rotation axis under machines
+     *     that are already in the world.</li>
+     * </ul>
+     */
+    private void normalizeRotationAxis() {
+        if (level == null || level.isClientSide) return;
+        var state = getBlockState();
+        if (!(state.getBlock() instanceof MBDKineticMachineBlock kineticBlock)) return;
+        var corrected = kineticBlock.withRotationAxis(state);
+        if (corrected != state) {
+            level.setBlock(worldPosition, corrected, Block.UPDATE_ALL);
+        }
+    }
+
     @Override
     public void tick() {
+        if (!rotationAxisChecked) {
+            // Before super.tick(), because KineticBlockEntity#tick attaches kinetics as its first act
+            // and that is what reads the axis. Once per load; drift afterwards is lazyTick's job.
+            rotationAxisChecked = true;
+            normalizeRotationAxis();
+        }
         super.tick();
         if (definition.kineticMachineSettings().isGenerator && reActivateSource) {
             updateGeneratedRotation();
             reActivateSource = false;
         }
+    }
+
+    /** Every 10 ticks, which is soon enough for a definition reload and cheap enough to not care. */
+    @Override
+    public void lazyTick() {
+        super.lazyTick();
+        normalizeRotationAxis();
     }
 
     public void updateGeneratedRotation() {

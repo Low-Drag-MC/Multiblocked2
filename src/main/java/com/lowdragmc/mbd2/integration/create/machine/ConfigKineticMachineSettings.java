@@ -48,7 +48,9 @@ public class ConfigKineticMachineSettings implements IConfigurable, IPersistedSe
         SHAFT, SMALL_COGWHEEL, LARGE_COGWHEEL, SHAFT_AND_SMALL_COG, SHAFT_AND_LARGE_COG
     }
 
-    @Configurable(name = "config.kinetic_machine.is_generator", tips = "config.kinetic_machine.is_generator.tooltip")
+    @Configurable(name = "config.kinetic_machine.is_generator", tips = {
+            "config.kinetic_machine.is_generator.tooltip",
+            "config.kinetic_machine.stats_require_restart"})
     @Builder.Default
     public boolean isGenerator = false;
 
@@ -68,7 +70,8 @@ public class ConfigKineticMachineSettings implements IConfigurable, IPersistedSe
     public boolean hasBackRotation = true;
 
     @Configurable(name = "config.kinetic_machine.max_rpm",
-            tips = {"config.kinetic_machine.max_rpm.tooltip.0", "config.kinetic_machine.max_rpm.tooltip.1"})
+            tips = {"config.kinetic_machine.max_rpm.tooltip.0", "config.kinetic_machine.max_rpm.tooltip.1",
+                    "config.kinetic_machine.stats_require_restart"})
     @Builder.Default
     @ConfigNumber(range = {0, Integer.MAX_VALUE})
     public int maxRPM = 256;

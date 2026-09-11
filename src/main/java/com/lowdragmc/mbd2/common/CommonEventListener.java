@@ -5,6 +5,7 @@ import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
 import com.lowdragmc.mbd2.api.pattern.MultiblockState;
 import com.lowdragmc.mbd2.api.pattern.MultiblockWorldSavedData;
+import com.lowdragmc.mbd2.common.block.MBDMachineBlock;
 import com.lowdragmc.mbd2.common.item.MBDGadgetsItem;
 import com.lowdragmc.mbd2.common.machine.MBDMultiblockMachine;
 import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
@@ -72,8 +73,8 @@ public class CommonEventListener {
                             if (definition.blockPatternFactory().apply(null).checkPatternAtWithoutController(multiblockState, facing)) {
                                 // can be formed, replace with the real controller
                                 var controllerState = definition.block().defaultBlockState();
-                                if (definition.blockProperties().rotationState().property.isPresent()) {
-                                    controllerState = controllerState.setValue(definition.blockProperties().rotationState().property.get(), facing);
+                                if (definition.block() instanceof MBDMachineBlock machineBlock) {
+                                    controllerState = machineBlock.withFrontFacing(controllerState, facing);
                                 }
                                 serverLevel.setBlockAndUpdate(pos, controllerState);
                                 // notify formed

@@ -393,6 +393,7 @@
     "config.kinetic_machine.max_rpm": "最大转速",
     "config.kinetic_machine.max_rpm.tooltip.0": "如果是产生应力的机器，可提供的最大转速。",
     "config.kinetic_machine.max_rpm.tooltip.1": "如果不是产生应力的机器，超过转速将会损坏。",
+    "config.kinetic_machine.stats_require_restart": "§e机器本身在重载工程后立即生效，但物品提示上显示的应力数据是在启动时注册的，需要重启才会更新。§r",
     "config.kinetic_machine.max_stress": "最大应力",
     "config.kinetic_machine.use_flywheel": "使用飞轮",
     "config.kinetic_machine.use_flywheel.tooltip": "渲染器是否使用飞轮实例。（飞轮将有更好的性能）",

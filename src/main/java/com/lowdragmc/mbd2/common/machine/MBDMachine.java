@@ -33,6 +33,7 @@ import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.client.MachineSound;
+import com.lowdragmc.mbd2.common.block.MBDMachineBlock;
 import com.lowdragmc.mbd2.common.blueprint.MachineBlueprintInstance;
 import com.lowdragmc.mbd2.common.gui.MBDBindingIDs;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
@@ -669,9 +670,12 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
     @Override
     public void setFrontFacing(Direction facing) {
         var blockState = getBlockState();
-        var property = getDefinition().blockProperties().rotationState().property;
-        if (property.isPresent() && blockState.hasProperty(property.get()) && isFacingValid(facing)) {
-            getLevel().setBlockAndUpdate(getPos(), blockState.setValue(property.get(), facing));
+        if (blockState.getBlock() instanceof MBDMachineBlock machineBlock && isFacingValid(facing)) {
+            // withFrontFacing, not setValue: some machines carry properties derived from the facing.
+            var rotated = machineBlock.withFrontFacing(blockState, facing);
+            if (rotated != blockState) {
+                getLevel().setBlockAndUpdate(getPos(), rotated);
+            }
         }
     }
 

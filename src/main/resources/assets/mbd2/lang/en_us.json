@@ -373,6 +373,7 @@
   "config.kinetic_machine.max_rpm": "Max RPM",
   "config.kinetic_machine.max_rpm.tooltip.0": "If is a generator, the maximum RPM can provide.",
   "config.kinetic_machine.max_rpm.tooltip.1": "If not a generator, over rpm will be broke.",
+  "config.kinetic_machine.stats_require_restart": "§eThe machine itself updates on a project reload, but the stress stats shown on the item tooltip are registered at startup and only change after a restart.§r",
   "config.kinetic_machine.connection_type": "Connection Type",
   "config.kinetic_machine.connection_type.tooltip": "How this machine receives kinetic power: shaft-axis only, cogwheel meshing only, or both.",
   "config.kinetic_machine.max_stress": "Max Stress",

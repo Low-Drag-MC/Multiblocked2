@@ -32,6 +32,7 @@ import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.*;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.SimpleWaterloggedBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -79,6 +80,25 @@ public class MBDMachineBlock extends Block implements EntityBlock, IBlockRendere
 
     public Optional<Direction> getFrontFacing(BlockState state) {
         return rotationState.property.map(state::getValue);
+    }
+
+    /**
+     * Build a state facing {@code facing}, keeping every facing-derived block state property in step.
+     *
+     * <p>Go through here instead of calling {@code setValue} on the rotation property directly:
+     * subclasses hang derived properties off the facing, and a state assembled by hand silently skips
+     * them. {@link com.lowdragmc.mbd2.integration.create.machine.MBDKineticMachineBlock} is the reason
+     * this exists — Create reads a cogwheel's {@code axis} off the state, and an axis that disagrees
+     * with the facing stops the cog meshing without any error to go on.</p>
+     *
+     * <p>Returns the state untouched when the machine has no rotation property, or when the rotation
+     * state does not allow {@code facing}.</p>
+     */
+    public BlockState withFrontFacing(BlockState state, Direction facing) {
+        return rotationState.property
+                .filter(property -> state.hasProperty(property) && property.getPossibleValues().contains(facing))
+                .map(property -> state.setValue(property, facing))
+                .orElse(state);
     }
 
     @Override
@@ -246,7 +266,21 @@ public class MBDMachineBlock extends Block implements EntityBlock, IBlockRendere
 
     @Override
     public BlockState rotate(BlockState state, Rotation rotation) {
-        return rotationState.property.map(property -> state.setValue(property, rotation.rotate(state.getValue(property)))).orElse(state);
+        return rotationState.property
+                .map(property -> withFrontFacing(state, rotation.rotate(state.getValue(property))))
+                .orElse(state);
+    }
+
+    /**
+     * The counterpart to {@link #rotate}, which was overridden while this one was left on
+     * {@link Block}'s no-op default — so a mirrored structure or contraption kept every machine facing
+     * the way it started.
+     */
+    @Override
+    public BlockState mirror(BlockState state, Mirror mirror) {
+        return rotationState.property
+                .map(property -> withFrontFacing(state, mirror.mirror(state.getValue(property))))
+                .orElse(state);
     }
 
     @Override

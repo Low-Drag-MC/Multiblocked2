@@ -24,6 +24,13 @@ public class CreateKineticMachineFixtures implements TestFixtureProvider {
     public static final ResourceLocation CONSUMER_MACHINE_ID = MBD2.id("test_create_kinetic_consumer");
     public static final ResourceLocation SMALL_COG_CONSUMER_ID = MBD2.id("test_create_kinetic_small_cog");
     public static final ResourceLocation LARGE_COG_CONSUMER_ID = MBD2.id("test_create_kinetic_large_cog");
+    public static final ResourceLocation LARGE_COG_GENERATOR_ID = MBD2.id("test_create_kinetic_large_cog_generator");
+    /**
+     * Owned exclusively by the runtime-reload test, which mutates its live
+     * {@code kineticMachineSettings} the way {@code /mbd2 reload_machine_projects} does. Sharing a
+     * fixture with another test would make both flaky, since gametests run in parallel batches.
+     */
+    public static final ResourceLocation RUNTIME_RELOAD_MACHINE_ID = MBD2.id("test_create_kinetic_runtime_reload");
     public static final ResourceLocation GENERATOR_RECIPE_TYPE_ID = MBD2.id("test_create_kinetic_generator_recipes");
     public static final ResourceLocation CONSUMER_RECIPE_TYPE_ID = MBD2.id("test_create_kinetic_consumer_recipes");
 
@@ -104,5 +111,36 @@ public class CreateKineticMachineFixtures implements TestFixtureProvider {
                 .recipeLogicSettings(ConfigRecipeLogicSettings.builder().recipeType(CONSUMER_RECIPE_TYPE_ID).build())
                 .partSettings(() -> ConfigPartSettings.builder().build());
         event.register(largeCogBuilder.build());
+
+        // Large-cog generator: drives Create's large-cogwheel rules from the MBD side, which is the
+        // path that reads the (absent) `axis` property off our block state.
+        var largeCogGeneratorBuilder = CreateKineticMachineDefinition.builder()
+                .kineticMachineSettings(ConfigKineticMachineSettings.builder()
+                        .isGenerator(true).torque(8f).maxRPM(256)
+                        .connectionType(ConfigKineticMachineSettings.ConnectionType.LARGE_COGWHEEL).build());
+        largeCogGeneratorBuilder
+                .id(LARGE_COG_GENERATOR_ID)
+                .rootState(StateMachine.createDefault(MachineState::baseBuilder))
+                .blockProperties(ConfigBlockProperties.builder().build())
+                .itemProperties(ConfigItemProperties.builder().build())
+                .machineSettings(() -> ConfigMachineSettings.builder().build())
+                .recipeLogicSettings(ConfigRecipeLogicSettings.builder().recipeType(GENERATOR_RECIPE_TYPE_ID).build())
+                .partSettings(() -> ConfigPartSettings.builder().build());
+        event.register(largeCogGeneratorBuilder.build());
+
+        // Starts as a plain SHAFT machine; the runtime-reload test flips its settings in place.
+        var runtimeReloadBuilder = CreateKineticMachineDefinition.builder()
+                .kineticMachineSettings(ConfigKineticMachineSettings.builder()
+                        .isGenerator(false).torque(4f).maxRPM(256)
+                        .connectionType(ConfigKineticMachineSettings.ConnectionType.SHAFT).build());
+        runtimeReloadBuilder
+                .id(RUNTIME_RELOAD_MACHINE_ID)
+                .rootState(StateMachine.createDefault(MachineState::baseBuilder))
+                .blockProperties(ConfigBlockProperties.builder().build())
+                .itemProperties(ConfigItemProperties.builder().build())
+                .machineSettings(() -> ConfigMachineSettings.builder().build())
+                .recipeLogicSettings(ConfigRecipeLogicSettings.builder().recipeType(CONSUMER_RECIPE_TYPE_ID).build())
+                .partSettings(() -> ConfigPartSettings.builder().build());
+        event.register(runtimeReloadBuilder.build());
     }
 }
