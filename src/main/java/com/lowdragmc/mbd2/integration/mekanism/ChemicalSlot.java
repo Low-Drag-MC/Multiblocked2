@@ -27,6 +27,7 @@ import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import com.mojang.blaze3d.systems.RenderSystem;
 import dev.emi.emi.api.stack.EmiStack;
+import dev.emi.emi.api.stack.EmiStackInteraction;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -73,6 +74,9 @@ public class ChemicalSlot extends BindableUIElement<ChemicalStack> {
     private long capacity;
     @Getter @Setter @Configurable
     private FillDirection fillDirection = FillDirection.ALWAYS_FULL;
+    /** Whether hovering this slot offers its chemical to JEI/EMI for lookup and bookmarking. */
+    @Getter @Setter @Configurable
+    private boolean allowXEILookup = true;
 
     private final RPCEmitter clickEvent;
 
@@ -90,6 +94,17 @@ public class ChemicalSlot extends BindableUIElement<ChemicalStack> {
         getStyle().backgroundTexture(Sprites.RECT_DARK);
         addEventListener(UIEvents.HOVER_TOOLTIPS, this::onHoverTooltips);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
+        // Same hookup FluidSlot does in its own constructor. Without it the recipe viewer has no idea
+        // what is under the cursor, so R/U lookup and A bookmarking do nothing over a chemical slot —
+        // the recipeIngredient/recipeSlot wiring below only covers slots drawn inside a recipe.
+        if (LDLib2.isClient() && !LDLib2.isServer()) {
+            if (LDLib2.isJeiLoaded()) {
+                JEISupport.clickableIngredient(this);
+            }
+            if (LDLib2.isEmiLoaded()) {
+                EMISupport.stackProvider(this);
+            }
+        }
         clickEvent = addRPCEvent(RPCEventBuilder.simple(Boolean.class, this::tryClickContainer));
 
         amountLabel.layout(layout -> layout.widthPercent(100).heightPercent(100));
@@ -359,6 +374,17 @@ public class ChemicalSlot extends BindableUIElement<ChemicalStack> {
             return (mezz.jei.api.ingredients.IIngredientType<T>) helper.getIngredientType();
         }
 
+        /** What JEI reads for recipe lookup (R/U) and bookmarking (A) while the cursor is on the slot. */
+        public static void clickableIngredient(ChemicalSlot slot) {
+            LDLibJEIPlugin.clickableIngredient(slot, () -> {
+                if (!slot.allowXEILookup) return null;
+                var current = slot.getChemical();
+                if (current.isEmpty()) return null;
+                return LDLibJEIPlugin.createTypedIngredient(JEISupport.<ChemicalStack>chemicalType(), current)
+                        .orElse(null);
+            });
+        }
+
         public static void recipeIngredient(ChemicalSlot slot, IngredientIO io, Supplier<Stream<ChemicalStack>> allPossible) {
             LDLibJEIPlugin.recipeIngredient(slot, io, () -> allPossible.get()
                     .map(stack -> LDLibJEIPlugin.createTypedIngredient(chemicalType(), stack))
@@ -377,6 +403,16 @@ public class ChemicalSlot extends BindableUIElement<ChemicalStack> {
     public static class EMISupport {
         private static EmiStack toEmi(ChemicalStack stack) {
             return IMekanismAccess.INSTANCE.emiHelper().createEmiStack(stack);
+        }
+
+        /** EMI's counterpart to {@link JEISupport#clickableIngredient}. */
+        public static void stackProvider(ChemicalSlot slot) {
+            LDLibEMIPlugin.stackProvider(slot, () -> {
+                if (!slot.allowXEILookup) return null;
+                var current = slot.getChemical();
+                if (current.isEmpty()) return null;
+                return new EmiStackInteraction(toEmi(current), null, false);
+            });
         }
 
         public static void recipeIngredient(ChemicalSlot slot, IngredientIO io, Supplier<Stream<ChemicalStack>> allPossible) {
