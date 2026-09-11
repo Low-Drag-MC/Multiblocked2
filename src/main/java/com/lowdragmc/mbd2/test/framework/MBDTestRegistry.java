@@ -137,6 +137,8 @@ public class MBDTestRegistry {
             event.register(com.lowdragmc.mbd2.test.tests.trait.create.CreateRotationConditionTests.class);
             event.register(com.lowdragmc.mbd2.test.tests.trait.create.CreateRotationPartConditionTests.class);
             event.register(com.lowdragmc.mbd2.test.tests.trait.create.CreateCogwheelInputTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.trait.create.CreateLargeCogwheelMeshingTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.trait.create.CreateKineticAxisPropertyTests.class);
             event.register(com.lowdragmc.mbd2.test.tests.recipe.create.CreateRotationRecipeCapabilityTests.class);
             event.register(com.lowdragmc.mbd2.test.tests.recipe.create.CreateRotationContentTests.class);
             event.register(com.lowdragmc.mbd2.test.tests.blueprint.create.CreatePayloadTests.class);

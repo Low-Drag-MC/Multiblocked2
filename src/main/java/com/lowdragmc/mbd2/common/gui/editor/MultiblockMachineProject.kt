@@ -144,14 +144,14 @@ open class MultiblockMachineProject : MachineProject() {
     var multiblockShapeInfoView: MultiblockShapeInfoView? = null
         protected set
 
+    /**
+     * Everything a single machine has — blueprints included — plus the multiblock pattern predicates.
+     *
+     * Derived from [MachineProject.createResources] instead of re-listing the entries: a hand-copied
+     * list is how the blueprint resource went missing from the multiblock editor in the first place.
+     */
     override fun createResources(): Resources {
-        return Resources.of(
-            IRendererResource.INSTANCE,
-            ColorsResource.INSTANCE,
-            TexturesResource.INSTANCE,
-            UIResource.INSTANCE,
-            PredicateResource.INSTANCE
-        )
+        return Resources(super.createResources().resources + PredicateResource.INSTANCE)
     }
 
     override fun createDefinition(): MultiblockMachineDefinition {
