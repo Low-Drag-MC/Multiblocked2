@@ -4,6 +4,7 @@ import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.recipe.event.FuelRecipeUIEvent;
 import com.lowdragmc.mbd2.api.recipe.event.RecipeTypeEvent;
 import com.lowdragmc.mbd2.api.recipe.event.RecipeUIEvent;
+import com.lowdragmc.mbd2.common.event.CustomRendererEvent;
 import com.lowdragmc.mbd2.common.machine.definition.config.event.*;
 import dev.latvian.mods.kubejs.event.EventHandler;
 import dev.latvian.mods.kubejs.event.EventResult;
@@ -36,7 +37,7 @@ public interface MBDClientEvents {
     EventHandler CUSTOM_KEYFRAME = createCustomKeyframeEvent();
 
     EventHandler CUSTOM_RENDER = MBD_MACHINE_EVENTS.client("onCustomRendererFrame",
-            () -> CustomRendererEvent.class);
+            () -> CustomRendererEventJS.class);
 
     // Recipe events
     EventHandler RECIPE_UI = registerRecipeTypeEvent("onRecipeUI",
