@@ -1,16 +1,13 @@
 package com.lowdragmc.mbd2.common.machine.definition.config;
 
-import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.configurator.IToggleConfigurable;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigNumber;
 import com.lowdragmc.lowdraglib2.configurator.annotation.ConfigSearch;
 import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.configurator.ui.SearchComponentConfigurator;
 import com.lowdragmc.lowdraglib2.utils.search.IResultHandler;
-import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
-import com.lowdragmc.mbd2.utils.FileUtils;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,8 +16,6 @@ import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.resources.ResourceLocation;
 
 import javax.annotation.ParametersAreNonnullByDefault;
-import java.io.File;
-import java.util.HashSet;
 
 @Getter
 @Builder
@@ -85,30 +80,7 @@ public class ConfigRecipeLogicSettings implements IToggleConfigurable {
 
             @Override
             public void search(String word, IResultHandler<ResourceLocation> searchHandler) {
-                var wordLower = word.toLowerCase();
-
-                // add recipe type configurator
-                var candidates = new HashSet<ResourceLocation>();
-                candidates.add(MBDRecipeType.DUMMY.getRegistryName());
-                // add all loaded recipe types
-                candidates.addAll(MBDRegistries.RECIPE_TYPES.keys());
-
-                for (var candidate : candidates) {
-                    if (Thread.currentThread().isInterrupted()) return;
-                    if (candidate.toString().contains(wordLower)) {
-                        searchHandler.accept(candidate);
-                    }
-                }
-
-                // add from files
-                var path = new File(MBD2.getLocation(), "recipe_type");
-                FileUtils.loadNBTFiles(path, ".rt", (file, tag) -> {
-                    if (Thread.currentThread().isInterrupted()) return;
-                    var recipeType = tag.getCompound("data").getCompound("recipe_type").getString("registryName");
-                    if (!recipeType.isEmpty() && LDLib2.isValidResourceLocation(recipeType)) {
-                        searchHandler.accept(ResourceLocation.parse(recipeType));
-                    }
-                });
+                MBDRecipeType.searchRecipeTypeIds(word, null, searchHandler);
             }
         };
     }

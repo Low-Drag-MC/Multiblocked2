@@ -479,6 +479,48 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
         return event.getUi();
     }
 
+    /**
+     * Offers every recipe type id an editor can pick whose text contains {@code word}, each once:
+     * {@link #DUMMY}, the registered types, then the {@code .rt} projects on disk that are not
+     * registered yet (saved since launch).
+     * <p>
+     * ⚠️ A project loaded at launch is also a registry key, so both sources name it; without the
+     * dedupe it was offered twice. Since LDLib2 2.2.40 a search box searches the whole catalogue as
+     * soon as it opens, which is what made that (and the file branch ignoring {@code word}) visible.
+     */
+    public static void searchRecipeTypeIds(String word, @Nullable ResourceLocation exclude, Consumer<ResourceLocation> handler) {
+        searchRecipeTypeIds(new File(MBD2.getLocation(), "recipe_type"), word, exclude, handler);
+    }
+
+    /**
+     * {@link #searchRecipeTypeIds(String, ResourceLocation, Consumer)} over the projects under
+     * {@code projectFolder} instead of the one the game loads at launch.
+     */
+    public static void searchRecipeTypeIds(File projectFolder, String word, @Nullable ResourceLocation exclude, Consumer<ResourceLocation> handler) {
+        var wordLower = word.toLowerCase();
+        var offered = new HashSet<ResourceLocation>();
+        if (exclude != null) {
+            offered.add(exclude);
+        }
+        Consumer<ResourceLocation> offer = id -> {
+            if (id.toString().contains(wordLower) && offered.add(id)) {
+                handler.accept(id);
+            }
+        };
+        offer.accept(DUMMY.getRegistryName());
+        for (var id : new TreeSet<>(MBDRegistries.RECIPE_TYPES.keys())) {
+            if (Thread.currentThread().isInterrupted()) return;
+            offer.accept(id);
+        }
+        FileUtils.loadNBTFiles(projectFolder, ".rt", (file, tag) -> {
+            if (Thread.currentThread().isInterrupted()) return;
+            var id = tag.getCompound("data").getCompound("recipe_type").getString("registryName");
+            if (!id.isEmpty() && LDLib2.isValidResourceLocation(id)) {
+                offer.accept(ResourceLocation.parse(id));
+            }
+        });
+    }
+
     private Configurator configureProxyRecipes(Supplier<ResourceLocation> getter, Consumer<ResourceLocation> setter) {
         return new SearchComponentConfigurator<>("editor.machine.recipe_type", getter, setter,
                 ResourceLocation.parse("smelting"), true, (word, find) -> {
@@ -510,31 +552,8 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
 
         private Configurator configureFuelRecipeTypes(Supplier<ResourceLocation> getter, Consumer<ResourceLocation> setter) {
             return new SearchComponentConfigurator<>("editor.machine.recipe_type", getter, setter,
-                    DUMMY.registryName, true, (word, find) -> {
-                var wordLower = word.toLowerCase();
-                // add recipe type configurator
-                var candidates = new HashSet<ResourceLocation>();
-                candidates.add(MBDRecipeType.DUMMY.getRegistryName());
-                // add all loaded recipe types
-                candidates.addAll(MBDRegistries.RECIPE_TYPES.keys());
-
-                for (var candidate : candidates) {
-                    if (Thread.currentThread().isInterrupted()) return;
-                    if (candidate.toString().contains(wordLower) && !candidate.equals(registryName)) {
-                        find.accept(candidate);
-                    }
-                }
-
-                // add from files
-                var path = new File(MBD2.getLocation(), "recipe_type");
-                FileUtils.loadNBTFiles(path, ".rt", (file, tag) -> {
-                    if (Thread.currentThread().isInterrupted()) return;
-                    var recipeType = tag.getCompound("data").getCompound("recipe_type").getString("registryName");
-                    if (!recipeType.isEmpty() && LDLib2.isValidResourceLocation(recipeType) && !recipeType.equals(registryName.toString())) {
-                        find.accept(ResourceLocation.parse(recipeType));
-                    }
-                });
-                }, ResourceLocation::toString,
+                    DUMMY.registryName, true, (word, find) -> searchRecipeTypeIds(word, registryName, find),
+                    ResourceLocation::toString,
                     UIElementProvider.text(recipeType -> Component.literal(recipeType.toString())));
         }
 
