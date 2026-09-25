@@ -5,6 +5,7 @@ import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.event.MBDRegistryEvent;
 import com.lowdragmc.mbd2.common.recipe.*;
 import com.lowdragmc.mbd2.integration.create.CreateRotationCondition;
+import com.lowdragmc.mbd2.integration.mekanism.MEKRadiationCondition;
 import com.lowdragmc.mbd2.integration.mekanism.MEKTemperatureCondition;
 import com.lowdragmc.mbd2.integration.pneumaticcraft.trait.heat.PNCTemperatureCondition;
 import com.lowdragmc.mbd2.integration.pneumaticcraft.trait.pressure.PNCPressureCondition;
@@ -32,6 +33,7 @@ public final class MBDRecipeConditions {
         }
         if (MBD2.isMekanismLoaded()) {
             MBDRegistries.RECIPE_CONDITIONS.register(MEKTemperatureCondition.INSTANCE.getType(), MEKTemperatureCondition.class);
+            MBDRegistries.RECIPE_CONDITIONS.register(MEKRadiationCondition.INSTANCE.getType(), MEKRadiationCondition.class);
         }
         if (MBD2.isPneumaticCraftLoaded()) {
             MBDRegistries.RECIPE_CONDITIONS.register(PNCTemperatureCondition.INSTANCE.getType(), PNCTemperatureCondition.class);
