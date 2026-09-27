@@ -3,6 +3,8 @@ package com.lowdragmc.mbd2.test.framework;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.mbd2.common.blueprint.MachineBlueprintGraph;
 import com.lowdragmc.mbd2.common.machine.definition.config.blueprint.MachineBlueprintBinding;
 import com.lowdragmc.mbd2.api.pattern.BlockPattern;
@@ -18,6 +20,7 @@ import com.lowdragmc.mbd2.common.machine.definition.config.ConfigPartSettings;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigRecipeLogicSettings;
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
 import com.lowdragmc.mbd2.common.machine.definition.config.StateMachine;
+import com.lowdragmc.mbd2.common.trait.IUIProviderTrait;
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 import com.lowdragmc.mbd2.common.trait.fluid.FluidTankCapabilityTraitDefinition;
 import com.lowdragmc.mbd2.common.trait.forgeenergy.ForgeEnergyCapabilityTraitDefinition;
@@ -46,6 +49,7 @@ public class TestMachineBuilder {
     @Nullable private Function<MBDMultiblockMachine, BlockPattern> blockPatternFactory;
     @Nullable private MachineState rootState;
     private com.lowdragmc.lowdraglib2.gui.ui.UITemplate uiTemplate = null;
+    private boolean traitUI = false;
     private int machineLevel = 0;
     private boolean consumeInputsAfterWorking = false;
 
@@ -175,6 +179,17 @@ public class TestMachineBuilder {
         return this;
     }
 
+    /**
+     * Give the machine the UI the editor's "generate UI" would build from its traits: each trait that draws
+     * itself gets its own template, in a container named after the trait — as {@code MachineUIView} names it —
+     * so every trait's {@code initTraitUI} finds and binds exactly what it would on a real machine.
+     * {@link #withUI} wins if both are given.
+     */
+    public TestMachineBuilder withTraitUI() {
+        this.traitUI = true;
+        return this;
+    }
+
     public TestMachineBuilder withMachineLevel(int machineLevel) {
         this.machineLevel = machineLevel;
         return this;
@@ -218,6 +233,22 @@ public class TestMachineBuilder {
         return withBlockPattern(controller -> pattern);
     }
 
+    private com.lowdragmc.lowdraglib2.gui.ui.UITemplate traitUITemplate() {
+        var root = new UIElement();
+        root.setId("trait_ui");
+        root.layout(layout -> layout.width(176).paddingAll(4).gapAll(2));
+        root.style(style -> style.backgroundTexture(Sprites.BORDER));
+        for (var trait : traits) {
+            if (trait instanceof IUIProviderTrait provider) {
+                var container = new UIElement();
+                container.setId(trait.getName());
+                provider.createTraitUITemplate(container);
+                root.addChild(container);
+            }
+        }
+        return com.lowdragmc.lowdraglib2.gui.ui.UITemplate.of(root);
+    }
+
     /** Build, register on the event, and return the resulting definition. */
     public MBDMachineDefinition register(MBDRegistryEvent.Machine event) {
         MachineState rootState = this.rootState != null ? this.rootState :
@@ -228,7 +259,11 @@ public class TestMachineBuilder {
                 .build();
         var msFactory = (com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition.ConfigMachineSettingsFactory) () -> {
             var builder = ConfigMachineSettings.builder().machineLevel(machineLevel);
-            if (uiTemplate != null) builder.uiTemplate(uiTemplate);
+            if (uiTemplate != null) {
+                builder.uiTemplate(uiTemplate);
+            } else if (traitUI) {
+                builder.uiTemplate(traitUITemplate());
+            }
             ConfigMachineSettings settings = builder.build();
             for (TraitDefinition trait : traits) {
                 settings.addTraitDefinition(trait);

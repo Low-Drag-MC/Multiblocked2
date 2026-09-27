@@ -14,6 +14,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.FillDirection;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.FluidSlot;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.ColorUtils;
+import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.common.gui.MBDSprites;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
@@ -117,6 +118,7 @@ public class FluidTankCapabilityTraitDefinition extends SimpleCapabilityTraitDef
     public void initTraitUI(ITrait trait, UI ui) {
         if (trait instanceof FluidTankCapabilityTrait fluidTankTrait) {
             var prefix = uiId();
+            var guiIO = getGuiIO();
             ui.selectRegex("^%s_[0-9]+$".formatted(prefix), FluidSlot.class).forEach(fluidSlot -> {
                 var idStr = fluidSlot.getId();
                 var lastUnderscore = idStr.lastIndexOf('_');
@@ -129,6 +131,15 @@ public class FluidTankCapabilityTraitDefinition extends SimpleCapabilityTraitDef
                 }
                 if (index >= 0 && index < fluidTankTrait.storages.length) {
                     fluidSlot.bind(fluidTankTrait.storages[index], 0);
+                    // FluidSlot names these after the carried container: "filled" is a bucket filled from the
+                    // tank (fluid going out), "drained" a bucket emptied into it (fluid coming in). Only ever
+                    // turned off, as the item trait does, so a slot a UI already restricted stays restricted.
+                    if (!guiIO.support(IO.IN)) {
+                        fluidSlot.setAllowClickDrained(false);
+                    }
+                    if (!guiIO.support(IO.OUT)) {
+                        fluidSlot.setAllowClickFilled(false);
+                    }
                 }
             });
         }
