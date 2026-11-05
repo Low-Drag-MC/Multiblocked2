@@ -75,6 +75,7 @@ public class MBDRecipeBuilder {
         this.data = toCopy.data.copy();
         this.duration = toCopy.duration;
         this.isXEIHidden = toCopy.isXEIHidden;
+        this.priority = toCopy.priority;
     }
 
     public static MBDRecipeBuilder of(ResourceLocation id, MBDRecipeType recipeType) {
@@ -87,16 +88,25 @@ public class MBDRecipeBuilder {
 
     public MBDRecipeBuilder copy(ResourceLocation id) {
         MBDRecipeBuilder copy = new MBDRecipeBuilder(id, this.recipeType);
-        this.input.forEach((k, v) -> copy.input.put(k, new ArrayList<>(v)));
-        this.output.forEach((k, v) -> copy.output.put(k, new ArrayList<>(v)));
+        copy.input.putAll(copyContents(this.input));
+        copy.output.putAll(copyContents(this.output));
         copy.conditions.addAll(this.conditions);
         copy.data = this.data.copy();
         copy.duration = this.duration;
         copy.chance = this.chance;
+        copy.tierChanceBoost = this.tierChanceBoost;
         copy.perTick = this.perTick;
         copy.uiName = this.uiName;
         copy.slotName = this.slotName;
+        copy.isXEIHidden = this.isXEIHidden;
+        copy.priority = this.priority;
         copy.onSave = this.onSave;
+        return copy;
+    }
+
+    private static Map<RecipeCapability<?>, List<Content>> copyContents(Map<RecipeCapability<?>, List<Content>> contents) {
+        var copy = new HashMap<RecipeCapability<?>, List<Content>>();
+        contents.forEach((capability, list) -> copy.put(capability, new ArrayList<>(list)));
         return copy;
     }
 
@@ -357,7 +367,8 @@ public class MBDRecipeBuilder {
     }
 
     public MBDRecipe buildRawRecipe() {
-        return new MBDRecipe(recipeType, id, input, output, conditions, data, duration, isXEIHidden, priority);
+        return new MBDRecipe(recipeType, id, copyContents(input), copyContents(output), new ArrayList<>(conditions),
+                data.copy(), duration, isXEIHidden, priority);
     }
 
 }

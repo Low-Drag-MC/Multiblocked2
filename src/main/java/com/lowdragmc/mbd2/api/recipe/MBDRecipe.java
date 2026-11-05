@@ -139,7 +139,7 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Recip
 
     @HideFromJS
     public MBDRecipeBuilder toBuilder() {
-        var builder =  recipeType.recipeBuilder(id)
+        var builder = MBDRecipeBuilder.of(id, recipeType)
                 .duration(duration)
                 .isXEIHidden(isXEIHidden)
                 .priority(priority);
