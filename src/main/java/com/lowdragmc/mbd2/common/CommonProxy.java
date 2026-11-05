@@ -23,6 +23,7 @@ import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.MultiblockMachineDefinition;
 import com.lowdragmc.mbd2.common.network.MBD2Network;
 import com.lowdragmc.mbd2.config.ConfigHolder;
+import com.lowdragmc.mbd2.integration.astralsorcery.AstralSorceryIntegration;
 import com.lowdragmc.mbd2.integration.kubejs.events.MBDMachineRegistryEventJS;
 import com.lowdragmc.mbd2.integration.kubejs.events.MBDRecipeTypeRegistryEventJS;
 import com.lowdragmc.mbd2.integration.kubejs.events.MBDStartupEvents;
@@ -79,6 +80,9 @@ public class CommonProxy {
         MBDRegistries.RECIPE_SERIALIZERS.register("mbd_recipe_serializer", () -> MBDRecipeSerializer.SERIALIZER);
         MBDRegistries.RECIPE_SERIALIZERS.register(eventBus);
         MBDDataComponents.COMPONENTS.register(eventBus);
+        if (MBD2.isAstralSorceryLoaded()) {
+            AstralSorceryIntegration.init(eventBus);
+        }
         // Register Editor UI
         PlayerUIMenuType.register(MBDEditor.WINDOW_ID, ignored -> player -> {
             if (player.level().isClientSide) {

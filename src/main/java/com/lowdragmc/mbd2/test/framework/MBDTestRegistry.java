@@ -68,6 +68,12 @@ public class MBDTestRegistry {
             register(new com.lowdragmc.mbd2.test.tests.trait.arsnouveau.NearbySourceTraitFixtures());
             register(new com.lowdragmc.mbd2.test.tests.recipe.arsnouveau.ArsSourceRecipeCapabilityFixtures());
         }
+        if (net.neoforged.fml.ModList.get().isLoaded("astralsorcery")) {
+            register(new com.lowdragmc.mbd2.test.tests.trait.astralsorcery.LumenStorageTraitFixtures());
+            register(new com.lowdragmc.mbd2.test.tests.trait.astralsorcery.StarlightReceiverTraitFixtures());
+            register(new com.lowdragmc.mbd2.test.tests.trait.astralsorcery.AstralTraitUIFixtures());
+            register(new com.lowdragmc.mbd2.test.tests.recipe.astralsorcery.AstralRecipeCapabilityFixtures());
+        }
         if (net.neoforged.fml.ModList.get().isLoaded("pneumaticcraft")) {
             register(new com.lowdragmc.mbd2.test.tests.trait.pneumaticcraft.PNCHeatTraitFixtures());
             register(new com.lowdragmc.mbd2.test.tests.trait.pneumaticcraft.PNCPressureTraitFixtures());
@@ -116,6 +122,13 @@ public class MBDTestRegistry {
             event.register(com.lowdragmc.mbd2.test.tests.trait.arsnouveau.NearbySourceTraitTests.class);
             event.register(com.lowdragmc.mbd2.test.tests.recipe.arsnouveau.ArsSourceRecipeCapabilityTests.class);
             event.register(com.lowdragmc.mbd2.test.tests.recipe.arsnouveau.ArsSourceNearbyConditionTests.class);
+        }
+        if (modList.isLoaded("astralsorcery")) {
+            event.register(com.lowdragmc.mbd2.test.tests.trait.astralsorcery.LumenStorageTraitTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.trait.astralsorcery.StarlightReceiverTraitTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.recipe.astralsorcery.AstralRecipeCapabilityTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.recipe.astralsorcery.AstralConditionTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.recipe.astralsorcery.AstralContentTests.class);
         }
         if (modList.isLoaded("pneumaticcraft")) {
             event.register(com.lowdragmc.mbd2.test.tests.trait.pneumaticcraft.PNCHeatTraitTests.class);

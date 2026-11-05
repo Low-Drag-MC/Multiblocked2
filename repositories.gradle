@@ -69,4 +69,11 @@ repositories {
     }
     maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven" } // NeoForge config api port, needed by ponder
     maven { url = 'https://maven.minecraftforge.net/' } // TerraBlender
+    maven { // Astral Sorcery, ObserverLib
+        url = "https://maven.hellfiredev.net/"
+        content {
+            includeGroup "hellfirepvp.astralsorcery"
+            includeGroup "hellfirepvp.observerlib"
+        }
+    }
 }

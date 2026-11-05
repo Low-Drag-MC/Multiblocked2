@@ -15,6 +15,12 @@ import com.lowdragmc.mbd2.common.capability.recipe.*;
 import com.lowdragmc.mbd2.common.recipe.*;
 import com.lowdragmc.mbd2.integration.arsnouveau.ArsSourceNearbyCondition;
 import com.lowdragmc.mbd2.integration.arsnouveau.ArsSourceRecipeCapability;
+import com.lowdragmc.mbd2.integration.astralsorcery.AstralSorceryIntegration;
+import com.lowdragmc.mbd2.integration.astralsorcery.lumen.AstralLumenRecipeCapability;
+import com.lowdragmc.mbd2.integration.astralsorcery.research.AstralResearchCondition;
+import com.lowdragmc.mbd2.integration.astralsorcery.sky.AstralCelestialEventCondition;
+import com.lowdragmc.mbd2.integration.astralsorcery.sky.AstralConstellationCondition;
+import com.lowdragmc.mbd2.integration.astralsorcery.starlight.AstralStarlightRecipeCapability;
 import com.lowdragmc.mbd2.integration.create.CreateRotation;
 import com.lowdragmc.mbd2.integration.create.CreateRotationCondition;
 import com.lowdragmc.mbd2.integration.create.CreateRotationRecipeCapability;
@@ -453,6 +459,29 @@ public interface MBDRecipeSchema {
             return outputs(MekanismChemicalRecipeCapability.CAP, (Object[]) stack);
         }
 
+        /** Each as {@code "500x astralsorcery:aevitas"}, {@code "astralsorcery:aevitas"} or {@code "aevitas"} (one flask, 500). */
+        public MBDRecipeJS inputLumen(String... lumen) {
+            if (!MBD2.isAstralSorceryLoaded()) {
+                throw new IllegalStateException("Try to add a lumen ingredient while the astral sorcery is not loaded!");
+            }
+            return inputs(AstralLumenRecipeCapability.CAP, (Object[]) lumen);
+        }
+
+        public MBDRecipeJS outputLumen(String... lumen) {
+            if (!MBD2.isAstralSorceryLoaded()) {
+                throw new IllegalStateException("Try to add a lumen ingredient while the astral sorcery is not loaded!");
+            }
+            return outputs(AstralLumenRecipeCapability.CAP, (Object[]) lumen);
+        }
+
+        /** Each as {@code "100"} (any constellation) or {@code "100x astralsorcery:armara"}. There is no output. */
+        public MBDRecipeJS inputStarlight(String... starlight) {
+            if (!MBD2.isAstralSorceryLoaded()) {
+                throw new IllegalStateException("Try to add a starlight ingredient while the astral sorcery is not loaded!");
+            }
+            return inputs(AstralStarlightRecipeCapability.CAP, (Object[]) starlight);
+        }
+
         //////////////// condition ////////////////
         public MBDRecipeJS addCondition(RecipeCondition condition) {
             conditions.add(condition);
@@ -545,6 +574,40 @@ public interface MBDRecipeSchema {
                 throw new IllegalStateException("Try to add a source condition while the ars nouveau is not loaded!");
             }
             addCondition(new ArsSourceNearbyCondition(radius, minSource, maxSource));
+            return this;
+        }
+
+        /** {@code minDistribution} is 0 to 1. */
+        public MBDRecipeJS astralConstellationCondition(String constellation, float minDistribution) {
+            if (!MBD2.isAstralSorceryLoaded()) {
+                throw new IllegalStateException("Try to add a constellation condition while the astral sorcery is not loaded!");
+            }
+            addCondition(new AstralConstellationCondition(AstralSorceryIntegration.parseConstellationId(constellation), minDistribution));
+            return this;
+        }
+
+        /** {@code event} is {@code "solar_eclipse"} or {@code "lunar_eclipse"}. */
+        public MBDRecipeJS astralCelestialEventCondition(String event, boolean wholeDay) {
+            if (!MBD2.isAstralSorceryLoaded()) {
+                throw new IllegalStateException("Try to add a celestial event condition while the astral sorcery is not loaded!");
+            }
+            addCondition(new AstralCelestialEventCondition(
+                    AstralCelestialEventCondition.Event.valueOf(event.toUpperCase(Locale.ROOT)), wholeDay));
+            return this;
+        }
+
+        /**
+         * {@code minTier} is one of shimmer, illumination, resonance, luminance, radiance; {@code attunement} and
+         * {@code discovered} are constellation ids, or empty for no requirement. Needs an {@code astral_researcher} trait.
+         */
+        public MBDRecipeJS astralResearchCondition(String minTier, String attunement, String discovered) {
+            if (!MBD2.isAstralSorceryLoaded()) {
+                throw new IllegalStateException("Try to add a research condition while the astral sorcery is not loaded!");
+            }
+            addCondition(new AstralResearchCondition(
+                    AstralResearchCondition.Tier.valueOf(minTier.toUpperCase(Locale.ROOT)),
+                    attunement == null || attunement.isEmpty() ? AstralSorceryIntegration.ANY : AstralSorceryIntegration.parseConstellationId(attunement),
+                    discovered == null || discovered.isEmpty() ? AstralSorceryIntegration.ANY : AstralSorceryIntegration.parseConstellationId(discovered)));
             return this;
         }
 

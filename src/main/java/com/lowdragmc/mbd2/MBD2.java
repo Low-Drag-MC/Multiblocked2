@@ -100,6 +100,10 @@ public class MBD2 {
         return LDLib2.isModLoaded("ars_nouveau");
     }
 
+    public static boolean isAstralSorceryLoaded() {
+        return LDLib2.isModLoaded("astralsorcery");
+    }
+
     public static boolean isEmbeddiumLoaded() {
         return LDLib2.isModLoaded("embeddium");
     }

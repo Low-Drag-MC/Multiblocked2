@@ -161,4 +161,7 @@ dependencies {
 
     // AE2
     localImplementation("org.appliedenergistics:appliedenergistics2:${ae2_version}")
+
+    // Astral Sorcery
+    localImplementation("hellfirepvp.astralsorcery:AstralSorcery:${astral_sorcery_version}")
 }

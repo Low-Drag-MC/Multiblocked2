@@ -37,6 +37,11 @@ public final class MBDSprites {
     public final static SpriteTexture ARS_SOURCE = SpriteTexture.of("ars_nouveau:textures/item/source_gem.png");
     public final static SpriteTexture ARS_SOURCE_BAR = SpriteTexture.of("mbd2:textures/gui/ars_source_bar.png")
             .setBorder(1).setWrapMode(SpriteTexture.WrapMode.REPEAT);
+    public final static SpriteTexture ASTRAL_LUMEN = SpriteTexture.of("astralsorcery:textures/item/lumen_crystal_prismatic.png");
+    public final static SpriteTexture ASTRAL_STARLIGHT = SpriteTexture.of("astralsorcery:textures/item/celestial_crystal.png");
+    public final static SpriteTexture ASTRAL_CONSTELLATION = SpriteTexture.of("astralsorcery:textures/item/constellation_paper.png");
+    public final static SpriteTexture ASTRAL_CELESTIAL_EVENT = SpriteTexture.of("astralsorcery:textures/item/astrolabe.png");
+    public final static SpriteTexture ASTRAL_RESEARCH = SpriteTexture.of("astralsorcery:textures/item/tome.png");
 
 
     public static void init(ResourceInstance<IGuiTexture> instance) {
