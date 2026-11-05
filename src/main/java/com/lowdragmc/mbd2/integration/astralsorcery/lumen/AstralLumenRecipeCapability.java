@@ -14,6 +14,7 @@ import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.common.gui.MBDSprites;
 import com.lowdragmc.mbd2.integration.astralsorcery.AstralSorceryIntegration;
+import com.lowdragmc.mbd2.integration.astralsorcery.AstralTraitUI;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.network.chat.Component;
@@ -60,8 +61,8 @@ public class AstralLumenRecipeCapability extends RecipeCapability<LumenAmount> {
     public UIElement createXEITemplate() {
         var ui = new UIElement();
         ui.layout(layout -> layout.height(14).gapAll(2).flexDirection(FlexDirection.ROW).alignItems(AlignItems.CENTER));
-        var icon = new UIElement()
-                .layout(layout -> layout.heightPercent(100).aspectRatio(1))
+        var icon = new UIElement().addClass("lumen-icon")
+                .layout(layout -> layout.width(8).height(8))
                 .style(style -> style.background(MBDSprites.ASTRAL_LUMEN));
         var label = new Label();
         label.setText("0 lumen").addClass("lumen-label");
@@ -75,7 +76,16 @@ public class AstralLumenRecipeCapability extends RecipeCapability<LumenAmount> {
     @Override
     public void bindXEIWidget(UIElement ui, Content content, IO io) {
         var amount = of(content.content);
-        ui.select(".lumen-label", Label.class).forEach(label -> label.setText(describe(amount, io, content.perTick)));
+        var lumen = amount.resolve();
+        var text = describe(amount, io, content.perTick);
+        if (lumen != null) {
+            var color = AstralTraitUI.onLightBackground(AstralSorceryIntegration.lumenColor(lumen));
+            var lumenIcon = AstralTraitUI.lumenIcon(lumen, color);
+            ui.select(".lumen-icon", UIElement.class).forEach(icon -> icon.style(style -> style.background(lumenIcon)));
+            text = text.copy().withColor(color);
+        }
+        var label = text;
+        ui.select(".lumen-label", Label.class).forEach(element -> element.setText(label));
     }
 
     private static Component describe(LumenAmount content, IO io, boolean perTick) {

@@ -7,6 +7,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.common.util.INBTSerializable;
@@ -169,6 +170,9 @@ public class StarlightBuffer implements INBTSerializable<CompoundTag>, IContentC
     public CompoundTag uiSnapshot() {
         var tag = serializeNBT(RegistryAccess.EMPTY);
         tag.putFloat("capacity", capacity);
+        var filter = new ListTag();
+        this.filter.stream().sorted().forEach(id -> filter.add(StringTag.valueOf(id.toString())));
+        tag.put("filter", filter);
         return tag;
     }
 

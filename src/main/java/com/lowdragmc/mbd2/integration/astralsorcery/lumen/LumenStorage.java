@@ -11,6 +11,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.common.util.INBTSerializable;
@@ -167,6 +168,10 @@ public class LumenStorage implements INBTSerializable<CompoundTag>, IContentChan
     public CompoundTag uiSnapshot() {
         var tag = serializeNBT(RegistryAccess.EMPTY);
         tag.putInt("capacity", capacity);
+        var filter = new ListTag();
+        this.filter.stream().map(AstralSorceryIntegration::lumenId).sorted()
+                .forEach(id -> filter.add(StringTag.valueOf(id.toString())));
+        tag.put("filter", filter);
         return tag;
     }
 

@@ -16,6 +16,7 @@ import com.lowdragmc.mbd2.common.trait.TraitDefinitionType;
 import com.lowdragmc.mbd2.integration.astralsorcery.AstralSorceryIntegration;
 import com.lowdragmc.mbd2.integration.astralsorcery.AstralTraitUI;
 import hellfirepvp.astralsorcery.common.lumen.ILumenHandler;
+import hellfirepvp.astralsorcery.common.lumen.Lumen;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.core.Direction;
@@ -27,6 +28,7 @@ import net.neoforged.neoforge.capabilities.BlockCapability;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -139,42 +141,42 @@ public class LumenStorageCapabilityTraitDefinition extends SimpleCapabilityTrait
 
     @Override
     public void createTraitUITemplate(UIElement container) {
-        AstralTraitUI.createTemplate(container, uiId(), MBDSprites.ASTRAL_LUMEN, "lumen-label");
+        AstralTraitUI.createBarsTemplate(container, uiId());
     }
 
     @Override
     public void initTraitUI(ITrait trait, UI ui) {
         if (trait instanceof LumenStorageCapabilityTrait lumenTrait) {
-            AstralTraitUI.bindLabel(ui, uiId(), "lumen-label", () -> lumenTrait.getStorage().uiSnapshot(),
-                    LumenStorageCapabilityTraitDefinition::summary, LumenStorageCapabilityTraitDefinition::details);
+            AstralTraitUI.bindBars(ui, uiId(), () -> lumenTrait.getStorage().uiSnapshot(),
+                    LumenStorageCapabilityTraitDefinition::bars);
         }
     }
 
-    private static Component summary(CompoundTag snapshot) {
-        var line = Component.empty();
-        for (var element : snapshot.getList("contents", Tag.TAG_COMPOUND)) {
-            var entry = (CompoundTag) element;
-            var lumen = AstralSorceryIntegration.lumen(ResourceLocation.tryParse(entry.getString("lumen")));
-            if (lumen == null) continue;
-            if (!line.getSiblings().isEmpty()) line.append(" ");
-            line.append(Component.literal(String.valueOf(entry.getInt("amount"))).withColor(AstralSorceryIntegration.lumenColor(lumen)));
-        }
-        return line.getSiblings().isEmpty() ? Component.translatable("recipe.capability.astral_lumen.empty") : line;
-    }
-
-    private static List<Component> details(CompoundTag snapshot) {
+    /** One bar per filtered type, or per stored type without a filter; a type still held after the filter narrowed stays. */
+    private static List<AstralTraitUI.Bar> bars(CompoundTag snapshot) {
         var capacity = snapshot.getInt("capacity");
-        var lines = new ArrayList<Component>();
+        var amounts = new LinkedHashMap<Lumen, Integer>();
+        for (var element : snapshot.getList("filter", Tag.TAG_STRING)) {
+            var lumen = AstralSorceryIntegration.lumen(ResourceLocation.tryParse(element.getAsString()));
+            if (lumen != null) amounts.put(lumen, 0);
+        }
         for (var element : snapshot.getList("contents", Tag.TAG_COMPOUND)) {
             var entry = (CompoundTag) element;
             var lumen = AstralSorceryIntegration.lumen(ResourceLocation.tryParse(entry.getString("lumen")));
-            if (lumen == null) continue;
-            lines.add(Component.translatable("recipe.capability.astral_lumen.stored", lumen.getName(), entry.getInt("amount"), capacity)
-                    .withColor(AstralSorceryIntegration.lumenColor(lumen)));
+            if (lumen != null) amounts.put(lumen, entry.getInt("amount"));
         }
-        if (lines.isEmpty()) {
-            lines.add(Component.translatable("recipe.capability.astral_lumen.empty"));
+        if (amounts.isEmpty()) {
+            return List.of(AstralTraitUI.emptyBar(MBDSprites.ASTRAL_LUMEN, "0/" + capacity,
+                    Component.translatable("recipe.capability.astral_lumen.empty")));
         }
-        return lines;
+        var bars = new ArrayList<AstralTraitUI.Bar>();
+        amounts.forEach((lumen, amount) -> {
+            var color = AstralSorceryIntegration.lumenColor(lumen);
+            bars.add(new AstralTraitUI.Bar(AstralSorceryIntegration.lumenId(lumen).toString(), AstralTraitUI.lumenIcon(lumen), color,
+                    capacity > 0 ? (float) amount / capacity : 0,
+                    Component.literal(amount + "/" + capacity).withColor(color),
+                    Component.translatable("recipe.capability.astral_lumen.stored", lumen.getName(), amount, capacity).withColor(color)));
+        });
+        return bars;
     }
 }

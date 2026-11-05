@@ -23,8 +23,10 @@ import hellfirepvp.astralsorcery.common.lib.LumenAS;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Blocks;
 
+import java.util.List;
+
 /**
- * Checks that the server's values reach the Astral Sorcery trait widgets on a real client.
+ * Checks that the server's values reach the Astral Sorcery trait bars on a real client.
  * Run with {@code gradlew runClient -PldTest=mbd2_astral_trait_ui}.
  */
 @LDLRegisterClient(name = "mbd2_astral_trait_ui", group = "mbd2", registry = UIScenario.REGISTRY,
@@ -68,15 +70,14 @@ public class AstralSorceryTraitUIScenario implements UIScenario {
                 .awaitScreen(ModularUIContainerScreen.class)
                 .awaitModularUI()
                 .frames(6)
-                .waitUntil("the lumen label to show both stored types", ctx -> {
-                    var text = labelText(ctx, "lumen-label");
-                    ctx.attach("lumen", text);
-                    return text.contains("1200") && text.contains("300");
+                .waitUntil("a lumen bar per filtered type, the unfilled one included", ctx -> {
+                    var texts = barTexts(ctx);
+                    ctx.attach("bars", String.join(" | ", texts));
+                    return texts.contains("1200/4000") && texts.contains("300/4000") && texts.contains("0/4000");
                 })
-                .waitUntil("the starlight label to show the stored armara", ctx -> {
-                    var text = labelText(ctx, "starlight-label");
-                    ctx.attach("starlight", text);
-                    return text.contains("42.50");
+                .waitUntil("a starlight bar per filtered constellation", ctx -> {
+                    var texts = barTexts(ctx);
+                    return texts.contains("42.50/1000") && texts.contains("0/1000");
                 })
                 .waitUntil("the researcher label to name the player", ctx -> {
                     var text = labelText(ctx, "researcher-label");
@@ -86,6 +87,10 @@ public class AstralSorceryTraitUIScenario implements UIScenario {
                 .screenshot("astral_trait_ui")
                 .step("close the ui", ctx -> ctx.mc().setScreen(null))
                 .teardownServer("remove the machine", sc -> sc.level().setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState()));
+    }
+
+    private static List<String> barTexts(TestContext ctx) {
+        return ctx.query().withClass("astral-bar-label").list().stream().map(ElementRef::text).toList();
     }
 
     private static String labelText(TestContext ctx, String styleClass) {

@@ -65,7 +65,7 @@ public class AstralResearcherTraitDefinition extends TraitDefinition implements 
 
     @Override
     public void createTraitUITemplate(UIElement container) {
-        AstralTraitUI.createTemplate(container, uiId(), MBDSprites.ASTRAL_RESEARCH, "researcher-label");
+        AstralTraitUI.createLabelTemplate(container, uiId(), MBDSprites.ASTRAL_RESEARCH, "researcher-label");
     }
 
     @Override

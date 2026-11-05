@@ -24,6 +24,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -90,46 +91,46 @@ public class StarlightReceiverTraitDefinition extends RecipeCapabilityTraitDefin
 
     @Override
     public void createTraitUITemplate(UIElement container) {
-        AstralTraitUI.createTemplate(container, uiId(), MBDSprites.ASTRAL_STARLIGHT, "starlight-label");
+        AstralTraitUI.createBarsTemplate(container, uiId());
     }
 
     @Override
     public void initTraitUI(ITrait trait, UI ui) {
         if (trait instanceof StarlightReceiverTrait receiver) {
-            AstralTraitUI.bindLabel(ui, uiId(), "starlight-label", () -> receiver.getBuffer().uiSnapshot(),
-                    StarlightReceiverTraitDefinition::summary, StarlightReceiverTraitDefinition::details);
+            AstralTraitUI.bindBars(ui, uiId(), () -> receiver.getBuffer().uiSnapshot(),
+                    StarlightReceiverTraitDefinition::bars);
         }
     }
 
-    private static Component summary(CompoundTag snapshot) {
-        var line = Component.empty();
-        for (var element : snapshot.getList("contents", Tag.TAG_COMPOUND)) {
-            var entry = (CompoundTag) element;
-            if (!line.getSiblings().isEmpty()) line.append(" ");
-            line.append(colored(entry, Component.literal(AstralStarlightRecipeCapability.format(entry.getFloat("amount")))));
+    /** As the lumen storage's: one bar per filtered constellation, or per stored one without a filter. */
+    private static List<AstralTraitUI.Bar> bars(CompoundTag snapshot) {
+        var capacity = snapshot.getFloat("capacity");
+        var capacityText = AstralStarlightRecipeCapability.format(capacity);
+        var amounts = new LinkedHashMap<ResourceLocation, Float>();
+        for (var element : snapshot.getList("filter", Tag.TAG_STRING)) {
+            var id = ResourceLocation.tryParse(element.getAsString());
+            if (id != null) amounts.put(id, 0f);
         }
-        return line.getSiblings().isEmpty() ? Component.translatable("recipe.capability.astral_starlight.empty") : line;
-    }
-
-    private static List<Component> details(CompoundTag snapshot) {
-        var capacity = AstralStarlightRecipeCapability.format(snapshot.getFloat("capacity"));
-        var lines = new ArrayList<Component>();
         for (var element : snapshot.getList("contents", Tag.TAG_COMPOUND)) {
             var entry = (CompoundTag) element;
             var id = ResourceLocation.tryParse(entry.getString("constellation"));
-            if (id == null) continue;
-            lines.add(colored(entry, Component.translatable("recipe.capability.astral_starlight.stored",
-                    AstralSorceryIntegration.constellationName(id),
-                    AstralStarlightRecipeCapability.format(entry.getFloat("amount")), capacity)));
+            if (id != null) amounts.put(id, entry.getFloat("amount"));
         }
-        if (lines.isEmpty()) {
-            lines.add(Component.translatable("recipe.capability.astral_starlight.empty"));
+        if (amounts.isEmpty()) {
+            return List.of(AstralTraitUI.emptyBar(MBDSprites.ASTRAL_STARLIGHT, "0/" + capacityText,
+                    Component.translatable("recipe.capability.astral_starlight.empty")));
         }
-        return lines;
-    }
-
-    private static Component colored(CompoundTag entry, Component text) {
-        var constellation = AstralSorceryIntegration.constellation(ResourceLocation.tryParse(entry.getString("constellation")));
-        return constellation == null ? text : text.copy().withColor(AstralSorceryIntegration.constellationColor(constellation));
+        var bars = new ArrayList<AstralTraitUI.Bar>();
+        amounts.forEach((id, amount) -> {
+            var constellation = AstralSorceryIntegration.constellation(id);
+            var color = constellation == null ? 0xFFFFFFFF : AstralSorceryIntegration.constellationColor(constellation);
+            var amountText = AstralStarlightRecipeCapability.format(amount);
+            bars.add(new AstralTraitUI.Bar(id.toString(), AstralTraitUI.starIcon(color), color,
+                    capacity > 0 ? amount / capacity : 0,
+                    Component.literal(amountText + "/" + capacityText).withColor(color),
+                    Component.translatable("recipe.capability.astral_starlight.stored",
+                            AstralSorceryIntegration.constellationName(id), amountText, capacityText).withColor(color)));
+        });
+        return bars;
     }
 }

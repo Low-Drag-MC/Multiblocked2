@@ -14,6 +14,7 @@ import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.content.Content;
 import com.lowdragmc.mbd2.common.gui.MBDSprites;
 import com.lowdragmc.mbd2.integration.astralsorcery.AstralSorceryIntegration;
+import com.lowdragmc.mbd2.integration.astralsorcery.AstralTraitUI;
 import dev.vfyjxf.taffy.style.AlignItems;
 import dev.vfyjxf.taffy.style.FlexDirection;
 import net.minecraft.network.chat.Component;
@@ -65,9 +66,9 @@ public class AstralStarlightRecipeCapability extends RecipeCapability<StarlightA
     public UIElement createXEITemplate() {
         var ui = new UIElement();
         ui.layout(layout -> layout.height(14).gapAll(2).flexDirection(FlexDirection.ROW).alignItems(AlignItems.CENTER));
-        var icon = new UIElement()
-                .layout(layout -> layout.heightPercent(100).aspectRatio(1))
-                .style(style -> style.background(MBDSprites.ASTRAL_STARLIGHT));
+        var icon = new UIElement().addClass("starlight-icon")
+                .layout(layout -> layout.width(8).height(8))
+                .style(style -> style.background(AstralTraitUI.starIcon(AstralTraitUI.onLightBackground(0xFFFFFFFF))));
         var label = new Label();
         label.setText("0 starlight").addClass("starlight-label");
         label.textStyle(style -> style.textWrap(TextWrap.HOVER_ROLL));
@@ -81,8 +82,17 @@ public class AstralStarlightRecipeCapability extends RecipeCapability<StarlightA
     @Override
     public void bindXEIWidget(UIElement ui, Content content, IO io) {
         var amount = of(content.content);
+        var constellation = amount.constellation().map(AstralSorceryIntegration::constellation).orElse(null);
+        var text = describe(amount, io, content.perTick, true);
+        if (constellation != null) {
+            var color = AstralTraitUI.onLightBackground(AstralSorceryIntegration.constellationColor(constellation));
+            var star = AstralTraitUI.starIcon(color);
+            ui.select(".starlight-icon", UIElement.class).forEach(icon -> icon.style(style -> style.background(star)));
+            text = text.copy().withColor(color);
+        }
+        var label = text;
         ui.style(style -> style.tooltips(describe(amount, io, content.perTick)));
-        ui.select(".starlight-label", Label.class).forEach(label -> label.setText(describe(amount, io, content.perTick, true)));
+        ui.select(".starlight-label", Label.class).forEach(element -> element.setText(label));
     }
 
     private static Component describe(StarlightAmount content, IO io, boolean perTick) {
