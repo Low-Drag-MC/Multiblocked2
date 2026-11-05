@@ -17,6 +17,8 @@ import com.lowdragmc.mbd2.common.trait.forgeenergy.ForgeEnergyCapabilityTraitDef
 import com.lowdragmc.mbd2.common.trait.item.ItemSlotCapabilityTraitDefinition;
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 import com.lowdragmc.mbd2.integration.ae2.trait.MEInterfaceTraitDefinition;
+import com.lowdragmc.mbd2.integration.arsnouveau.trait.NearbySourceTraitDefinition;
+import com.lowdragmc.mbd2.integration.arsnouveau.trait.SourceStorageCapabilityTraitDefinition;
 import com.lowdragmc.mbd2.integration.create.machine.CreateRotationTrait;
 import com.lowdragmc.mbd2.integration.mekanism.trait.chemical.ChemicalTankCapabilityTraitDefinition;
 import com.lowdragmc.mbd2.integration.mekanism.trait.heat.MekHeatCapabilityTraitDefinition;
@@ -89,6 +91,15 @@ public class MBDWikiEditorCaptureScenario implements UIScenario {
                 .step("inspect AE2 interface", ctx -> inspect(ctx, MEInterfaceTraitDefinition.class))
                 .settleMs(240)
                 .screenshot("08_ae2_interface")
+                .step("inspect Ars Nouveau source storage", ctx -> inspect(ctx, SourceStorageCapabilityTraitDefinition.class))
+                .settleMs(240)
+                .screenshot("09_ars_nouveau_source_storage")
+                // Not added to the project: ars_nearby_source declares itself incompatible with
+                // ars_source_storage, so only one of the two can sit in a machine's trait list.
+                .step("inspect Ars Nouveau nearby source", ctx ->
+                        editor(ctx).inspectorView.inspect(new NearbySourceTraitDefinition()))
+                .settleMs(240)
+                .screenshot("10_ars_nouveau_nearby_source")
                 .closeScreen();
     }
 
@@ -106,6 +117,7 @@ public class MBDWikiEditorCaptureScenario implements UIScenario {
         project.getDefinition().machineSettings().addTraitDefinition(new PNCPressureAirHandlerTraitDefinition());
         project.getDefinition().machineSettings().addTraitDefinition(new AuraHandlerTraitDefinition());
         project.getDefinition().machineSettings().addTraitDefinition(new MEInterfaceTraitDefinition());
+        project.getDefinition().machineSettings().addTraitDefinition(new SourceStorageCapabilityTraitDefinition());
         ctx.put(PROJECT, project);
         editor.loadProject(project, null);
         return new ModularUI(UI.of(editor), ctx.player());
