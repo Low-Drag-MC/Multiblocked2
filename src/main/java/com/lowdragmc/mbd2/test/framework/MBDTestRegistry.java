@@ -50,6 +50,7 @@ public class MBDTestRegistry {
         register(new com.lowdragmc.mbd2.test.tests.blueprint.AutoIOPanelFixtures());
         register(new com.lowdragmc.mbd2.test.tests.fx.MachineFXFixtures());
         register(new com.lowdragmc.mbd2.test.tests.ui.KubeJSMachineUIFixtures());
+        register(new com.lowdragmc.mbd2.test.tests.ui.JEIRecipeIdFixtures());
         if (net.neoforged.fml.ModList.get().isLoaded("mekanism")) {
             register(new com.lowdragmc.mbd2.test.tests.trait.ChemicalTankTraitFixtures());
             register(new com.lowdragmc.mbd2.test.tests.trait.MekHeatTraitFixtures());

@@ -20,11 +20,14 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ItemLike;
+import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 @MethodsReturnNonnullByDefault
@@ -33,6 +36,8 @@ public class MBDRecipeTypeCategory extends ModularUIRecipeCategory<MBDRecipe> {
 
     public static final Function<MBDRecipeType, RecipeType<MBDRecipe>> TYPES =
             Util.memoize(rt -> new RecipeType<>(rt.getRegistryName(), MBDRecipe.class));
+    // the recipe manager's ids, which unlike the id written inside a recipe file stay unique when the file is copied
+    private static volatile Map<MBDRecipe, ResourceLocation> holderIds = Map.of();
 
     private final MBDRecipeType recipeType;
     @Getter
@@ -47,6 +52,12 @@ public class MBDRecipeTypeCategory extends ModularUIRecipeCategory<MBDRecipe> {
     @Override
     public RecipeType<MBDRecipe> getRecipeType() {
         return TYPES.apply(recipeType);
+    }
+
+    @Override
+    public @Nullable ResourceLocation getRegistryName(MBDRecipe recipe) {
+        var id = holderIds.get(recipe);
+        return id == null ? recipe.id : id;
     }
 
     @Override
@@ -65,9 +76,11 @@ public class MBDRecipeTypeCategory extends ModularUIRecipeCategory<MBDRecipe> {
     }
 
     public static void registerRecipes(IRecipeRegistration registration) {
+        clearHolderIds();
         var connection = Minecraft.getInstance().getConnection();
         if (connection == null) return;
         var recipeManager = connection.getRecipeManager();
+        var ids = new IdentityHashMap<MBDRecipe, ResourceLocation>();
         for (var recipeType : MBDRegistries.RECIPE_TYPES) {
             if (!recipeType.isXEIVisible()) continue;
             var recipes = new ArrayList<MBDRecipe>();
@@ -77,10 +90,16 @@ public class MBDRecipeTypeCategory extends ModularUIRecipeCategory<MBDRecipe> {
                 if (recipe.isXEIHidden) continue;
                 if (seen.add(holder.id())) {
                     recipes.add(recipe);
+                    ids.put(recipe, holder.id());
                 }
             }
             registration.addRecipes(TYPES.apply(recipeType), recipes);
         }
+        holderIds = ids;
+    }
+
+    public static void clearHolderIds() {
+        holderIds = Map.of();
     }
 
     public static void registerCatalysts(IRecipeCatalystRegistration registration) {

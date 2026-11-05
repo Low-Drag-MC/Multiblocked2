@@ -54,6 +54,11 @@ public class MBDJEIPlugin implements IModPlugin {
     }
 
     @Override
+    public void onRuntimeUnavailable() {
+        MBDRecipeTypeCategory.clearHolderIds();
+    }
+
+    @Override
     public void registerRecipeCatalysts(IRecipeCatalystRegistration registration) {
         if (LDLib2.isReiLoaded() || LDLib2.isEmiLoaded()) return;
         MultiblockInfoCategory.registerCatalysts(registration);
