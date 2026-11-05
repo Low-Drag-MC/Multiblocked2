@@ -14,10 +14,12 @@ import appeng.api.storage.MEStorage;
 import appeng.api.util.AECableType;
 import appeng.helpers.InterfaceLogicHost;
 import appeng.helpers.patternprovider.PatternContainer;
+import appeng.me.helpers.BlockEntityNodeListener;
 import appeng.me.helpers.IGridConnectedBlockEntity;
 import appeng.util.ConfigInventory;
 import com.lowdragmc.lowdraglib2.misc.FluidStorage;
 import com.lowdragmc.lowdraglib2.misc.ItemStackTransfer;
+import com.lowdragmc.lowdraglib2.syncdata.annotation.LazyManaged;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
@@ -53,11 +55,21 @@ import java.util.Random;
 @Getter
 @Setter
 public class MEInterfaceTrait extends SimpleCapabilityTrait<MEStorage, @Nullable Direction> implements IGridConnectedBlockEntity, InterfaceLogicHost, PatternContainer {
+    private static final IGridNodeListener<MEInterfaceTrait> NODE_LISTENER = new BlockEntityNodeListener<>() {
+        @Override
+        public void onGridChanged(MEInterfaceTrait nodeOwner, IGridNode node) {
+            nodeOwner.interfaceLogic.gridChanged();
+        }
+    };
+
     private final Random random = new Random();
 
+    // AE2 objects, which only the server thread may serialize: AE2 reports their changes through saveChanges instead
     @Persisted
+    @LazyManaged
     private final SerializableManagedGridNode mainNode;
     @Persisted
+    @LazyManaged
     private final SerializableInterfaceLogic interfaceLogic;
     private final ItemRecipeHandler itemRecipeHandler = new ItemRecipeHandler();
     private final FluidRecipeHandler fluidRecipeHandler = new FluidRecipeHandler();
@@ -81,7 +93,7 @@ public class MEInterfaceTrait extends SimpleCapabilityTrait<MEStorage, @Nullable
     }
 
     protected SerializableManagedGridNode createMainNode() {
-        return (SerializableManagedGridNode) new SerializableManagedGridNode(this, (nodeOwner, node) -> nodeOwner.interfaceLogic.gridChanged())
+        return (SerializableManagedGridNode) new SerializableManagedGridNode(this, NODE_LISTENER)
                 .setVisualRepresentation(getMachine().getDropItem())
                 .setInWorldNode(true)
                 .setTagName("proxy");
@@ -206,7 +218,11 @@ public class MEInterfaceTrait extends SimpleCapabilityTrait<MEStorage, @Nullable
         super.onMachineLoad();
         applyCapacities();
         if (getMachine().getLevel() instanceof ServerLevel serverLevel && !this.getMainNode().isReady()) {
-            serverLevel.getServer().tell(new TickTask(0, () -> this.getMainNode().create(serverLevel, getBlockEntity().getBlockPos())));
+            serverLevel.getServer().tell(new TickTask(0, () -> {
+                if (!this.getMainNode().isReady() && !getMachine().isInValid()) {
+                    this.getMainNode().create(serverLevel, getBlockEntity().getBlockPos());
+                }
+            }));
         }
     }
 

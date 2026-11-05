@@ -113,6 +113,7 @@ public class MBDTestRegistry {
         if (modList.isLoaded("ae2")) {
             event.register(com.lowdragmc.mbd2.test.tests.trait.ae2.MEInterfaceTraitTests.class);
             event.register(com.lowdragmc.mbd2.test.tests.trait.ae2.MEPatternProviderTraitTests.class);
+            event.register(com.lowdragmc.mbd2.test.tests.trait.ae2.AEGridNodeTests.class);
         }
         if (modList.isLoaded("naturesaura")) {
             event.register(com.lowdragmc.mbd2.test.tests.trait.naturesaura.AuraHandlerTraitTests.class);
