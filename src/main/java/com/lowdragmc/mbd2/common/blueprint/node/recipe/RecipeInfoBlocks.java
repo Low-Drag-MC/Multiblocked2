@@ -73,7 +73,7 @@ public final class RecipeInfoBlocks {
         }
     }
 
-    /** The recipe's free-form data tag, as authored in the recipe editor. */
+    /** A copy of the recipe's free-form data tag, as authored in the recipe editor; the recipe itself is shared. */
     @NodeAttribute(name = "mbd2_recipe_data", group = GROUP, graphTypes = MachineBlueprintGraph.class)
     @UseWithContext(RecipeInfoNode.class)
     public static class Data extends RecipeBlock {
@@ -81,7 +81,7 @@ public final class RecipeInfoBlocks {
 
         @Override
         protected void read(MBDRecipe recipe, EvalContext ctx) {
-            ctx.setOutput("value", recipe.data);
+            ctx.setOutput("value", recipe.data.copy());
         }
     }
 

@@ -223,19 +223,23 @@ public final class MachineInfoBlocks {
     }
 
     /**
-     * The machine's free-form persisted tag.
+     * The machine's free-form persisted tag: the machine's own unless {@code copy} is set.
      *
-     * <p>Read-only here — the tag is synced and change-tracked, so edits have to go through
-     * {@code Set Custom Data} rather than being written into this copy.</p>
+     * <p>Editing the machine's own in place works on the server, since the tag is change-tracked by content. But
+     * KilaGraph's NBT setters write into the tag they are given and a pure node runs again for every exec node that
+     * reads it, so an edit computed from the tag itself ({@code n + 1}) lands once per reader. Set {@code copy} for
+     * those and write back through {@code Merge Custom Data}.</p>
      */
     @NodeAttribute(name = "mbd2_machine_custom_data", group = GROUP, graphTypes = MachineBlueprintGraph.class)
     @UseWithContext(MachineInfoNode.class)
     public static class CustomData extends MachineBlock {
+        @InputPort public boolean copy = false;
         @OutputPort public CompoundTag value;
 
         @Override
         protected void read(MBDMachine machine, EvalContext ctx) {
-            ctx.setOutput("value", machine.getCustomData());
+            var data = machine.getCustomData();
+            ctx.setOutput("value", ctx.getBool("copy", false) ? data.copy() : data);
         }
     }
 

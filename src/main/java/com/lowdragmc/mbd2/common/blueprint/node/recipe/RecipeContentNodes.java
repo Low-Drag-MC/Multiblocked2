@@ -737,7 +737,7 @@ public final class RecipeContentNodes {
             ctx.setOutput("count", ingredient.getCount());
             ctx.setOutput("types", types);
             ctx.setOutput("first", types.isEmpty() ? null : types.getFirst());
-            ctx.setOutput("nbt", ingredient.getNbt());
+            ctx.setOutput("nbt", ingredient.getNbt() == null ? null : ingredient.getNbt().copy());
         }
     }
 
@@ -764,7 +764,7 @@ public final class RecipeContentNodes {
             }
             var ingredient = EntityIngredient.of(Math.max(1, ctx.getInt("count", 1)), type);
             var nbt = ctx.getInput("nbt", CompoundTag.class, null);
-            if (nbt != null) ingredient.setNbt(nbt);
+            if (nbt != null) ingredient.setNbt(nbt.copy());
             ctx.setOutput("ingredient", ingredient);
         }
     }
