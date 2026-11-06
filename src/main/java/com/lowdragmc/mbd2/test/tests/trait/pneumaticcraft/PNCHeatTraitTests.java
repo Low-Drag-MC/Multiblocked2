@@ -5,7 +5,9 @@ import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.integration.pneumaticcraft.trait.heat.PNCHeatExchangerTrait;
 import com.lowdragmc.mbd2.test.framework.MBDScenario;
+import com.lowdragmc.mbd2.test.framework.SyncMarks;
 import me.desht.pneumaticcraft.api.PNCCapabilities;
+import me.desht.pneumaticcraft.api.heat.IHeatExchangerLogic;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTest;
@@ -83,48 +85,20 @@ public class PNCHeatTraitTests {
         h.succeed();
     }
 
-    /**
-     * The handler is {@code @LazyManaged}: LDLib2's async sync would otherwise save it every period to look for
-     * changes, walking PNC's heat behaviours off the server thread.
-     */
     @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
-    public static void heat_exchanger_is_left_out_of_the_async_sync(GameTestHelper h) {
-        var machine = MBDScenario.of(h).placeMachine(PNCHeatTraitFixtures.MACHINE_ID, POS).machine();
-        for (var ref : heatTrait(machine).getSyncStorage().getNonLazyFields()) {
-            if (ref.getKey().getName().equals("handler")) {
-                h.fail("the async sync still saves the heat handler every period to compare it");
-                return;
-            }
-        }
-        h.succeed();
-    }
-
-    /** So the trait marks it on the server thread, including for heat PNC moves without calling back. */
-    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
-    @PrefixGameTestTemplate(false)
-    public static void heat_changes_get_the_machine_saved(GameTestHelper h) {
-        var machine = MBDScenario.of(h).placeMachine(PNCHeatTraitFixtures.MACHINE_ID, POS).machine();
-        var trait = heatTrait(machine);
-        var chunk = h.getLevel().getChunkAt(h.absolutePos(POS));
-        trait.serverTick(); // joins the hull
-        chunk.setUnsaved(false);
-        var before = trait.handler.getTemperature();
-        trait.serverTick();
-        var drifted = trait.handler.getTemperature() != before;
-        if (chunk.isUnsaved() != drifted) {
-            h.fail("a tick that " + (drifted ? "moved" : "did not move") + " heat "
-                    + (chunk.isUnsaved() ? "marked" : "did not mark") + " the machine for saving");
-            return;
-        }
-        chunk.setUnsaved(false);
-        trait.handler.addHeat(10_000);
-        trait.serverTick();
-        if (!chunk.isUnsaved()) {
-            h.fail("heat added through PNC's own api did not get the machine saved");
-            return;
-        }
-        h.succeed();
+    public static void heat_exchanger_is_compared_by_its_change_count(GameTestHelper h) {
+        var scenario = MBDScenario.of(h).placeMachine(PNCHeatTraitFixtures.MACHINE_ID, POS);
+        var registries = h.getLevel().registryAccess();
+        SyncMarks.of(h, heatTrait(scenario.machine()).handler)
+                .keeps("adding no heat", s -> s.addHeat(0))
+                .changes("heat added through PneumaticCraft's own api", s -> s.addHeat(1000))
+                .changes("a temperature set without notifying", s -> s.setTemperatureWithoutNotify(s.getTemperature() + 10))
+                .changes("joining a hull", s -> s.initializeAsHull(h.getLevel(), h.absolutePos(POS),
+                        IHeatExchangerLogic.ALL_BLOCKS, Direction.values()))
+                .changes("a load", s -> s.deserializeNBT(registries, s.serializeNBT(registries)));
+        // no machine tick runs here, as for a machine whose tick event is cancelled while its neighbours keep heating it
+        scenario.assertChangeGetsSaved("heat added by a neighbour", m -> heatTrait(m).handler.addHeat(1000)).succeed();
     }
 
     private static PNCHeatExchangerTrait heatTrait(MBDMachine machine) {
