@@ -90,6 +90,7 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
 
     @Override
     public void onMachineDrop(Entity entity, List<ItemStack> drops) {
+        if (!getDefinition().isDropItems()) return;
         for (int i = 0; i < storage.getSlots(); i++) {
             ItemStack stackInSlot = storage.getStackInSlot(i);
             var maxStackSize = stackInSlot.getMaxStackSize();
@@ -131,6 +132,11 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
     public void onContentsChanged() {
         isEmpty = null;
         notifyListeners();
+    }
+
+    @Override
+    public void onDataRestored() {
+        onContentsChanged();
     }
 
     public boolean isEmpty() {

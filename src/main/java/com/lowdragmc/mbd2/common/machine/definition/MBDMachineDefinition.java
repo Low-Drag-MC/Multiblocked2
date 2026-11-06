@@ -8,6 +8,7 @@ import com.lowdragmc.lowdraglib2.configurator.annotation.Configurable;
 import com.lowdragmc.lowdraglib2.editor.project.ProjectType;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.syncdata.IPersistedSerializable;
+import com.lowdragmc.mbd2.common.data.MBDDataComponents;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
 import com.lowdragmc.mbd2.api.capability.MBDCapabilities;
@@ -34,6 +35,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
@@ -362,6 +364,9 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
      */
     public void appendHoverText(ItemStack stack, List<Component> tooltip) {
         tooltip.addAll(itemProperties().itemTooltips());
+        if (stack.has(MBDDataComponents.TRAIT_DATA)) {
+            tooltip.add(Component.translatable("mbd2.tooltip.machine.trait_data").withStyle(ChatFormatting.GRAY));
+        }
     }
 
     @Setter

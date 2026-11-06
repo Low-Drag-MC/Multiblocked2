@@ -65,6 +65,8 @@ public class ItemSlotCapabilityTraitDefinition extends SimpleCapabilityTraitDefi
     private int slotLimit = 64;
     @Configurable(name = "config.definition.trait.item_slot.ignore_item_stack_limit", tips = "config.definition.trait.item_slot.ignore_item_stack_limit.tooltip")
     private boolean ignoreItemStackLimit = false;
+    @Configurable(name = "config.definition.trait.item_slot.drop_items", tips = "config.definition.trait.item_slot.drop_items.tooltip")
+    private boolean dropItems = true;
     @Configurable(name = "config.definition.trait.item_slot.filter", subConfigurable = true, tips = "config.definition.trait.item_slot.filter.tooltip")
     private final ItemFilterSettings itemFilterSettings = new ItemFilterSettings();
     @Configurable(name = "config.definition.trait.auto_io", subConfigurable = true, tips = "config.definition.trait.item_slot.auto_io.tooltip")

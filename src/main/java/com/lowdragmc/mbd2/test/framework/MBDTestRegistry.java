@@ -33,6 +33,7 @@ public class MBDTestRegistry {
         register(new com.lowdragmc.mbd2.test.tests.recipe.EntityRecipeCapabilityFixtures());
         register(new com.lowdragmc.mbd2.test.tests.trait.ItemSlotTraitFixtures());
         register(new com.lowdragmc.mbd2.test.tests.trait.LargeItemSlotFixtures());
+        register(new com.lowdragmc.mbd2.test.tests.trait.TraitDropDataFixtures());
         register(new com.lowdragmc.mbd2.test.tests.trait.FluidTankTraitFixtures());
         register(new com.lowdragmc.mbd2.test.tests.trait.AutoIOTraitFixtures());
         register(new com.lowdragmc.mbd2.test.tests.trait.ForgeEnergyTraitFixtures());

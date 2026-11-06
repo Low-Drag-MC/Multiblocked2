@@ -5,6 +5,7 @@ import com.lowdragmc.mbd2.common.item.MBDGadgetsItem;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.component.CustomData;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
@@ -21,4 +22,10 @@ public class MBDDataComponents {
             COMPONENTS.registerComponentType("gadget_mode", b -> b
                     .persistent(MBDGadgetsItem.Mode.CODEC)
                     .networkSynchronized(MBDGadgetsItem.Mode.STREAM_CODEC));
+
+    /** The data of the traits a machine keeps in its dropped item, see {@link com.lowdragmc.mbd2.common.trait.TraitItemData}. */
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<CustomData>> TRAIT_DATA =
+            COMPONENTS.registerComponentType("trait_data", b -> b
+                    .persistent(CustomData.CODEC)
+                    .networkSynchronized(CustomData.STREAM_CODEC));
 }

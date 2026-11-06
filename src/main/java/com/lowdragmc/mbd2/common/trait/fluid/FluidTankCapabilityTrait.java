@@ -163,6 +163,11 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait<IFluidHandle
         notifyListeners();
     }
 
+    @Override
+    public void onDataRestored() {
+        onContentsChanged();
+    }
+
     public boolean isEmpty() {
         if (isEmpty == null) {
             isEmpty = true;

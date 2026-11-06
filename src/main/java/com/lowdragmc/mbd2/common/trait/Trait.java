@@ -55,6 +55,13 @@ public abstract class Trait implements ITrait, IBlockEntityManaged, IRuntimeValu
     }
 
     /**
+     * Called once the machine restored this trait's data from the item it was placed with.
+     */
+    public void onDataRestored() {
+        notifyListeners();
+    }
+
+    /**
      * Notify all listeners that the capability has changed.
      */
     public void notifyListeners() {

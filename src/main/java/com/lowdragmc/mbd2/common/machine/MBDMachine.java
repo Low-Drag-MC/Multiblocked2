@@ -47,9 +47,12 @@ import com.lowdragmc.mbd2.common.runtime.IRuntimeValueHolder;
 import com.lowdragmc.mbd2.common.runtime.RuntimeSignalConnection;
 import com.lowdragmc.mbd2.common.runtime.RuntimeValue;
 import com.lowdragmc.mbd2.common.runtime.RuntimeValueStorage;
+import com.lowdragmc.mbd2.common.data.MBDDataComponents;
 import com.lowdragmc.mbd2.common.trait.ITrait;
 import com.lowdragmc.mbd2.common.trait.IUIProviderTrait;
+import com.lowdragmc.mbd2.common.trait.Trait;
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
+import com.lowdragmc.mbd2.common.trait.TraitItemData;
 import com.lowdragmc.mbd2.integration.emi.MBDEMIPlugin;
 import com.lowdragmc.mbd2.integration.geckolib.AnimatableBlock;
 import com.lowdragmc.mbd2.integration.geckolib.GeckolibRenderer;
@@ -63,6 +66,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.TickTask;
@@ -559,6 +563,9 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
                     }
                     multiManagedStorage.attach(managed.getSyncStorage());
                 }
+                if (traitDefinition.isKeepDataOnDrop() && trait instanceof Trait keptTrait) {
+                    TraitItemData.rememberFresh(keptTrait);
+                }
             });
             initCapabilitiesProxy();
         }
@@ -1013,7 +1020,26 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
         if (stack.has(DataComponents.CUSTOM_NAME)) {
             setCustomName(stack.getHoverName());
         }
+        var traitData = stack.get(MBDDataComponents.TRAIT_DATA);
+        if (traitData != null) {
+            restoreTraitData(traitData.copyTag());
+        }
         NeoForge.EVENT_BUS.post(new MachinePlacedEvent(this, player, stack).postCustomEvent());
+    }
+
+    private void restoreTraitData(CompoundTag tag) {
+        var provider = getLevel().registryAccess();
+        var restored = false;
+        for (var trait : additionalTraits) {
+            if (trait instanceof Trait managed && TraitItemData.load(managed, tag, provider)) {
+                managed.onDataRestored();
+                restored = true;
+            }
+        }
+        if (restored) {
+            // capability wrappers are built from runtime values the data may have changed
+            invalidateCapabilities();
+        }
     }
 
     /**
@@ -1131,14 +1157,22 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
      * On machine broken and drops items.
      */
     public void onDrops(Entity entity, List<ItemStack> drops) {
-        if (dropMachineItem.get()) {
-            var drop = getDropItem();
-            if (!drop.isEmpty()) {
-                drops.add(drop);
+        var drop = dropMachineItem.get() ? getDropItem() : ItemStack.EMPTY;
+        if (!drop.isEmpty()) {
+            drops.add(drop);
+        }
+        var traitData = new CompoundTag();
+        var provider = getLevel().registryAccess();
+        for (ITrait trait : getAdditionalTraits()) {
+            // without a machine item to keep it in, the trait drops what it holds instead
+            if (!drop.isEmpty() && trait.getDefinition().isKeepDataOnDrop() && trait instanceof Trait managed) {
+                TraitItemData.save(managed, traitData, provider);
+            } else {
+                trait.onMachineDrop(entity, drops);
             }
         }
-        for (ITrait trait : getAdditionalTraits()) {
-            trait.onMachineDrop(entity, drops);
+        if (!traitData.isEmpty()) {
+            drop.set(MBDDataComponents.TRAIT_DATA, CustomData.of(traitData));
         }
         NeoForge.EVENT_BUS.post(new MachineDropsEvent(this, entity, drops).postCustomEvent());
     }

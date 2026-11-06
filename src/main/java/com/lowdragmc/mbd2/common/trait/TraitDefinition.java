@@ -79,6 +79,13 @@ public abstract class TraitDefinition implements IConfigurable, IPersistedSerial
     private int priority;
 
     /**
+     * Whether the machine's dropped item keeps this trait's data, to restore when it is placed again. The trait then
+     * drops nothing of its own, unless the machine drops no item.
+     */
+    @Configurable(name = "config.definition.trait.keep_data_on_drop", tips = "config.definition.trait.keep_data_on_drop.tooltip")
+    private boolean keepDataOnDrop;
+
+    /**
      * Create a capability trait for the machine.
      */
     @Nullable
