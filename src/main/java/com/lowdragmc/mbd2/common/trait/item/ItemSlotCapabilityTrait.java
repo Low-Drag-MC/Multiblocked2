@@ -1,7 +1,6 @@
 package com.lowdragmc.mbd2.common.trait.item;
 
 import com.google.common.base.Predicates;
-import com.lowdragmc.lowdraglib2.misc.ItemStackTransfer;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.ConditionalSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.DescSynced;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
@@ -41,7 +40,7 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
     @Persisted
     @DescSynced
     @ConditionalSynced(methodName = "shouldSyncStorage")
-    public final ItemStackTransfer storage;
+    public final LargeItemStackTransfer storage;
 
     private final ItemRecipeHandler itemRecipeHandler = new ItemRecipeHandler();
     private final ItemDurabilityRecipeHandler durabilityRecipeHandler = new ItemDurabilityRecipeHandler();
@@ -63,6 +62,8 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
             });
     public final RuntimeValue<Integer> slotLimit =
             runtimeValues.ofInt("slot_limit", () -> getDefinition().getSlotLimit());
+    public final RuntimeValue<Boolean> ignoreItemStackLimit =
+            runtimeValues.ofBool("ignore_item_stack_limit", () -> getDefinition().isIgnoreItemStackLimit());
     /**
      * Whether the definition's item filter applies to this machine.
      * <p>
@@ -91,8 +92,9 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
     public void onMachineDrop(Entity entity, List<ItemStack> drops) {
         for (int i = 0; i < storage.getSlots(); i++) {
             ItemStack stackInSlot = storage.getStackInSlot(i);
-            if (!stackInSlot.isEmpty()) {
-                drops.add(stackInSlot);
+            var maxStackSize = stackInSlot.getMaxStackSize();
+            for (int left = stackInSlot.getCount(); left > 0; left -= maxStackSize) {
+                drops.add(stackInSlot.copyWithCount(Math.min(left, maxStackSize)));
             }
         }
     }
@@ -114,13 +116,8 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
         }
     }
 
-    protected ItemStackTransfer createStorage() {
-        var transfer = new ItemStackTransfer(getDefinition().getSlotSize()) {
-            @Override
-            public int getSlotLimit(int slot) {
-                return slotLimit.get();
-            }
-        };
+    protected LargeItemStackTransfer createStorage() {
+        var transfer = new LargeItemStackTransfer(getDefinition().getSlotSize(), slotLimit::get, ignoreItemStackLimit::get);
         // Read the filter live instead of baking the definition's object in at construction. handleAutoIO
         // always read it live, so a filter toggled after the machine was placed — an editor edit plus
         // /mbd2 reload_machine_projects — applied to auto IO but not to the slots themselves.
@@ -211,22 +208,20 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
         if (autoOutput.enable.get() && timer % autoOutput.intervalTicks() == 0) {
             var leftCount = autoOutput.speed.get();
             var range = autoOutput.getRotatedRange(getMachine().getFrontFacing().orElse(Direction.NORTH)).move(getMachine().getPos());
-            for (int i = 0; i < storage.getSlots(); i++) {
-                if (leftCount <= 0) break;
-                var stored = storage.getStackInSlot(i);
-                if (stored.isEmpty()) continue;
-                var pop = stored.copyWithCount(Math.min(leftCount, stored.getCount()));
-                leftCount -= pop.getCount();
-                storage.extractItem(i, pop.getCount(), false);
-                // drop items
-                var level = getMachine().getLevel();
-                var d0 = (double) EntityType.ITEM.getHeight() / 2.0D;
-                var x = level.random.nextFloat() * range.getXsize() + range.minX;
-                var y = level.random.nextFloat() * range.getYsize() + range.minY - d0;
-                var z = level.random.nextFloat() * range.getZsize() + range.minZ;
-                var itemEntity = new ItemEntity(level, x, y, z, pop);
-                itemEntity.setDefaultPickUpDelay();
-                level.addFreshEntity(itemEntity);
+            for (int i = 0; i < storage.getSlots() && leftCount > 0; i++) {
+                while (leftCount > 0) {
+                    var pop = storage.extractItem(i, leftCount, false);
+                    if (pop.isEmpty()) break;
+                    leftCount -= pop.getCount();
+                    var level = getMachine().getLevel();
+                    var d0 = (double) EntityType.ITEM.getHeight() / 2.0D;
+                    var x = level.random.nextFloat() * range.getXsize() + range.minX;
+                    var y = level.random.nextFloat() * range.getYsize() + range.minY - d0;
+                    var z = level.random.nextFloat() * range.getZsize() + range.minZ;
+                    var itemEntity = new ItemEntity(level, x, y, z, pop);
+                    itemEntity.setDefaultPickUpDelay();
+                    level.addFreshEntity(itemEntity);
+                }
             }
         }
     }
@@ -293,7 +288,7 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
         }
     }
 
-    public boolean shouldSyncStorage(ItemStackTransfer value) {
+    public boolean shouldSyncStorage(LargeItemStackTransfer value) {
         return getDefinition().getItemRendererSettings().isEnable();
     }
 
@@ -313,13 +308,13 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
                 while (iterator.hasNext()) {
                     var sizedIngredient = iterator.next();
                     var need = sizedIngredient.count();
-                    for (int i = 0; i < container.getSlots(); i++) {
+                    for (int i = 0; i < container.getSlots() && need > 0; i++) {
                         var itemStack = container.getStackInSlot(i);
                         if (sizedIngredient.ingredient().test(itemStack)) {
-                            var extracted = container.extractItem(i, need, false);
-                            need -= extracted.getCount();
-                            if (need <= 0) {
-                                break;
+                            while (need > 0) {
+                                var extracted = container.extractItem(i, need, false);
+                                if (extracted.isEmpty()) break;
+                                need -= extracted.getCount();
                             }
                         }
                     }

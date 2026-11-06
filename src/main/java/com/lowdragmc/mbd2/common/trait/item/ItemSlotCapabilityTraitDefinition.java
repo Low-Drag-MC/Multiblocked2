@@ -61,8 +61,10 @@ public class ItemSlotCapabilityTraitDefinition extends SimpleCapabilityTraitDefi
     @Configurable(name = "config.definition.trait.item_slot.allow_same_items", tips = "config.definition.trait.item_slot.allow_same_items.tooltip")
     private boolean allowSameItems = true;
     @Configurable(name = "config.definition.trait.item_slot.slot_limit", tips = "config.definition.trait.item_slot.slot_limit.tooltip")
-    @ConfigNumber(range = {1, 64})
+    @ConfigNumber(range = {1, Integer.MAX_VALUE})
     private int slotLimit = 64;
+    @Configurable(name = "config.definition.trait.item_slot.ignore_item_stack_limit", tips = "config.definition.trait.item_slot.ignore_item_stack_limit.tooltip")
+    private boolean ignoreItemStackLimit = false;
     @Configurable(name = "config.definition.trait.item_slot.filter", subConfigurable = true, tips = "config.definition.trait.item_slot.filter.tooltip")
     private final ItemFilterSettings itemFilterSettings = new ItemFilterSettings();
     @Configurable(name = "config.definition.trait.auto_io", subConfigurable = true, tips = "config.definition.trait.item_slot.auto_io.tooltip")
@@ -115,7 +117,7 @@ public class ItemSlotCapabilityTraitDefinition extends SimpleCapabilityTraitDefi
                     return;
                 }
                 if (index >= 0 && index < itemSlotTrait.storage.getSlots()) {
-                    itemSlot.bind(itemSlotTrait.storage, index);
+                    itemSlot.bind(new LargeItemHandlerSlot(itemSlotTrait.storage, index));
                     if (itemSlot.getSlot() instanceof ItemHandlerSlot handlerSlot) {
                         if (!guiIO.support(IO.IN)) {
                             handlerSlot.setCanPlace(stack -> false);

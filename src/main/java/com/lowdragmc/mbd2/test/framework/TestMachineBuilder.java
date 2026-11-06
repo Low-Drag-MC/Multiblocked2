@@ -4,6 +4,7 @@ import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.inventory.InventorySlots;
 import com.lowdragmc.lowdraglib2.gui.ui.styletemplate.Sprites;
 import com.lowdragmc.mbd2.common.blueprint.MachineBlueprintGraph;
 import com.lowdragmc.mbd2.common.machine.definition.config.blueprint.MachineBlueprintBinding;
@@ -50,6 +51,7 @@ public class TestMachineBuilder {
     @Nullable private MachineState rootState;
     private com.lowdragmc.lowdraglib2.gui.ui.UITemplate uiTemplate = null;
     private boolean traitUI = false;
+    private boolean inventoryUI = false;
     private int machineLevel = 0;
     private boolean consumeInputsAfterWorking = false;
 
@@ -190,6 +192,13 @@ public class TestMachineBuilder {
         return this;
     }
 
+    /** As {@link #withTraitUI}, plus the player inventory. */
+    public TestMachineBuilder withTraitAndInventoryUI() {
+        this.traitUI = true;
+        this.inventoryUI = true;
+        return this;
+    }
+
     public TestMachineBuilder withMachineLevel(int machineLevel) {
         this.machineLevel = machineLevel;
         return this;
@@ -245,6 +254,9 @@ public class TestMachineBuilder {
                 provider.createTraitUITemplate(container);
                 root.addChild(container);
             }
+        }
+        if (inventoryUI) {
+            root.addChild(new InventorySlots());
         }
         return com.lowdragmc.lowdraglib2.gui.ui.UITemplate.of(root);
     }

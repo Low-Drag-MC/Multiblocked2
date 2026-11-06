@@ -9,6 +9,7 @@ import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
+import com.lowdragmc.mbd2.common.trait.item.LargeItemStackTransferStrategy;
 import com.lowdragmc.mbd2.integration.mekanism.trait.chemical.ChemicalStorageStrategy;
 import mekanism.api.chemical.ChemicalStack;
 
@@ -37,6 +38,8 @@ public class MBDSyncedFieldAccessors {
                 .streamCodec(PredicatePartialState.PropertyRequirement.STREAM_CODEC)
                 .copyMark(data -> new PredicatePartialState.PropertyRequirement(data.property(), data.value()))
                 .build());
+
+        MarkStrategies.register(new LargeItemStackTransferStrategy(), 1000);
 
         if (MBD2.isMekanismLoaded()) {
             AccessorRegistries.registerAccessor(CustomDirectAccessor.builder(ChemicalStack.class)
