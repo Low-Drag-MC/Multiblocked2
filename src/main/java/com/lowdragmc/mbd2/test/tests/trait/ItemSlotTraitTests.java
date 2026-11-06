@@ -57,19 +57,20 @@ public class ItemSlotTraitTests {
     }
 
     /**
-     * LDLib2 compares the slots with copies instead of saving the storage every async period, but only while the
-     * storage reads and saves its slots the way {@code ItemStackHandler} does: overriding one of those in
-     * {@code createStorage} would bring the per-period save back without anything failing.
+     * Only holds while the storage reads and saves its slots the way {@code ItemStackHandler} does: an override in
+     * {@code createStorage} would bring back saving it every async period, silently.
      */
     @GameTest(template = "empty_simple")
     @PrefixGameTestTemplate(false)
     public static void item_slots_are_compared_without_saving_them(GameTestHelper h) {
-        var machine = MBDScenario.of(h).placeMachine(ItemSlotTraitFixtures.MACHINE_ID, POS).machine();
-        SyncMarks.of(h, itemTrait(machine).storage)
+        var scenario = MBDScenario.of(h).placeMachine(ItemSlotTraitFixtures.MACHINE_ID, POS);
+        SyncMarks.of(h, itemTrait(scenario.machine()).storage)
                 .keeps("a simulated insert", s -> s.insertItem(0, new ItemStack(Items.IRON_INGOT, 4), true))
                 .changes("an insert", s -> s.insertItem(0, new ItemStack(Items.IRON_INGOT, 4), false))
                 .changes("a stack grown in place", s -> s.getStackInSlot(0).grow(1));
-        h.succeed();
+        scenario.assertChangeGetsSaved("an insert",
+                        m -> itemTrait(m).storage.insertItem(1, new ItemStack(Items.DIAMOND), false))
+                .succeed();
     }
 
     private static ItemSlotCapabilityTrait itemTrait(MBDMachine machine) {

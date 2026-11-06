@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.test.framework;
 
+import com.lowdragmc.lowdraglib2.syncdata.holder.ISyncMangedHolder;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
 import com.lowdragmc.mbd2.api.pattern.MultiblockWorldSavedData;
 import com.lowdragmc.mbd2.api.pattern.snapshot.PatternSnapshot;
@@ -387,6 +388,37 @@ public class MBDScenario {
     public MBDScenario assertWorldLoadRoundTrip() {
         requireCurrent();
         this.current = MBDTestHelper.roundTripPersistence(helper, currentRelPos, tag -> {}, false);
+        return this;
+    }
+
+    /**
+     * Runs LDLib2's async sync for the current machine idle, then after {@code action}: only the change may get the
+     * machine saved. Runs it on the server thread, where the sync's {@code setChanged} happens inline, so work other
+     * machines queued for the server can't mark the chunk.
+     */
+    public MBDScenario assertChangeGetsSaved(String change, Consumer<MBDMachine> action) {
+        requireCurrent();
+        var pos = helper.absolutePos(currentRelPos);
+        var chunk = helper.getLevel().getChunkAt(pos);
+        var holder = (ISyncMangedHolder) helper.getLevel().getBlockEntity(pos);
+        holder.asyncTick(0);
+        chunk.setUnsaved(false);
+        holder.asyncTick(0);
+        if (chunk.isUnsaved()) {
+            helper.fail("the async sync got an idle machine saved");
+        }
+        action.accept(current);
+        holder.asyncTick(0);
+        if (!chunk.isUnsaved()) {
+            // LDLib2's own async thread may have seen the change first, and queued its setChanged
+            var server = helper.getLevel().getServer();
+            while (server.pollTask()) {
+                // drain
+            }
+        }
+        if (!chunk.isUnsaved()) {
+            helper.fail("nothing got the machine saved after " + change);
+        }
         return this;
     }
 

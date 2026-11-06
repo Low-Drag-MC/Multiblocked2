@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.test.tests.trait;
 
+import com.lowdragmc.lowdraglib2.syncdata.mark.MarkStrategies;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.integration.mekanism.trait.chemical.ChemicalStorage;
@@ -7,13 +8,16 @@ import com.lowdragmc.mbd2.integration.mekanism.trait.chemical.ChemicalTankCapabi
 import com.lowdragmc.mbd2.test.framework.MBDScenario;
 import com.lowdragmc.mbd2.test.framework.SyncMarks;
 import mekanism.api.Action;
+import mekanism.api.chemical.BasicChemicalTank;
 import mekanism.api.chemical.ChemicalStack;
 import mekanism.common.capabilities.Capabilities;
 import mekanism.common.registries.MekanismChemicals;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.nbt.CompoundTag;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 // No @GameTestHolder: registered via MBDTestRegistry#onRegisterGameTests (mod-load guarded)
@@ -126,14 +130,11 @@ public class ChemicalTankTraitTests {
                 .succeed();
     }
 
-    /**
-     * {@code ChemicalStorageStrategy}: the tank is compared by a copy of its stack instead of being encoded every
-     * async period. In-place changes to the stack count, which is why it is not a change counter.
-     */
     @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void chemical_tanks_are_compared_without_saving_them(GameTestHelper h) {
-        var machine = MBDScenario.of(h).placeMachine(ChemicalTankTraitFixtures.MACHINE_ID, POS).machine();
+        var scenario = MBDScenario.of(h).placeMachine(ChemicalTankTraitFixtures.MACHINE_ID, POS);
+        var machine = scenario.machine();
         SyncMarks.of(h, tank(machine))
                 .keeps("a simulated insert", s -> s.insertChemical(hydrogen(1_000), Action.SIMULATE))
                 .changes("an insert", s -> s.insertChemical(hydrogen(1_000), Action.EXECUTE))
@@ -142,7 +143,34 @@ public class ChemicalTankTraitTests {
                         s -> s.setStack(new ChemicalStack(MekanismChemicals.OXYGEN, s.getStored())))
                 .changes("a spill to a smaller capacity", s -> chemicalTrait(machine).capacity.set(10L))
                 .keeps("a simulated extract", s -> s.extractChemical(5, Action.SIMULATE));
+        scenario.assertChangeGetsSaved("an extract", m -> tank(m).extractChemical(5, Action.EXECUTE)).succeed();
+    }
+
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
+    @PrefixGameTestTemplate(false)
+    public static void chemical_strategy_leaves_other_tanks_alone(GameTestHelper h) {
+        if (MarkStrategies.find(SavesMore.class) != null) {
+            h.fail("a storage that saves more than its stack is still compared by its stack alone");
+            return;
+        }
+        if (MarkStrategies.find(BasicChemicalTank.class) != null) {
+            h.fail("Mekanism's own tanks are compared by MBD2's strategy");
+            return;
+        }
         h.succeed();
+    }
+
+    private static final class SavesMore extends ChemicalStorage {
+        SavesMore() {
+            super(1);
+        }
+
+        @Override
+        public CompoundTag serializeNBT(HolderLookup.Provider provider) {
+            var tag = super.serializeNBT(provider);
+            tag.putBoolean("more", true);
+            return tag;
+        }
     }
 
     private static ChemicalStack hydrogen(long amount) {

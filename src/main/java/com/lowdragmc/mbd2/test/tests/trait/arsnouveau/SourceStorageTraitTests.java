@@ -379,6 +379,15 @@ public class SourceStorageTraitTests {
         scenario.succeed();
     }
 
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
+    @PrefixGameTestTemplate(false)
+    public static void source_changes_get_the_machine_saved(GameTestHelper h) {
+        MBDScenario.of(h)
+                .placeMachine(SourceStorageTraitFixtures.MACHINE_ID, POS)
+                .assertChangeGetsSaved("source received", m -> storage(m).receiveSource(100, false))
+                .succeed();
+    }
+
     private static void placeSourceJar(GameTestHelper h, BlockPos relPos, int source) {
         h.setBlock(relPos, BlockRegistry.SOURCE_JAR.get().defaultBlockState());
         if (source > 0) sourceJar(h, relPos).setSource(source);

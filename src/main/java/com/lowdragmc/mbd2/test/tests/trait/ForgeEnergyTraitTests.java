@@ -1,6 +1,8 @@
 package com.lowdragmc.mbd2.test.tests.trait;
 
 import com.lowdragmc.mbd2.MBD2;
+import com.lowdragmc.mbd2.common.machine.MBDMachine;
+import com.lowdragmc.mbd2.common.trait.forgeenergy.ForgeEnergyCapabilityTrait;
 import com.lowdragmc.mbd2.test.framework.MBDScenario;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
@@ -43,5 +45,21 @@ public class ForgeEnergyTraitTests {
                 .assertPersistenceRoundTrip()
                 .assertEnergyAtLeast(40_000)
                 .succeed();
+    }
+
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void energy_changes_get_the_machine_saved(GameTestHelper h) {
+        MBDScenario.of(h)
+                .placeMachine(ForgeEnergyTraitFixtures.MACHINE_ID, POS)
+                .assertChangeGetsSaved("energy received", m -> energyTrait(m).storage.receiveEnergy(100, false))
+                .succeed();
+    }
+
+    private static ForgeEnergyCapabilityTrait energyTrait(MBDMachine machine) {
+        for (var trait : machine.getAdditionalTraits()) {
+            if (trait instanceof ForgeEnergyCapabilityTrait energyTrait) return energyTrait;
+        }
+        throw new AssertionError("fixture machine has no forge energy trait");
     }
 }

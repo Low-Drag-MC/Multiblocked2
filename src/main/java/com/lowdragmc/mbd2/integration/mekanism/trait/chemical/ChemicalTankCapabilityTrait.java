@@ -82,7 +82,7 @@ public class ChemicalTankCapabilityTrait extends SimpleCapabilityTrait<IChemical
                 || getDefinition().getFilterSettings().matches(stack);
         for (int i = 0; i < result.length; i++) {
             result[i] = new ChemicalStorage(() -> capacity.get(), validator);
-            result[i].setOnContentsChanged(this::notifyListeners);
+            result[i].setOnContentsChanged(this::onStorageChanged);
         }
         return result;
     }

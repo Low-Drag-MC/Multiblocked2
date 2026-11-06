@@ -84,17 +84,18 @@ public class FluidTankTraitTests {
         h.succeed();
     }
 
-    /** As {@code ItemSlotTraitTests#item_slots_are_compared_without_saving_them}, for the tanks and their capacity. */
     @GameTest(template = "empty_simple")
     @PrefixGameTestTemplate(false)
     public static void fluid_tanks_are_compared_without_saving_them(GameTestHelper h) {
-        var machine = MBDScenario.of(h).placeMachine(FluidTankTraitFixtures.MACHINE_ID, POS).machine();
-        SyncMarks.of(h, fluidTrait(machine).storages[0])
+        var scenario = MBDScenario.of(h).placeMachine(FluidTankTraitFixtures.MACHINE_ID, POS);
+        SyncMarks.of(h, fluidTrait(scenario.machine()).storages[0])
                 .keeps("a simulated fill", s -> s.fill(new FluidStack(Fluids.WATER, 1000), IFluidHandler.FluidAction.SIMULATE))
                 .changes("a fill", s -> s.fill(new FluidStack(Fluids.WATER, 1000), IFluidHandler.FluidAction.EXECUTE))
                 .changes("fluid grown in place", s -> s.getFluid().grow(1))
                 .changes("a new capacity", s -> s.setCapacity(s.getCapacity() * 2));
-        h.succeed();
+        scenario.assertChangeGetsSaved("a drain",
+                        m -> fluidTrait(m).storages[0].drain(1, IFluidHandler.FluidAction.EXECUTE))
+                .succeed();
     }
 
     private static FluidTankCapabilityTrait fluidTrait(MBDMachine machine) {

@@ -104,7 +104,7 @@ public class SourceStorageCapabilityTrait extends SimpleCapabilityTrait<ISourceC
     public SourceStorageCapabilityTrait(MBDMachine machine, SourceStorageCapabilityTraitDefinition definition) {
         super(machine, definition);
         storage = createStorage();
-        storage.setOnContentsChanged(this::notifyListeners);
+        storage.setOnContentsChanged(this::onStorageChanged);
     }
 
     @Override

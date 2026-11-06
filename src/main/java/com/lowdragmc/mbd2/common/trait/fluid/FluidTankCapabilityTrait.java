@@ -160,7 +160,7 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait<IFluidHandle
 
     public void onContentsChanged() {
         isEmpty = null;
-        notifyListeners();
+        onStorageChanged();
     }
 
     public boolean isEmpty() {
