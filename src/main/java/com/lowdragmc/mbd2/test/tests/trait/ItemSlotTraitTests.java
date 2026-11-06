@@ -1,7 +1,10 @@
 package com.lowdragmc.mbd2.test.tests.trait;
 
 import com.lowdragmc.mbd2.MBD2;
+import com.lowdragmc.mbd2.common.machine.MBDMachine;
+import com.lowdragmc.mbd2.common.trait.item.ItemSlotCapabilityTrait;
 import com.lowdragmc.mbd2.test.framework.MBDScenario;
+import com.lowdragmc.mbd2.test.framework.SyncMarks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -51,5 +54,28 @@ public class ItemSlotTraitTests {
                 .assertItem(0, new ItemStack(Items.IRON_INGOT, 32))
                 .assertItem(2, new ItemStack(Items.DIAMOND, 5))
                 .succeed();
+    }
+
+    /**
+     * LDLib2 compares the slots with copies instead of saving the storage every async period, but only while the
+     * storage reads and saves its slots the way {@code ItemStackHandler} does: overriding one of those in
+     * {@code createStorage} would bring the per-period save back without anything failing.
+     */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void item_slots_are_compared_without_saving_them(GameTestHelper h) {
+        var machine = MBDScenario.of(h).placeMachine(ItemSlotTraitFixtures.MACHINE_ID, POS).machine();
+        SyncMarks.of(h, itemTrait(machine).storage)
+                .keeps("a simulated insert", s -> s.insertItem(0, new ItemStack(Items.IRON_INGOT, 4), true))
+                .changes("an insert", s -> s.insertItem(0, new ItemStack(Items.IRON_INGOT, 4), false))
+                .changes("a stack grown in place", s -> s.getStackInSlot(0).grow(1));
+        h.succeed();
+    }
+
+    private static ItemSlotCapabilityTrait itemTrait(MBDMachine machine) {
+        for (var trait : machine.getAdditionalTraits()) {
+            if (trait instanceof ItemSlotCapabilityTrait itemTrait) return itemTrait;
+        }
+        throw new AssertionError("fixture machine has no item slot trait");
     }
 }

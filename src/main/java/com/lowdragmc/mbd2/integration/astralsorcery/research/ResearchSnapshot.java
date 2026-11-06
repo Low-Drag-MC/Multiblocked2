@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.integration.astralsorcery.research;
 
+import com.lowdragmc.lowdraglib2.syncdata.IContentVersion;
 import com.lowdragmc.mbd2.integration.astralsorcery.AstralSorceryIntegration;
 import hellfirepvp.astralsorcery.common.research.PlayerProgress;
 import hellfirepvp.astralsorcery.common.research.ResearchManager;
@@ -27,7 +28,7 @@ import java.util.stream.Collectors;
  * online {@link ServerPlayer}; it lets a condition keep answering after the owner logs off.
  */
 @Getter
-public class ResearchSnapshot implements INBTSerializable<CompoundTag> {
+public class ResearchSnapshot implements INBTSerializable<CompoundTag>, IContentVersion {
     @Nullable
     private UUID owner;
     private String ownerName = "";
@@ -36,6 +37,8 @@ public class ResearchSnapshot implements INBTSerializable<CompoundTag> {
     @Nullable
     private ResourceLocation attunedConstellation;
     private Set<ResourceLocation> knownConstellations = Set.of();
+    // only the game thread writes it, so the non-atomic increment is safe
+    private volatile long contentVersion;
 
     public boolean isBound() {
         return owner != null;
@@ -48,6 +51,7 @@ public class ResearchSnapshot implements INBTSerializable<CompoundTag> {
     public void bind(UUID owner, String ownerName, PlayerProgress progress) {
         this.owner = owner;
         capture(progress, ownerName);
+        contentVersion++;
     }
 
     /** @return whether anything changed */
@@ -68,6 +72,7 @@ public class ResearchSnapshot implements INBTSerializable<CompoundTag> {
         attunedConstellation = newAttuned;
         knownConstellations = newKnown;
         this.ownerName = ownerName;
+        if (changed) contentVersion++;
         return changed;
     }
 
@@ -118,5 +123,12 @@ public class ResearchSnapshot implements INBTSerializable<CompoundTag> {
                 .map(element -> ResourceLocation.tryParse(element.getAsString()))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toUnmodifiableSet());
+        contentVersion++;
+    }
+
+    /** Counts changes to what {@link #serializeNBT} writes, so LDLib2's sync compares this instead of the tag. */
+    @Override
+    public long getContentVersion() {
+        return contentVersion;
     }
 }

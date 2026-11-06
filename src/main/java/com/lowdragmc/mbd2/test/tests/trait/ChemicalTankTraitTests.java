@@ -5,6 +5,7 @@ import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.integration.mekanism.trait.chemical.ChemicalStorage;
 import com.lowdragmc.mbd2.integration.mekanism.trait.chemical.ChemicalTankCapabilityTrait;
 import com.lowdragmc.mbd2.test.framework.MBDScenario;
+import com.lowdragmc.mbd2.test.framework.SyncMarks;
 import mekanism.api.Action;
 import mekanism.api.chemical.ChemicalStack;
 import mekanism.common.capabilities.Capabilities;
@@ -123,6 +124,25 @@ public class ChemicalTankTraitTests {
                 .check("auto input should have pulled the neighbour's hydrogen in",
                         m -> tank(m).getStored() >= 8_000)
                 .succeed();
+    }
+
+    /**
+     * {@code ChemicalStorageStrategy}: the tank is compared by a copy of its stack instead of being encoded every
+     * async period. In-place changes to the stack count, which is why it is not a change counter.
+     */
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
+    @PrefixGameTestTemplate(false)
+    public static void chemical_tanks_are_compared_without_saving_them(GameTestHelper h) {
+        var machine = MBDScenario.of(h).placeMachine(ChemicalTankTraitFixtures.MACHINE_ID, POS).machine();
+        SyncMarks.of(h, tank(machine))
+                .keeps("a simulated insert", s -> s.insertChemical(hydrogen(1_000), Action.SIMULATE))
+                .changes("an insert", s -> s.insertChemical(hydrogen(1_000), Action.EXECUTE))
+                .changes("a stack grown in place", s -> s.getStack().grow(1))
+                .changes("another chemical of the same amount",
+                        s -> s.setStack(new ChemicalStack(MekanismChemicals.OXYGEN, s.getStored())))
+                .changes("a spill to a smaller capacity", s -> chemicalTrait(machine).capacity.set(10L))
+                .keeps("a simulated extract", s -> s.extractChemical(5, Action.SIMULATE));
+        h.succeed();
     }
 
     private static ChemicalStack hydrogen(long amount) {

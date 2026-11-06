@@ -6,6 +6,7 @@ import com.lowdragmc.mbd2.integration.astralsorcery.starlight.MachineStarlightRe
 import com.lowdragmc.mbd2.integration.astralsorcery.starlight.StarlightBuffer;
 import com.lowdragmc.mbd2.integration.astralsorcery.starlight.StarlightReceiverTrait;
 import com.lowdragmc.mbd2.test.framework.MBDScenario;
+import com.lowdragmc.mbd2.test.framework.SyncMarks;
 import hellfirepvp.astralsorcery.common.lib.ConstellationsAS;
 import hellfirepvp.astralsorcery.common.lib.DataAS;
 import hellfirepvp.astralsorcery.common.lib.StarlightNetworkNodesAS;
@@ -157,6 +158,25 @@ public class StarlightReceiverTraitTests {
             h.fail("the starlight node outlived the machine");
             return;
         }
+        h.succeed();
+    }
+
+    /** As {@code LumenStorageTraitTests#lumen_is_compared_by_its_change_count}, for the starlight buffer. */
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
+    @PrefixGameTestTemplate(false)
+    public static void starlight_is_compared_by_its_change_count(GameTestHelper h) {
+        var machine = MBDScenario.of(h).placeMachine(StarlightReceiverTraitFixtures.MACHINE_ID, POS).machine();
+        var registries = h.getLevel().registryAccess();
+        var armara = ConstellationsAS.ARMARA.getId();
+        var aevitas = ConstellationsAS.AEVITAS.getId();
+        SyncMarks.of(h, buffer(machine))
+                .keeps("a simulated receive", s -> s.receive(armara, 5, true))
+                .changes("a receive", s -> s.receive(armara, 5, false))
+                .keeps("setting the amount it already has", s -> s.setAmount(armara, 5))
+                .changes("a new amount", s -> s.setAmount(aevitas, 3))
+                .keeps("a capacity that spills nothing, as the capacity is not saved", s -> s.setCapacity(6))
+                .changes("a capacity that spills", s -> s.setCapacity(4))
+                .changes("a load", s -> s.deserializeNBT(registries, s.serializeNBT(registries)));
         h.succeed();
     }
 

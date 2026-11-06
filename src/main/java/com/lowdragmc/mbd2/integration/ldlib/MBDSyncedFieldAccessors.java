@@ -2,12 +2,14 @@ package com.lowdragmc.mbd2.integration.ldlib;
 
 import com.lowdragmc.lowdraglib2.syncdata.AccessorRegistries;
 import com.lowdragmc.lowdraglib2.syncdata.accessor.direct.CustomDirectAccessor;
+import com.lowdragmc.lowdraglib2.syncdata.mark.MarkStrategies;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.pattern.predicates.PredicatePartialState;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
+import com.lowdragmc.mbd2.integration.mekanism.trait.chemical.ChemicalStorageStrategy;
 import mekanism.api.chemical.ChemicalStack;
 
 public class MBDSyncedFieldAccessors {
@@ -42,6 +44,7 @@ public class MBDSyncedFieldAccessors {
                     .streamCodec(ChemicalStack.OPTIONAL_STREAM_CODEC)
                     .copyMark(ChemicalStack::copy)
                     .build());
+            MarkStrategies.register(new ChemicalStorageStrategy(), 1000);
         }
     }
 }

@@ -9,6 +9,7 @@ import com.lowdragmc.mbd2.integration.astralsorcery.lumen.LumenStorage;
 import com.lowdragmc.mbd2.integration.astralsorcery.lumen.LumenStorageCapabilityTrait;
 import com.lowdragmc.mbd2.test.framework.MBDScenario;
 import com.lowdragmc.mbd2.test.framework.MBDTestHelper;
+import com.lowdragmc.mbd2.test.framework.SyncMarks;
 import hellfirepvp.astralsorcery.common.lib.LumenAS;
 import hellfirepvp.astralsorcery.common.lumen.ILumenHandler;
 import hellfirepvp.astralsorcery.common.lumen.LumenStack;
@@ -317,6 +318,27 @@ public class LumenStorageTraitTests {
             h.fail("the lumen node outlived the machine");
             return;
         }
+        h.succeed();
+    }
+
+    /** {@link LumenStorage} counts changes to what it saves, so the sync compares that count instead of saving it. */
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
+    @PrefixGameTestTemplate(false)
+    public static void lumen_is_compared_by_its_change_count(GameTestHelper h) {
+        var machine = MBDScenario.of(h).placeMachine(LumenStorageTraitFixtures.MACHINE_ID, POS).machine();
+        var registries = h.getLevel().registryAccess();
+        var aevitas = LumenAS.AEVITAS.get();
+        var armara = LumenAS.ARMARA.get();
+        SyncMarks.of(h, storage(machine))
+                .keeps("a simulated fill", s -> s.fill(aevitas, 500, true))
+                .keeps("draining what is not there", s -> s.drain(armara, 10, false))
+                .changes("a fill", s -> s.fill(aevitas, 500, false))
+                .changes("a drain", s -> s.drain(aevitas, 100, false))
+                .keeps("setting the amount it already has", s -> s.setAmount(aevitas, 400))
+                .changes("a new amount", s -> s.setAmount(aevitas, 50))
+                .keeps("a capacity that spills nothing, as the capacity is not saved", s -> s.setCapacity(60))
+                .changes("a capacity that spills", s -> s.setCapacity(10))
+                .changes("a load", s -> s.deserializeNBT(registries, s.serializeNBT(registries)));
         h.succeed();
     }
 

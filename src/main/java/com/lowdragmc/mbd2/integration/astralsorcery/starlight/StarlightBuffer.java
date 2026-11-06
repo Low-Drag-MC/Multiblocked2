@@ -1,6 +1,7 @@
 package com.lowdragmc.mbd2.integration.astralsorcery.starlight;
 
 import com.lowdragmc.lowdraglib2.syncdata.IContentChangeAware;
+import com.lowdragmc.lowdraglib2.syncdata.IContentVersion;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.core.HolderLookup;
@@ -23,11 +24,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * Received starlight per constellation id, each capped at {@link #getCapacity()}. Astral Sorcery itself keeps no
  * buffer; this one is what lets a recipe cost a fixed amount. Same threading as {@code LumenStorage}.
  */
-public class StarlightBuffer implements INBTSerializable<CompoundTag>, IContentChangeAware {
+public class StarlightBuffer implements INBTSerializable<CompoundTag>, IContentChangeAware, IContentVersion {
     /** Float rounding, not starlight. */
     public static final float EPSILON = 1e-4f;
 
     private final Map<ResourceLocation, Float> contents = new ConcurrentHashMap<>();
+    // only the game thread writes it, so the non-atomic increment is safe
+    private volatile long contentVersion;
     @Getter
     private volatile float capacity;
     private volatile Set<ResourceLocation> filter;
@@ -70,7 +73,7 @@ public class StarlightBuffer implements INBTSerializable<CompoundTag>, IContentC
         var moved = Math.min(amount, Math.max(0, capacity - stored));
         if (moved > 0 && !simulate) {
             contents.put(constellation, stored + moved);
-            onContentsChanged.run();
+            changed();
         }
         return moved;
     }
@@ -107,7 +110,7 @@ public class StarlightBuffer implements INBTSerializable<CompoundTag>, IContentC
             } else {
                 contents.remove(constellation);
             }
-            onContentsChanged.run();
+            changed();
         }
         return moved;
     }
@@ -121,6 +124,11 @@ public class StarlightBuffer implements INBTSerializable<CompoundTag>, IContentC
         } else {
             contents.remove(constellation);
         }
+        changed();
+    }
+
+    private void changed() {
+        contentVersion++;
         onContentsChanged.run();
     }
 
@@ -129,9 +137,10 @@ public class StarlightBuffer implements INBTSerializable<CompoundTag>, IContentC
         var clamped = Math.max(0, capacity);
         var changed = this.capacity != clamped;
         this.capacity = clamped;
+        var spilled = false;
         for (var entry : contents.entrySet()) {
             if (entry.getValue() > clamped) {
-                changed = true;
+                spilled = true;
                 if (clamped > 0) {
                     entry.setValue(clamped);
                 } else {
@@ -139,7 +148,8 @@ public class StarlightBuffer implements INBTSerializable<CompoundTag>, IContentC
                 }
             }
         }
-        return changed;
+        if (spilled) contentVersion++;
+        return changed || spilled;
     }
 
     public void setFilter(Collection<ResourceLocation> filter) {
@@ -188,5 +198,12 @@ public class StarlightBuffer implements INBTSerializable<CompoundTag>, IContentC
                 contents.put(id, amount);
             }
         }
+        contentVersion++;
+    }
+
+    /** Counts changes to what {@link #serializeNBT} writes, so LDLib2's sync compares this instead of the tag. */
+    @Override
+    public long getContentVersion() {
+        return contentVersion;
     }
 }

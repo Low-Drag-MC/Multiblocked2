@@ -3,7 +3,10 @@ package com.lowdragmc.mbd2.test.tests.trait;
 import com.lowdragmc.lowdraglib2.gui.factory.BlockUIMenuType;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.FluidSlot;
 import com.lowdragmc.mbd2.MBD2;
+import com.lowdragmc.mbd2.common.machine.MBDMachine;
+import com.lowdragmc.mbd2.common.trait.fluid.FluidTankCapabilityTrait;
 import com.lowdragmc.mbd2.test.framework.MBDScenario;
+import com.lowdragmc.mbd2.test.framework.SyncMarks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -12,6 +15,7 @@ import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import org.jetbrains.annotations.Nullable;
@@ -78,6 +82,26 @@ public class FluidTankTraitTests {
             }
         }
         h.succeed();
+    }
+
+    /** As {@code ItemSlotTraitTests#item_slots_are_compared_without_saving_them}, for the tanks and their capacity. */
+    @GameTest(template = "empty_simple")
+    @PrefixGameTestTemplate(false)
+    public static void fluid_tanks_are_compared_without_saving_them(GameTestHelper h) {
+        var machine = MBDScenario.of(h).placeMachine(FluidTankTraitFixtures.MACHINE_ID, POS).machine();
+        SyncMarks.of(h, fluidTrait(machine).storages[0])
+                .keeps("a simulated fill", s -> s.fill(new FluidStack(Fluids.WATER, 1000), IFluidHandler.FluidAction.SIMULATE))
+                .changes("a fill", s -> s.fill(new FluidStack(Fluids.WATER, 1000), IFluidHandler.FluidAction.EXECUTE))
+                .changes("fluid grown in place", s -> s.getFluid().grow(1))
+                .changes("a new capacity", s -> s.setCapacity(s.getCapacity() * 2));
+        h.succeed();
+    }
+
+    private static FluidTankCapabilityTrait fluidTrait(MBDMachine machine) {
+        for (var trait : machine.getAdditionalTraits()) {
+            if (trait instanceof FluidTankCapabilityTrait fluidTrait) return fluidTrait;
+        }
+        throw new AssertionError("fixture machine has no fluid tank trait");
     }
 
     /** Places the machine and builds its UI the way opening the menu would, then finds the first tank's slot. */

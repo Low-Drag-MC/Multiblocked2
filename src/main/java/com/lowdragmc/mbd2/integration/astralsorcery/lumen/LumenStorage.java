@@ -1,6 +1,7 @@
 package com.lowdragmc.mbd2.integration.astralsorcery.lumen;
 
 import com.lowdragmc.lowdraglib2.syncdata.IContentChangeAware;
+import com.lowdragmc.lowdraglib2.syncdata.IContentVersion;
 import com.lowdragmc.mbd2.integration.astralsorcery.AstralSorceryIntegration;
 import hellfirepvp.astralsorcery.common.lib.LumenAS;
 import hellfirepvp.astralsorcery.common.lumen.Lumen;
@@ -33,8 +34,10 @@ import java.util.stream.Collectors;
  * <p>The async recipe search {@link #copy() copies} this off-thread while the game thread mutates it, hence the
  * concurrent map and the immutable filter swapped whole.</p>
  */
-public class LumenStorage implements INBTSerializable<CompoundTag>, IContentChangeAware {
+public class LumenStorage implements INBTSerializable<CompoundTag>, IContentChangeAware, IContentVersion {
     private final Map<Lumen, Integer> contents = new ConcurrentHashMap<>();
+    // only the game thread writes it, so the non-atomic increment is safe
+    private volatile long contentVersion;
     @Getter
     private volatile int capacity;
     @Getter
@@ -89,7 +92,7 @@ public class LumenStorage implements INBTSerializable<CompoundTag>, IContentChan
         var moved = Math.min(amount, Math.max(0, capacity - stored));
         if (moved > 0 && !simulate) {
             contents.put(lumen, stored + moved);
-            onContentsChanged.run();
+            changed();
         }
         return moved;
     }
@@ -105,7 +108,7 @@ public class LumenStorage implements INBTSerializable<CompoundTag>, IContentChan
             } else {
                 contents.remove(lumen);
             }
-            onContentsChanged.run();
+            changed();
         }
         return moved;
     }
@@ -119,6 +122,11 @@ public class LumenStorage implements INBTSerializable<CompoundTag>, IContentChan
         } else {
             contents.remove(lumen);
         }
+        changed();
+    }
+
+    private void changed() {
+        contentVersion++;
         onContentsChanged.run();
     }
 
@@ -127,9 +135,10 @@ public class LumenStorage implements INBTSerializable<CompoundTag>, IContentChan
         var clamped = Math.max(0, capacity);
         var changed = this.capacity != clamped;
         this.capacity = clamped;
+        var spilled = false;
         for (var entry : contents.entrySet()) {
             if (entry.getValue() > clamped) {
-                changed = true;
+                spilled = true;
                 if (clamped > 0) {
                     entry.setValue(clamped);
                 } else {
@@ -137,7 +146,8 @@ public class LumenStorage implements INBTSerializable<CompoundTag>, IContentChan
                 }
             }
         }
-        return changed;
+        if (spilled) contentVersion++;
+        return changed || spilled;
     }
 
     public void setFilter(Collection<Lumen> filter) {
@@ -191,5 +201,12 @@ public class LumenStorage implements INBTSerializable<CompoundTag>, IContentChan
                 contents.put(lumen, amount);
             }
         }
+        contentVersion++;
+    }
+
+    /** Counts changes to what {@link #serializeNBT} writes, so LDLib2's sync compares this instead of the tag. */
+    @Override
+    public long getContentVersion() {
+        return contentVersion;
     }
 }

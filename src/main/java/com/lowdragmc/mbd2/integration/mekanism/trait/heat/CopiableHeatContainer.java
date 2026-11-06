@@ -1,6 +1,7 @@
 package com.lowdragmc.mbd2.integration.mekanism.trait.heat;
 
 import com.lowdragmc.lowdraglib2.syncdata.IContentChangeAware;
+import com.lowdragmc.lowdraglib2.syncdata.IContentVersion;
 import lombok.Getter;
 import lombok.Setter;
 import mekanism.api.heat.HeatAPI;
@@ -9,7 +10,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 
-public class CopiableHeatContainer implements IHeatHandler, INBTSerializable<CompoundTag>, IContentChangeAware {
+public class CopiableHeatContainer implements IHeatHandler, INBTSerializable<CompoundTag>, IContentChangeAware, IContentVersion {
     @Getter
     @Setter
     private Runnable onContentsChanged = () -> {};
@@ -17,6 +18,8 @@ public class CopiableHeatContainer implements IHeatHandler, INBTSerializable<Com
     private final double capacity;
     private final double inverseConduction;
     private double heat;
+    // only the game thread writes it, so the non-atomic increment is safe
+    private volatile long contentVersion;
 
     public CopiableHeatContainer(double capacity, double inverseConduction) {
         this.capacity = Math.max(1.0, capacity);
@@ -37,6 +40,7 @@ public class CopiableHeatContainer implements IHeatHandler, INBTSerializable<Com
     public void setHeat(double value) {
         if (this.heat != value) {
             this.heat = value;
+            contentVersion++;
             onContentsChanged.run();
         }
     }
@@ -65,6 +69,7 @@ public class CopiableHeatContainer implements IHeatHandler, INBTSerializable<Com
     public void handleHeat(int capacitor, double transfer) {
         if (capacitor == 0 && transfer != 0) {
             heat += transfer;
+            contentVersion++;
             onContentsChanged.run();
         }
     }
@@ -79,5 +84,12 @@ public class CopiableHeatContainer implements IHeatHandler, INBTSerializable<Com
     @Override
     public void deserializeNBT(HolderLookup.Provider provider, CompoundTag nbt) {
         heat = nbt.getDouble("heat");
+        contentVersion++;
+    }
+
+    /** Counts changes to what {@link #serializeNBT} writes, so LDLib2's sync compares this instead of the tag. */
+    @Override
+    public long getContentVersion() {
+        return contentVersion;
     }
 }
