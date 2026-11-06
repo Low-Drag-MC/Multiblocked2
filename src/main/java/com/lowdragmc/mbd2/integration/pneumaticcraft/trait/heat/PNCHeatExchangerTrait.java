@@ -1,5 +1,6 @@
 package com.lowdragmc.mbd2.integration.pneumaticcraft.trait.heat;
 
+import com.lowdragmc.lowdraglib2.syncdata.annotation.LazyManaged;
 import com.lowdragmc.lowdraglib2.syncdata.annotation.Persisted;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandlerTrait;
@@ -28,7 +29,12 @@ import java.util.Map;
 
 @Getter
 public class PNCHeatExchangerTrait extends SimpleCapabilityTrait<IHeatExchangerLogic, @Nullable Direction> implements IAutoIOTrait {
+    /**
+     * {@code @LazyManaged} so LDLib2's async thread never saves it to look for changes: that would walk PNC's heat
+     * behaviours off the server thread every period. {@link #serverTick} marks it instead.
+     */
     @Persisted
+    @LazyManaged
     public final HeatExchanger handler;
 
     private final HeatRecipeHandler recipeHandler = new HeatRecipeHandler();
@@ -41,6 +47,7 @@ public class PNCHeatExchangerTrait extends SimpleCapabilityTrait<IHeatExchangerL
             new RuntimeAutoIO(runtimeValues, "auto_io", () -> getDefinition().getAutoIO());
     private final Map<BlockPos, EnumMap<Direction, BlockCapabilityCache<IHeatExchangerLogic, @Nullable Direction>>> nearbyCache = new HashMap<>();
     private boolean isFirstTick = true;
+    private double markedTemperature = Double.NaN;
 
     public PNCHeatExchangerTrait(MBDMachine machine, PNCHeatExchangerTraitDefinition definition) {
         super(machine, definition);
@@ -85,6 +92,12 @@ public class PNCHeatExchangerTrait extends SimpleCapabilityTrait<IHeatExchangerL
             isFirstTick = false;
         }
         handler.tick();
+        // PNC moves heat without telling us: neighbours, ambient and recipes all add it straight to the handler
+        var temperature = handler.getTemperature();
+        if (temperature != markedTemperature) {
+            markedTemperature = temperature;
+            markDirty("handler");
+        }
     }
 
     @Override
@@ -92,6 +105,8 @@ public class PNCHeatExchangerTrait extends SimpleCapabilityTrait<IHeatExchangerL
         var level = getMachine().getLevel();
         if (level != null) {
             handler.initializeAsHull(level, getMachine().getPos(), IHeatExchangerLogic.ALL_BLOCKS, Direction.values());
+            // the handler saves its behaviours too
+            markDirty("handler");
         }
     }
 

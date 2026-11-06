@@ -83,6 +83,50 @@ public class PNCHeatTraitTests {
         h.succeed();
     }
 
+    /**
+     * The handler is {@code @LazyManaged}: LDLib2's async sync would otherwise save it every period to look for
+     * changes, walking PNC's heat behaviours off the server thread.
+     */
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
+    @PrefixGameTestTemplate(false)
+    public static void heat_exchanger_is_left_out_of_the_async_sync(GameTestHelper h) {
+        var machine = MBDScenario.of(h).placeMachine(PNCHeatTraitFixtures.MACHINE_ID, POS).machine();
+        for (var ref : heatTrait(machine).getSyncStorage().getNonLazyFields()) {
+            if (ref.getKey().getName().equals("handler")) {
+                h.fail("the async sync still saves the heat handler every period to compare it");
+                return;
+            }
+        }
+        h.succeed();
+    }
+
+    /** So the trait marks it on the server thread, including for heat PNC moves without calling back. */
+    @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
+    @PrefixGameTestTemplate(false)
+    public static void heat_changes_get_the_machine_saved(GameTestHelper h) {
+        var machine = MBDScenario.of(h).placeMachine(PNCHeatTraitFixtures.MACHINE_ID, POS).machine();
+        var trait = heatTrait(machine);
+        var chunk = h.getLevel().getChunkAt(h.absolutePos(POS));
+        trait.serverTick(); // joins the hull
+        chunk.setUnsaved(false);
+        var before = trait.handler.getTemperature();
+        trait.serverTick();
+        var drifted = trait.handler.getTemperature() != before;
+        if (chunk.isUnsaved() != drifted) {
+            h.fail("a tick that " + (drifted ? "moved" : "did not move") + " heat "
+                    + (chunk.isUnsaved() ? "marked" : "did not mark") + " the machine for saving");
+            return;
+        }
+        chunk.setUnsaved(false);
+        trait.handler.addHeat(10_000);
+        trait.serverTick();
+        if (!chunk.isUnsaved()) {
+            h.fail("heat added through PNC's own api did not get the machine saved");
+            return;
+        }
+        h.succeed();
+    }
+
     private static PNCHeatExchangerTrait heatTrait(MBDMachine machine) {
         for (var trait : machine.getAdditionalTraits()) {
             if (trait instanceof PNCHeatExchangerTrait heatTrait) return heatTrait;
