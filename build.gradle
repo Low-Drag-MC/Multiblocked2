@@ -89,6 +89,7 @@ runs {
 
 // Dev-only, in-client editor captures. Inert unless -PldTest is supplied.
 apply from: rootProject.file('gradle/ldlib2-uitest.gradle')
+apply from: rootProject.file('gradle/ldlib2-mptest.gradle')
 
 apply from: "$rootDir/repositories.gradle"
 apply from: "$rootDir/dependencies.gradle"
