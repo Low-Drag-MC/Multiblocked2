@@ -372,6 +372,7 @@ final class AutoIOPanelBlueprint {
         var put = "put_" + name;
         var namedNext = "namedNext_" + name;
         var putNext = "putNext_" + name;
+        var reread = "reread_" + name;
         var seed = "seed_" + name;
         var mirror = "mirror_" + name;
         var tick = "tick_" + name;
@@ -414,8 +415,12 @@ final class AutoIOPanelBlueprint {
                 .title(put, "this face's state")
                 .add(seed, MachineActionNodes.MergeCustomData.class, x + 940, y)
                 .title(seed, "publish it when the ui opens")
+                // A node of its own, first pulled after the write: one already pulled may hand back
+                // the value from before it, depending on how the KilaGraph in use caches a run.
+                .add(reread, MachineRuntimeValueNodes.GetAutoIOSide.class, x + 940, y + 400)
+                .title(reread, "what it is set to now")
                 .add(namedNext, IONodes.Info.class, x + 1180, y + 400)
-                .title(namedNext, "the value just applied")
+                .title(namedNext, "as a name to store")
                 .add(putNext, NbtSetNode.class, x + 1420, y + 400)
                 .add(mirror, MachineActionNodes.MergeCustomData.class, x + 1660, y + 320)
                 .title(mirror, "and again whenever it changes");
@@ -431,6 +436,9 @@ final class AutoIOPanelBlueprint {
                 .wire(seed + ".data", put + ".out")
                 .wire(putNext + ".tag", tag + ".out")
                 .wire(putNext + ".key", key + ".out")
+                .wire(reread + ".trait", "trait")
+                .wire(reread + ".side", side + ".value")
+                .wire(namedNext + ".io", reread + ".io")
                 .wire(putNext + ".value", namedNext + ".name")
                 .wire(mirror + ".data", putNext + ".out");
 
@@ -510,10 +518,7 @@ final class AutoIOPanelBlueprint {
                 .wire(apply + ".trait", "trait")
                 .wire(apply + ".side", side + ".value")
                 .wire(apply + ".io", cycle + ".next")
-                .wire(enable + ".trait", "trait")
-                // The value just applied, not a re-read: the executor memoises a pulled value for the
-                // run, so reading the side again here would hand back what it was before the write.
-                .wire(namedNext + ".io", cycle + ".next");
+                .wire(enable + ".trait", "trait");
 
         // Named pins throughout: a tick listener and an event listener each have two exec outputs,
         // and which one a chain continues on is the difference between "carry on building the panel"
