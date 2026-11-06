@@ -83,20 +83,19 @@ public class MekHeatTraitTests {
         h.succeed();
     }
 
-    /** {@code CopiableHeatContainer} counts its changes, so the sync compares that count instead of saving it. */
     @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void heat_is_compared_by_its_change_count(GameTestHelper h) {
-        var machine = MBDScenario.of(h).placeMachine(MekHeatTraitFixtures.MACHINE_ID, POS).machine();
+        var scenario = MBDScenario.of(h).placeMachine(MekHeatTraitFixtures.MACHINE_ID, POS);
         var registries = h.getLevel().registryAccess();
-        SyncMarks.of(h, heatTrait(machine).storage)
+        SyncMarks.of(h, heatTrait(scenario.machine()).storage)
                 .keeps("no heat moved", s -> s.handleHeat(0, 0))
                 .keeps("heat for a capacitor it does not have", s -> s.handleHeat(1, 500))
                 .keeps("setting the heat it already has", s -> s.setHeat(s.getHeat()))
                 .changes("heat moved in", s -> s.handleHeat(0, 500))
                 .changes("a new heat", s -> s.setHeat(s.getHeat() * 2))
                 .changes("a load", s -> s.deserializeNBT(registries, s.serializeNBT(registries)));
-        h.succeed();
+        scenario.assertChangeGetsSaved("heat moved in", m -> heatTrait(m).storage.handleHeat(0, 500)).succeed();
     }
 
     private static MekHeatCapabilityTrait heatTrait(MBDMachine machine) {

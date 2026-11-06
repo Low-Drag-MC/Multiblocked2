@@ -8,8 +8,8 @@ import net.minecraft.core.HolderLookup;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * What a {@link ChemicalStorage} saves is its stack, so LDLib2's sync compares a copy of the stack instead of encoding
- * it every period. Not an {@code IContentVersion}: {@link BasicChemicalTank#getStack()} hands out the live stack.
+ * Compares a copy of the stack instead of encoding it. Not an {@code IContentVersion}, since
+ * {@link BasicChemicalTank#getStack()} hands out the live stack.
  */
 public final class ChemicalStorageStrategy implements IMarkStrategy<ChemicalStorage, ChemicalStack> {
     @Override

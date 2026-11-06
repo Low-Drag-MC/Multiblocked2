@@ -321,15 +321,14 @@ public class LumenStorageTraitTests {
         h.succeed();
     }
 
-    /** {@link LumenStorage} counts changes to what it saves, so the sync compares that count instead of saving it. */
     @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void lumen_is_compared_by_its_change_count(GameTestHelper h) {
-        var machine = MBDScenario.of(h).placeMachine(LumenStorageTraitFixtures.MACHINE_ID, POS).machine();
+        var scenario = MBDScenario.of(h).placeMachine(LumenStorageTraitFixtures.MACHINE_ID, POS);
         var registries = h.getLevel().registryAccess();
         var aevitas = LumenAS.AEVITAS.get();
         var armara = LumenAS.ARMARA.get();
-        SyncMarks.of(h, storage(machine))
+        SyncMarks.of(h, storage(scenario.machine()))
                 .keeps("a simulated fill", s -> s.fill(aevitas, 500, true))
                 .keeps("draining what is not there", s -> s.drain(armara, 10, false))
                 .changes("a fill", s -> s.fill(aevitas, 500, false))
@@ -339,7 +338,7 @@ public class LumenStorageTraitTests {
                 .keeps("a capacity that spills nothing, as the capacity is not saved", s -> s.setCapacity(60))
                 .changes("a capacity that spills", s -> s.setCapacity(10))
                 .changes("a load", s -> s.deserializeNBT(registries, s.serializeNBT(registries)));
-        h.succeed();
+        scenario.assertChangeGetsSaved("a fill", m -> storage(m).fill(armara, 5, false)).succeed();
     }
 
     private static LumenStorageCapabilityTrait trait(MBDMachine machine) {

@@ -29,7 +29,6 @@ public class StarlightBuffer implements INBTSerializable<CompoundTag>, IContentC
     public static final float EPSILON = 1e-4f;
 
     private final Map<ResourceLocation, Float> contents = new ConcurrentHashMap<>();
-    // only the game thread writes it, so the non-atomic increment is safe
     private volatile long contentVersion;
     @Getter
     private volatile float capacity;
@@ -201,7 +200,6 @@ public class StarlightBuffer implements INBTSerializable<CompoundTag>, IContentC
         contentVersion++;
     }
 
-    /** Counts changes to what {@link #serializeNBT} writes, so LDLib2's sync compares this instead of the tag. */
     @Override
     public long getContentVersion() {
         return contentVersion;

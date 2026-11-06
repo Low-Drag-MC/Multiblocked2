@@ -213,18 +213,19 @@ public class AstralConditionTests {
                 .succeed();
     }
 
-    /** The snapshot counts changes to what it saves, so the sync compares that count instead of saving it. */
     @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void research_snapshot_is_compared_by_its_change_count(GameTestHelper h) {
-        var machine = MBDScenario.of(h).placeMachine(AstralRecipeCapabilityFixtures.RESEARCHER_ID, POS).machine();
+        var scenario = MBDScenario.of(h).placeMachine(AstralRecipeCapabilityFixtures.RESEARCHER_ID, POS);
         var registries = h.getLevel().registryAccess();
-        SyncMarks.of(h, researcher(machine).getSnapshot())
+        SyncMarks.of(h, researcher(scenario.machine()).getSnapshot())
                 .changes("binding a researcher", s -> s.bind(UUID.randomUUID(), "researcher", PlayerProgressTestAccess.get()))
                 .keeps("the same progress seen again", s -> s.capture(PlayerProgressTestAccess.get(), "researcher"))
                 .changes("new progress", s -> s.capture(PlayerProgressFullAccess.get(), "researcher"))
                 .changes("a load", s -> s.deserializeNBT(registries, s.serializeNBT(registries)));
-        h.succeed();
+        scenario.assertChangeGetsSaved("binding another researcher",
+                        m -> researcher(m).getSnapshot().bind(UUID.randomUUID(), "other", PlayerProgressTestAccess.get()))
+                .succeed();
     }
 
     private static AstralResearcherTrait researcher(MBDMachine machine) {

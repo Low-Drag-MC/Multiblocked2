@@ -36,7 +36,6 @@ import java.util.stream.Collectors;
  */
 public class LumenStorage implements INBTSerializable<CompoundTag>, IContentChangeAware, IContentVersion {
     private final Map<Lumen, Integer> contents = new ConcurrentHashMap<>();
-    // only the game thread writes it, so the non-atomic increment is safe
     private volatile long contentVersion;
     @Getter
     private volatile int capacity;
@@ -204,7 +203,6 @@ public class LumenStorage implements INBTSerializable<CompoundTag>, IContentChan
         contentVersion++;
     }
 
-    /** Counts changes to what {@link #serializeNBT} writes, so LDLib2's sync compares this instead of the tag. */
     @Override
     public long getContentVersion() {
         return contentVersion;

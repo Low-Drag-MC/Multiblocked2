@@ -18,7 +18,6 @@ public class CopiableHeatContainer implements IHeatHandler, INBTSerializable<Com
     private final double capacity;
     private final double inverseConduction;
     private double heat;
-    // only the game thread writes it, so the non-atomic increment is safe
     private volatile long contentVersion;
 
     public CopiableHeatContainer(double capacity, double inverseConduction) {
@@ -87,7 +86,6 @@ public class CopiableHeatContainer implements IHeatHandler, INBTSerializable<Com
         contentVersion++;
     }
 
-    /** Counts changes to what {@link #serializeNBT} writes, so LDLib2's sync compares this instead of the tag. */
     @Override
     public long getContentVersion() {
         return contentVersion;

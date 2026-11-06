@@ -161,15 +161,14 @@ public class StarlightReceiverTraitTests {
         h.succeed();
     }
 
-    /** As {@code LumenStorageTraitTests#lumen_is_compared_by_its_change_count}, for the starlight buffer. */
     @GameTest(template = "empty_simple", templateNamespace = MBD2.MOD_ID)
     @PrefixGameTestTemplate(false)
     public static void starlight_is_compared_by_its_change_count(GameTestHelper h) {
-        var machine = MBDScenario.of(h).placeMachine(StarlightReceiverTraitFixtures.MACHINE_ID, POS).machine();
+        var scenario = MBDScenario.of(h).placeMachine(StarlightReceiverTraitFixtures.MACHINE_ID, POS);
         var registries = h.getLevel().registryAccess();
         var armara = ConstellationsAS.ARMARA.getId();
         var aevitas = ConstellationsAS.AEVITAS.getId();
-        SyncMarks.of(h, buffer(machine))
+        SyncMarks.of(h, buffer(scenario.machine()))
                 .keeps("a simulated receive", s -> s.receive(armara, 5, true))
                 .changes("a receive", s -> s.receive(armara, 5, false))
                 .keeps("setting the amount it already has", s -> s.setAmount(armara, 5))
@@ -177,7 +176,7 @@ public class StarlightReceiverTraitTests {
                 .keeps("a capacity that spills nothing, as the capacity is not saved", s -> s.setCapacity(6))
                 .changes("a capacity that spills", s -> s.setCapacity(4))
                 .changes("a load", s -> s.deserializeNBT(registries, s.serializeNBT(registries)));
-        h.succeed();
+        scenario.assertChangeGetsSaved("a new amount", m -> buffer(m).setAmount(armara, 1)).succeed();
     }
 
     @Nullable

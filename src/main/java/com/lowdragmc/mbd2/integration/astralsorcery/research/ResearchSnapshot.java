@@ -37,7 +37,6 @@ public class ResearchSnapshot implements INBTSerializable<CompoundTag>, IContent
     @Nullable
     private ResourceLocation attunedConstellation;
     private Set<ResourceLocation> knownConstellations = Set.of();
-    // only the game thread writes it, so the non-atomic increment is safe
     private volatile long contentVersion;
 
     public boolean isBound() {
@@ -126,7 +125,6 @@ public class ResearchSnapshot implements INBTSerializable<CompoundTag>, IContent
         contentVersion++;
     }
 
-    /** Counts changes to what {@link #serializeNBT} writes, so LDLib2's sync compares this instead of the tag. */
     @Override
     public long getContentVersion() {
         return contentVersion;

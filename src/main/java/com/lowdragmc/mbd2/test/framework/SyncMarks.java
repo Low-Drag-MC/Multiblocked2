@@ -7,9 +7,8 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import java.util.function.Consumer;
 
 /**
- * Asserts on how LDLib2's sync tells whether a persisted or synced value changed, asking the {@link MarkStrategies}
- * strategy of the value's class the way its refs do. A class without one gets saved every async period just to be
- * compared, so {@link #of} fails for it.
+ * Asks the {@link MarkStrategies} strategy of a value's class whether it changed, the way LDLib2's refs do. A class
+ * without one is saved every async period to be compared, so {@link #of} fails for it.
  */
 public final class SyncMarks<T> {
     private final GameTestHelper helper;
