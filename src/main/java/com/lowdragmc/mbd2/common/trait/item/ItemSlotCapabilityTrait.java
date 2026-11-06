@@ -133,7 +133,7 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
 
     public void onContentsChanged() {
         isEmpty = null;
-        onStorageChanged();
+        notifyListeners();
     }
 
     public boolean isEmpty() {

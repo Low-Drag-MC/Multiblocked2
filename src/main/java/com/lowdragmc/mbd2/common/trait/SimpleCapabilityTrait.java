@@ -25,15 +25,6 @@ public abstract class SimpleCapabilityTrait<T, C extends @Nullable Object> exten
     }
 
     /**
-     * For a storage under {@code @ConditionalSynced}: while the condition is false LDLib2 skips its change detection
-     * altogether, saving included, so the machine is marked for saving here.
-     */
-    protected void onStorageChanged() {
-        notifyPersistence();
-        notifyListeners();
-    }
-
-    /**
      * Get capability IO direction of the specific side.
      * <br/>
      * For example, whether you can insert or extract items from the specific side.

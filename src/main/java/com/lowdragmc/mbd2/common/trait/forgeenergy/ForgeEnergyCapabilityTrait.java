@@ -81,7 +81,7 @@ public class ForgeEnergyCapabilityTrait extends SimpleCapabilityTrait<IEnergySto
     public ForgeEnergyCapabilityTrait(MBDMachine machine, ForgeEnergyCapabilityTraitDefinition definition) {
         super(machine, definition);
         storage = createStorages();
-        storage.setOnContentsChanged(this::onStorageChanged);
+        storage.setOnContentsChanged(this::notifyListeners);
     }
 
     @Override
