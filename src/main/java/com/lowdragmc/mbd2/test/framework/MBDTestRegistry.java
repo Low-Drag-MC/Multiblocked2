@@ -59,6 +59,7 @@ public class MBDTestRegistry {
         register(new com.lowdragmc.mbd2.test.tests.recipe.logic.RecipeLogicFixFixtures());
         register(new com.lowdragmc.mbd2.test.tests.recipe.logic.MultiRecipeLogicFixtures());
         register(new com.lowdragmc.mbd2.test.tests.recipe.logic.RecipeLookupFixtures());
+        register(new com.lowdragmc.mbd2.test.uitest.wiki.WikiDemoFixtures());
         if (com.lowdragmc.mbd2.test.tests.bench.RecipeLogicBench.ENABLED) {
             register(new com.lowdragmc.mbd2.test.tests.bench.RecipeLogicBenchFixtures());
         }
