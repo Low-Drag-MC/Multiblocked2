@@ -189,6 +189,13 @@ public class TraceabilityPredicate {
         return this;
     }
 
+    /** Only let these of the controller's recipe logics use the matched parts' handlers (names or {@code name#thread}). */
+    public TraceabilityPredicate setRecipeLogics(String... recipeLogics) {
+        common.forEach(predicate -> predicate.recipeLogics = new ArrayList<>(List.of(recipeLogics)));
+        limited.forEach(predicate -> predicate.recipeLogics = new ArrayList<>(List.of(recipeLogics)));
+        return this;
+    }
+
     /**
      * Mark every contained {@link PatternPredicate} as rotation-following so its expected
      * block state auto-rotates to the controller's horizontal facing during pattern checks,

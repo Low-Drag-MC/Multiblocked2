@@ -243,23 +243,27 @@ public class MBDGadgetsItem extends Item implements HeldItemUIMenuType.HeldItemU
                         for (var holder : recipeManager.getAllRecipesFor(recipeType)) {
                             if (Objects.equals(holder.id(), recipe)) {
                                 var mbdRecipe = holder.value();
-                                if (machine.getRecipeType() != recipeType) {
+                                var logic = machine.getRecipeLogics().stream()
+                                        .filter(l -> l.getRecipeType() == recipeType)
+                                        .findFirst()
+                                        .orElse(machine.getRecipeLogic());
+                                if (logic.getRecipeType() != recipeType) {
                                     serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.warning.recipe_type",
                                             Component.literal("id").withStyle(style ->
                                                     style.withColor(ChatFormatting.YELLOW)
                                                             .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-                                                                    Component.literal(machine.getRecipeType().toString())))),
+                                                                    Component.literal(logic.getRecipeType().toString())))),
                                             Component.literal("id").withStyle(style ->
                                                     style.withColor(ChatFormatting.YELLOW)
                                                             .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
                                                                     Component.literal(mbdRecipe.id.toString()))))
                                     ));
                                 }
-                                var result = mbdRecipe.matchRecipe(machine);
+                                var result = mbdRecipe.matchRecipe(logic);
                                 if (result.isSuccess()) {
-                                    result = mbdRecipe.matchTickRecipe(machine);
+                                    result = mbdRecipe.matchTickRecipe(logic);
                                     if (result.isSuccess()) {
-                                        result = mbdRecipe.checkConditions(machine.getRecipeLogic());
+                                        result = mbdRecipe.checkConditions(logic);
                                     }
                                 }
                                 if (result.isSuccess()) {
@@ -268,7 +272,7 @@ public class MBDGadgetsItem extends Item implements HeldItemUIMenuType.HeldItemU
                                                     style.withColor(ChatFormatting.YELLOW)
                                                             .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
                                                             Component.literal(mbdRecipe.id.toString()))))));
-                                    var modifiedRecipe = machine.doModifyRecipe(mbdRecipe);
+                                    var modifiedRecipe = machine.doModifyRecipe(logic, mbdRecipe);
                                     if (modifiedRecipe == mbdRecipe) {
                                         serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.modified.empty"));
                                     } else if (modifiedRecipe == null) {
@@ -276,11 +280,11 @@ public class MBDGadgetsItem extends Item implements HeldItemUIMenuType.HeldItemU
                                         serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.modified.failure.1"));
                                     } else {
                                         serverPlayer.sendSystemMessage(Component.translatable("item.mbd2.mbd_gadgets.recipe_debugger.modified.has"));
-                                        result = modifiedRecipe.matchRecipe(machine);
+                                        result = modifiedRecipe.matchRecipe(logic);
                                         if (result.isSuccess()) {
-                                            result = modifiedRecipe.matchTickRecipe(machine);
+                                            result = modifiedRecipe.matchTickRecipe(logic);
                                             if (result.isSuccess()) {
-                                                result = modifiedRecipe.checkConditions(machine.getRecipeLogic());
+                                                result = modifiedRecipe.checkConditions(logic);
                                             }
                                         }
                                         if (result.isSuccess()) {

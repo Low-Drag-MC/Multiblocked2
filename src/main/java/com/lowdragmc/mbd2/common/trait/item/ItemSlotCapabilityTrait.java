@@ -298,10 +298,25 @@ public class ItemSlotCapabilityTrait extends SimpleCapabilityTrait<IItemHandler,
         return getDefinition().getItemRendererSettings().isEnable();
     }
 
+    @Override
+    public boolean notifiesAllChanges() {
+        return true;
+    }
+
     public class ItemRecipeHandler extends RecipeHandlerTrait<SizedIngredient> {
 
         protected ItemRecipeHandler() {
             super(ItemSlotCapabilityTrait.this, ItemRecipeCapability.CAP);
+        }
+
+        @Override
+        public Collection<?> getAvailableLookupKeys() {
+            var items = new HashSet<Object>();
+            for (int i = 0; i < storage.getSlots(); i++) {
+                var stack = storage.getStackInSlot(i);
+                if (!stack.isEmpty()) items.add(stack.getItem());
+            }
+            return items;
         }
 
         @Override

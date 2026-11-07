@@ -124,8 +124,9 @@ public interface IMultiController extends IMachine {
      */
     @Nullable
     default MBDRecipe getModifiedRecipe(@Nonnull MBDRecipe recipe) {
+        var logic = getContextRecipeLogic();
         for (var part : getParts()) {
-            recipe = part.modifyControllerRecipe(recipe, getRecipeLogic());
+            recipe = part.modifyControllerRecipe(recipe, logic);
             if (recipe == null) return null;
         }
         return recipe;
@@ -133,17 +134,19 @@ public interface IMultiController extends IMachine {
 
     @Override
     default ContentModifier getMaxParallel(@NotNull MBDRecipe recipe) {
+        var logic = getContextRecipeLogic();
         var maxParallel = IMachine.super.getMaxParallel(recipe);
         for (var part : getParts()) {
-            maxParallel = maxParallel.merge(part.getMaxControllerParallel(recipe, getRecipeLogic()));
+            maxParallel = maxParallel.merge(part.getMaxControllerParallel(recipe, logic));
         }
         return maxParallel;
     }
 
     @Override
     default boolean alwaysTryModifyRecipe() {
+        var logic = getContextRecipeLogic();
         for (var part : getParts()) {
-            if (part.alwaysTryModifyControllerRecipe()) {
+            if (part.alwaysTryModifyControllerRecipe(logic)) {
                 return true;
             }
         }
@@ -257,10 +260,19 @@ public interface IMultiController extends IMachine {
     }
 
     @Override
+    default void notifyRecipeStatusChanged(RecipeLogic logic, RecipeLogic.Status oldStatus, RecipeLogic.Status newStatus) {
+        IMachine.super.notifyRecipeStatusChanged(logic, oldStatus, newStatus);
+        for (IMultiPart part : getParts()) {
+            part.notifyControllerRecipeStatusChanged(this, logic, oldStatus, newStatus);
+        }
+    }
+
+    @Override
     default boolean beforeWorking(MBDRecipe recipe) {
         IMachine.super.beforeWorking(recipe);
+        var logic = getContextRecipeLogic();
         for (IMultiPart part : getParts()) {
-            if (part.beforeControllerWorking(this)) {
+            if (part.beforeControllerWorking(this, logic, recipe)) {
                 return true;
             }
         }
@@ -270,8 +282,9 @@ public interface IMultiController extends IMachine {
     @Override
     default boolean onWorking() {
         IMachine.super.onWorking();
+        var logic = getContextRecipeLogic();
         for (IMultiPart part : getParts()) {
-            if (part.onControllerWorking(this)) {
+            if (part.onControllerWorking(this, logic)) {
                 return true;
             }
         }
@@ -281,16 +294,18 @@ public interface IMultiController extends IMachine {
     @Override
     default void onWaiting() {
         IMachine.super.onWaiting();
+        var logic = getContextRecipeLogic();
         for (IMultiPart part : getParts()) {
-            part.onControllerWaiting(this);
+            part.onControllerWaiting(this, logic);
         }
     }
 
     @Override
     default void afterWorking() {
         IMachine.super.afterWorking();
+        var logic = getContextRecipeLogic();
         for (IMultiPart part : getParts()) {
-            part.afterControllerWorking(this);
+            part.afterControllerWorking(this, logic);
         }
     }
 }

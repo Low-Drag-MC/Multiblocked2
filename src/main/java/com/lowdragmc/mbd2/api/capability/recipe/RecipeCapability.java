@@ -9,9 +9,11 @@ import com.lowdragmc.mbd2.api.recipe.content.IContentSerializer;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.mojang.serialization.Codec;
 import net.minecraft.network.chat.Component;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -112,6 +114,16 @@ public abstract class RecipeCapability<T> implements ILDLRegister<RecipeCapabili
      * create a default / example content of this capability.
      */
     public abstract T createDefaultContent();
+
+    /**
+     * The keys the recipe index files an input {@code content} of this capability under: holding any one of them
+     * may satisfy it, holding none of them never does. {@code null} — the default — when that cannot be said
+     * exactly; such a content is then never used to skip a recipe.
+     */
+    @Nullable
+    public Collection<?> getLookupKeys(Object content) {
+        return null;
+    }
 
     /**
      * create a preview widget for the content of this capability.

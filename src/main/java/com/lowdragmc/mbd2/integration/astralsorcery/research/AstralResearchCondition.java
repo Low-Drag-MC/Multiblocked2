@@ -91,7 +91,7 @@ public class AstralResearchCondition extends RecipeCondition {
     public boolean test(@Nonnull MBDRecipe recipe, @Nonnull RecipeLogic recipeLogic) {
         if (!(recipeLogic.machine instanceof MBDMachine machine)) return false;
         // includes a multiblock's parts
-        for (var trait : machine.getRecipeLogicTraits()) {
+        for (var trait : machine.getRecipeLogicTraits(recipeLogic)) {
             if (trait instanceof AstralResearcherTrait researcher) {
                 researcher.refresh();
                 return satisfiedBy(researcher.getSnapshot());

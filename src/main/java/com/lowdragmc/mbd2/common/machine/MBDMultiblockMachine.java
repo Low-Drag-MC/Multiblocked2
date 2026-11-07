@@ -10,6 +10,7 @@ import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
 import com.lowdragmc.mbd2.api.blockentity.ProxyPartBlockEntity;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeCapabilityHolder;
+import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandler;
 import com.lowdragmc.mbd2.api.capability.recipe.RecipeHandlerSlotsProxy;
 import com.lowdragmc.mbd2.api.machine.IMachine;
 import com.lowdragmc.mbd2.api.machine.IMultiController;
@@ -28,6 +29,7 @@ import com.lowdragmc.mbd2.common.machine.definition.config.ConfigPartSettings;
 import com.lowdragmc.mbd2.common.machine.definition.config.event.*;
 import com.lowdragmc.mbd2.common.runtime.RuntimeValue;
 import com.lowdragmc.mbd2.common.trait.IProxyAutoIOTrait;
+import com.lowdragmc.mbd2.common.trait.ITrait;
 import com.lowdragmc.mbd2.common.trait.IUIProviderTrait;
 import com.lowdragmc.mbd2.config.ConfigHolder;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
@@ -174,7 +176,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
     }
 
     /**
-     * Called when recipe logic status changed.
+     * Called when the machine's {@link #getAggregatedRecipeStatus() aggregated recipe status} changes.
      * <br>
      * By default, We will update the machine state to match the recipe logic status.
      * <br>
@@ -193,7 +195,19 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
         } else {
             setMachineState("base");
         }
-        NeoForge.EVENT_BUS.post(new MachineRecipeStatusChangedEvent(this, oldStatus, newStatus).postCustomEvent());
+    }
+
+    @Override
+    protected void onRecipeLogicStatusChanged(RecipeLogic logic, RecipeLogic.Status oldStatus, RecipeLogic.Status newStatus) {
+        for (IMultiPart part : getParts()) {
+            part.notifyControllerRecipeStatusChanged(this, logic, oldStatus, newStatus);
+        }
+        super.onRecipeLogicStatusChanged(logic, oldStatus, newStatus);
+    }
+
+    @Override
+    protected boolean canRunRecipeLogics() {
+        return isFormed() && isFormedValid();
     }
 
     @Override
@@ -215,13 +229,15 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
 
     @Override
     public @Nullable MBDRecipe getModifiedRecipe(@Nonnull MBDRecipe recipe) {
-        return IMultiController.super.getModifiedRecipe(
-                getDefinition().recipeLogicSettings().recipeModifiers().applyModifiers(getRecipeLogic(), recipe));
+        var logic = getContextRecipeLogic();
+        var modified = recipeLogicGroup(logic).settings().recipeModifiers().applyModifiers(logic, recipe);
+        return modified == null ? null : IMultiController.super.getModifiedRecipe(modified);
     }
 
     @Override
     public ContentModifier getMaxParallel(@Nonnull MBDRecipe recipe) {
-        var maxParallel = getDefinition().recipeLogicSettings().recipeModifiers().getMaxParallel(getRecipeLogic(), recipe);
+        var logic = getContextRecipeLogic();
+        var maxParallel = recipeLogicGroup(logic).settings().recipeModifiers().getMaxParallel(logic, recipe);
         return maxParallel.merge(IMultiController.super.getMaxParallel(recipe));
     }
 
@@ -342,6 +358,7 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
             for (IMultiPart part : getParts()) {
                 IO io = ioMap.getOrDefault(part.getPos().asLong(), IO.BOTH);
                 Set<String> slotNames = slots.getOrDefault(part.getPos().asLong(), Collections.emptySet());
+                Set<String> logicScope = partRecipeLogicScope(part.getPos());
                 if (io == IO.NONE) continue;
                 for (var handler : part.getRecipeHandlers()) {
                     // If IO not compatible
@@ -350,16 +367,35 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
                     if (!capabilitiesProxy.contains(handlerIO, handler.getRecipeCapability())) {
                         capabilitiesProxy.put(handlerIO, handler.getRecipeCapability(), new ArrayList<>());
                     }
-                    if (slotNames.isEmpty()) {
-                        capabilitiesProxy.get(handlerIO, handler.getRecipeCapability()).add(handler);
-                    } else {
-                        var mergedSlots = new HashSet<>(slotNames);
-                        mergedSlots.addAll(handler.getSlotNames());
-                        capabilitiesProxy.get(handlerIO, handler.getRecipeCapability()).add(new RecipeHandlerSlotsProxy<>(handler, mergedSlots));
+                    IRecipeHandler<?> added = slotNames.isEmpty() ? handler : withSlots(handler, slotNames);
+                    capabilitiesProxy.get(handlerIO, handler.getRecipeCapability()).add(added);
+                    if (!logicScope.isEmpty()) {
+                        recipeHandlerExtraScopes.put(added, logicScope);
                     }
                 }
             }
         }
+        rebuildRecipeLogicProxies();
+    }
+
+    private static <T> RecipeHandlerSlotsProxy<T> withSlots(IRecipeHandler<T> handler, Set<String> slotNames) {
+        var mergedSlots = new HashSet<>(slotNames);
+        mergedSlots.addAll(handler.getSlotNames());
+        return new RecipeHandlerSlotsProxy<>(handler, mergedSlots);
+    }
+
+    /** The recipe logics the pattern predicate that matched the part at {@code pos} lets use its handlers. */
+    protected Set<String> partRecipeLogicScope(BlockPos pos) {
+        Map<Long, Set<String>> scopes = getMultiblockState().getMatchContext().getOrDefault("recipeLogics", Long2ObjectMaps.emptyMap());
+        return scopes.getOrDefault(pos.asLong(), Collections.emptySet());
+    }
+
+    @Override
+    protected boolean isTraitVisibleTo(RecipeLogic logic, ITrait trait) {
+        if (!super.isTraitVisibleTo(logic, trait)) return false;
+        // a part's trait is also scoped by the predicate its part matched
+        var owner = trait.getMachine();
+        return owner == this || owner == null || logic.isInScope(partRecipeLogicScope(owner.getPos()));
     }
 
     /**
@@ -420,7 +456,11 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
         // post event
         NeoForge.EVENT_BUS.post(new MachineStructureFormedEvent(this).postCustomEvent());
         // notify recipe logic
-        notifyRecipeStatusChanged(getRecipeLogic().getStatus(), getRecipeLogic().getStatus());
+        var aggregated = getAggregatedRecipeStatus();
+        withRecipeLogic(getRecipeLogic(), () -> notifyRecipeStatusChanged(aggregated, aggregated));
+        for (var logic : getRecipeLogics()) {
+            onRecipeLogicStatusChanged(logic, logic.getStatus(), logic.getStatus());
+        }
     }
 
     /**
@@ -438,7 +478,9 @@ public class MBDMultiblockMachine extends MBDMachine implements IMultiController
         this.isFormedValid = false;
         getMultiblockState().clearMatchedPredicateIds();
         // reset recipe Logic
-        getRecipeLogic().resetRecipeLogic();
+        for (var logic : getRecipeLogics()) {
+            logic.resetRecipeLogic();
+        }
         // clear parts
         for (IMultiPart part : parts) {
             part.removedFromController(this);

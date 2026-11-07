@@ -16,6 +16,8 @@ public class RecipeStatusChangedEventNode extends MachineEventNode<MachineRecipe
     public RecipeLogic.Status oldStatus;
     @OutputPort
     public RecipeLogic.Status newStatus;
+    @OutputPort
+    public RecipeLogic recipeLogic;
 
     @Override
     public Class<MachineRecipeStatusChangedEvent> eventClass() {
@@ -26,5 +28,6 @@ public class RecipeStatusChangedEventNode extends MachineEventNode<MachineRecipe
     protected void publish(ExecContext ctx, MachineRecipeStatusChangedEvent event) {
         ctx.setOutput("oldStatus", event.oldStatus);
         ctx.setOutput("newStatus", event.newStatus);
+        ctx.setOutput("recipeLogic", event.recipeLogic);
     }
 }

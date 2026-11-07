@@ -37,4 +37,14 @@ public abstract class RecipeHandlerTrait<CONTENT> implements IRecipeHandlerTrait
     public Set<String> getSlotNames() {
         return trait.getSlotNames();
     }
+
+    @Override
+    public Set<String> getRecipeLogicScope() {
+        return trait.getRecipeLogicScope();
+    }
+
+    @Override
+    public boolean notifiesAllChanges() {
+        return trait.notifiesAllChanges();
+    }
 }

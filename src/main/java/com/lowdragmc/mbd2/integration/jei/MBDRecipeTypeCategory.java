@@ -106,7 +106,7 @@ public class MBDRecipeTypeCategory extends ModularUIRecipeCategory<MBDRecipe> {
         for (var recipeType : MBDRegistries.RECIPE_TYPES) {
             if (!recipeType.isXEIVisible()) continue;
             for (var definition : MBDRegistries.MACHINE_DEFINITIONS) {
-                if (definition.recipeLogicSettings().getRecipeType() == recipeType && definition.item() != null) {
+                if (definition.runsRecipeType(recipeType) && definition.item() != null) {
                     registration.addRecipeCatalyst(new ItemStack(definition.item()), TYPES.apply(recipeType));
                 }
             }
@@ -115,7 +115,7 @@ public class MBDRecipeTypeCategory extends ModularUIRecipeCategory<MBDRecipe> {
 
     private static ItemLike pickIconItem(MBDRecipeType recipeType) {
         for (var definition : MBDRegistries.MACHINE_DEFINITIONS) {
-            if (definition.recipeLogicSettings().getRecipeType() == recipeType && definition.item() != null) {
+            if (definition.runsRecipeType(recipeType) && definition.item() != null) {
                 return definition.item();
             }
         }

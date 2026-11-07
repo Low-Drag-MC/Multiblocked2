@@ -213,7 +213,9 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Recip
     }
 
     public ActionResult matchRecipe(IRecipeCapabilityHolder holder) {
-        if (!holder.hasProxies()) return ActionResult.FAIL_NO_REASON;
+        if (!holder.hasProxies()) {
+            return hasContents(inputs, false) || hasContents(outputs, false) ? ActionResult.FAIL_NO_REASON : ActionResult.SUCCESS;
+        }
         var result = matchRecipe(false, IO.IN, holder, inputs, false);
         if (!result.isSuccess()) return result;
         result = matchRecipe(false, IO.OUT, holder, outputs, false);
@@ -296,13 +298,27 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Recip
     }
 
     public boolean handleTickRecipeIO(IO io, IRecipeCapabilityHolder holder) {
-        if (!holder.hasProxies() || io == IO.BOTH) return false;
-        return handleRecipe(true, io, holder, io == IO.IN ? inputs : outputs);
+        if (io == IO.BOTH) return false;
+        var contents = io == IO.IN ? inputs : outputs;
+        if (!holder.hasProxies()) return !hasContents(contents, true);
+        return handleRecipe(true, io, holder, contents);
     }
 
     public boolean handleRecipeIO(IO io, IRecipeCapabilityHolder holder) {
-        if (!holder.hasProxies() || io == IO.BOTH) return false;
-        return handleRecipe(false, io, holder, io == IO.IN ? inputs : outputs);
+        if (io == IO.BOTH) return false;
+        var contents = io == IO.IN ? inputs : outputs;
+        if (!holder.hasProxies()) return !hasContents(contents, false);
+        return handleRecipe(false, io, holder, contents);
+    }
+
+    /** Whether {@code contents} hold anything consumed per tick ({@code perTick}) or once (otherwise). */
+    private static boolean hasContents(Map<RecipeCapability<?>, List<Content>> contents, boolean perTick) {
+        for (var list : contents.values()) {
+            for (var content : list) {
+                if (content.perTick == perTick) return true;
+            }
+        }
+        return false;
     }
 
     public boolean handleRecipe(boolean perTick, IO io, IRecipeCapabilityHolder holder, Map<RecipeCapability<?>, List<Content>> contents) {
@@ -448,6 +464,45 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Recip
         handlePost(outputs, holder, IO.OUT);
     }
 
+    public record WorkingHandler(IO io, IRecipeHandler<?> handler) {
+    }
+
+    /**
+     * Tell the handlers {@code logic} may use that it starts working on this recipe; they are handed the machine as
+     * their holder, as they always were.
+     *
+     * @return the handlers told, for {@link #postWorking(RecipeLogic, List)}
+     */
+    public List<WorkingHandler> preWorking(RecipeLogic logic) {
+        var told = new ArrayList<WorkingHandler>();
+        collectWorkingHandlers(inputs, logic, IO.IN, told);
+        collectWorkingHandlers(outputs, logic, IO.OUT, told);
+        for (var working : told) {
+            working.handler().preWorking(logic.getMachine(), working.io(), this);
+        }
+        return told;
+    }
+
+    /** Tell the handlers {@link #preWorking(RecipeLogic)} told that the logic stopped working on this recipe. */
+    public void postWorking(RecipeLogic logic, List<WorkingHandler> told) {
+        for (var working : told) {
+            working.handler().postWorking(logic.getMachine(), working.io(), this);
+        }
+    }
+
+    /** The handlers {@code holder} has for {@code contents} in direction {@code io}, else its {@link IO#BOTH} ones. */
+    private static void collectWorkingHandlers(Map<RecipeCapability<?>, List<Content>> contents, IRecipeCapabilityHolder holder,
+                                               IO io, List<WorkingHandler> into) {
+        var proxies = holder.getRecipeCapabilitiesProxy();
+        for (var capability : contents.keySet()) {
+            var handlers = proxies.contains(io, capability) ? proxies.get(io, capability) : proxies.get(IO.BOTH, capability);
+            if (handlers == null) continue;
+            for (var handler : handlers) {
+                into.add(new WorkingHandler(io, handler));
+            }
+        }
+    }
+
     public void handlePre(Map<RecipeCapability<?>, List<Content>> contents, IRecipeCapabilityHolder holder, IO io) {
         contents.forEach(((capability, tuples) -> {
             if (holder.getRecipeCapabilitiesProxy().contains(io, capability)) {
@@ -510,7 +565,7 @@ public class MBDRecipe implements net.minecraft.world.item.crafting.Recipe<Recip
      */
     public record ActionResult(boolean isSuccess, @Nullable Supplier<Component> reason, float expectingRate) {
         public final static ActionResult SUCCESS = new ActionResult(true, null, 0);
-        public final static ActionResult FAIL_NO_REASON = new ActionResult(true, null, 0);
+        public final static ActionResult FAIL_NO_REASON = new ActionResult(false, null, 0);
 
         public static ActionResult fail(@Nullable Supplier<Component> component) {
             return new ActionResult(false, component, 0);

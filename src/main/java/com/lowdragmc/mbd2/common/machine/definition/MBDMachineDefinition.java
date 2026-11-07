@@ -12,6 +12,8 @@ import com.lowdragmc.mbd2.common.data.MBDDataComponents;
 import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
 import com.lowdragmc.mbd2.api.capability.MBDCapabilities;
+import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
+import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import com.lowdragmc.mbd2.client.renderer.MBDBESRenderer;
 import com.lowdragmc.mbd2.client.renderer.MBDBlockRenderer;
@@ -57,7 +59,9 @@ import org.jetbrains.annotations.Nullable;
 import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -281,6 +285,43 @@ public class MBDMachineDefinition implements IConfigurable, IPersistedSerializab
 
     public BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
         return new MachineBlockEntity(blockEntityType(), pos, state, this::createMachine);
+    }
+
+    /** The name the primary recipe logic runs under: its own, or {@link RecipeLogic#PRIMARY_NAME} if that is invalid. */
+    public String primaryRecipeLogicName() {
+        var name = recipeLogicSettings.name();
+        return ConfigRecipeLogicSettings.isValidName(name) ? name : RecipeLogic.PRIMARY_NAME;
+    }
+
+    /** How many threads the primary recipe logic runs: one while the machine has no recipe logic. */
+    public int primaryRecipeLogicThreads() {
+        return recipeLogicSettings.isEnable() ? recipeLogicSettings.threads() : 1;
+    }
+
+    /**
+     * The additional recipe logics that run beside a primary logic named {@code primaryName}: none while the
+     * machine has no recipe logic, else those with a valid name that no logic before them took.
+     */
+    public List<ConfigRecipeLogicSettings> runnableAdditionalRecipeLogics(String primaryName) {
+        var runnable = new ArrayList<ConfigRecipeLogicSettings>();
+        if (!recipeLogicSettings.isEnable()) return runnable;
+        var names = new HashSet<String>();
+        names.add(primaryName);
+        for (var settings : recipeLogicSettings.additionalRecipeLogics()) {
+            if (ConfigRecipeLogicSettings.isValidName(settings.name()) && names.add(settings.name())) {
+                runnable.add(settings);
+            }
+        }
+        return runnable;
+    }
+
+    /** Whether any recipe logic of this machine, the primary or an additional one, runs {@code recipeType}. */
+    public boolean runsRecipeType(MBDRecipeType recipeType) {
+        if (recipeLogicSettings.getRecipeType() == recipeType) return true;
+        for (var logic : runnableAdditionalRecipeLogics(primaryRecipeLogicName())) {
+            if (logic.getRecipeType() == recipeType) return true;
+        }
+        return false;
     }
 
     public MBDMachine createMachine(IMachineBlockEntity blockEntity) {

@@ -28,14 +28,14 @@ public class CopiableEnergyStorage extends EnergyStorage implements IContentChan
     @Override
     public int receiveEnergy(int maxReceive, boolean simulate) {
         var received =  super.receiveEnergy(maxReceive, simulate);
-        if (received > 0) onContentsChanged.run();
+        if (received > 0 && !simulate) onContentsChanged.run();
         return received;
     }
 
     @Override
     public int extractEnergy(int maxExtract, boolean simulate) {
         var extracted = super.extractEnergy(maxExtract, simulate);
-        if (extracted > 0) onContentsChanged.run();
+        if (extracted > 0 && !simulate) onContentsChanged.run();
         return extracted;
     }
 

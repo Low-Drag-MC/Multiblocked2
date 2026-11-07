@@ -3,6 +3,7 @@ package com.lowdragmc.mbd2.api.capability.recipe;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -10,6 +11,11 @@ import java.util.Set;
  * It is used to append slot names to the recipe handler.
  */
 public record RecipeHandlerSlotsProxy<T>(IRecipeHandler<T> proxy, Set<String> slotNames) implements IRecipeHandler<T> {
+
+    /** The handler behind {@code handler}, if it is a slot proxy. */
+    public static IRecipeHandler<?> unwrap(IRecipeHandler<?> handler) {
+        return handler instanceof RecipeHandlerSlotsProxy<?> slotsProxy ? slotsProxy.proxy() : handler;
+    }
 
     @Override
     public List<T> handleRecipeInner(IO io, MBDRecipe recipe, List<T> left, @Nullable String slotName, boolean simulate) {
@@ -24,6 +30,16 @@ public record RecipeHandlerSlotsProxy<T>(IRecipeHandler<T> proxy, Set<String> sl
     @Override
     public boolean isDistinct() {
         return proxy.isDistinct();
+    }
+
+    @Override
+    public boolean supportsMultipleRecipeLogics() {
+        return proxy.supportsMultipleRecipeLogics();
+    }
+
+    @Override
+    public Collection<?> getAvailableLookupKeys() {
+        return proxy.getAvailableLookupKeys();
     }
 
     @Override

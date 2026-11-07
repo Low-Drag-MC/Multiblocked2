@@ -4,6 +4,7 @@ import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -49,6 +50,26 @@ public interface IRecipeHandler<K> {
      */
     default boolean isDistinct() {
         return false;
+    }
+
+    /**
+     * Whether several recipe logics of one machine may use this handler at once. A handler keeping state for the
+     * one recipe it serves (a generator running at that recipe's speed, say) returns {@code false}; it is then
+     * given only to the first logic that may use it.
+     */
+    default boolean supportsMultipleRecipeLogics() {
+        return true;
+    }
+
+    /**
+     * What this handler holds, as {@link RecipeCapability#getLookupKeys lookup keys}: the items of an item handler,
+     * the fluids of a fluid handler. The recipe index skips any recipe needing a key no input holds, so a key left
+     * out would hide recipes; when unsure, return {@code null} — the default — and nothing is skipped on this
+     * handler's account. Only asked of input handlers, on the server thread.
+     */
+    @Nullable
+    default Collection<?> getAvailableLookupKeys() {
+        return null;
     }
 
     /**

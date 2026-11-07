@@ -69,6 +69,8 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -127,6 +129,11 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
     @Setter
     @Getter
     private File projectFile;
+    /** Bumped whenever the recipes or tags every {@link RecipeLookup} is built against reload. */
+    private static final AtomicInteger LOOKUP_GENERATION = new AtomicInteger();
+    private static final Set<MBDRecipeType> TYPES_WITH_LOOKUP = ConcurrentHashMap.newKeySet();
+    @Nullable
+    private volatile RecipeLookup lookup;
 
     public MBDRecipeType(ResourceLocation registryName, ResourceLocation... proxyRecipes) {
         this.registryName = registryName;
@@ -145,7 +152,7 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
         // load proxy recipes
         for (var type : proxyRecipeTypes) {
             var recipeType = BuiltInRegistries.RECIPE_TYPE.get(type);
-            if (recipeType == null) return;
+            if (recipeType == null) continue;
             for (var recipe : byType.get(recipeType)) {
                 if (recipe == null) continue;
                 var mbdRecipe = toMBDrecipe(recipeType, recipe.id(), recipe.value());
@@ -263,6 +270,35 @@ public class MBDRecipeType implements RecipeType<MBDRecipe>, INBTSerializable<Co
                         recipe.value().matchTickRecipe(holder).isSuccess())
                 .sorted(Comparator.comparingInt(recipe -> recipe.value().priority))
                 .collect(Collectors.toList());
+    }
+
+    /** This type's recipes, sorted and indexed for searching. Built on first use and after recipes or tags reload. */
+    public RecipeLookup getLookup(RecipeManager recipeManager) {
+        var current = lookup;
+        int generation = LOOKUP_GENERATION.get();
+        if (current == null || !current.isFor(recipeManager, generation)) {
+            current = RecipeLookup.build(this, recipeManager, generation);
+            lookup = current;
+            TYPES_WITH_LOOKUP.add(this);
+        }
+        return current;
+    }
+
+    /**
+     * Recipes, or the tags they name, have changed, or the server stopped: drop every lookup, and the recipe manager
+     * it holds on to.
+     */
+    public static void invalidateLookups() {
+        LOOKUP_GENERATION.incrementAndGet();
+        for (var iterator = TYPES_WITH_LOOKUP.iterator(); iterator.hasNext(); ) {
+            iterator.next().lookup = null;
+            iterator.remove();
+        }
+    }
+
+    /** Which reload the lookups are on, so a recipe logic can tell its last search predates the last reload. */
+    public static int getLookupGeneration() {
+        return LOOKUP_GENERATION.get();
     }
 
     public List<RecipeHolder<MBDRecipe>> searchRecipe(RecipeManager recipeManager, IRecipeCapabilityHolder holder) {

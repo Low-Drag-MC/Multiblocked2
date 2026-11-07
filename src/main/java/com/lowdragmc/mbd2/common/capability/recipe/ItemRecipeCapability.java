@@ -22,6 +22,8 @@ import net.neoforged.neoforge.common.crafting.DataComponentIngredient;
 import net.neoforged.neoforge.common.crafting.SizedIngredient;
 
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -34,6 +36,20 @@ import java.util.function.Supplier;
 public class ItemRecipeCapability extends RecipeCapability<SizedIngredient> {
     @LDLRegister(name = "item", registry = "mbd2:recipe_capability")
     public final static ItemRecipeCapability CAP = new ItemRecipeCapability();
+
+    /**
+     * The items a plain (item or tag) ingredient accepts. A custom ingredient may accept items it does not list, and a
+     * count of nothing needs no item at all, so neither is indexed.
+     */
+    @Override
+    public Collection<?> getLookupKeys(Object content) {
+        if (!(content instanceof SizedIngredient sized) || sized.count() <= 0 || sized.ingredient().isCustom()) return null;
+        var items = new HashSet<Object>();
+        for (var stack : sized.ingredient().getItems()) {
+            items.add(stack.getItem());
+        }
+        return items;
+    }
 
     protected ItemRecipeCapability() {
         super("item", SerializerSizedIngredient.INSTANCE);

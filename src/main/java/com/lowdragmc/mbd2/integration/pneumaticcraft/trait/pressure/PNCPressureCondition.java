@@ -62,7 +62,7 @@ public class PNCPressureCondition extends RecipeCondition {
     @Override
     public boolean test(@Nonnull MBDRecipe recipe, @Nonnull RecipeLogic recipeLogic) {
         if (!(recipeLogic.machine instanceof MBDMachine machine)) return false;
-        for (var trait : machine.getRecipeLogicTraits()) {
+        for (var trait : machine.getRecipeLogicTraits(recipeLogic)) {
             if (trait instanceof PNCPressureAirHandlerTrait pressureTrait) {
                 var handler = pressureTrait.getHandler();
                 // a multiblock can carry several air handlers — any one of them in range is enough

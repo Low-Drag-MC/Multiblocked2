@@ -1,8 +1,12 @@
 package com.lowdragmc.mbd2.api.machine;
 
+import com.google.common.collect.Table;
 import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
 import com.lowdragmc.mbd2.api.capability.MBDCapabilities;
+import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.capability.recipe.IRecipeCapabilityHolder;
+import com.lowdragmc.mbd2.api.capability.recipe.IRecipeHandler;
+import com.lowdragmc.mbd2.api.capability.recipe.RecipeCapability;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
@@ -19,6 +23,7 @@ import net.minecraft.world.level.block.state.BlockState;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.Optional;
 
 public interface IMachine extends IRecipeCapabilityHolder {
@@ -191,7 +196,9 @@ public interface IMachine extends IRecipeCapabilityHolder {
      * You should call it in yourselves {@link BlockEntity#onChunkUnloaded()}.
      */
     default void onChunkUnloaded() {
-        getRecipeLogic().inValid();
+        for (var logic : getRecipeLogics()) {
+            logic.inValid();
+        }
     }
 
     /**
@@ -200,7 +207,9 @@ public interface IMachine extends IRecipeCapabilityHolder {
      * You should call it in yourselves {@link BlockEntity#setRemoved()}.
      */
     default void onUnload() {
-        getRecipeLogic().inValid();
+        for (var logic : getRecipeLogics()) {
+            logic.inValid();
+        }
     }
 
     /**
@@ -209,7 +218,9 @@ public interface IMachine extends IRecipeCapabilityHolder {
      * You should call it in yourselves {@link BlockEntity#clearRemoved()}.
      */
     default void onLoad() {
-        getRecipeLogic().valid();
+        for (var logic : getRecipeLogics()) {
+            logic.valid();
+        }
     }
 
     //////////////////////////////////////
@@ -238,10 +249,61 @@ public interface IMachine extends IRecipeCapabilityHolder {
     }
 
     /**
-     * Recipe logic
+     * The primary recipe logic, the one every machine has. See {@link #getRecipeLogics()} for all of them.
      */
     @Nonnull
     RecipeLogic getRecipeLogic();
+
+    /**
+     * Every recipe logic of this machine, primary first, in the order they tick. A machine with a single logic
+     * returns just {@link #getRecipeLogic()}.
+     */
+    default List<RecipeLogic> getRecipeLogics() {
+        return List.of(getRecipeLogic());
+    }
+
+    /**
+     * The recipe logic at {@code address}: a logic name for the first thread of that logic, {@code name#thread}
+     * for any thread. {@code null} if there is none.
+     */
+    @Nullable
+    default RecipeLogic getRecipeLogic(String address) {
+        for (var logic : getRecipeLogics()) {
+            if (logic.matchesAddress(address)) {
+                return logic;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * The recipe logic a recipe hook is running for. While a logic calls into this machine through one of the
+     * {@code (RecipeLogic, ...)} hooks, implementations may report it here so the legacy hooks know it too; otherwise
+     * the {@link #getRecipeLogic() primary}.
+     */
+    default RecipeLogic getContextRecipeLogic() {
+        return getRecipeLogic();
+    }
+
+    /** The recipe handlers {@code logic} may use. By default, all of the machine's. */
+    @Nonnull
+    default Table<IO, RecipeCapability<?>, List<IRecipeHandler<?>>> getRecipeCapabilitiesProxy(RecipeLogic logic) {
+        return getRecipeCapabilitiesProxy();
+    }
+
+    @Nonnull
+    default MBDRecipeType getRecipeType(RecipeLogic logic) {
+        return getRecipeType();
+    }
+
+    /** The status the machine shows for all its recipe logics together, see {@link RecipeLogic#aggregate}. */
+    default RecipeLogic.Status getAggregatedRecipeStatus() {
+        return RecipeLogic.aggregate(getRecipeLogics(), RecipeLogic::getStatus);
+    }
+
+    default boolean runRecipeLogic(RecipeLogic logic) {
+        return runRecipeLogic();
+    }
 
     /**
      * Modify fuel recipe for actual handling.
@@ -389,6 +451,88 @@ public interface IMachine extends IRecipeCapabilityHolder {
      */
     default boolean consumeInputsAfterWorking(MBDRecipe recipe) {
         return false;
+    }
+
+    //////////////////////////////////////
+    //*****  PER-LOGIC RECIPE HOOKS  *****//
+    //////////////////////////////////////
+    // What a RecipeLogic calls. Each defaults to the legacy hook of the same name, so a machine overriding only
+    // the legacy hooks behaves exactly as before; override these to tell the logics apart.
+
+    default void notifyRecipeStatusChanged(RecipeLogic logic, RecipeLogic.Status oldStatus, RecipeLogic.Status newStatus) {
+        notifyRecipeStatusChanged(oldStatus, newStatus);
+    }
+
+    @Nullable
+    default MBDRecipe modifyFuelRecipe(RecipeLogic logic, MBDRecipe recipe) {
+        return modifyFuelRecipe(recipe);
+    }
+
+    default void onFuelBurningFinish(RecipeLogic logic, @Nullable MBDRecipe recipe) {
+        onFuelBurningFinish(recipe);
+    }
+
+    @Nullable
+    default MBDRecipe doModifyRecipe(RecipeLogic logic, @Nonnull MBDRecipe recipe) {
+        return doModifyRecipe(recipe);
+    }
+
+    @Nullable
+    default MBDRecipe getModifiedRecipe(RecipeLogic logic, @Nonnull MBDRecipe recipe) {
+        return getModifiedRecipe(recipe);
+    }
+
+    default ContentModifier getMaxParallel(RecipeLogic logic, @Nonnull MBDRecipe recipe) {
+        return getMaxParallel(recipe);
+    }
+
+    @Nonnull
+    default MBDRecipe applyParallel(RecipeLogic logic, @Nonnull MBDRecipe recipe, int maxParallel) {
+        return applyParallel(recipe, maxParallel);
+    }
+
+    default boolean beforeWorking(RecipeLogic logic, MBDRecipe recipe) {
+        return beforeWorking(recipe);
+    }
+
+    default boolean onWorking(RecipeLogic logic) {
+        return onWorking();
+    }
+
+    default void onWaiting(RecipeLogic logic) {
+        onWaiting();
+    }
+
+    default void afterWorking(RecipeLogic logic) {
+        afterWorking();
+    }
+
+    default void onConsumeInputsAfterWorking(RecipeLogic logic) {
+        onConsumeInputsAfterWorking();
+    }
+
+    default void onRecipeFinish(RecipeLogic logic) {
+        onRecipeFinish();
+    }
+
+    default boolean dampingWhenWaiting(RecipeLogic logic) {
+        return dampingWhenWaiting();
+    }
+
+    default boolean alwaysTryModifyRecipe(RecipeLogic logic) {
+        return alwaysTryModifyRecipe();
+    }
+
+    default boolean alwaysReSearchRecipe(RecipeLogic logic) {
+        return alwaysReSearchRecipe();
+    }
+
+    default int getRecipeDampingValue(RecipeLogic logic) {
+        return getRecipeDampingValue();
+    }
+
+    default boolean consumeInputsAfterWorking(RecipeLogic logic, MBDRecipe recipe) {
+        return consumeInputsAfterWorking(recipe);
     }
 
     /**

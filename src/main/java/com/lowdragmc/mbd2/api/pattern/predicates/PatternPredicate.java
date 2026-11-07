@@ -116,6 +116,11 @@ public class PatternPredicate implements IPersistedSerializable, IConfigurable, 
     public IO io = IO.BOTH;
     @Configurable(name = "config.block_pattern.predicate.slotName", tips = "config.block_pattern.predicate.slotName.tooltip")
     public String slotName;
+    @Configurable(name = "config.block_pattern.predicate.recipeLogics", tips = {
+            "config.block_pattern.predicate.recipeLogics.tooltip.0",
+            "config.block_pattern.predicate.recipeLogics.tooltip.1"
+    })
+    public List<String> recipeLogics = new ArrayList<>();
     @Configurable(name = "config.block_pattern.predicate.nbt", tips = "config.block_pattern.predicate.nbt.tooltip")
     public CompoundTag nbt = new CompoundTag();
     @Configurable(name = "config.block_pattern.predicate.controller_nbt", tips = "config.block_pattern.predicate.controller_nbt.tooltip")
@@ -267,6 +272,10 @@ public class PatternPredicate implements IPersistedSerializable, IConfigurable, 
         if (slotName != null && !slotName.isEmpty()) {
             Map<Long, Set<String>> slots = blockWorldState.getMatchContext().getOrCreate("slots", Long2ObjectArrayMap::new);
             slots.computeIfAbsent(blockWorldState.getPos().asLong(), s->new HashSet<>()).add(slotName);
+        }
+        if (!recipeLogics.isEmpty()) {
+            Map<Long, Set<String>> scopes = blockWorldState.getMatchContext().getOrCreate("recipeLogics", Long2ObjectArrayMap::new);
+            scopes.computeIfAbsent(blockWorldState.getPos().asLong(), s -> new HashSet<>()).addAll(recipeLogics);
         }
         int predicateId = Optional.ofNullable(blockWorldState.getCheckingPattern())
                 .map(pattern -> pattern.getPredicateId(this))

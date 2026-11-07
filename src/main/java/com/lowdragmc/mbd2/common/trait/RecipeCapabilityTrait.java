@@ -38,14 +38,12 @@ public abstract class RecipeCapabilityTrait extends Trait {
     public final RuntimeValue<List<String>> slotNames =
             runtimeValues.ofStringList("slot_names", () -> getDefinition().getSlotNames())
                     .onChanged(this::rebuildCapabilitiesProxy);
-    /**
-     * {@link #getSlotNames()}'s memo: the list it was built from, and the set built from it.
-     * <p>
-     * Volatile and replaced rather than mutated — recipe matching runs on a background search thread as
-     * well as the game thread, so a reader must never see a half-built pair.
-     */
-    @Nullable
-    private volatile Tuple<List<String>, Set<String>> slotNamesView;
+    private final SetView slotNamesView = new SetView();
+    /** Same {@code onChanged} reasoning as {@link #recipeHandlerIO}: each logic's handler table is built from it. */
+    public final RuntimeValue<List<String>> recipeLogics =
+            runtimeValues.ofStringList("recipe_logics", () -> getDefinition().getRecipeLogics())
+                    .onChanged(this::rebuildCapabilitiesProxy);
+    private final SetView recipeLogicsView = new SetView();
 
     public RecipeCapabilityTrait(MBDMachine machine, RecipeCapabilityTraitDefinition definition) {
         super(machine, definition);
@@ -58,6 +56,10 @@ public abstract class RecipeCapabilityTrait extends Trait {
 
     public IO getHandlerIO() {
         return recipeHandlerIO.get();
+    }
+
+    public boolean notifiesAllChanges() {
+        return false;
     }
 
     public boolean isDistinct() {
@@ -74,13 +76,31 @@ public abstract class RecipeCapabilityTrait extends Trait {
      * the list it was built from, so an override or an editor edit still shows up on the next read.
      */
     public Set<String> getSlotNames() {
-        var names = slotNames.get();
-        if (names.isEmpty()) return Set.of();
-        var cached = slotNamesView;
-        if (cached != null && cached.getA().equals(names)) return cached.getB();
-        var view = Set.copyOf(names);
-        slotNamesView = new Tuple<>(names, view);
-        return view;
+        return slotNamesView.of(slotNames.get());
+    }
+
+    /** Memoised like {@link #getSlotNames()}. */
+    public Set<String> getRecipeLogicScope() {
+        return recipeLogicsView.of(recipeLogics.get());
+    }
+
+    /**
+     * A set built from a list, rebuilt only when the list changes. Volatile and replaced rather than mutated:
+     * recipe matching runs on a background search thread as well as the game thread, so a reader must never see a
+     * half-built pair.
+     */
+    private static final class SetView {
+        @Nullable
+        private volatile Tuple<List<String>, Set<String>> cached;
+
+        Set<String> of(List<String> list) {
+            if (list.isEmpty()) return Set.of();
+            var cached = this.cached;
+            if (cached != null && cached.getA().equals(list)) return cached.getB();
+            var view = Set.copyOf(list);
+            this.cached = new Tuple<>(list, view);
+            return view;
+        }
     }
 
     /**

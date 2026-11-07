@@ -3,6 +3,7 @@ package com.lowdragmc.mbd2.core.mixins;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import com.google.gson.JsonElement;
+import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -41,5 +42,6 @@ public abstract class RecipeManagerMixin {
         }
 
         byType = recipesByType.build();
+        MBDRecipeType.invalidateLookups();
     }
 }

@@ -12,6 +12,7 @@ import com.lowdragmc.mbd2.common.blueprint.MachineBlueprintGraph;
 import com.lowdragmc.mbd2.common.blueprint.node.MachineInfoBlock;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
+import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -309,6 +310,32 @@ public final class MachineInfoBlocks {
         @Override
         protected void read(MBDMachine machine, EvalContext ctx) {
             ctx.setOutput("value", machine.getRecipeLogic());
+        }
+    }
+
+    /** Every recipe logic of the machine, primary first, in the order they tick. */
+    @NodeAttribute(name = "mbd2_machine_recipe_logics", group = GROUP, graphTypes = MachineBlueprintGraph.class)
+    @UseWithContext(MachineInfoNode.class)
+    public static class MachineRecipeLogics extends MachineBlock {
+        @OutputPort public List<RecipeLogic> value;
+
+        @Override
+        protected void read(MBDMachine machine, EvalContext ctx) {
+            ctx.setOutput("value", List.copyOf(machine.getRecipeLogics()));
+        }
+    }
+
+    /** The recipe logic at an address: a logic name, or {@code name#thread}. Empty for the primary. */
+    @NodeAttribute(name = "mbd2_machine_recipe_logic_at", group = GROUP, graphTypes = MachineBlueprintGraph.class)
+    @UseWithContext(MachineInfoNode.class)
+    public static class MachineRecipeLogicAt extends MachineBlock {
+        @InputPort public String address = "";
+        @OutputPort public RecipeLogic value;
+
+        @Override
+        protected void read(MBDMachine machine, EvalContext ctx) {
+            var address = ctx.getInput("address", String.class, "");
+            ctx.setOutput("value", address == null || address.isEmpty() ? machine.getRecipeLogic() : machine.getRecipeLogic(address));
         }
     }
 

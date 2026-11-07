@@ -21,4 +21,10 @@ public abstract class RecipeCapabilityTraitDefinition extends TraitDefinition {
 
     @Configurable(name = "config.definition.trait.slot_names", tips = "config.definition.trait.slot_names.tooltip")
     private List<String> slotNames = new ArrayList<>();
+
+    @Configurable(name = "config.definition.trait.recipe_logics", tips = {
+            "config.definition.trait.recipe_logics.tooltip.0",
+            "config.definition.trait.recipe_logics.tooltip.1"
+    })
+    private List<String> recipeLogics = new ArrayList<>();
 }

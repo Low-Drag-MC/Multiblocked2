@@ -12,7 +12,8 @@ import org.jetbrains.annotations.Nullable;
  * Holds a {@link RecipeLogic} for the blocks in {@link RecipeLogicInfoBlocks} to read — status,
  * progress, the recipe it is running, why it is waiting.
  *
- * <p>Leave {@code target} unwired to read the blueprint's own machine's recipe logic.</p>
+ * <p>Leave {@code target} unwired to read the recipe logic of the recipe event being handled, or else the
+ * blueprint's own machine's primary logic.</p>
  */
 @NodeAttribute(name = "mbd2_recipe_logic_info", group = "mbd2/recipe/logic",
         graphTypes = MachineBlueprintGraph.class)
@@ -26,7 +27,6 @@ public class RecipeLogicInfoNode extends MachineInfoContextNode<RecipeLogic> {
     @Override
     @Nullable
     protected RecipeLogic defaultTarget(EvalContext ctx) {
-        var machine = MachineNodes.ownMachine(ctx.getExecutor());
-        return machine == null ? null : machine.getRecipeLogic();
+        return MachineNodes.contextRecipeLogic(ctx.getExecutor());
     }
 }

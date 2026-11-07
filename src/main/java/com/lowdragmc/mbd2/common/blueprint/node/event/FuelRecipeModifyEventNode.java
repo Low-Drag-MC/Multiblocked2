@@ -4,6 +4,7 @@ import com.lowdragmc.kilagraph.graph.core.OutputPort;
 import com.lowdragmc.kilagraph.graph.exec.ExecContext;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.NodeAttribute;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
+import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import com.lowdragmc.mbd2.common.blueprint.MachineBlueprintGraph;
 import com.lowdragmc.mbd2.common.blueprint.node.MachineEventNode;
 import com.lowdragmc.mbd2.common.machine.definition.config.event.MachineFuelRecipeModifyEvent;
@@ -19,6 +20,8 @@ public class FuelRecipeModifyEventNode extends MachineEventNode<MachineFuelRecip
 
     @OutputPort
     public MBDRecipe recipe;
+    @OutputPort
+    public RecipeLogic recipeLogic;
 
     @Override
     public Class<MachineFuelRecipeModifyEvent> eventClass() {
@@ -28,5 +31,6 @@ public class FuelRecipeModifyEventNode extends MachineEventNode<MachineFuelRecip
     @Override
     protected void publish(ExecContext ctx, MachineFuelRecipeModifyEvent event) {
         ctx.setOutput("recipe", event.recipe);
+        ctx.setOutput("recipeLogic", event.recipeLogic);
     }
 }

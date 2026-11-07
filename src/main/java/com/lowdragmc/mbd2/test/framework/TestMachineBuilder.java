@@ -1,6 +1,8 @@
 package com.lowdragmc.mbd2.test.framework;
 
+import com.lowdragmc.mbd2.api.blockentity.IMachineBlockEntity;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
+import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.lowdraglib2.Platform;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -54,6 +56,47 @@ public class TestMachineBuilder {
     private boolean inventoryUI = false;
     private int machineLevel = 0;
     private boolean consumeInputsAfterWorking = false;
+    @Nullable private MachineFactory machineFactory;
+    @Nullable private String primaryLogicName;
+    private int primaryLogicThreads = 1;
+    private boolean recipeLogicEnabled = true;
+    private final List<ConfigRecipeLogicSettings> additionalRecipeLogics = new ArrayList<>();
+
+    /** Name the primary recipe logic and run {@code threads} copies of it. */
+    public TestMachineBuilder withPrimaryRecipeLogic(String name, int threads) {
+        this.primaryLogicName = name;
+        this.primaryLogicThreads = threads;
+        return this;
+    }
+
+    /** Switch the definition's "Has Recipe Logic" off. */
+    public TestMachineBuilder withoutRecipeLogic() {
+        this.recipeLogicEnabled = false;
+        return this;
+    }
+
+    /** Add a recipe logic running {@code recipeType}, {@code threads} copies of it. */
+    public TestMachineBuilder withAdditionalRecipeLogic(String name, ResourceLocation recipeType, int threads) {
+        return withAdditionalRecipeLogic(name, recipeType, threads, settings -> {});
+    }
+
+    public TestMachineBuilder withAdditionalRecipeLogic(String name, ResourceLocation recipeType, int threads,
+                                                        Consumer<ConfigRecipeLogicSettings.ConfigRecipeLogicSettingsBuilder> tweak) {
+        var builder = ConfigRecipeLogicSettings.builder()
+                .name(name)
+                .threads(threads)
+                .recipeType(recipeType)
+                .keepWhenDisabled(true);
+        tweak.accept(builder);
+        additionalRecipeLogics.add(builder.build());
+        return this;
+    }
+
+    /** Builds the machine instance a definition hands its block entity — see {@link #withMachineFactory}. */
+    @FunctionalInterface
+    public interface MachineFactory {
+        MBDMachine create(IMachineBlockEntity blockEntity, MBDMachineDefinition definition);
+    }
 
     private TestMachineBuilder(ResourceLocation id, boolean multiblock) {
         this.id = id;
@@ -214,6 +257,15 @@ public class TestMachineBuilder {
         return this;
     }
 
+    /**
+     * Use a machine class of the test's own, the way an addon subclassing {@link MBDMachine} would. A multiblock
+     * factory must return an {@link MBDMultiblockMachine}.
+     */
+    public TestMachineBuilder withMachineFactory(MachineFactory machineFactory) {
+        this.machineFactory = machineFactory;
+        return this;
+    }
+
     /** Bind this machine to a recipe type (by id). */
     public TestMachineBuilder withRecipeType(ResourceLocation recipeTypeId) {
         this.recipeTypeId = recipeTypeId;
@@ -265,10 +317,16 @@ public class TestMachineBuilder {
     public MBDMachineDefinition register(MBDRegistryEvent.Machine event) {
         MachineState rootState = this.rootState != null ? this.rootState :
                 (multiblock ? StateMachine.createMultiblockDefault(MachineState::baseBuilder, () -> IRenderer.EMPTY) : StateMachine.createDefault(MachineState::baseBuilder));
-        ConfigRecipeLogicSettings recipeLogic = ConfigRecipeLogicSettings.builder()
+        var recipeLogicBuilder = ConfigRecipeLogicSettings.builder()
                 .recipeType(recipeTypeId != null ? recipeTypeId : MBDRecipeType.DUMMY.getRegistryName())
                 .consumeInputsAfterWorking(consumeInputsAfterWorking)
-                .build();
+                .threads(primaryLogicThreads)
+                .enable(recipeLogicEnabled);
+        if (primaryLogicName != null) {
+            recipeLogicBuilder.name(primaryLogicName);
+        }
+        ConfigRecipeLogicSettings recipeLogic = recipeLogicBuilder.build();
+        recipeLogic.additionalRecipeLogics().addAll(additionalRecipeLogics);
         var msFactory = (com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition.ConfigMachineSettingsFactory) () -> {
             var builder = ConfigMachineSettings.builder().machineLevel(machineLevel);
             if (uiTemplate != null) {
@@ -285,7 +343,9 @@ public class TestMachineBuilder {
         };
 
         MBDMachineDefinition definition;
-        if (multiblock) {
+        if (machineFactory != null) {
+            definition = registerWithFactory(rootState, recipeLogic, msFactory);
+        } else if (multiblock) {
             MultiblockMachineDefinition.Builder mbBuilder = MultiblockMachineDefinition.builder();
             mbBuilder.id(id)
                     .rootState(rootState)
@@ -317,5 +377,36 @@ public class TestMachineBuilder {
         }
         event.register(definition);
         return definition;
+    }
+
+    /** The definitions the builders would make, subclassed only to swap the machine class. */
+    private MBDMachineDefinition registerWithFactory(MachineState rootState, ConfigRecipeLogicSettings recipeLogic,
+                                                     MBDMachineDefinition.ConfigMachineSettingsFactory msFactory) {
+        var factory = machineFactory;
+        if (multiblock) {
+            var mb = new MultiblockMachineDefinition(id, rootState, ConfigBlockProperties.builder().build(),
+                    ConfigItemProperties.builder().build(), msFactory, recipeLogic, null) {
+                @Override
+                public MBDMultiblockMachine createMachine(IMachineBlockEntity blockEntity) {
+                    return (MBDMultiblockMachine) factory.create(blockEntity, this);
+                }
+            };
+            if (blockPatternFactory != null) {
+                mb.blockPatternFactory(blockPatternFactory);
+            }
+            return mb;
+        }
+        MBDMachineDefinition.ConfigPartSettingsFactory partSettings = partSettingsTweaks.isEmpty() ? null : () -> {
+            var settings = ConfigPartSettings.builder().build();
+            for (var tweak : partSettingsTweaks) tweak.accept(settings);
+            return settings;
+        };
+        return new MBDMachineDefinition(id, rootState, ConfigBlockProperties.builder().build(),
+                ConfigItemProperties.builder().build(), msFactory, recipeLogic, partSettings) {
+            @Override
+            public MBDMachine createMachine(IMachineBlockEntity blockEntity) {
+                return factory.create(blockEntity, this);
+            }
+        };
     }
 }

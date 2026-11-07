@@ -38,6 +38,7 @@ import com.lowdragmc.mbd2.common.blueprint.MachineBlueprintInstance;
 import com.lowdragmc.mbd2.common.gui.MBDBindingIDs;
 import com.lowdragmc.mbd2.common.machine.definition.MBDMachineDefinition;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigMachineSettings;
+import com.lowdragmc.mbd2.common.machine.definition.config.ConfigRecipeLogicSettings;
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
 import com.lowdragmc.mbd2.common.machine.definition.config.event.*;
 import com.lowdragmc.mbd2.common.machine.definition.config.fx.MachineFXConfig;
@@ -50,6 +51,7 @@ import com.lowdragmc.mbd2.common.runtime.RuntimeValueStorage;
 import com.lowdragmc.mbd2.common.data.MBDDataComponents;
 import com.lowdragmc.mbd2.common.trait.ITrait;
 import com.lowdragmc.mbd2.common.trait.IUIProviderTrait;
+import com.lowdragmc.mbd2.common.trait.RecipeCapabilityTrait;
 import com.lowdragmc.mbd2.common.trait.Trait;
 import com.lowdragmc.mbd2.common.trait.TraitDefinition;
 import com.lowdragmc.mbd2.common.trait.TraitItemData;
@@ -59,6 +61,7 @@ import com.lowdragmc.mbd2.integration.geckolib.GeckolibRenderer;
 import com.lowdragmc.mbd2.integration.jei.MBDJEIPlugin;
 import com.lowdragmc.mbd2.integration.rei.MBDREIPlugin;
 import com.lowdragmc.mbd2.utils.RendererUtils;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.client.Minecraft;
@@ -98,6 +101,8 @@ import org.joml.Vector3f;
 import javax.annotation.Nonnull;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 @Getter
 public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManaged, IRuntimeValueHolder, BlockUIMenuType.BlockUI {
@@ -118,6 +123,19 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
     @Persisted
     @DescSynced
     private final RecipeLogic recipeLogic;
+    @Getter(AccessLevel.NONE)
+    private final List<RecipeLogic> recipeLogics;
+    @Getter(AccessLevel.NONE)
+    private final Map<RecipeLogic, RecipeLogicGroup> recipeLogicGroups = new IdentityHashMap<>();
+    /**
+     * Each logic's handler table, empty while nothing is scoped. Replaced, never mutated: a background search reads
+     * it off the server thread.
+     */
+    @Getter(AccessLevel.NONE)
+    private volatile Map<RecipeLogic, Table<IO, RecipeCapability<?>, List<IRecipeHandler<?>>>> recipeLogicProxies = Map.of();
+    /** The scopes a formed multiblock's pattern predicates put on its parts' handlers. */
+    @Getter(AccessLevel.NONE)
+    protected final Map<IRecipeHandler<?>, Set<String>> recipeHandlerExtraScopes = new IdentityHashMap<>();
     private final Table<IO, RecipeCapability<?>, List<IRecipeHandler<?>>> recipeCapabilitiesProxy;
     @Nonnull
     @Persisted
@@ -245,6 +263,12 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
      */
     @Nullable
     private String fxSyncedState;
+    @Nullable
+    @Getter(AccessLevel.NONE)
+    private RecipeLogic contextRecipeLogic;
+    /** Logics whose status change is being announced, with the status they are about to take. */
+    @Getter(AccessLevel.NONE)
+    private final Map<RecipeLogic, RecipeLogic.Status> changingRecipeStatuses = new IdentityHashMap<>();
 
     public MBDMachine(IMachineBlockEntity machineHolder, MBDMachineDefinition definition, Object... args) {
         this.machineHolder = machineHolder;
@@ -259,6 +283,7 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
         machineState = definition.stateMachine().getRootState().name();
         // trait initialization
         recipeLogic = createRecipeLogic(args);
+        recipeLogics = createRecipeLogics();
         // additional traits initialization
         loadAdditionalTraits();
     }
@@ -475,11 +500,105 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
                     multiManagedStorage.detach(managed.getSyncStorage());
                 }
             }
+            for (var logic : getRecipeLogics()) {
+                if (logic != recipeLogic) {
+                    multiManagedStorage.detach(logic.getSyncStorage());
+                }
+            }
         }
     }
 
     protected RecipeLogic createRecipeLogic(Object... args) {
-        return new RecipeLogic(this);
+        var name = definition.primaryRecipeLogicName();
+        if (!name.equals(definition.recipeLogicSettings().name())) {
+            warnOnce("the recipe logic of " + definition.id() + " is named '" + definition.recipeLogicSettings().name()
+                    + "', which is not a-z, 0-9 and _ only; it runs as '" + name + "'");
+        }
+        return new RecipeLogic(this, name, 0);
+    }
+
+    /** Every other recipe logic: a further thread of the primary, or a thread of an additional logic. */
+    protected RecipeLogic createRecipeLogic(ConfigRecipeLogicSettings settings, String name, int threadIndex) {
+        return new RecipeLogic(this, name, threadIndex);
+    }
+
+    /**
+     * The primary logic, its further threads, then each additional logic with all its threads. All but the primary
+     * save under {@code recipeLogics.<name>.<thread>}; the primary keeps the {@code recipeLogic} key it always had.
+     */
+    protected List<RecipeLogic> createRecipeLogics() {
+        var logics = new ArrayList<RecipeLogic>();
+        var primarySettings = definition.recipeLogicSettings();
+        var primaryGroup = primaryRecipeLogicGroup();
+        logics.add(recipeLogic);
+        recipeLogicGroups.put(recipeLogic, primaryGroup);
+        for (int i = 1; i < definition.primaryRecipeLogicThreads(); i++) {
+            addRecipeLogic(logics, createRecipeLogic(primarySettings, recipeLogic.getName(), i), primaryGroup);
+        }
+        var runnable = definition.runnableAdditionalRecipeLogics(recipeLogic.getName());
+        if (primarySettings.isEnable()) {
+            for (var settings : primarySettings.additionalRecipeLogics()) {
+                if (!runnable.contains(settings)) {
+                    warnOnce("the recipe logic '" + settings.name() + "' of " + definition.id()
+                            + " is skipped: its name must be unique and use only a-z, 0-9 and _");
+                }
+            }
+        }
+        for (var settings : runnable) {
+            var name = settings.name();
+            var prefix = "recipe_logic." + name + ".";
+            var group = new RecipeLogicGroup(settings,
+                    runtimeValues.ofBool(prefix + "enable", settings::isEnable),
+                    runtimeValues.ofInt(prefix + "damping", settings::recipeDampingValue),
+                    runtimeValues.ofBool(prefix + "always_search", settings::alwaysSearchRecipe),
+                    runtimeValues.ofBool(prefix + "always_modify", settings::alwaysModifyRecipe),
+                    runtimeValues.ofBool(prefix + "consume_inputs_after_working", settings::consumeInputsAfterWorking));
+            for (int i = 0; i < settings.threads(); i++) {
+                addRecipeLogic(logics, createRecipeLogic(settings, name, i), group);
+            }
+        }
+        return Collections.unmodifiableList(logics);
+    }
+
+    private void addRecipeLogic(List<RecipeLogic> logics, RecipeLogic logic, RecipeLogicGroup group) {
+        logics.add(logic);
+        recipeLogicGroups.put(logic, group);
+        if (machineHolder.getRootStorage() instanceof MultiManagedStorage multiManagedStorage) {
+            for (var ref : logic.getSyncStorage().getPersistedFields()) {
+                ref.setPersistedPrefixName("recipeLogics." + logic.getName() + "." + logic.getThreadIndex());
+            }
+            multiManagedStorage.attach(logic.getSyncStorage());
+        }
+    }
+
+    private static final Set<String> WARNED = ConcurrentHashMap.newKeySet();
+
+    private static void warnOnce(String message) {
+        if (WARNED.add(message)) {
+            MBD2.LOGGER.warn(message);
+        }
+    }
+
+    /**
+     * A logic's settings and the runtime values overriding them, shared by all its threads: {@code recipe_logic.*}
+     * for the primary, {@code recipe_logic.<name>.*} for an additional logic.
+     */
+    protected record RecipeLogicGroup(ConfigRecipeLogicSettings settings, RuntimeValue<Boolean> enabled,
+                                      RuntimeValue<Integer> damping, RuntimeValue<Boolean> alwaysSearch,
+                                      RuntimeValue<Boolean> alwaysModify, RuntimeValue<Boolean> consumeAfter) {
+    }
+
+    private RecipeLogicGroup primaryRecipeLogicGroup() {
+        return new RecipeLogicGroup(definition.recipeLogicSettings(), recipeLogicEnabled, recipeDampingValue,
+                alwaysSearchRecipe, alwaysModifyRecipe, consumeInputsAfterWorkingValue);
+    }
+
+    /** The group {@code logic} runs on; the primary's for a logic this machine does not know. */
+    protected RecipeLogicGroup recipeLogicGroup(RecipeLogic logic) {
+        var group = recipeLogicGroups.get(logic);
+        if (group != null) return group;
+        group = recipeLogicGroups.get(recipeLogic);
+        return group != null ? group : primaryRecipeLogicGroup();
     }
 
     /**
@@ -576,6 +695,7 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
      */
     public void initCapabilitiesProxy() {
         recipeCapabilitiesProxy.clear();
+        recipeHandlerExtraScopes.clear();
         for (var trait : additionalTraits) {
             for (var recipeHandlerTrait : trait.getRecipeHandlerTraits()) {
                 if (!recipeCapabilitiesProxy.contains(recipeHandlerTrait.getHandlerIO(), recipeHandlerTrait.getRecipeCapability())) {
@@ -584,6 +704,75 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
                 recipeCapabilitiesProxy.get(recipeHandlerTrait.getHandlerIO(), recipeHandlerTrait.getRecipeCapability()).add(recipeHandlerTrait);
             }
         }
+        rebuildRecipeLogicProxies();
+    }
+
+    /**
+     * Work out which of the machine's handlers each recipe logic may use: those whose scope, and the scope a
+     * multiblock put on a part's handlers, hold the logic. A handler that
+     * {@link IRecipeHandler#supportsMultipleRecipeLogics() serves one logic at a time} goes to the first that may use
+     * it. Call it again whenever the machine's table changes; {@link #initCapabilitiesProxy()} does.
+     */
+    public void rebuildRecipeLogicProxies() {
+        var logics = getRecipeLogics();
+        for (var logic : logics) {
+            logic.releaseHandlers();
+        }
+        if (!hasScopedHandler(logics.size())) {
+            recipeLogicProxies = Map.of();
+            return;
+        }
+        var tables = new IdentityHashMap<RecipeLogic, Table<IO, RecipeCapability<?>, List<IRecipeHandler<?>>>>();
+        for (var logic : logics) {
+            tables.put(logic, Tables.newCustomTable(new EnumMap<>(IO.class), HashMap::new));
+        }
+        for (var cell : getRecipeCapabilitiesProxy().cellSet()) {
+            for (var handler : cell.getValue()) {
+                RecipeLogic taker = null;
+                for (var logic : logics) {
+                    if (!mayUse(logic, handler)) continue;
+                    if (taker != null && !handler.supportsMultipleRecipeLogics()) {
+                        warnOnce("a " + handler.getRecipeCapability().name + " handler of " + definition.id()
+                                + " serves one recipe logic at a time: " + logic.getAddress() + " may not use it, only "
+                                + taker.getAddress() + " does");
+                        continue;
+                    }
+                    taker = logic;
+                    tables.get(logic).row(cell.getRowKey())
+                            .computeIfAbsent(cell.getColumnKey(), k -> new ArrayList<>())
+                            .add(handler);
+                }
+            }
+        }
+        recipeLogicProxies = tables;
+    }
+
+    private boolean hasScopedHandler(int logicCount) {
+        for (var handlers : getRecipeCapabilitiesProxy().values()) {
+            for (var handler : handlers) {
+                if (!scopeOf(handler).isEmpty() || recipeHandlerExtraScopes.containsKey(handler)) return true;
+                if (logicCount > 1 && !handler.supportsMultipleRecipeLogics()) return true;
+            }
+        }
+        return false;
+    }
+
+    private static Set<String> scopeOf(IRecipeHandler<?> handler) {
+        return RecipeHandlerSlotsProxy.unwrap(handler) instanceof IRecipeHandlerTrait<?> trait ? trait.getRecipeLogicScope() : Set.of();
+    }
+
+    /** Whether {@code logic} may use {@code handler}, a handler of this machine's table. */
+    protected boolean mayUse(RecipeLogic logic, IRecipeHandler<?> handler) {
+        if (!logic.isInScope(scopeOf(handler))) return false;
+        var extra = recipeHandlerExtraScopes.get(handler);
+        return extra == null || logic.isInScope(extra);
+    }
+
+    @Nonnull
+    @Override
+    public Table<IO, RecipeCapability<?>, List<IRecipeHandler<?>>> getRecipeCapabilitiesProxy(RecipeLogic logic) {
+        var table = recipeLogicProxies.get(logic);
+        return table == null ? getRecipeCapabilitiesProxy() : table;
     }
 
     /**
@@ -605,6 +794,29 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
             return traits;
         }
         return additionalTraits;
+    }
+
+    /**
+     * The traits {@code logic} can see, for recipe conditions that inspect a trait (rotation, pressure, heat...):
+     * {@link #getRecipeLogicTraits()} less those scoped to other logics.
+     */
+    public List<ITrait> getRecipeLogicTraits(RecipeLogic logic) {
+        var traits = getRecipeLogicTraits();
+        List<ITrait> visible = null;
+        for (int i = 0; i < traits.size(); i++) {
+            var trait = traits.get(i);
+            if (isTraitVisibleTo(logic, trait)) {
+                if (visible != null) visible.add(trait);
+            } else if (visible == null) {
+                visible = new ArrayList<>(traits.subList(0, i));
+            }
+        }
+        return visible == null ? traits : visible;
+    }
+
+    /** Whether {@code logic} may see {@code trait}, one of {@link #getRecipeLogicTraits()}. */
+    protected boolean isTraitVisibleTo(RecipeLogic logic, ITrait trait) {
+        return !(trait instanceof RecipeCapabilityTrait scoped) || logic.isInScope(scoped.getRecipeLogicScope());
     }
 
     /**
@@ -695,10 +907,203 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
         return definition.recipeLogicSettings().getRecipeType();
     }
 
+    //////////////////////////////////////
+    //*****  RECIPE LOGIC CONTEXT  *****//
+    //////////////////////////////////////
+
+    @Override
+    public List<RecipeLogic> getRecipeLogics() {
+        // null only while the constructor is still creating them
+        return recipeLogics == null ? List.of(recipeLogic) : recipeLogics;
+    }
+
+    /** The primary logic and its threads go through the legacy getters a subclass may override. */
+    private boolean runsPrimarySettings(RecipeLogic logic) {
+        return recipeLogicGroup(logic).settings() == definition.recipeLogicSettings();
+    }
+
+    @NotNull
+    @Override
+    public MBDRecipeType getRecipeType(RecipeLogic logic) {
+        return runsPrimarySettings(logic) ? getRecipeType() : recipeLogicGroup(logic).settings().getRecipeType();
+    }
+
     /**
-     * Called when recipe logic status changed.
+     * The primary logic and its threads run when {@link #runRecipeLogic()} says; an additional logic when its own
+     * {@code recipe_logic.<name>.enable} does, it has a recipe type, and {@link #canRunRecipeLogics()}.
+     */
+    @Override
+    public boolean runRecipeLogic(RecipeLogic logic) {
+        if (runsPrimarySettings(logic)) {
+            return runRecipeLogic();
+        }
+        var group = recipeLogicGroup(logic);
+        return group.enabled().get() && group.settings().getRecipeType() != MBDRecipeType.DUMMY && canRunRecipeLogics();
+    }
+
+    /** What every recipe logic needs on top of its own settings. A multiblock must be formed. */
+    protected boolean canRunRecipeLogics() {
+        return true;
+    }
+
+    @Override
+    public RecipeLogic getContextRecipeLogic() {
+        return contextRecipeLogic != null ? contextRecipeLogic : recipeLogic;
+    }
+
+    /** Run {@code body} with {@link #getContextRecipeLogic()} reporting {@code logic}, then restore it. */
+    protected <T> T withRecipeLogic(RecipeLogic logic, Supplier<T> body) {
+        var previous = contextRecipeLogic;
+        contextRecipeLogic = logic;
+        try {
+            return body.get();
+        } finally {
+            contextRecipeLogic = previous;
+        }
+    }
+
+    protected void withRecipeLogic(RecipeLogic logic, Runnable body) {
+        withRecipeLogic(logic, () -> {
+            body.run();
+            return null;
+        });
+    }
+
+    // Each per-logic hook runs its legacy counterpart with the logic as context: a subclass overriding either form
+    // is called exactly once, and the logic reaches whatever the legacy hook calls.
+
+    /**
+     * Runs the legacy hook when the change moves the {@link #getAggregatedRecipeStatus() aggregated} status, which
+     * the machine state follows, then {@link #onRecipeLogicStatusChanged}. With one logic both are the same change.
+     */
+    @Override
+    public void notifyRecipeStatusChanged(RecipeLogic logic, RecipeLogic.Status oldStatus, RecipeLogic.Status newStatus) {
+        // the logic has not taken its new status yet, and a listener may change another logic's meanwhile
+        var outer = changingRecipeStatuses.put(logic, newStatus);
+        try {
+            var before = RecipeLogic.aggregate(getRecipeLogics(), l -> l == logic ? oldStatus : statusAboutToBe(l));
+            var after = RecipeLogic.aggregate(getRecipeLogics(), this::statusAboutToBe);
+            if (before != after) {
+                withRecipeLogic(logic, () -> notifyRecipeStatusChanged(before, after));
+            }
+            onRecipeLogicStatusChanged(logic, oldStatus, newStatus);
+        } finally {
+            if (outer == null) {
+                changingRecipeStatuses.remove(logic);
+            } else {
+                changingRecipeStatuses.put(logic, outer);
+            }
+        }
+    }
+
+    /**
+     * Each status change of each logic, while {@link #getAggregatedRecipeStatus()} already counts it. Posts
+     * {@link MachineRecipeStatusChangedEvent}.
+     */
+    protected void onRecipeLogicStatusChanged(RecipeLogic logic, RecipeLogic.Status oldStatus, RecipeLogic.Status newStatus) {
+        NeoForge.EVENT_BUS.post(new MachineRecipeStatusChangedEvent(this, logic, oldStatus, newStatus).postCustomEvent());
+    }
+
+    private RecipeLogic.Status statusAboutToBe(RecipeLogic logic) {
+        var changing = changingRecipeStatuses.get(logic);
+        return changing != null ? changing : logic.getStatus();
+    }
+
+    @Override
+    public RecipeLogic.Status getAggregatedRecipeStatus() {
+        return RecipeLogic.aggregate(getRecipeLogics(), this::statusAboutToBe);
+    }
+
+    @Override
+    public @Nullable MBDRecipe modifyFuelRecipe(RecipeLogic logic, MBDRecipe recipe) {
+        return withRecipeLogic(logic, () -> modifyFuelRecipe(recipe));
+    }
+
+    @Override
+    public void onFuelBurningFinish(RecipeLogic logic, @Nullable MBDRecipe recipe) {
+        withRecipeLogic(logic, () -> onFuelBurningFinish(recipe));
+    }
+
+    @Override
+    public @Nullable MBDRecipe doModifyRecipe(RecipeLogic logic, @NotNull MBDRecipe recipe) {
+        return withRecipeLogic(logic, () -> doModifyRecipe(recipe));
+    }
+
+    @Override
+    public @Nullable MBDRecipe getModifiedRecipe(RecipeLogic logic, @NotNull MBDRecipe recipe) {
+        return withRecipeLogic(logic, () -> getModifiedRecipe(recipe));
+    }
+
+    @Override
+    public ContentModifier getMaxParallel(RecipeLogic logic, @NotNull MBDRecipe recipe) {
+        return withRecipeLogic(logic, () -> getMaxParallel(recipe));
+    }
+
+    @Override
+    public @NotNull MBDRecipe applyParallel(RecipeLogic logic, @NotNull MBDRecipe recipe, int maxParallel) {
+        return withRecipeLogic(logic, () -> applyParallel(recipe, maxParallel));
+    }
+
+    @Override
+    public boolean beforeWorking(RecipeLogic logic, MBDRecipe recipe) {
+        return withRecipeLogic(logic, () -> beforeWorking(recipe));
+    }
+
+    @Override
+    public boolean onWorking(RecipeLogic logic) {
+        return withRecipeLogic(logic, () -> onWorking());
+    }
+
+    @Override
+    public void onWaiting(RecipeLogic logic) {
+        withRecipeLogic(logic, () -> onWaiting());
+    }
+
+    @Override
+    public void afterWorking(RecipeLogic logic) {
+        withRecipeLogic(logic, () -> afterWorking());
+    }
+
+    @Override
+    public void onConsumeInputsAfterWorking(RecipeLogic logic) {
+        withRecipeLogic(logic, () -> onConsumeInputsAfterWorking());
+    }
+
+    @Override
+    public void onRecipeFinish(RecipeLogic logic) {
+        withRecipeLogic(logic, () -> onRecipeFinish());
+    }
+
+    @Override
+    public boolean dampingWhenWaiting(RecipeLogic logic) {
+        return withRecipeLogic(logic, () -> dampingWhenWaiting());
+    }
+
+    @Override
+    public boolean alwaysTryModifyRecipe(RecipeLogic logic) {
+        return withRecipeLogic(logic, () -> alwaysTryModifyRecipe());
+    }
+
+    @Override
+    public boolean alwaysReSearchRecipe(RecipeLogic logic) {
+        return withRecipeLogic(logic, () -> alwaysReSearchRecipe());
+    }
+
+    @Override
+    public int getRecipeDampingValue(RecipeLogic logic) {
+        return withRecipeLogic(logic, () -> getRecipeDampingValue());
+    }
+
+    @Override
+    public boolean consumeInputsAfterWorking(RecipeLogic logic, MBDRecipe recipe) {
+        return withRecipeLogic(logic, () -> consumeInputsAfterWorking(recipe));
+    }
+
+    /**
+     * Called when the machine's {@link #getAggregatedRecipeStatus() aggregated recipe status} changes.
      * <br>
-     * By default, We will update the machine state to match the recipe logic status.
+     * By default, We will update the machine state to match the recipe logic status. The status change event is
+     * posted per logic, by {@link #onRecipeLogicStatusChanged}.
      */
     @Override
     public void notifyRecipeStatusChanged(RecipeLogic.Status oldStatus, RecipeLogic.Status newStatus) {
@@ -708,7 +1113,6 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
             case WAITING -> setMachineState("waiting");
             case SUSPEND -> setMachineState("suspend");
         }
-        NeoForge.EVENT_BUS.post(new MachineRecipeStatusChangedEvent(this, oldStatus, newStatus).postCustomEvent());
     }
 
     /**
@@ -821,8 +1225,10 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
     }
 
     protected void internalServerTick() {
-        if (runRecipeLogic()) {
-            recipeLogic.serverTick();
+        for (var logic : getRecipeLogics()) {
+            if (runRecipeLogic(logic)) {
+                logic.serverTick();
+            }
         }
         for (ITrait trait : additionalTraits) {
             trait.serverTick();
@@ -840,7 +1246,7 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
 
     @Override
     public @Nullable MBDRecipe modifyFuelRecipe(MBDRecipe recipe) {
-        var event = new MachineFuelRecipeModifyEvent(this, recipe);
+        var event = new MachineFuelRecipeModifyEvent(this, getContextRecipeLogic(), recipe);
         NeoForge.EVENT_BUS.post(event.postCustomEvent());
         if (event.isCanceled()) return null;
         return event.getRecipe();
@@ -848,22 +1254,37 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
 
     @Override
     public void onFuelBurningFinish(@Nullable MBDRecipe recipe) {
-        NeoForge.EVENT_BUS.post(new MachineFuelBurningFinishEvent(this, recipe));
+        NeoForge.EVENT_BUS.post(new MachineFuelBurningFinishEvent(this, getContextRecipeLogic(), recipe).postCustomEvent());
     }
 
     @Nullable
     @Override
     public MBDRecipe doModifyRecipe(@NotNull MBDRecipe recipe) {
-        var before = new MachineRecipeModifyEvent.Before(this, recipe);
+        var logic = getContextRecipeLogic();
+        var before = new MachineRecipeModifyEvent.Before(this, logic, recipe);
         NeoForge.EVENT_BUS.post(before.postCustomEvent());
         recipe = before.getRecipe();
         if (before.isCanceled() || recipe == null) {
             return recipe;
         }
-        recipe = IMachine.super.doModifyRecipe(recipe);
-        var after = new MachineRecipeModifyEvent.After(this, recipe);
+        // IMachine's default pipeline through the per-logic hooks, so an override of either form runs once
+        recipe = getModifiedRecipe(logic, recipe);
+        if (recipe != null) {
+            recipe = applyParallel(logic, recipe, getMaxParallel(logic, recipe).apply(1).intValue());
+        }
+        var after = new MachineRecipeModifyEvent.After(this, logic, recipe);
         NeoForge.EVENT_BUS.post(after.postCustomEvent());
         return after.getRecipe();
+    }
+
+    /** Parallel runs are fitted to the handlers of the {@link #getContextRecipeLogic() logic} the recipe is for. */
+    @Nonnull
+    @Override
+    public MBDRecipe applyParallel(@Nonnull MBDRecipe recipe, int maxParallel) {
+        if (maxParallel > 1) {
+            return MBDRecipe.accurateParallel(getContextRecipeLogic(), recipe, maxParallel, false).getFirst();
+        }
+        return recipe;
     }
 
     /**
@@ -875,12 +1296,14 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
     @Nullable
     @Override
     public MBDRecipe getModifiedRecipe(@Nonnull MBDRecipe recipe) {
-        return getDefinition().recipeLogicSettings().recipeModifiers().applyModifiers(getRecipeLogic(), recipe);
+        var logic = getContextRecipeLogic();
+        return recipeLogicGroup(logic).settings().recipeModifiers().applyModifiers(logic, recipe);
     }
 
     @Override
     public ContentModifier getMaxParallel(@Nonnull MBDRecipe recipe) {
-        return getDefinition().recipeLogicSettings().recipeModifiers().getMaxParallel(getRecipeLogic(), recipe);
+        var logic = getContextRecipeLogic();
+        return recipeLogicGroup(logic).settings().recipeModifiers().getMaxParallel(logic, recipe);
     }
 
     /**
@@ -890,7 +1313,8 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
      */
     @Override
     public boolean alwaysTryModifyRecipe() {
-        return !getDefinition().recipeLogicSettings().recipeModifiers().recipeModifiers.isEmpty() || alwaysModifyRecipe.get();
+        var group = recipeLogicGroup(getContextRecipeLogic());
+        return !group.settings().recipeModifiers().recipeModifiers.isEmpty() || group.alwaysModify().get();
     }
 
     /**
@@ -899,7 +1323,7 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
      */
     @Override
     public boolean alwaysReSearchRecipe() {
-        return alwaysSearchRecipe.get();
+        return recipeLogicGroup(getContextRecipeLogic()).alwaysSearch().get();
     }
 
     /**
@@ -908,7 +1332,7 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
      */
     @Override
     public int getRecipeDampingValue() {
-        return recipeDampingValue.get();
+        return recipeLogicGroup(getContextRecipeLogic()).damping().get();
     }
 
     /**
@@ -918,12 +1342,12 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
      */
     @Override
     public boolean consumeInputsAfterWorking(MBDRecipe recipe) {
-        return consumeInputsAfterWorkingValue.get();
+        return recipeLogicGroup(getContextRecipeLogic()).consumeAfter().get();
     }
 
     @Override
     public boolean beforeWorking(MBDRecipe recipe) {
-        var event = new MachineBeforeRecipeWorkingEvent(this, recipe);
+        var event = new MachineBeforeRecipeWorkingEvent(this, getContextRecipeLogic(), recipe);
         NeoForge.EVENT_BUS.post(event.postCustomEvent());
         if (event.isCanceled()) {
             return true;
@@ -933,7 +1357,8 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
 
     @Override
     public boolean onWorking() {
-        var event = new MachineOnRecipeWorkingEvent(this, recipeLogic.getLastRecipe(), recipeLogic.getProgress());
+        var logic = getContextRecipeLogic();
+        var event = new MachineOnRecipeWorkingEvent(this, logic, logic.getLastRecipe(), logic.getProgress());
         NeoForge.EVENT_BUS.post(event.postCustomEvent());
         if (event.isCanceled()) {
             return true;
@@ -943,13 +1368,15 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
 
     @Override
     public void onWaiting() {
-        NeoForge.EVENT_BUS.post(new MachineOnRecipeWaitingEvent(this, recipeLogic.getLastRecipe()).postCustomEvent());
+        var logic = getContextRecipeLogic();
+        NeoForge.EVENT_BUS.post(new MachineOnRecipeWaitingEvent(this, logic, logic.getLastRecipe()).postCustomEvent());
         IMachine.super.onWaiting();
     }
 
     @Override
     public void afterWorking() {
-        NeoForge.EVENT_BUS.post(new MachineAfterRecipeWorkingEvent(this, recipeLogic.getLastRecipe()).postCustomEvent());
+        var logic = getContextRecipeLogic();
+        NeoForge.EVENT_BUS.post(new MachineAfterRecipeWorkingEvent(this, logic, logic.getLastRecipe()).postCustomEvent());
         IMachine.super.afterWorking();
     }
 
@@ -963,16 +1390,18 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
      */
     @Override
     public void onRecipeFinish() {
+        var logic = getContextRecipeLogic();
         NeoForge.EVENT_BUS.post(
-                new MachineOnRecipeFinishEvent(this, recipeLogic.getLastRecipe()).postCustomEvent());
+                new MachineOnRecipeFinishEvent(this, logic, logic.getLastRecipe()).postCustomEvent());
         IMachine.super.onRecipeFinish();
     }
 
     /** Inputs were consumed after working rather than before — see {@code consumeInputsAfterWorking}. */
     @Override
     public void onConsumeInputsAfterWorking() {
+        var logic = getContextRecipeLogic();
         NeoForge.EVENT_BUS.post(
-                new MachineOnConsumeInputsAfterWorkingEvent(this, recipeLogic.getLastRecipe()).postCustomEvent());
+                new MachineOnConsumeInputsAfterWorkingEvent(this, logic, logic.getLastRecipe()).postCustomEvent());
         IMachine.super.onConsumeInputsAfterWorking();
     }
 
@@ -1247,15 +1676,33 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
      */
     protected void bindMachineUI(UI ui) {
         ui.selectId(MBDBindingIDs.MACHINE_NAME, TextElement.class).forEach(text -> text.setText(getMachineName()));
-        ui.selectId(MBDBindingIDs.PROGRESS_BAR, ProgressBar.class).forEach(progressBar -> {
-            progressBar.bind(DataBindingBuilder.floatValS2C(() -> getRecipeLogic().getProgressPercent()).build());
-            progressBar.label.bindDataSource(SupplierDataSource.of(() -> Component.literal(String.format("%.2f%%", getRecipeLogic().getProgressPercent() * 100))));
+        for (var logic : getRecipeLogics()) {
+            bindRecipeLogicUI(ui, logic, MBDBindingIDs.forRecipeLogic(MBDBindingIDs.PROGRESS_BAR, logic.getAddress()),
+                    MBDBindingIDs.forRecipeLogic(MBDBindingIDs.FUEL_BAR, logic.getAddress()),
+                    MBDBindingIDs.forRecipeLogic(MBDBindingIDs.XEI_LOOKUP, logic.getAddress()));
+        }
+        // the plain ids are the primary's
+        bindRecipeLogicUI(ui, getRecipeLogic(), MBDBindingIDs.PROGRESS_BAR, MBDBindingIDs.FUEL_BAR, MBDBindingIDs.XEI_LOOKUP);
+
+        for (var trait : getAdditionalTraits()) {
+            if (trait.getDefinition() instanceof IUIProviderTrait provider) {
+                provider.initTraitUI(trait, ui);
+            }
+        }
+    }
+
+    /** Bind the progress bar, fuel bar and recipe lookup button with the given ids to {@code logic}. */
+    protected void bindRecipeLogicUI(UI ui, RecipeLogic logic, String progressId, String fuelId, String lookupId) {
+        ui.selectId(progressId, ProgressBar.class).forEach(progressBar -> {
+            progressBar.bind(DataBindingBuilder.floatValS2C(logic::getProgressPercent).build());
+            // from the bar's synced value: the client's own logic never learns its progress
+            progressBar.label.bindDataSource(SupplierDataSource.of(() -> Component.literal(String.format("%.2f%%", progressBar.getValue() * 100))));
         });
-        ui.selectId(MBDBindingIDs.FUEL_BAR, ProgressBar.class).forEach(progressBar ->
-                progressBar.bind(DataBindingBuilder.floatValS2C(() -> getRecipeLogic().getFuelProgressPercent()).build())
+        ui.selectId(fuelId, ProgressBar.class).forEach(progressBar ->
+                progressBar.bind(DataBindingBuilder.floatValS2C(logic::getFuelProgressPercent).build())
         );
-        ui.selectId(MBDBindingIDs.XEI_LOOKUP, Button.class).forEach(button -> button.setOnClick(event -> {
-            var recipeType = getRecipeType();
+        ui.selectId(lookupId, Button.class).forEach(button -> button.setOnClick(event -> {
+            var recipeType = logic.getRecipeType();
             if (recipeType != MBDRecipeType.DUMMY && recipeType.isXEIVisible()) {
                 if (LDLib2.isReiLoaded()) {
                     MBDREIPlugin.lookupRecipeType(recipeType);
@@ -1266,12 +1713,6 @@ public class MBDMachine implements IMachine, IAnimationSource, IBlockEntityManag
                 }
             }
         }));
-
-        for (var trait : getAdditionalTraits()) {
-            if (trait.getDefinition() instanceof IUIProviderTrait provider) {
-                provider.initTraitUI(trait, ui);
-            }
-        }
     }
 
     @Override

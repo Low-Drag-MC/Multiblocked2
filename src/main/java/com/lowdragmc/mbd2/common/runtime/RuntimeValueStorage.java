@@ -1,6 +1,7 @@
 package com.lowdragmc.mbd2.common.runtime;
 
 import com.lowdragmc.mbd2.MBD2;
+import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -207,6 +208,11 @@ public final class RuntimeValueStorage implements INBTSerializable<CompoundTag> 
     void onSlotChanged(RuntimeValue<?> slot) {
         holder.markRuntimeValuesDirty();
         slot.fireChanged();
+        var machine = holder.runtimeValueMachine();
+        if (machine != null) {
+            // a slot limit, a filter, a recipe setting... may decide whether a recipe fits now
+            machine.getRecipeLogics().forEach(RecipeLogic::markSearchDirty);
+        }
     }
 
     // ***** persistence ***** //

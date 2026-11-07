@@ -346,9 +346,24 @@ public class FluidTankCapabilityTrait extends SimpleCapabilityTrait<IFluidHandle
         }
     }
 
+    @Override
+    public boolean notifiesAllChanges() {
+        return true;
+    }
+
     public class FluidRecipeHandler extends RecipeHandlerTrait<SizedFluidIngredient> {
         protected FluidRecipeHandler() {
             super(FluidTankCapabilityTrait.this, FluidRecipeCapability.CAP);
+        }
+
+        @Override
+        public Collection<?> getAvailableLookupKeys() {
+            var fluids = new HashSet<Object>();
+            for (var storage : storages) {
+                var fluid = storage.getFluid();
+                if (!fluid.isEmpty()) fluids.add(fluid.getFluid());
+            }
+            return fluids;
         }
 
         @Override

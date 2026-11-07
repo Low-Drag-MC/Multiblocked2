@@ -5,6 +5,7 @@ import com.lowdragmc.kilagraph.graph.exec.EvalContext;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.NodeAttribute;
 import com.lowdragmc.lowdraglib2.nodegraphtookit.api.node.UseWithContext;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
+import com.lowdragmc.mbd2.api.recipe.MBDRecipeType;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import com.lowdragmc.mbd2.common.blueprint.MachineBlueprintGraph;
 import com.lowdragmc.mbd2.common.blueprint.node.MachineInfoBlock;
@@ -29,6 +30,68 @@ public final class RecipeLogicInfoBlocks {
         @Override
         protected final Class<RecipeLogic> targetClass() {
             return RecipeLogic.class;
+        }
+    }
+
+    // ---- identity ----------------------------------------------------------------------------
+
+    /** The name of the logic, shared by all its threads. */
+    @NodeAttribute(name = "mbd2_recipe_logic_name", group = GROUP, graphTypes = MachineBlueprintGraph.class)
+    @UseWithContext(RecipeLogicInfoNode.class)
+    public static class Name extends LogicBlock {
+        @OutputPort public String value;
+
+        @Override
+        protected void read(RecipeLogic logic, EvalContext ctx) {
+            ctx.setOutput("value", logic.getName());
+        }
+    }
+
+    /** The name for thread 0, {@code name#thread} for the others: what finds it again. */
+    @NodeAttribute(name = "mbd2_recipe_logic_address", group = GROUP, graphTypes = MachineBlueprintGraph.class)
+    @UseWithContext(RecipeLogicInfoNode.class)
+    public static class Address extends LogicBlock {
+        @OutputPort public String value;
+
+        @Override
+        protected void read(RecipeLogic logic, EvalContext ctx) {
+            ctx.setOutput("value", logic.getAddress());
+        }
+    }
+
+    /** Which thread of its logic this is, from 0. */
+    @NodeAttribute(name = "mbd2_recipe_logic_thread_index", group = GROUP, graphTypes = MachineBlueprintGraph.class)
+    @UseWithContext(RecipeLogicInfoNode.class)
+    public static class ThreadIndex extends LogicBlock {
+        @OutputPort public int value;
+
+        @Override
+        protected void read(RecipeLogic logic, EvalContext ctx) {
+            ctx.setOutput("value", logic.getThreadIndex());
+        }
+    }
+
+    /** Whether this is the machine's primary logic, the one every machine has. */
+    @NodeAttribute(name = "mbd2_recipe_logic_is_primary", group = GROUP, graphTypes = MachineBlueprintGraph.class)
+    @UseWithContext(RecipeLogicInfoNode.class)
+    public static class IsPrimary extends LogicBlock {
+        @OutputPort public boolean value;
+
+        @Override
+        protected void read(RecipeLogic logic, EvalContext ctx) {
+            ctx.setOutput("value", logic.isPrimary());
+        }
+    }
+
+    /** The recipe type this logic runs. */
+    @NodeAttribute(name = "mbd2_recipe_logic_recipe_type", group = GROUP, graphTypes = MachineBlueprintGraph.class)
+    @UseWithContext(RecipeLogicInfoNode.class)
+    public static class LogicRecipeType extends LogicBlock {
+        @OutputPort public MBDRecipeType value;
+
+        @Override
+        protected void read(RecipeLogic logic, EvalContext ctx) {
+            ctx.setOutput("value", logic.getRecipeType());
         }
     }
 

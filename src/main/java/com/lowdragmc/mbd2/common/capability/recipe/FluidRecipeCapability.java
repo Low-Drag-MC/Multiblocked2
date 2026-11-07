@@ -15,11 +15,14 @@ import com.lowdragmc.mbd2.api.recipe.content.SerializerSizedFluidIngredient;
 import com.lowdragmc.mbd2.common.capability.recipe.configurators.fluid.FluidIngredientConfigurator;
 import com.lowdragmc.mbd2.common.gui.MBDSprites;
 import com.lowdragmc.mbd2.common.gui.recipe.SupplierScrollDataSource;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.crafting.DataComponentFluidIngredient;
 import net.neoforged.neoforge.fluids.crafting.FluidIngredient;
 import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient;
+import net.neoforged.neoforge.fluids.crafting.SingleFluidIngredient;
+import net.neoforged.neoforge.fluids.crafting.TagFluidIngredient;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -33,6 +36,24 @@ import java.util.function.Supplier;
 public class FluidRecipeCapability extends RecipeCapability<SizedFluidIngredient> {
     @LDLRegister(name = "fluid", registry = "mbd2:recipe_capability")
     public final static FluidRecipeCapability CAP = new FluidRecipeCapability();
+
+    /** The fluids a single-fluid or tag ingredient accepts; other ingredient types are not indexed. */
+    @Override
+    public Collection<?> getLookupKeys(Object content) {
+        if (!(content instanceof SizedFluidIngredient sized) || sized.amount() <= 0) return null;
+        var ingredient = sized.ingredient();
+        var fluids = new HashSet<Object>();
+        if (ingredient instanceof TagFluidIngredient tagged) {
+            // the live tag, as matching tests it: getStacks() is cached for the ingredient's life, past a tag reload
+            BuiltInRegistries.FLUID.getTag(tagged.tag()).ifPresent(fluidsInTag -> fluidsInTag.forEach(fluid -> fluids.add(fluid.value())));
+            return fluids;
+        }
+        if (!(ingredient instanceof SingleFluidIngredient)) return null;
+        for (var stack : ingredient.getStacks()) {
+            fluids.add(stack.getFluid());
+        }
+        return fluids;
+    }
 
     protected FluidRecipeCapability() {
         super("fluid", SerializerSizedFluidIngredient.INSTANCE);

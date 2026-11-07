@@ -4,6 +4,8 @@ import com.lowdragmc.lowdraglib2.syncdata.ISubscription;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 
+import java.util.Set;
+
 /**
  * @author KilaBash
  * @date 2023/2/25
@@ -30,4 +32,23 @@ public interface IRecipeHandlerTrait<K> extends IRecipeHandler<K> {
      * Add listener for notification when its internal content changed.
      */
     ISubscription addChangedListener(Runnable listener);
+
+    /**
+     * Which recipe logics of the machine may use this handler: logic names (every thread of that logic) or
+     * {@code name#thread} addresses. Empty, the default, means all of them.
+     *
+     * @see RecipeLogic#isInScope(java.util.Collection)
+     */
+    default Set<String> getRecipeLogicScope() {
+        return Set.of();
+    }
+
+    /**
+     * Whether every change of what this handler holds reaches {@link #addChangedListener} listeners. A recipe logic
+     * whose handlers all do stops polling for recipes and searches when told something changed; a single handler
+     * answering {@code false} — the default — keeps it polling.
+     */
+    default boolean notifiesAllChanges() {
+        return false;
+    }
 }

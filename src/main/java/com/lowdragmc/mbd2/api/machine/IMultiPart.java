@@ -123,4 +123,38 @@ public interface IMultiPart extends IMachine {
     default boolean alwaysTryModifyControllerRecipe() {
         return false;
     }
+
+    //////////////////////////////////////
+    //***** PER-LOGIC CONTROLLER HOOKS **//
+    //////////////////////////////////////
+    // What a controller calls on its parts for one of its recipe logics. Each but the status hook defaults to the
+    // legacy hook of the same name, so a part overriding only the legacy hooks behaves exactly as before.
+
+    /**
+     * Called for every status change of each of the controller's recipe logics, with that logic's own statuses. The
+     * controller's aggregated status, which a part's look usually follows, goes to
+     * {@link #notifyControllerRecipeStatusChanged(IMultiController, RecipeLogic.Status, RecipeLogic.Status)} instead.
+     */
+    default void notifyControllerRecipeStatusChanged(IMultiController controller, RecipeLogic logic, RecipeLogic.Status oldStatus, RecipeLogic.Status newStatus) {
+    }
+
+    default boolean onControllerWorking(IMultiController controller, RecipeLogic logic) {
+        return onControllerWorking(controller);
+    }
+
+    default void onControllerWaiting(IMultiController controller, RecipeLogic logic) {
+        onControllerWaiting(controller);
+    }
+
+    default void afterControllerWorking(IMultiController controller, RecipeLogic logic) {
+        afterControllerWorking(controller);
+    }
+
+    default boolean beforeControllerWorking(IMultiController controller, RecipeLogic logic, MBDRecipe recipe) {
+        return beforeControllerWorking(controller);
+    }
+
+    default boolean alwaysTryModifyControllerRecipe(RecipeLogic logic) {
+        return alwaysTryModifyControllerRecipe();
+    }
 }

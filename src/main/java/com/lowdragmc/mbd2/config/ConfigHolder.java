@@ -13,7 +13,9 @@ public class ConfigHolder {
     private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
 
     public static final ModConfigSpec.BooleanValue ASYNC_RECIPE_SEARCHING = BUILDER
-            .comment("Whether search for recipes asynchronously.")
+            .comment("Whether to search for recipes asynchronously where the recipe index cannot help: recipe logics whose",
+                     "searchRecipe() or recipe type's searchRecipe() an addon overrides, and logics polling inputs the index",
+                     "cannot read (an ME interface, say). Other recipe logics search through the index, on the server thread.")
             .define("asyncRecipeSearching", true);
 
     public static final ModConfigSpec.BooleanValue USE_VBO = BUILDER

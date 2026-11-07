@@ -30,6 +30,7 @@ import com.lowdragmc.mbd2.common.trait.RecipeCapabilityTraitDefinition
 import com.lowdragmc.mbd2.common.trait.SimpleCapabilityTraitDefinition
 import dev.vfyjxf.taffy.style.AlignItems
 import dev.vfyjxf.taffy.style.FlexDirection
+import net.minecraft.client.resources.language.I18n
 import net.minecraft.world.item.Items
 
 open class MachineUIView(val mbdEditor: MBDEditor, val project: MachineProject) : UIEditorView() {
@@ -94,11 +95,20 @@ open class MachineUIView(val mbdEditor: MBDEditor, val project: MachineProject) 
             }
             // progress bar
             leaf(MBDSprites.ARROW_BAR, "editor.machine.machine_ui.progress") {
-                addUIElementToTemplate(createProgressBar(), ID_CENTER)
+                addUIElementToTemplate(createProgressBar(MBDBindingIDs.PROGRESS_BAR), ID_CENTER)
             }
             // fuel bar
             leaf(MBDSprites.FUEL_BAR, "editor.machine.machine_ui.fuel_progress") {
-                addUIElementToTemplate(createFuelBar(), ID_CENTER)
+                addUIElementToTemplate(createFuelBar(MBDBindingIDs.FUEL_BAR), ID_CENTER)
+            }
+            // the same, for every recipe logic besides the primary
+            for (address in recipeLogicAddresses()) {
+                leaf(MBDSprites.ARROW_BAR, I18n.get("editor.machine.machine_ui.progress_of", address)) {
+                    addUIElementToTemplate(createProgressBar(MBDBindingIDs.forRecipeLogic(MBDBindingIDs.PROGRESS_BAR, address)), ID_CENTER)
+                }
+                leaf(MBDSprites.FUEL_BAR, I18n.get("editor.machine.machine_ui.fuel_progress_of", address)) {
+                    addUIElementToTemplate(createFuelBar(MBDBindingIDs.forRecipeLogic(MBDBindingIDs.FUEL_BAR, address)), ID_CENTER)
+                }
             }
             // XEI lookup button
             leaf(ItemStackTexture(Items.KNOWLEDGE_BOOK), "editor.machine.machine_ui.xei_lookup") {
@@ -195,7 +205,7 @@ open class MachineUIView(val mbdEditor: MBDEditor, val project: MachineProject) 
         }
 
         // progress bar
-        centerCol.addChild(createProgressBar())
+        centerCol.addChild(createProgressBar(MBDBindingIDs.PROGRESS_BAR))
 
         if (inputCol.children.isNotEmpty()) {
             ioRow.addChild(inputCol)
@@ -241,11 +251,22 @@ open class MachineUIView(val mbdEditor: MBDEditor, val project: MachineProject) 
         }
     }
 
-    private fun createProgressBar(): ProgressBar {
+    private fun recipeLogicAddresses(): List<String> {
+        val addresses = mutableListOf<String>()
+        val definition = project.definition
+        val primaryName = definition.primaryRecipeLogicName()
+        for (thread in 1 until definition.primaryRecipeLogicThreads()) addresses += "$primaryName#$thread"
+        for (logic in definition.runnableAdditionalRecipeLogics(primaryName)) {
+            for (thread in 0 until logic.threads()) addresses += if (thread == 0) logic.name() else "${logic.name()}#$thread"
+        }
+        return addresses
+    }
+
+    private fun createProgressBar(bindingId: String): ProgressBar {
         return progressBar({
             layout = { size(20.px) }
             progressBarStyle = { interpolate(false) }
-            id = MBDBindingIDs.PROGRESS_BAR
+            id = bindingId
         }){}.apply {
             barContainer.layout { it.paddingAll(0f) }
             barContainer.style { it.background(MBDSprites.ARROW_BG) }
@@ -258,14 +279,14 @@ open class MachineUIView(val mbdEditor: MBDEditor, val project: MachineProject) 
         }
     }
 
-    private fun createFuelBar(): ProgressBar {
+    private fun createFuelBar(bindingId: String): ProgressBar {
         return progressBar({
             layout = { size(18.px) }
             progressBarStyle = {
                 interpolate(false)
                 fillDirection(FillDirection.DOWN_TO_UP)
             }
-            id = MBDBindingIDs.FUEL_BAR
+            id = bindingId
         }){}.apply {
             barContainer.layout { it.paddingAll(0f) }
             barContainer.style { it.background(MBDSprites.FUEL_BG) }

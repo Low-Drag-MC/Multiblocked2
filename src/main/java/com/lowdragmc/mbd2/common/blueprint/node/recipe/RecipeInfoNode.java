@@ -26,7 +26,7 @@ public class RecipeInfoNode extends MachineInfoContextNode<MBDRecipe> {
     @Override
     @Nullable
     protected MBDRecipe defaultTarget(EvalContext ctx) {
-        var machine = MachineNodes.ownMachine(ctx.getExecutor());
-        return machine == null ? null : machine.getRecipeLogic().getLastRecipe();
+        var logic = MachineNodes.contextRecipeLogic(ctx.getExecutor());
+        return logic == null ? null : logic.getLastRecipe();
     }
 }

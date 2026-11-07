@@ -4,7 +4,9 @@ import com.lowdragmc.kilagraph.graph.exec.EvalContext;
 import com.lowdragmc.kilagraph.graph.exec.ExecContext;
 import com.lowdragmc.kilagraph.graph.exec.GraphExecutor;
 import com.lowdragmc.mbd2.common.blueprint.MachineEnvironment;
+import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
+import com.lowdragmc.mbd2.common.machine.definition.config.event.RecipeLogicEvent;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -46,5 +48,15 @@ public final class MachineNodes {
     @Nullable
     public static MBDMachine ownMachine(GraphExecutor executor) {
         return executor.getEnvironment() instanceof MachineEnvironment env ? env.getMachine() : null;
+    }
+
+    /** The recipe logic a node reads when its input is left unwired: the handled recipe event's, else the primary. */
+    @Nullable
+    public static RecipeLogic contextRecipeLogic(GraphExecutor executor) {
+        if (!(executor.getEnvironment() instanceof MachineEnvironment env)) return null;
+        if (env.getCurrentEvent() instanceof RecipeLogicEvent event && event.getRecipeLogic() != null) {
+            return event.getRecipeLogic();
+        }
+        return env.getMachine().getRecipeLogic();
     }
 }

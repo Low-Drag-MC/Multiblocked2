@@ -155,6 +155,11 @@ public class ForgeEnergyCapabilityTrait extends SimpleCapabilityTrait<IEnergySto
         return getDefinition().getFancyRendererSettings().isEnable();
     }
 
+    @Override
+    public boolean notifiesAllChanges() {
+        return true;
+    }
+
     public class ForgeEnergyRecipeHandler extends RecipeHandlerTrait<Integer> {
         protected ForgeEnergyRecipeHandler() {
             super(ForgeEnergyCapabilityTrait.this, ForgeEnergyRecipeCapability.CAP);

@@ -20,12 +20,17 @@ public class TestRecipeTypeBuilder {
 
     private record PendingRecipe(ResourceLocation id, Consumer<MBDRecipeBuilder> body) {}
 
-    private TestRecipeTypeBuilder(ResourceLocation id) {
-        this.recipeType = new MBDRecipeType(id);
+    private TestRecipeTypeBuilder(MBDRecipeType recipeType) {
+        this.recipeType = recipeType;
     }
 
     public static TestRecipeTypeBuilder of(ResourceLocation id) {
-        return new TestRecipeTypeBuilder(id);
+        return new TestRecipeTypeBuilder(new MBDRecipeType(id));
+    }
+
+    /** Build on a recipe type made elsewhere, such as a subclass standing in for an addon's. */
+    public static TestRecipeTypeBuilder of(MBDRecipeType recipeType) {
+        return new TestRecipeTypeBuilder(recipeType);
     }
 
     /**

@@ -7,9 +7,8 @@ import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
 import com.lowdragmc.mbd2.common.blueprint.MachineBlueprintGraph;
 import com.lowdragmc.mbd2.common.blueprint.MachineEnvironment;
 import com.lowdragmc.mbd2.common.blueprint.node.MachineActionNode;
-import com.lowdragmc.mbd2.common.blueprint.node.MachineNodes;
+import com.lowdragmc.mbd2.common.machine.definition.config.event.RecipeLogicEvent;
 import net.minecraft.network.chat.Component;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * The things a blueprint can do <em>to</em> a machine's recipe logic.
@@ -23,7 +22,10 @@ public final class RecipeLogicActionNodes {
 
     private RecipeLogicActionNodes() {}
 
-    /** Base: resolves the recipe logic, falling back to the blueprint's own machine's. */
+    /**
+     * Base: acts on the wired recipe logic. Unwired, on the handled recipe event's logic, else on every logic of
+     * the machine, so switching a machine off stops all its threads and logics.
+     */
     public abstract static class LogicAction extends MachineActionNode {
         @InputPort
         public RecipeLogic recipeLogic;
@@ -32,21 +34,24 @@ public final class RecipeLogicActionNodes {
 
         @Override
         protected final void run(ExecContext ctx, MachineEnvironment env) {
-            RecipeLogic logic = resolve(ctx);
-            if (logic == null) return;
+            var explicit = ctx.getInput("recipeLogic", RecipeLogic.class, null);
+            if (explicit != null) {
+                applyOnServer(ctx, explicit);
+            } else if (env.getCurrentEvent() instanceof RecipeLogicEvent event && event.getRecipeLogic() != null) {
+                applyOnServer(ctx, event.getRecipeLogic());
+            } else {
+                for (var logic : env.getMachine().getRecipeLogics()) {
+                    applyOnServer(ctx, logic);
+                }
+            }
+        }
+
+        private void applyOnServer(ExecContext ctx, RecipeLogic logic) {
             // Asked of the level rather than the machine: RecipeLogic holds an IMachine, which has no
             // side accessor of its own, and a machine still being constructed has no level yet.
             var level = logic.machine.getLevel();
             if (level == null || level.isClientSide) return;
             apply(ctx, logic);
-        }
-
-        @Nullable
-        private RecipeLogic resolve(ExecContext ctx) {
-            var explicit = ctx.getInput("recipeLogic", RecipeLogic.class, null);
-            if (explicit != null) return explicit;
-            var machine = MachineNodes.ownMachine(ctx.getExecutor());
-            return machine == null ? null : machine.getRecipeLogic();
         }
     }
 

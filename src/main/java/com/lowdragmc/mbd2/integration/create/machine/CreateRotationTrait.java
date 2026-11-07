@@ -220,6 +220,12 @@ public class CreateRotationTrait implements ITrait {
             return CreateRotationTrait.this;
         }
 
+        /** The kinetic block entity runs one speed and stress for one recipe at a time. */
+        @Override
+        public boolean supportsMultipleRecipeLogics() {
+            return false;
+        }
+
         @Override
         public ISubscription addChangedListener(Runnable listener) {
             listeners.add(listener);

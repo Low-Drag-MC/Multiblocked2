@@ -81,7 +81,7 @@ public class MBDRecipeTypeDisplayCategory extends ModularUIDisplayCategory<MBDRe
         for (var recipeType : MBDRegistries.RECIPE_TYPES) {
             if (!recipeType.isXEIVisible()) continue;
             for (var definition : MBDRegistries.MACHINE_DEFINITIONS) {
-                if (definition.recipeLogicSettings().getRecipeType() == recipeType && definition.item() != null) {
+                if (definition.runsRecipeType(recipeType) && definition.item() != null) {
                     registry.addWorkstations(CATEGORIES.apply(recipeType), EntryStacks.of(definition.item()));
                 }
             }
@@ -90,7 +90,7 @@ public class MBDRecipeTypeDisplayCategory extends ModularUIDisplayCategory<MBDRe
 
     private static net.minecraft.world.level.ItemLike pickIconItem(MBDRecipeType recipeType) {
         for (var definition : MBDRegistries.MACHINE_DEFINITIONS) {
-            if (definition.recipeLogicSettings().getRecipeType() == recipeType && definition.item() != null) {
+            if (definition.runsRecipeType(recipeType) && definition.item() != null) {
                 return definition.item();
             }
         }

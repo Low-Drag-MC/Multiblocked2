@@ -173,6 +173,11 @@ public class ChemicalTankCapabilityTrait extends SimpleCapabilityTrait<IChemical
         return getDefinition().getFancyRendererSettings().isEnable();
     }
 
+    @Override
+    public boolean notifiesAllChanges() {
+        return true;
+    }
+
     public class ChemicalRecipeHandler extends RecipeHandlerTrait<ChemicalStackIngredient> {
         protected ChemicalRecipeHandler() {
             super(ChemicalTankCapabilityTrait.this, MekanismChemicalRecipeCapability.CAP);

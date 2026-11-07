@@ -93,7 +93,7 @@ public class MBDRecipeTypeEmiCategory extends EmiRecipeCategory {
             if (!recipeType.isXEIVisible()) continue;
             var category = CATEGORIES.apply(recipeType);
             for (var definition : MBDRegistries.MACHINE_DEFINITIONS) {
-                if (definition.recipeLogicSettings().getRecipeType() == recipeType && definition.item() != null) {
+                if (definition.runsRecipeType(recipeType) && definition.item() != null) {
                     registry.addWorkstation(category, EmiStack.of(definition.item()));
                 }
             }
@@ -102,7 +102,7 @@ public class MBDRecipeTypeEmiCategory extends EmiRecipeCategory {
 
     private static net.minecraft.world.level.ItemLike pickIconItem(MBDRecipeType recipeType) {
         for (var definition : MBDRegistries.MACHINE_DEFINITIONS) {
-            if (definition.recipeLogicSettings().getRecipeType() == recipeType && definition.item() != null) {
+            if (definition.runsRecipeType(recipeType) && definition.item() != null) {
                 return definition.item();
             }
         }

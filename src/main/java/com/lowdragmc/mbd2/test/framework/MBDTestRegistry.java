@@ -54,6 +54,14 @@ public class MBDTestRegistry {
         register(new com.lowdragmc.mbd2.test.tests.fx.MachineFXFixtures());
         register(new com.lowdragmc.mbd2.test.tests.ui.KubeJSMachineUIFixtures());
         register(new com.lowdragmc.mbd2.test.tests.ui.JEIRecipeIdFixtures());
+        register(new com.lowdragmc.mbd2.test.tests.recipe.logic.RecipeLogicGoldenFixtures());
+        register(new com.lowdragmc.mbd2.test.tests.recipe.logic.RecipeLogicApiFixtures());
+        register(new com.lowdragmc.mbd2.test.tests.recipe.logic.RecipeLogicFixFixtures());
+        register(new com.lowdragmc.mbd2.test.tests.recipe.logic.MultiRecipeLogicFixtures());
+        register(new com.lowdragmc.mbd2.test.tests.recipe.logic.RecipeLookupFixtures());
+        if (com.lowdragmc.mbd2.test.tests.bench.RecipeLogicBench.ENABLED) {
+            register(new com.lowdragmc.mbd2.test.tests.bench.RecipeLogicBenchFixtures());
+        }
         if (net.neoforged.fml.ModList.get().isLoaded("mekanism")) {
             register(new com.lowdragmc.mbd2.test.tests.trait.ChemicalTankTraitFixtures());
             register(new com.lowdragmc.mbd2.test.tests.trait.MekHeatTraitFixtures());
@@ -109,6 +117,9 @@ public class MBDTestRegistry {
     @SubscribeEvent
     public void onRegisterGameTests(net.neoforged.neoforge.event.RegisterGameTestsEvent event) {
         var modList = net.neoforged.fml.ModList.get();
+        if (com.lowdragmc.mbd2.test.tests.bench.RecipeLogicBench.ENABLED) {
+            event.register(com.lowdragmc.mbd2.test.tests.bench.RecipeLogicBench.class);
+        }
         if (modList.isLoaded("mekanism")) {
             event.register(com.lowdragmc.mbd2.test.tests.trait.ChemicalTankTraitTests.class);
             event.register(com.lowdragmc.mbd2.test.tests.trait.MekHeatTraitTests.class);

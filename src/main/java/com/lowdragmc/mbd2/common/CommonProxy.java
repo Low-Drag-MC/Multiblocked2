@@ -45,8 +45,11 @@ import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLConstructModEvent;
 import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+import net.neoforged.neoforge.event.TagsUpdatedEvent;
 import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.neoforged.neoforge.gametest.GameTestHooks;
 import net.neoforged.neoforge.registries.RegisterEvent;
 
@@ -69,6 +72,9 @@ public class CommonProxy {
             }
         }
         eventBus.addListener(MBD2Network::registerPayloads);
+        // the recipe index holds tag contents and the server's recipe manager
+        NeoForge.EVENT_BUS.addListener((TagsUpdatedEvent event) -> MBDRecipeType.invalidateLookups());
+        NeoForge.EVENT_BUS.addListener((ServerStoppedEvent event) -> MBDRecipeType.invalidateLookups());
         // Register our mod's ForgeConfigSpec so that Forge can create and load the config file for us
         modContainer.registerConfig(ModConfig.Type.COMMON, ConfigHolder.SPEC);
         // Register blocks
