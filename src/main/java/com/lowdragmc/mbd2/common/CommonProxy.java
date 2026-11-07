@@ -64,8 +64,8 @@ public class CommonProxy {
         eventBus.register(this);
         if (Platform.isDevEnv()) {
             // Fixtures register real machine definitions, so they stay out of a plain dev client. The
-            // harnesses need them: the gametest server, and LDLib2's UI and multi-process test runners,
-            // whose world-based scenarios have to place fixture machines for real.
+            // harnesses need them: the gametest server, and LDLib2's UI test, recording and multi-process
+            // runners, whose world-based scenarios have to place fixture machines for real.
             if (GameTestHooks.isGametestServer() || isUiTestRun()) {
                 eventBus.register(new MBDTestRegistry());
                 MBDTestRegistry.init();
@@ -102,7 +102,7 @@ public class CommonProxy {
 
     /** Whether LDLib2's in-client UI test runner is driving this launch ({@code runClient -PldTest=...}). */
     private static boolean isUiTestRun() {
-        return isSet("ldlib2.uitest.run") || isSet("ldlib2.mptest.role");
+        return isSet("ldlib2.uitest.run") || isSet("ldlib2.uitest.recordings") || isSet("ldlib2.mptest.role");
     }
 
     private static boolean isSet(String property) {
