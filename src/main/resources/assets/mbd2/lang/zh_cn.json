@@ -1084,10 +1084,10 @@
     "config.definition.trait.astral_lumen_storage.max_extract": "最大输出",
     "config.definition.trait.astral_lumen_storage.max_extract.tooltip": "每次操作最多取出的流明，包括星辉魔法设备从机器汲取。机器自身配方不受限制。",
     "config.definition.trait.astral_lumen_storage.provide_to_network": "向流明网络供应",
-    "config.definition.trait.astral_lumen_storage.provide_to_network.tooltip.0": "作为源节点加入星辉魔法的流明网络，供应机器当前存有的流明。16 格内且视线无遮挡（或经流明灯丝中继）的祭坛、流明阵列、结晶器即可从中汲取。",
+    "config.definition.trait.astral_lumen_storage.provide_to_network.tooltip.0": "作为源节点加入星辉魔法的流明网络，供应机器当前存有的流明。16 格内且视线无遮挡（或经流明丝结中继）的祭坛、流明阵列、结晶器即可从中汲取。",
     "config.definition.trait.astral_lumen_storage.provide_to_network.tooltip.1": "设备能取走多少由特性的内部能力 IO 决定。",
     "config.definition.trait.astral_lumen_storage.draw_from_network": "从流明网络汲取",
-    "config.definition.trait.astral_lumen_storage.draw_from_network.tooltip.0": "像祭坛一样从网络中的源节点把流明拉进本缓存：16 格内且视线无遮挡，或经流明灯丝中继。",
+    "config.definition.trait.astral_lumen_storage.draw_from_network.tooltip.0": "像祭坛一样从网络中的源节点把流明拉进本缓存：16 格内且视线无遮挡，或经流明丝结中继。",
     "config.definition.trait.astral_lumen_storage.draw_from_network.tooltip.1": "只汲取“流明类型”中列出的类型，且这些类型不会再向网络供应，因此两台这样的机器不会互相抽取。",
     "config.definition.trait.astral_lumen_storage.draw_interval": "汲取间隔",
     "config.definition.trait.astral_lumen_storage.draw_interval.tooltip": "多久从网络汲取一次（tick）。每次每种类型最多移动“最大输入”。",
@@ -1130,5 +1130,5 @@
     "config.recipe.condition.astral_research.attunement": "共鸣星座",
     "config.recipe.condition.astral_research.attunement.tooltip": "研究者必须共鸣的星座，或任意。",
     "config.recipe.condition.astral_research.discovered": "已发现星座",
-    "config.recipe.condition.astral_research.discovered.tooltip": "研究者必须已发现的星座，或任意。机器上需要有“研究者”特性。"
+    "config.recipe.condition.astral_research.discovered.tooltip": "研究者必须已发现的星座，或任意。机器上需要有“星辉魔法 - 研究者”特性。"
 }
