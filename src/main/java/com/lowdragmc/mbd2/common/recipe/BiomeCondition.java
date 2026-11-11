@@ -3,7 +3,6 @@ package com.lowdragmc.mbd2.common.recipe;
 import com.google.gson.JsonObject;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.ConfiguratorGroup;
 import com.lowdragmc.lowdraglib.gui.editor.configurator.SearchComponentConfigurator;
-import com.lowdragmc.lowdraglib.utils.LocalizationUtils;
 import com.lowdragmc.mbd2.api.recipe.MBDRecipe;
 import com.lowdragmc.mbd2.api.recipe.RecipeCondition;
 import com.lowdragmc.mbd2.api.recipe.RecipeLogic;
@@ -48,7 +47,8 @@ public class BiomeCondition extends RecipeCondition {
 
     @Override
     public Component getTooltips() {
-        return Component.translatable("recipe.condition.biome.tooltip", LocalizationUtils.format("biome.%s.%s", biome.getNamespace(), biome.getPath()));
+        return Component.translatable("recipe.condition.biome.tooltip",
+                                      Component.translatable("biome." + biome.toLanguageKey()));
     }
 
     @Override
