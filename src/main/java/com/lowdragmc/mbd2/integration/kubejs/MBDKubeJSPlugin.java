@@ -5,7 +5,6 @@ import com.lowdragmc.mbd2.MBD2;
 import com.lowdragmc.mbd2.api.capability.recipe.IO;
 import com.lowdragmc.mbd2.api.recipe.content.ContentModifier;
 import com.lowdragmc.mbd2.api.registry.MBDRegistries;
-import com.lowdragmc.mbd2.common.event.CustomRendererEvent;
 import com.lowdragmc.mbd2.common.machine.definition.config.ConfigBlockProperties;
 import com.lowdragmc.mbd2.common.machine.definition.config.MachineState;
 import com.lowdragmc.mbd2.common.trait.CapabilityIO;
@@ -85,6 +84,6 @@ public class MBDKubeJSPlugin extends KubeJSPlugin {
 
     @Override
     public void afterInit() {
-        MBDClientEvents.CUSTOM_RENDER.post(new CustomRendererEventJS());
+        MBDClientEvents.CUSTOM_RENDER.post(new RegisterCustomRendererEventJS());
     }
 }
