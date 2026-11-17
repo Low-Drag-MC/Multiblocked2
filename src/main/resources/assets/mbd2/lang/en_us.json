@@ -817,6 +817,7 @@
     "mbd2.jei.multiblock_info": "Multiblock Info",
 
     "ldlib.renderer.geckolib": "Geckolib Model",
+    "ldlib.renderer.custom": "Custom Block Entity Renderer",
     "geckolib_renderer.scale_width": "Scale Width",
     "geckolib_renderer.scale_height": "Scale Height",
     "geckolib_renderer.use_glowing_layer": "Use GLowing Layer",
