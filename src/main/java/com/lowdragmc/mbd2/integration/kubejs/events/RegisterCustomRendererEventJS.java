@@ -5,12 +5,15 @@ import com.lowdragmc.mbd2.client.renderer.CustomRenderer;
 import dev.latvian.mods.kubejs.event.EventJS;
 import net.minecraft.client.renderer.blockentity.BeaconRenderer;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 import java.awt.*;
 
 import static net.minecraft.client.renderer.blockentity.BeaconRenderer.BEAM_LOCATION;
 
 @SuppressWarnings("unused")
+@OnlyIn(Dist.CLIENT)
 public class RegisterCustomRendererEventJS extends EventJS {
     public RegisterCustomRendererEventJS() {
         CustomRenderer.javaScriptRenderFunctions.clear();

@@ -4,6 +4,8 @@ import com.lowdragmc.lowdraglib.utils.ColorUtils;
 import com.lowdragmc.mbd2.client.renderer.CustomRenderer;
 import net.minecraft.client.renderer.blockentity.BeaconRenderer;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.eventbus.api.Event;
 
 import java.awt.*;
@@ -11,6 +13,7 @@ import java.awt.*;
 import static net.minecraft.client.renderer.blockentity.BeaconRenderer.BEAM_LOCATION;
 
 @SuppressWarnings("unused")
+@OnlyIn(Dist.CLIENT)
 public class RegisterCustomRendererEvent extends Event {
     public RegisterCustomRendererEvent() {
         CustomRenderer.javaRenderFunctions.clear();
