@@ -1,12 +1,16 @@
 package com.lowdragmc.mbd2.common.machine.definition.config.event;
 
 import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegister;
+import com.lowdragmc.lowdraglib.gui.graphprocessor.data.parameter.ExposedParameter;
 import com.lowdragmc.mbd2.common.graphprocessor.GraphParameterGet;
 import com.lowdragmc.mbd2.common.machine.MBDMachine;
 import com.lowdragmc.mbd2.integration.geckolib.AnimatableMachine;
 import lombok.Getter;
 import lombok.Setter;
 import software.bernie.geckolib.core.keyframe.event.CustomInstructionKeyframeEvent;
+
+import java.util.Map;
+import java.util.Optional;
 
 @Getter
 @Setter
@@ -21,6 +25,12 @@ public class MachineCustomKeyframeEvent extends MachineEvent {
         this.event = event;
 
         instruction = event.getKeyframeData().getInstructions();
+    }
+
+    @Override
+    public void bindParameters(Map<String, ExposedParameter> exposedParameters) {
+        super.bindParameters(exposedParameters);
+        Optional.ofNullable(exposedParameters.get("instruction")).ifPresent(p -> p.setValue(instruction));
     }
 
 }
