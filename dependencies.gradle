@@ -75,6 +75,12 @@ dependencies {
     // Applied Energistics 2
     implementation fg.deobf("appeng:appliedenergistics2-forge:${applied_energistics_version}")
 
+    // Valkyrien Skies 2
+    compileOnly fg.deobf("org.valkyrienskies:valkyrienskies-120-forge:${vs2_version}")
+    compileOnly("org.valkyrienskies.core:api:${vs_core_version}")
+    compileOnly("org.joml:joml:1.10.4")
+    compileOnly("org.joml:joml-primitives:1.10.0")
+
     // Blood Magic
 //    implementation fg.deobf("com.wayoftime.bloodmagic:BloodMagic:${blood_magic_version}")
 

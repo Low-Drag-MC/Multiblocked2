@@ -68,6 +68,20 @@ repositories {
             includeGroup 'com.gregtechceu.gtceu'
         }
     }
+    maven {
+        name = "Valkyrien Skies"
+        url = "https://maven.valkyrienskies.org"
+        content {
+            excludeGroup("org.spongepowered")
+            excludeGroup("net.jodah")
+            excludeGroup("net.minecraftforge")
+        }
+    }
+    maven {
+        name = "Kotlin for Forge"
+        url = "https://thedarkcolour.github.io/KotlinForForge/"
+    }
+
     // keep this last. ModMaven answers 200 with an html redirect page instead of 404 for everything
     // it doesn't host, and ForgeGradle keeps whatever bytes come back without looking at them, so
     // being asked first would make it cache that page as forge-userdev.jar / patchy.jar / a mod's
