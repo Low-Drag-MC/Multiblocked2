@@ -84,6 +84,9 @@ public class MBDKubeJSPlugin extends KubeJSPlugin {
 
     @Override
     public void afterInit() {
-        MBDClientEvents.CUSTOM_RENDER.post(new RegisterCustomRendererEventJS());
+        // afterInit is called on both sides, while RegisterCustomRendererEventJS is client only.
+        if (LDLib.isClient()) {
+            RegisterCustomRendererEventJS.postEvent();
+        }
     }
 }

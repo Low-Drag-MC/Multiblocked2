@@ -4,6 +4,7 @@ import com.lowdragmc.lowdraglib.client.renderer.ISerializableRenderer;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.Configurable;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.LDLRegisterClient;
 import com.lowdragmc.lowdraglib.gui.editor.annotation.NumberRange;
+import com.lowdragmc.mbd2.MBD2;
 import com.mojang.blaze3d.vertex.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -15,6 +16,8 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
 @LDLRegisterClient(name = "custom", group = "renderer")
 @Getter
@@ -23,6 +26,7 @@ import java.util.HashMap;
 public class CustomRenderer implements ISerializableRenderer {
     public static final HashMap<ResourceLocation, RenderSupplier> javaRenderFunctions = new HashMap<>();
     public static final HashMap<ResourceLocation, RenderSupplier> javaScriptRenderFunctions = new HashMap<>();
+    private static final Set<ResourceLocation> ERRORED_RENDERERS = new HashSet<>();
 
     @Configurable
     public ResourceLocation rendererName = ResourceLocation.parse("mbd2:beacon");
@@ -50,18 +54,20 @@ public class CustomRenderer implements ISerializableRenderer {
 
     @Override
     public void render(BlockEntity blockEntity, float partialTick, PoseStack stack, MultiBufferSource buffer, int combinedLight, int combinedOverlay) {
-        renderInternal(javaRenderFunctions, blockEntity, partialTick, stack, buffer, combinedLight, combinedOverlay);
-        renderInternal(javaScriptRenderFunctions, blockEntity, partialTick, stack, buffer, combinedLight, combinedOverlay);
-    }
-
-    private void renderInternal(HashMap<ResourceLocation, RenderSupplier> renderFunctions, BlockEntity blockEntity, float partialTick, PoseStack stack, MultiBufferSource buffer, int combinedLight, int combinedOverlay) {
-        if(renderFunctions.containsKey(rendererName)) {
-            stack.pushPose();
-            try {
-                renderFunctions.get(rendererName).render(blockEntity, partialTick, stack, buffer, combinedLight, combinedOverlay, data);
-            } catch(Exception e) {
-                throw new RuntimeException(e);
+        // renderers registered by KubeJS take priority over the java ones with the same name.
+        var renderFunction = javaScriptRenderFunctions.get(rendererName);
+        if (renderFunction == null) {
+            renderFunction = javaRenderFunctions.get(rendererName);
+        }
+        if (renderFunction == null) return;
+        stack.pushPose();
+        try {
+            renderFunction.render(blockEntity, partialTick, stack, buffer, combinedLight, combinedOverlay, data);
+        } catch (Exception e) {
+            if (ERRORED_RENDERERS.add(rendererName)) {
+                MBD2.LOGGER.error("Error while rendering the custom renderer {}", rendererName, e);
             }
+        } finally {
             stack.popPose();
         }
     }
