@@ -14,15 +14,15 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
-import java.awt.*;
 import java.util.HashMap;
 
-@LDLRegisterClient(name = "kubejs", group = "renderer")
+@LDLRegisterClient(name = "custom", group = "renderer")
 @Getter
 @Setter
 @OnlyIn(Dist.CLIENT)
-public class KubeJSRenderer implements ISerializableRenderer {
-    public static final HashMap<ResourceLocation, RenderSupplier> renderFunctions = new HashMap<>();
+public class CustomRenderer implements ISerializableRenderer {
+    public static final HashMap<ResourceLocation, RenderSupplier> javaRenderFunctions = new HashMap<>();
+    public static final HashMap<ResourceLocation, RenderSupplier> javaScriptRenderFunctions = new HashMap<>();
 
     @Configurable
     public ResourceLocation rendererName = ResourceLocation.parse("mbd2:beacon");
@@ -38,7 +38,7 @@ public class KubeJSRenderer implements ISerializableRenderer {
     @Getter
     public int maxRenderDistance = 64;
 
-    public KubeJSRenderer() {
+    public CustomRenderer() {
         data = new CompoundTag();
         data.putInt("color", -1);
     }
@@ -50,6 +50,11 @@ public class KubeJSRenderer implements ISerializableRenderer {
 
     @Override
     public void render(BlockEntity blockEntity, float partialTick, PoseStack stack, MultiBufferSource buffer, int combinedLight, int combinedOverlay) {
+        renderInternal(javaRenderFunctions, blockEntity, partialTick, stack, buffer, combinedLight, combinedOverlay);
+        renderInternal(javaScriptRenderFunctions, blockEntity, partialTick, stack, buffer, combinedLight, combinedOverlay);
+    }
+
+    private void renderInternal(HashMap<ResourceLocation, RenderSupplier> renderFunctions, BlockEntity blockEntity, float partialTick, PoseStack stack, MultiBufferSource buffer, int combinedLight, int combinedOverlay) {
         if(renderFunctions.containsKey(rendererName)) {
             stack.pushPose();
             try {
